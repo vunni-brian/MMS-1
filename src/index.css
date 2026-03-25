@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 35 33% 97%;
+    --foreground: 20 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 25% 15%;
+
+    --primary: 16 65% 45%;
+    --primary-foreground: 35 33% 97%;
+
+    --secondary: 35 30% 90%;
+    --secondary-foreground: 20 25% 15%;
+
+    --muted: 35 20% 93%;
+    --muted-foreground: 20 10% 50%;
+
+    --accent: 145 35% 35%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 15% 88%;
+    --input: 30 15% 88%;
+    --ring: 16 65% 45%;
+
+    --radius: 0.75rem;
+
+    --success: 145 45% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 20 25% 15%;
+    --info: 210 70% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --sidebar-background: 20 20% 18%;
+    --sidebar-foreground: 35 20% 85%;
+    --sidebar-primary: 16 65% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 20 18% 24%;
+    --sidebar-accent-foreground: 35 20% 90%;
+    --sidebar-border: 20 15% 25%;
+    --sidebar-ring: 16 65% 45%;
+
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  .card-warm {
+    @apply bg-card rounded-xl border shadow-sm;
+    box-shadow: 0 1px 3px 0 hsl(20 25% 15% / 0.04), 0 1px 2px -1px hsl(20 25% 15% / 0.04);
+  }
+
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}

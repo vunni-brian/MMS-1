@@ -1,0 +1,52 @@
+import type { Permission, Role } from "../types.ts";
+
+export const rolePermissions: Record<Role, Permission[]> = {
+  vendor: [
+    "stall:read",
+    "booking:read",
+    "booking:create",
+    "payment:read",
+    "payment:create",
+    "notification:read",
+    "notification:update",
+    "ticket:read",
+    "ticket:create",
+    "fallback:query",
+  ],
+  manager: [
+    "auth:manage",
+    "vendor:read",
+    "vendor:review",
+    "coordination:read",
+    "coordination:write",
+    "resource:read",
+    "resource:create",
+    "stall:read",
+    "stall:write",
+    "booking:read",
+    "booking:update",
+    "payment:read",
+    "notification:read",
+    "ticket:read",
+    "ticket:update",
+    "report:read",
+    "audit:read",
+  ],
+  official: [
+    "coordination:read",
+    "coordination:write",
+    "resource:read",
+    "resource:review",
+    "stall:read",
+    "booking:read",
+    "payment:read",
+    "ticket:read",
+    "report:read",
+    "audit:read",
+    "vendor:read",
+  ],
+};
+
+export const hasPermission = (role: Role, permission: Permission) => {
+  return rolePermissions[role].includes(permission);
+};
