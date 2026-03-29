@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle, Store, Upload } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api";
+import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,16 @@ const RegisterPage = () => {
     }
   };
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handlePrimaryAction();
+  };
+
+  const canSubmit =
+    step === "form"
+      ? Boolean(form.name.trim() && form.email.trim() && form.phone.trim() && form.password && form.marketId && form.idFile)
+      : otp.length === 6 && Boolean(challengeId);
+
   if (step === "done") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -117,117 +128,119 @@ const RegisterPage = () => {
             <CardTitle className="text-lg font-heading">{step === "form" ? "Vendor details" : "Phone verification"}</CardTitle>
             <CardDescription>Step {step === "form" ? "1" : "2"} of 2</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {step === "form" ? (
-              <>
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={form.email}
-                    onChange={(event) => updateField("email", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    placeholder="+256 7XX XXX XXX"
-                    value={form.phone}
-                    onChange={(event) => updateField("phone", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="market">Market</Label>
-                  <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
-                    <SelectTrigger id="market">
-                      <SelectValue placeholder="Select your market" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(marketsData?.markets || []).map((market) => (
-                        <SelectItem key={market.id} value={market.id}>
-                          {market.name} ({market.location})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={form.password}
-                    onChange={(event) => updateField("password", event.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>ID Document (PDF/JPG/PNG, max 5MB)</Label>
-                  <label className="block border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-primary/40 transition-colors cursor-pointer">
-                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {form.idFile ? form.idFile.name : "Click to choose an ID document"}
-                    </p>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="hidden"
-                      onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {step === "form" ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={form.email}
+                      onChange={(event) => updateField("email", event.target.value)}
+                      autoComplete="email"
+                      required
                     />
-                  </label>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      placeholder="+256 7XX XXX XXX"
+                      value={form.phone}
+                      onChange={(event) => updateField("phone", event.target.value)}
+                      autoComplete="tel"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="market">Market</Label>
+                    <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
+                      <SelectTrigger id="market">
+                        <SelectValue placeholder="Select your market" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(marketsData?.markets || []).map((market) => (
+                          <SelectItem key={market.id} value={market.id}>
+                            {market.name} ({market.location})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={form.password}
+                      onChange={(event) => updateField("password", event.target.value)}
+                      autoComplete="new-password"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>ID Document (PDF/JPG/PNG, max 5MB)</Label>
+                    <label className="block border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-primary/40 transition-colors cursor-pointer">
+                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {form.idFile ? form.idFile.name : "Click to choose an ID document"}
+                      </p>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
+                    Enter the verification code sent to <span className="font-medium text-foreground">{form.phone}</span>.
+                    {developmentCode && (
+                      <p className="mt-2">
+                        Development OTP: <span className="font-mono font-medium text-foreground">{developmentCode}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">OTP Code</Label>
+                    <OtpCodeInput id="otp" value={otp} onChange={setOtp} disabled={isSubmitting} />
+                  </div>
                 </div>
-              </>
-            ) : (
-              <div className="space-y-3">
-                <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
-                  Enter the verification code sent to <span className="font-medium text-foreground">{form.phone}</span>.
-                  {developmentCode && (
-                    <p className="mt-2">
-                      Development OTP: <span className="font-mono font-medium text-foreground">{developmentCode}</span>
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="otp">OTP Code</Label>
-                  <Input
-                    id="otp"
-                    placeholder="Enter 6-digit code"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(event) => setOtp(event.target.value)}
-                    className="text-center text-lg tracking-[0.4em]"
-                  />
-                </div>
+              )}
+
+              {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (step === "form") {
+                      navigate("/login");
+                    } else {
+                      setStep("form");
+                      setOtp("");
+                    }
+                  }}
+                  className="flex-1"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1" disabled={isSubmitting || !canSubmit}>
+                  {step === "form" ? "Send OTP" : "Verify & Submit"}
+                </Button>
               </div>
-            )}
-
-            {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
-
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (step === "form") {
-                    navigate("/login");
-                  } else {
-                    setStep("form");
-                    setOtp("");
-                  }
-                }}
-                className="flex-1"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back
-              </Button>
-              <Button onClick={handlePrimaryAction} className="flex-1" disabled={isSubmitting}>
-                {step === "form" ? "Send OTP" : "Verify & Submit"}
-              </Button>
-            </div>
+            </form>
           </CardContent>
         </Card>
       </div>
