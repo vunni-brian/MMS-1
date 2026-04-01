@@ -61,7 +61,7 @@ const LoginPage = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
             <Store className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold font-heading text-foreground">Market Stall Manager</h1>
+          <h1 className="text-2xl font-bold font-heading text-foreground">Market Management System</h1>
           <p className="text-muted-foreground text-sm">
             {pendingMfa ? "Manager MFA verification" : "Sign in with your registered credentials"}
           </p>

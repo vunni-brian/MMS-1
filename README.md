@@ -1,6 +1,6 @@
-# Market Stall Manager
+# Market Management System
 
-Market Stall Manager is now a full-stack MVP in a single repo:
+Market Management System is now a full-stack MVP in a single repo:
 
 - `src/` contains the Vite + React frontend
 - `server/` contains a modular TypeScript API using Node's built-in HTTP runtime and SQLite

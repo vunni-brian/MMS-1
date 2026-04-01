@@ -1,5 +1,5 @@
 param(
-  [string]$OutputPath = (Join-Path (Get-Location) "Market_Stall_Manager_Architecture_and_Design_Documentation.docx")
+  [string]$OutputPath = (Join-Path (Get-Location) "Market_Management_System_Architecture_and_Design_Documentation.docx")
 )
 
 $ErrorActionPreference = "Stop"
@@ -103,12 +103,12 @@ function Write-Utf8File {
 $generatedOn = Get-Date -Format "dd MMMM yyyy HH:mm"
 $body = New-Object System.Collections.Generic.List[string]
 
-$body.Add((New-ParagraphXml -Text "Market Stall Manager" -Style "Title" -FontSize 34 -Bold $true))
+$body.Add((New-ParagraphXml -Text "Market Management System" -Style "Title" -FontSize 34 -Bold $true))
 $body.Add((New-ParagraphXml -Text "System Architecture and Design Documentation" -Style "Title" -FontSize 28 -Bold $true))
 $body.Add((New-ParagraphXml -Text "Generated on $generatedOn" -Style "Normal" -FontSize 22))
 
 Add-Section -Body $body -Heading "1. Document Purpose and Scope" -Paragraphs @(
-  "This document captures the architecture and design of the Market Stall Manager platform after the full-stack MVP implementation.",
+  "This document captures the architecture and design of the Market Management System platform after the full-stack MVP implementation.",
   "It covers the modular monolith backend, the React frontend, the persistence model, the main business flows, security controls, and the low-fidelity UI wireframes required for analysis and project reporting.",
   "The scope includes identity and access management, vendor registration, stall booking, payments, notifications, complaints, reporting, audit logging, fallback channels, and the new multi-market oversight capability for officials."
 ) -CodeLines @()
@@ -177,7 +177,7 @@ Add-Section -Body $body -Heading "4. Context-Level Data Flow Diagram (DFD Level 
   "     |                                   |",
   "     v                                   |",
   "+----+--------------------------------------------------------------------+",
-  "|                     Market Stall Manager Platform                        |",
+  "|                    Market Management System Platform                     |",
   "+----+--------------------------------------------------------------------+",
   "     ^                                   |",
   "     | approvals, booking ops            | payment callbacks / status",
@@ -315,7 +315,7 @@ Add-Section -Body $body -Heading "10. UI Wireframes" -Paragraphs @(
 ) -CodeLines @(
   "A. Login / MFA",
   "+--------------------------------------------------------------+",
-  "| Market Stall Manager                                         |",
+  "| Market Management System                                     |",
   "| Phone Number [____________________]                          |",
   "| Password     [____________________]                          |",
   "| [ Sign In ]                                                  |",
@@ -498,7 +498,7 @@ $coreXml = @"
                    xmlns:dcterms="http://purl.org/dc/terms/"
                    xmlns:dcmitype="http://purl.org/dc/dcmitype/"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>Market Stall Manager - System Architecture and Design Documentation</dc:title>
+  <dc:title>Market Management System - System Architecture and Design Documentation</dc:title>
   <dc:creator>OpenAI Codex</dc:creator>
   <cp:lastModifiedBy>OpenAI Codex</cp:lastModifiedBy>
   <dcterms:created xsi:type="dcterms:W3CDTF">$(Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")</dcterms:created>
