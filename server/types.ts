@@ -81,7 +81,17 @@ export interface AppConfig {
   apiUrl: string;
   dataDir: string;
   uploadsDir: string;
-  dbPath: string;
+  databaseUrl: string;
+  migrationDatabaseUrl: string | null;
+  databaseSsl: boolean;
+  autoMigrate: boolean;
+  seedOnBoot: boolean;
+  supabaseUrl: string | null;
+  supabaseAnonKey: string | null;
+  supabaseServiceRoleKey: string | null;
+  supabaseStorageBucket: string;
+  supabaseAuthEnabled: boolean;
+  supabaseStorageEnabled: boolean;
   otpTtlMinutes: number;
   sessionTtlHours: number;
   notificationRetryCount: number;

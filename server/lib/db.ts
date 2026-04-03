@@ -1,290 +1,197 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
+
+import pg from "pg";
 
 import { config } from "../config.ts";
 import { rolePermissions } from "./permissions.ts";
 import { hashPassword, nowIso } from "./security.ts";
+import { syncSeedUserToSupabase } from "./supabase.ts";
 import type { AuthUser, NotificationType, Role } from "../types.ts";
 
-export const db = new DatabaseSync(config.dbPath);
-db.exec("PRAGMA foreign_keys = ON;");
+const { Pool, types } = pg;
 
-const fileExists = fs.existsSync(config.dbPath);
-if (!fileExists) {
-  fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
-}
+// PostgreSQL returns bigint columns as strings by default. The counts and sums
+// in this app are small enough to safely coerce into numbers.
+types.setTypeParser(20, (value) => Number(value));
 
-export const run = (sql: string, params: unknown[] = []) => db.prepare(sql).run(...params);
-export const get = <T>(sql: string, params: unknown[] = []) => db.prepare(sql).get(...params) as T | undefined;
-export const all = <T>(sql: string, params: unknown[] = []) => db.prepare(sql).all(...params) as T[];
+type DbClient = InstanceType<typeof Pool> | import("pg").PoolClient;
+type TransactionContext = {
+  client: import("pg").PoolClient;
+  queue: Promise<void>;
+};
+type RunResult = { rowCount: number };
 
-export const transaction = <T>(fn: () => T) => {
-  db.exec("BEGIN IMMEDIATE");
+const migrationsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../db/migrations");
+const transactionStorage = new AsyncLocalStorage<TransactionContext>();
+
+const resolveSslConfig = (connectionString: string) =>
+  config.databaseSsl && !connectionString.includes("sslmode=disable")
+    ? { rejectUnauthorized: false }
+    : undefined;
+
+export const db = new Pool({
+  connectionString: config.databaseUrl,
+  ssl: resolveSslConfig(config.databaseUrl),
+});
+
+const migrationDb = new Pool({
+  connectionString: config.migrationDatabaseUrl || config.databaseUrl,
+  ssl: resolveSslConfig(config.migrationDatabaseUrl || config.databaseUrl),
+});
+
+const normalizeInsertOrIgnore = (sql: string) => {
+  if (!/INSERT\s+OR\s+IGNORE\s+INTO/i.test(sql)) {
+    return sql;
+  }
+
+  const replaced = sql.replace(/INSERT\s+OR\s+IGNORE\s+INTO/i, "INSERT INTO").trimEnd().replace(/;$/, "");
+  return `${replaced} ON CONFLICT DO NOTHING`;
+};
+
+const normalizePlaceholders = (sql: string) => {
+  let index = 0;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let previous = "";
+  let normalized = "";
+
+  for (const character of sql) {
+    if (character === "'" && previous !== "\\" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+    } else if (character === '"' && previous !== "\\" && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+    }
+
+    if (character === "?" && !inSingleQuote && !inDoubleQuote) {
+      index += 1;
+      normalized += `$${index}`;
+    } else {
+      normalized += character;
+    }
+
+    previous = character;
+  }
+
+  return normalized;
+};
+
+const prepareSql = (sql: string) => normalizePlaceholders(normalizeInsertOrIgnore(sql));
+const getClient = (): DbClient => transactionStorage.getStore()?.client ?? db;
+
+const query = async <T>(sql: string, params: unknown[] = []) => {
+  const text = prepareSql(sql);
+  const transactionContext = transactionStorage.getStore();
+
+  if (!transactionContext) {
+    return db.query<T>(text, params);
+  }
+
+  const resultPromise = transactionContext.queue.then(() => transactionContext.client.query<T>(text, params));
+  transactionContext.queue = resultPromise.then(() => undefined);
+  return await resultPromise;
+};
+
+const readMigrationFiles = () => {
+  return fs
+    .readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
+    .map((entry) => entry.name)
+    .sort();
+};
+
+export const run = async (sql: string, params: unknown[] = []): Promise<RunResult> => {
+  const result = await query(sql, params);
+  return { rowCount: result.rowCount ?? 0 };
+};
+
+export const get = async <T>(sql: string, params: unknown[] = []) => {
+  const result = await query<T>(sql, params);
+  return result.rows[0] as T | undefined;
+};
+
+export const all = async <T>(sql: string, params: unknown[] = []) => {
+  const result = await query<T>(sql, params);
+  return result.rows as T[];
+};
+
+export const transaction = async <T>(fn: () => Promise<T> | T) => {
+  const activeContext = transactionStorage.getStore();
+  if (activeContext) {
+    return await fn();
+  }
+
+  const client = await db.connect();
+  const context: TransactionContext = {
+    client,
+    queue: Promise.resolve(),
+  };
   try {
-    const result = fn();
-    db.exec("COMMIT");
+    await client.query("BEGIN");
+    const result = await transactionStorage.run(context, async () => await fn());
+    await context.queue;
+    await client.query("COMMIT");
     return result;
   } catch (error) {
-    db.exec("ROLLBACK");
+    await client.query("ROLLBACK");
     throw error;
+  } finally {
+    client.release();
   }
 };
 
-export const initDatabase = () => {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS markets (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      location TEXT NOT NULL,
-      created_at TEXT NOT NULL
+export const initDatabase = async () => {
+  const client = await migrationDb.connect();
+
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        name TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    const applied = new Set(
+      (
+        await client.query<{ name: string }>(`SELECT name FROM schema_migrations ORDER BY name ASC`)
+      ).rows.map((row) => row.name),
     );
 
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      phone TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL,
-      market_id TEXT REFERENCES markets(id),
-      mfa_enabled INTEGER NOT NULL DEFAULT 0,
-      phone_verified_at TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
+    for (const fileName of readMigrationFiles()) {
+      if (applied.has(fileName)) {
+        continue;
+      }
 
-    CREATE TABLE IF NOT EXISTS vendor_profiles (
-      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      approval_status TEXT NOT NULL,
-      approval_reason TEXT,
-      id_document_name TEXT,
-      id_document_path TEXT,
-      id_document_mime_type TEXT,
-      id_document_size INTEGER,
-      approved_by TEXT REFERENCES users(id),
-      approved_at TEXT,
-      rejected_by TEXT REFERENCES users(id),
-      rejected_at TEXT
-    );
+      const migrationSql = fs.readFileSync(path.join(migrationsDir, fileName), "utf8").trim();
+      if (!migrationSql) {
+        continue;
+      }
 
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      token_hash TEXT UNIQUE NOT NULL,
-      created_at TEXT NOT NULL,
-      expires_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS otp_challenges (
-      id TEXT PRIMARY KEY,
-      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
-      purpose TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      code_hash TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      verified_at TEXT,
-      metadata_json TEXT,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS stalls (
-      id TEXT PRIMARY KEY,
-      market_id TEXT NOT NULL REFERENCES markets(id),
-      name TEXT NOT NULL,
-      zone TEXT NOT NULL,
-      size TEXT NOT NULL,
-      price_per_month INTEGER NOT NULL,
-      status TEXT NOT NULL,
-      is_published INTEGER NOT NULL DEFAULT 1,
-      assigned_vendor_id TEXT REFERENCES users(id),
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS bookings (
-      id TEXT PRIMARY KEY,
-      market_id TEXT NOT NULL REFERENCES markets(id),
-      stall_id TEXT NOT NULL REFERENCES stalls(id) ON DELETE CASCADE,
-      vendor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      status TEXT NOT NULL,
-      start_date TEXT NOT NULL,
-      end_date TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      reserved_until TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      confirmed_at TEXT
-    );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_booking_per_stall
-      ON bookings(stall_id)
-      WHERE status IN ('reserved', 'paid', 'confirmed');
-
-    CREATE TABLE IF NOT EXISTS payments (
-      id TEXT PRIMARY KEY,
-      market_id TEXT NOT NULL REFERENCES markets(id),
-      booking_id TEXT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
-      vendor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      provider TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      status TEXT NOT NULL,
-      transaction_id TEXT,
-      external_reference TEXT UNIQUE NOT NULL,
-      phone TEXT NOT NULL,
-      receipt_id TEXT,
-      receipt_message TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      completed_at TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS payment_attempts (
-      id TEXT PRIMARY KEY,
-      payment_id TEXT NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
-      provider TEXT NOT NULL,
-      status TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS notifications (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL,
-      message TEXT NOT NULL,
-      read_at TEXT,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS coordination_messages (
-      id TEXT PRIMARY KEY,
-      sender_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      sender_name TEXT NOT NULL,
-      sender_role TEXT NOT NULL,
-      market_id TEXT REFERENCES markets(id),
-      subject TEXT NOT NULL,
-      body TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS resource_requests (
-      id TEXT PRIMARY KEY,
-      market_id TEXT NOT NULL REFERENCES markets(id),
-      manager_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      manager_name TEXT NOT NULL,
-      category TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      amount_requested INTEGER NOT NULL,
-      approved_amount INTEGER,
-      status TEXT NOT NULL,
-      review_note TEXT,
-      reviewed_by_user_id TEXT REFERENCES users(id),
-      reviewed_by_name TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS notification_deliveries (
-      id TEXT PRIMARY KEY,
-      notification_id TEXT NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
-      channel TEXT NOT NULL,
-      destination TEXT NOT NULL,
-      status TEXT NOT NULL,
-      attempts INTEGER NOT NULL DEFAULT 0,
-      next_attempt_at TEXT NOT NULL,
-      last_error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS tickets (
-      id TEXT PRIMARY KEY,
-      market_id TEXT NOT NULL REFERENCES markets(id),
-      vendor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      category TEXT NOT NULL,
-      subject TEXT NOT NULL,
-      description TEXT NOT NULL,
-      status TEXT NOT NULL,
-      resolution_note TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS ticket_updates (
-      id TEXT PRIMARY KEY,
-      ticket_id TEXT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-      actor_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      status TEXT NOT NULL,
-      note TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS ticket_attachments (
-      id TEXT PRIMARY KEY,
-      ticket_id TEXT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-      file_name TEXT NOT NULL,
-      mime_type TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      storage_path TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS audit_events (
-      id TEXT PRIMARY KEY,
-      actor_user_id TEXT REFERENCES users(id),
-      actor_name TEXT NOT NULL,
-      actor_role TEXT NOT NULL,
-      market_id TEXT REFERENCES markets(id),
-      action TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
-      entity_id TEXT NOT NULL,
-      details_json TEXT,
-      created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS bank_deposits (
-      id TEXT PRIMARY KEY,
-      market_id TEXT NOT NULL REFERENCES markets(id),
-      reference TEXT UNIQUE NOT NULL,
-      amount INTEGER NOT NULL,
-      deposited_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS fallback_queries (
-      id TEXT PRIMARY KEY,
-      user_id TEXT REFERENCES users(id),
-      channel TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      request_text TEXT NOT NULL,
-      response_text TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-  `);
-
-  const hasColumn = (tableName: string, columnName: string) =>
-    all<{ name: string }>(`PRAGMA table_info(${tableName})`).some((column) => column.name === columnName);
-
-  const ensureColumn = (tableName: string, columnName: string, definition: string) => {
-    if (!hasColumn(tableName, columnName)) {
-      db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${definition}`);
+      await client.query("BEGIN");
+      try {
+        await client.query(migrationSql);
+        await client.query(`INSERT INTO schema_migrations (name) VALUES ($1)`, [fileName]);
+        await client.query("COMMIT");
+        console.log(`Applied migration ${fileName}`);
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      }
     }
-  };
-
-  ensureColumn("users", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("stalls", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("bookings", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("payments", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("coordination_messages", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("resource_requests", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("tickets", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("audit_events", "market_id", "market_id TEXT REFERENCES markets(id)");
-  ensureColumn("bank_deposits", "market_id", "market_id TEXT REFERENCES markets(id)");
+  } finally {
+    client.release();
+  }
 };
 
-import crypto from "node:crypto";
+export const closeDatabase = async () => {
+  await migrationDb.end();
+  if (migrationDb !== db) {
+    await db.end();
+  }
+};
 
 export const createId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
@@ -324,35 +231,37 @@ export const mapMarket = (row: {
   stallCount: row.stall_count,
 });
 
-export const listMarkets = () =>
-  all<{
-    id: string;
-    name: string;
-    code: string;
-    location: string;
-    manager_user_id: string | null;
-    manager_name: string | null;
-    vendor_count: number;
-    stall_count: number;
-  }>(
-    `SELECT markets.id,
-            markets.name,
-            markets.code,
-            markets.location,
-            managers.id AS manager_user_id,
-            managers.name AS manager_name,
-            COUNT(DISTINCT CASE WHEN vendors.role = 'vendor' THEN vendors.id END) AS vendor_count,
-            COUNT(DISTINCT stalls.id) AS stall_count
-     FROM markets
-     LEFT JOIN users AS managers ON managers.market_id = markets.id AND managers.role = 'manager'
-     LEFT JOIN users AS vendors ON vendors.market_id = markets.id AND vendors.role = 'vendor'
-     LEFT JOIN stalls ON stalls.market_id = markets.id
-     GROUP BY markets.id
-     ORDER BY markets.name ASC`,
+export const listMarkets = async () =>
+  (
+    await all<{
+      id: string;
+      name: string;
+      code: string;
+      location: string;
+      manager_user_id: string | null;
+      manager_name: string | null;
+      vendor_count: number;
+      stall_count: number;
+    }>(
+      `SELECT markets.id,
+              markets.name,
+              markets.code,
+              markets.location,
+              managers.id AS manager_user_id,
+              managers.name AS manager_name,
+              COUNT(DISTINCT CASE WHEN vendors.role = 'vendor' THEN vendors.id END)::INT AS vendor_count,
+              COUNT(DISTINCT stalls.id)::INT AS stall_count
+       FROM markets
+       LEFT JOIN users AS managers ON managers.market_id = markets.id AND managers.role = 'manager'
+       LEFT JOIN users AS vendors ON vendors.market_id = markets.id AND vendors.role = 'vendor'
+       LEFT JOIN stalls ON stalls.market_id = markets.id
+       GROUP BY markets.id, managers.id, managers.name
+       ORDER BY markets.name ASC`,
+    )
   ).map(mapMarket);
 
-export const getManagerForMarket = (marketId: string) =>
-  get<{ id: string; name: string; phone: string }>(
+export const getManagerForMarket = async (marketId: string) =>
+  await get<{ id: string; name: string; phone: string }>(
     `SELECT id, name, phone
      FROM users
      WHERE role = 'manager' AND market_id = ?
@@ -361,7 +270,7 @@ export const getManagerForMarket = (marketId: string) =>
     [marketId],
   );
 
-export const logAuditEvent = ({
+export const logAuditEvent = async ({
   actorUserId,
   actorName,
   actorRole,
@@ -380,7 +289,7 @@ export const logAuditEvent = ({
   entityId: string;
   details?: Record<string, unknown>;
 }) => {
-  run(
+  await run(
     `INSERT INTO audit_events (id, actor_user_id, actor_name, actor_role, market_id, action, entity_type, entity_id, details_json, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
@@ -425,9 +334,10 @@ export const serializeAuthUser = (row: {
   };
 };
 
-export const getUserRecordById = (userId: string) => {
-  return get<{
+export const getUserRecordById = async (userId: string) => {
+  return await get<{
     id: string;
+    auth_user_id: string | null;
     name: string;
     email: string;
     phone: string;
@@ -440,7 +350,7 @@ export const getUserRecordById = (userId: string) => {
     market_id: string | null;
     market_name: string | null;
   }>(
-    `SELECT users.id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN markets ON markets.id = users.market_id
@@ -449,9 +359,10 @@ export const getUserRecordById = (userId: string) => {
   );
 };
 
-export const getUserRecordByPhone = (phone: string) => {
-  return get<{
+export const getUserRecordByPhone = async (phone: string) => {
+  return await get<{
     id: string;
+    auth_user_id: string | null;
     name: string;
     email: string;
     phone: string;
@@ -464,7 +375,7 @@ export const getUserRecordByPhone = (phone: string) => {
     market_id: string | null;
     market_name: string | null;
   }>(
-    `SELECT users.id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN markets ON markets.id = users.market_id
@@ -473,12 +384,12 @@ export const getUserRecordByPhone = (phone: string) => {
   );
 };
 
-export const getAuthUserById = (userId: string) => {
-  const user = getUserRecordById(userId);
+export const getAuthUserById = async (userId: string) => {
+  const user = await getUserRecordById(userId);
   return user ? serializeAuthUser(user) : null;
 };
 
-export const queueNotification = ({
+export const queueNotification = async ({
   userId,
   type,
   message,
@@ -495,14 +406,14 @@ export const queueNotification = ({
 }) => {
   const timestamp = nowIso();
   const notificationId = createId("notif");
-  run(
+  await run(
     `INSERT INTO notifications (id, user_id, type, message, read_at, created_at)
      VALUES (?, ?, ?, ?, NULL, ?)`,
     [notificationId, userId, type, message, timestamp],
   );
 
   if (channels.includes("sms") && destinationPhone) {
-    run(
+    await run(
       `INSERT INTO notification_deliveries (id, notification_id, channel, destination, status, attempts, next_attempt_at, last_error, created_at, updated_at)
        VALUES (?, ?, 'sms', ?, 'pending', 0, ?, NULL, ?, ?)`,
       [createId("delivery"), notificationId, destinationPhone, timestamp, timestamp, timestamp],
@@ -510,7 +421,7 @@ export const queueNotification = ({
   }
 
   if (channels.includes("email") && destinationEmail) {
-    run(
+    await run(
       `INSERT INTO notification_deliveries (id, notification_id, channel, destination, status, attempts, next_attempt_at, last_error, created_at, updated_at)
        VALUES (?, ?, 'email', ?, 'pending', 0, ?, NULL, ?, ?)`,
       [createId("delivery"), notificationId, destinationEmail, timestamp, timestamp, timestamp],
@@ -520,7 +431,7 @@ export const queueNotification = ({
   return notificationId;
 };
 
-export const seedDatabase = () => {
+export const seedDatabase = async () => {
   const createdAt = nowIso();
   const markets = [
     {
@@ -537,6 +448,7 @@ export const seedDatabase = () => {
     },
   ] as const;
 
+  await transaction(async () => {
   markets.forEach((market) => {
     run(
       `INSERT OR IGNORE INTO markets (id, name, code, location, created_at)
@@ -638,7 +550,7 @@ export const seedDatabase = () => {
       password: "Official123!",
       role: "official",
       marketId: null,
-      mfaEnabled: 0,
+      mfaEnabled: 1,
       verified: createdAt,
       vendorStatus: null,
     },
@@ -1066,4 +978,28 @@ export const seedDatabase = () => {
      SET market_id = (SELECT users.market_id FROM users WHERE users.id = audit_events.actor_user_id)
      WHERE market_id IS NULL AND actor_user_id IS NOT NULL`,
   );
+  });
+
+  if (config.supabaseAuthEnabled) {
+    for (const user of users) {
+      const linkedUser = await get<{ auth_user_id: string | null }>(`SELECT auth_user_id FROM users WHERE id = ?`, [user.id]);
+      if (linkedUser?.auth_user_id) {
+        continue;
+      }
+
+      const authUser = await syncSeedUserToSupabase({
+        email: user.email,
+        phone: user.phone,
+        password: user.password,
+        localUserId: user.id,
+        name: user.name,
+        role: user.role,
+        marketId: user.marketId,
+      });
+
+      if (authUser) {
+        await run(`UPDATE users SET auth_user_id = ?, updated_at = ? WHERE id = ?`, [authUser.id, nowIso(), user.id]);
+      }
+    }
+  }
 };

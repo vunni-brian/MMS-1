@@ -21,8 +21,8 @@ const mapNotification = (row: {
   createdAt: row.created_at,
 });
 
-export const processNotificationDeliveries = () => {
-  const deliveries = all<{
+export const processNotificationDeliveries = async () => {
+  const deliveries = await all<{
     id: string;
     destination: string;
     channel: string;
@@ -43,16 +43,16 @@ export const processNotificationDeliveries = () => {
      WHERE notification_deliveries.status = 'pending'`,
   );
 
-  deliveries.forEach((delivery) => {
+  for (const delivery of deliveries) {
     if (new Date(delivery.next_attempt_at).getTime() > Date.now()) {
-      return;
+      continue;
     }
 
     const attempts = delivery.attempts + 1;
     const timestamp = nowIso();
     try {
       console.log(`[delivery:${delivery.channel}]`, delivery.destination, delivery.message);
-      run(
+      await run(
         `UPDATE notification_deliveries
          SET status = 'sent',
              attempts = ?,
@@ -63,7 +63,7 @@ export const processNotificationDeliveries = () => {
       );
     } catch (error) {
       const exhausted = attempts > config.notificationRetryCount;
-      run(
+      await run(
         `UPDATE notification_deliveries
          SET status = ?,
              attempts = ?,
@@ -81,17 +81,17 @@ export const processNotificationDeliveries = () => {
         ],
       );
     }
-  });
+  }
 };
 
 export const notificationRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/notifications",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const session = requirePermission(auth, "notification:read");
       const limit = Number(url.searchParams.get("limit") || 0);
-      const notifications = all<{
+      const notifications = await all<{
         id: string;
         user_id: string;
         type: string;
@@ -112,16 +112,16 @@ export const notificationRoutes: RouteDefinition[] = [
   {
     method: "PATCH",
     path: "/notifications/:id/read",
-    handler: ({ res, auth, params }) => {
+    handler: async ({ res, auth, params }) => {
       const session = requirePermission(auth, "notification:update");
-      const notification = get<{ id: string }>(
+      const notification = await get<{ id: string }>(
         `SELECT id FROM notifications WHERE id = ? AND user_id = ?`,
         [params.id, session.user.id],
       );
       if (!notification) {
         throw new HttpError(404, "Notification not found.");
       }
-      run(`UPDATE notifications SET read_at = ? WHERE id = ?`, [nowIso(), params.id]);
+      await run(`UPDATE notifications SET read_at = ? WHERE id = ?`, [nowIso(), params.id]);
       sendJson(res, 200, { ok: true });
     },
   },

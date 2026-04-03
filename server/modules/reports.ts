@@ -13,10 +13,10 @@ export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/reports/revenue",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
-      const rows = all<{
+      const rows = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -39,7 +39,7 @@ export const reportRoutes: RouteDefinition[] = [
          FROM payments
          INNER JOIN users ON users.id = payments.vendor_id
          LEFT JOIN markets ON markets.id = payments.market_id
-         WHERE DATE(payments.created_at) BETWEEN DATE(?) AND DATE(?)
+         WHERE payments.created_at::date BETWEEN ?::date AND ?::date
            AND (? IS NULL OR payments.market_id = ?)
          ORDER BY payments.created_at DESC`,
         [range.from, range.to, marketId, marketId],
@@ -71,10 +71,10 @@ export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/reports/dues",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
-      const rows = all<{
+      const rows = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -91,7 +91,7 @@ export const reportRoutes: RouteDefinition[] = [
                 users.name AS vendor_name,
                 stalls.name AS stall_name,
                 bookings.amount,
-                COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0) AS paid_amount,
+                COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0)::INT AS paid_amount,
                 bookings.status,
                 bookings.created_at
          FROM bookings
@@ -99,7 +99,7 @@ export const reportRoutes: RouteDefinition[] = [
          INNER JOIN stalls ON stalls.id = bookings.stall_id
          LEFT JOIN payments ON payments.booking_id = bookings.id
          LEFT JOIN markets ON markets.id = bookings.market_id
-         WHERE DATE(bookings.created_at) BETWEEN DATE(?) AND DATE(?)
+         WHERE bookings.created_at::date BETWEEN ?::date AND ?::date
            AND (? IS NULL OR bookings.market_id = ?)
          GROUP BY bookings.id
          HAVING bookings.amount - COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0) > 0
@@ -132,9 +132,9 @@ export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/audit",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { marketId } = resolveScopedMarket(auth, "audit:read", url.searchParams.get("marketId"));
-      const rows = all<{
+      const rows = await all<{
         id: string;
         actor_user_id: string | null;
         actor_name: string;
@@ -184,18 +184,18 @@ export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/reports/financial-audit",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
-      const collection = all<{ amount: number }>(
+      const collection = await all<{ amount: number }>(
         `SELECT amount
          FROM payments
          WHERE status = 'completed'
-           AND DATE(created_at) BETWEEN DATE(?) AND DATE(?)
+           AND created_at::date BETWEEN ?::date AND ?::date
            AND (? IS NULL OR market_id = ?)`,
         [range.from, range.to, marketId, marketId],
       );
-      const deposits = all<{
+      const deposits = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -211,7 +211,7 @@ export const reportRoutes: RouteDefinition[] = [
                 bank_deposits.deposited_at
          FROM bank_deposits
          LEFT JOIN markets ON markets.id = bank_deposits.market_id
-         WHERE DATE(bank_deposits.deposited_at) BETWEEN DATE(?) AND DATE(?)
+         WHERE bank_deposits.deposited_at::date BETWEEN ?::date AND ?::date
            AND (? IS NULL OR bank_deposits.market_id = ?)
          ORDER BY bank_deposits.deposited_at DESC`,
         [range.from, range.to, marketId, marketId],

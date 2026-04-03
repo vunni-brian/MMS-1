@@ -5,8 +5,8 @@ export const marketRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/markets",
-    handler: ({ res }) => {
-      sendJson(res, 200, { markets: listMarkets() });
+    handler: async ({ res }) => {
+      sendJson(res, 200, { markets: await listMarkets() });
     },
   },
 ];

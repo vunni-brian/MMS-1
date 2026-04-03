@@ -138,8 +138,8 @@ export const api = {
       body: JSON.stringify({ phone, password }),
     }),
 
-  verifyManagerMfa: (challengeId: string, code: string) =>
-    apiRequest<{ token: string; user: AuthUser }>("/auth/verify-manager-mfa", {
+  verifyPrivilegedMfa: (challengeId: string, code: string) =>
+    apiRequest<{ token: string; user: AuthUser }>("/auth/verify-privileged-mfa", {
       method: "POST",
       body: JSON.stringify({ challengeId, code }),
     }),

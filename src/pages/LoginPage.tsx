@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const LoginPage = () => {
-  const { user, login, verifyManagerMfa, pendingMfa, clearPendingMfa, isLoading, authError } = useAuth();
+  const { user, login, verifyPrivilegedMfa, pendingMfa, clearPendingMfa, isLoading, authError } = useAuth();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +30,7 @@ const LoginPage = () => {
     setPageError(null);
     try {
       if (pendingMfa) {
-        await verifyManagerMfa(otp);
+        await verifyPrivilegedMfa(otp);
         return;
       }
 
@@ -63,13 +63,13 @@ const LoginPage = () => {
           </div>
           <h1 className="text-2xl font-bold font-heading text-foreground">Market Management System</h1>
           <p className="text-muted-foreground text-sm">
-            {pendingMfa ? "Manager MFA verification" : "Sign in with your registered credentials"}
+            {pendingMfa ? "Privileged account MFA verification" : "Sign in with your registered credentials"}
           </p>
         </div>
 
         <Card className="card-warm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-heading">{isMfaStep ? "Verify manager access" : "Account sign-in"}</CardTitle>
+            <CardTitle className="text-lg font-heading">{isMfaStep ? "Verify privileged access" : "Account sign-in"}</CardTitle>
             <CardDescription>
               {isMfaStep ? "Enter the OTP sent to your registered phone number" : "Use your phone number and password"}
             </CardDescription>
@@ -107,7 +107,7 @@ const LoginPage = () => {
                   <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm">
                     <div className="flex items-center gap-2 font-medium text-warning">
                       <Shield className="w-4 h-4" />
-                      Manager MFA required
+                      MFA required for this account
                     </div>
                     <p className="mt-1 text-muted-foreground">
                       Enter the six-digit code sent to <span className="font-medium text-foreground">{phone.trim() || "your registered phone number"}</span>.

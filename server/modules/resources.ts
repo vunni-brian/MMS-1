@@ -64,7 +64,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/resource-requests",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "resource:read", url.searchParams.get("marketId"));
       const clauses: string[] = [];
       const params: string[] = [];
@@ -79,7 +79,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
       }
 
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-      const rows = all<{
+      const rows = await all<{
         id: string;
         market_id: string;
         market_name: string | null;
@@ -132,7 +132,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
 
       const requestId = createId("resource_request");
       const timestamp = nowIso();
-      run(
+      await run(
         `INSERT INTO resource_requests (id, market_id, manager_user_id, manager_name, category, title, description, amount_requested, approved_amount, status, review_note, reviewed_by_user_id, reviewed_by_name, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'pending', NULL, NULL, NULL, ?, ?)`,
         [
@@ -149,15 +149,15 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         ],
       );
 
-      all<{ id: string }>(`SELECT id FROM users WHERE role = 'official'`).forEach((official) => {
-        queueNotification({
+      for (const official of await all<{ id: string }>(`SELECT id FROM users WHERE role = 'official'`)) {
+        await queueNotification({
           userId: official.id,
           type: "system",
           message: `${session.user.name} submitted a ${body.category} request: ${body.title.trim()}.`,
           channels: ["system"],
         });
-      });
-      logAuditEvent({
+      }
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -168,7 +168,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         details: { category: body.category, amountRequested: body.amountRequested },
       });
 
-      const created = get<{
+      const created = await get<{
         id: string;
         market_id: string;
         market_name: string | null;
@@ -199,7 +199,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         throw new HttpError(403, "Only officials can review resource requests.");
       }
 
-      const existing = get<{
+      const existing = await get<{
         id: string;
         market_id: string | null;
         manager_user_id: string;
@@ -222,7 +222,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
       }
 
       const timestamp = nowIso();
-      run(
+      await run(
         `UPDATE resource_requests
          SET status = ?,
              approved_amount = ?,
@@ -242,13 +242,13 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         ],
       );
 
-      queueNotification({
+      await queueNotification({
         userId: existing.manager_user_id,
         type: "system",
         message: `Your resource request was ${body.status}${body.status === "approved" && body.approvedAmount ? ` for UGX ${body.approvedAmount.toLocaleString()}` : ""}.`,
         channels: ["system"],
       });
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -259,7 +259,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         details: { status: body.status, approvedAmount: body.approvedAmount ?? null },
       });
 
-      const updated = get<{
+      const updated = await get<{
         id: string;
         market_id: string;
         market_name: string | null;

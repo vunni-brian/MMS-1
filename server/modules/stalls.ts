@@ -126,8 +126,8 @@ const mapBooking = (row: {
   confirmedAt: row.confirmed_at,
 });
 
-const getBookingById = (bookingId: string) => {
-  const booking = get<{
+const getBookingById = async (bookingId: string) => {
+  const booking = await get<{
     id: string;
     market_id: string | null;
     market_name: string | null;
@@ -152,7 +152,7 @@ export const stallRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/stalls",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "stall:read", url.searchParams.get("marketId"));
       const zone = url.searchParams.get("zone");
       const clauses: string[] = [];
@@ -172,7 +172,7 @@ export const stallRoutes: RouteDefinition[] = [
       }
 
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-      const stalls = all<{
+      const stalls = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -215,13 +215,13 @@ export const stallRoutes: RouteDefinition[] = [
 
       const stallId = createId("stall");
       const timestamp = nowIso();
-      run(
+      await run(
         `INSERT INTO stalls (id, market_id, name, zone, size, price_per_month, status, is_published, assigned_vendor_id, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, 'available', ?, NULL, ?, ?)`,
         [stallId, marketId, body.name.trim(), body.zone.trim(), body.size.trim(), body.pricePerMonth, body.isPublished === false ? 0 : 1, timestamp, timestamp],
       );
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -232,7 +232,7 @@ export const stallRoutes: RouteDefinition[] = [
         details: { name: body.name, zone: body.zone },
       });
 
-      const stall = get<{
+      const stall = await get<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -257,7 +257,7 @@ export const stallRoutes: RouteDefinition[] = [
     path: "/stalls/:id",
     handler: async ({ req, res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "stall:write");
-      const stall = get<{ id: string; market_id: string | null }>(`SELECT id, market_id FROM stalls WHERE id = ?`, [params.id]);
+      const stall = await get<{ id: string; market_id: string | null }>(`SELECT id, market_id FROM stalls WHERE id = ?`, [params.id]);
       if (!stall) {
         throw new HttpError(404, "Stall not found.");
       }
@@ -272,7 +272,7 @@ export const stallRoutes: RouteDefinition[] = [
         isPublished?: boolean;
       }>(req);
       const timestamp = nowIso();
-      run(
+      await run(
         `UPDATE stalls
          SET name = COALESCE(?, name),
              zone = COALESCE(?, zone),
@@ -294,7 +294,7 @@ export const stallRoutes: RouteDefinition[] = [
         ],
       );
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -305,7 +305,7 @@ export const stallRoutes: RouteDefinition[] = [
         details: body,
       });
 
-      const updated = get<{
+      const updated = await get<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -327,7 +327,7 @@ export const stallRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/bookings",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "booking:read", url.searchParams.get("marketId"));
       const clauses: string[] = [];
       const params: string[] = [];
@@ -342,7 +342,7 @@ export const stallRoutes: RouteDefinition[] = [
       }
 
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-      const bookings = all<{
+      const bookings = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -384,8 +384,8 @@ export const stallRoutes: RouteDefinition[] = [
         body.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const timestamp = nowIso();
 
-      const bookingId = transaction(() => {
-        const stall = get<{
+      const bookingId = await transaction(async () => {
+        const stall = await get<{
           id: string;
           market_id: string;
           name: string;
@@ -409,7 +409,7 @@ export const stallRoutes: RouteDefinition[] = [
           throw new HttpError(409, "This stall is no longer available.");
         }
 
-        const activeBooking = get<{ id: string }>(
+        const activeBooking = await get<{ id: string }>(
           `SELECT id FROM bookings WHERE stall_id = ? AND status IN ('reserved', 'paid', 'confirmed')`,
           [params.id],
         );
@@ -418,7 +418,7 @@ export const stallRoutes: RouteDefinition[] = [
         }
 
         const id = createId("booking");
-        run(
+        await run(
           `INSERT INTO bookings (id, market_id, stall_id, vendor_id, status, start_date, end_date, amount, reserved_until, created_at, updated_at, confirmed_at)
            VALUES (?, ?, ?, ?, 'reserved', ?, ?, ?, ?, ?, ?, NULL)`,
           [
@@ -434,23 +434,23 @@ export const stallRoutes: RouteDefinition[] = [
             timestamp,
           ],
         );
-        run(
+        await run(
           `UPDATE stalls SET status = 'reserved', assigned_vendor_id = ?, updated_at = ? WHERE id = ?`,
           [session.user.id, timestamp, params.id],
         );
         return id;
       });
 
-      queueNotification({
+      await queueNotification({
         userId: session.user.id,
         type: "booking",
         message: "Your stall reservation was created and is awaiting payment confirmation.",
         channels: ["system"],
       });
 
-      const marketManager = getManagerForMarket(marketId);
+      const marketManager = await getManagerForMarket(marketId);
       if (marketManager) {
-        queueNotification({
+        await queueNotification({
           userId: marketManager.id,
           type: "booking",
           message: `${session.user.name} reserved stall ${params.id}.`,
@@ -459,7 +459,7 @@ export const stallRoutes: RouteDefinition[] = [
         });
       }
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -470,7 +470,7 @@ export const stallRoutes: RouteDefinition[] = [
         details: { stallId: params.id },
       });
 
-      sendJson(res, 201, { booking: getBookingById(bookingId) });
+      sendJson(res, 201, { booking: await getBookingById(bookingId) });
     },
   },
   {
@@ -478,7 +478,7 @@ export const stallRoutes: RouteDefinition[] = [
     path: "/bookings/:id/mark-paid",
     handler: async ({ req, res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "booking:update");
-      const booking = getBookingById(params.id);
+      const booking = await getBookingById(params.id);
       if (!booking) {
         throw new HttpError(404, "Booking not found.");
       }
@@ -487,18 +487,18 @@ export const stallRoutes: RouteDefinition[] = [
       const body = await readJsonBody<{ transactionId?: string }>(req);
       const timestamp = nowIso();
 
-      transaction(() => {
-        run(`UPDATE bookings SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, params.id]);
-        run(`UPDATE stalls SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, booking.stallId]);
+      await transaction(async () => {
+        await run(`UPDATE bookings SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, params.id]);
+        await run(`UPDATE stalls SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, booking.stallId]);
       });
 
-      queueNotification({
+      await queueNotification({
         userId: booking.vendorId,
         type: "payment",
         message: `Your booking ${booking.id} has been marked as paid${body.transactionId ? ` (${body.transactionId})` : ""}.`,
         channels: ["system"],
       });
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -509,15 +509,15 @@ export const stallRoutes: RouteDefinition[] = [
         details: body,
       });
 
-      sendJson(res, 200, { booking: getBookingById(params.id) });
+      sendJson(res, 200, { booking: await getBookingById(params.id) });
     },
   },
   {
     method: "POST",
     path: "/bookings/:id/confirm",
-    handler: ({ res, auth, params }) => {
+    handler: async ({ res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "booking:update");
-      const booking = getBookingById(params.id);
+      const booking = await getBookingById(params.id);
       if (!booking) {
         throw new HttpError(404, "Booking not found.");
       }
@@ -527,19 +527,19 @@ export const stallRoutes: RouteDefinition[] = [
       }
 
       const timestamp = nowIso();
-      transaction(() => {
-        run(`UPDATE bookings SET status = 'confirmed', updated_at = ?, confirmed_at = ? WHERE id = ?`, [timestamp, timestamp, params.id]);
-        run(`UPDATE stalls SET status = 'confirmed', updated_at = ? WHERE id = ?`, [timestamp, booking.stallId]);
+      await transaction(async () => {
+        await run(`UPDATE bookings SET status = 'confirmed', updated_at = ?, confirmed_at = ? WHERE id = ?`, [timestamp, timestamp, params.id]);
+        await run(`UPDATE stalls SET status = 'confirmed', updated_at = ? WHERE id = ?`, [timestamp, booking.stallId]);
       });
 
-      queueNotification({
+      await queueNotification({
         userId: booking.vendorId,
         type: "booking",
         message: `Your booking for stall ${booking.stallName} has been confirmed.`,
         channels: ["system", "sms"],
-        destinationPhone: get<{ phone: string }>(`SELECT phone FROM users WHERE id = ?`, [booking.vendorId])?.phone,
+        destinationPhone: (await get<{ phone: string }>(`SELECT phone FROM users WHERE id = ?`, [booking.vendorId]))?.phone,
       });
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -550,7 +550,7 @@ export const stallRoutes: RouteDefinition[] = [
         details: { stallId: booking.stallId },
       });
 
-      sendJson(res, 200, { booking: getBookingById(params.id) });
+      sendJson(res, 200, { booking: await getBookingById(params.id) });
     },
   },
 ];

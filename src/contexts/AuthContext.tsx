@@ -13,7 +13,7 @@ interface AuthContextType {
   user: AuthUser | null;
   role: AuthUser["role"] | null;
   login: (phone: string, password: string) => Promise<{ mfaRequired: boolean; developmentCode?: string }>;
-  verifyManagerMfa: (code: string) => Promise<void>;
+  verifyPrivilegedMfa: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   pendingMfa: PendingMfaChallenge | null;
@@ -88,14 +88,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const verifyManagerMfa = async (code: string) => {
+  const verifyPrivilegedMfa = async (code: string) => {
     if (!pendingMfa) {
       throw new Error("No MFA challenge is pending.");
     }
 
     setIsLoading(true);
     try {
-      const response = await api.verifyManagerMfa(pendingMfa.challengeId, code);
+      const response = await api.verifyPrivilegedMfa(pendingMfa.challengeId, code);
       setSessionToken(response.token);
       setUser(response.user);
       setPendingMfa(null);
@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         role: user?.role ?? null,
         login,
-        verifyManagerMfa,
+        verifyPrivilegedMfa,
         logout,
         refreshUser,
         pendingMfa,

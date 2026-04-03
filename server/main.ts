@@ -30,12 +30,17 @@ const routes: RouteDefinition[] = [
   ...fallbackRoutes,
 ];
 
-initDatabase();
-seedDatabase();
+if (config.autoMigrate) {
+  await initDatabase();
+}
+
+if (config.seedOnBoot) {
+  await seedDatabase();
+}
 
 setInterval(() => {
-  processNotificationDeliveries();
-  settlePendingPayments();
+  void processNotificationDeliveries();
+  void settlePendingPayments();
 }, 2_000);
 
 const server = createServer(async (req, res) => {
@@ -50,7 +55,7 @@ const server = createServer(async (req, res) => {
   try {
     const origin = req.headers.host || `localhost:${config.apiPort}`;
     const url = new URL(req.url || "/", `http://${origin}`);
-    const auth = authenticateToken(getBearerToken(req));
+    const auth = await authenticateToken(getBearerToken(req));
     const route = routes.find((candidate) => candidate.method === req.method && matchRoute(candidate.path, url.pathname));
 
     if (!route) {

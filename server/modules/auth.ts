@@ -12,11 +12,12 @@ import {
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
 import { addMinutes, createOtpCode, hashOtpCode, hashPassword, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
-import { persistFilePayload, validateFilePayload } from "../lib/storage.ts";
+import { createSupabaseAuthUser, deleteSupabaseAuthUser, findSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
+import { persistFilePayload, removeStoredFile, validateFilePayload } from "../lib/storage.ts";
 import type { FilePayload } from "../types.ts";
 
-const loadOtpChallenge = (challengeId: string) => {
-  return get<{
+const loadOtpChallenge = async (challengeId: string) => {
+  return await get<{
     id: string;
     user_id: string | null;
     purpose: string;
@@ -27,7 +28,7 @@ const loadOtpChallenge = (challengeId: string) => {
   }>(`SELECT id, user_id, purpose, phone, code_hash, expires_at, verified_at FROM otp_challenges WHERE id = ?`, [challengeId]);
 };
 
-const validateOtpChallenge = ({
+const validateOtpChallenge = async ({
   challengeId,
   code,
   purpose,
@@ -36,7 +37,7 @@ const validateOtpChallenge = ({
   code: string;
   purpose: string;
 }) => {
-  const challenge = loadOtpChallenge(challengeId);
+  const challenge = await loadOtpChallenge(challengeId);
   if (!challenge || challenge.purpose !== purpose) {
     throw new HttpError(404, "OTP challenge not found.");
   }
@@ -51,6 +52,11 @@ const validateOtpChallenge = ({
   }
   return challenge;
 };
+
+const requiresPrivilegedMfa = (user: {
+  role: "vendor" | "manager" | "official";
+  mfa_enabled: number;
+}) => user.role === "official" || (user.role === "manager" && Boolean(user.mfa_enabled));
 
 export const authRoutes: RouteDefinition[] = [
   {
@@ -72,60 +78,94 @@ export const authRoutes: RouteDefinition[] = [
 
       validateFilePayload(body.idDocument, ["application/pdf", "image/jpeg", "image/png"], true);
 
-      const market = get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [body.marketId]);
+      const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [body.marketId]);
       if (!market) {
         throw new HttpError(400, "Selected market is invalid.");
       }
 
-      const existingPhone = get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [body.phone]);
-      const existingEmail = get<{ id: string }>(`SELECT id FROM users WHERE email = ?`, [body.email]);
+      const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [body.phone]);
+      const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE email = ?`, [body.email]);
       if (existingPhone || existingEmail) {
         throw new HttpError(409, "A user with that phone or email already exists.");
       }
 
       const userId = createId("user");
-      const file = persistFilePayload("vendor-documents", userId, body.idDocument!);
       const challengeId = createId("otp");
       const otpCode = createOtpCode();
       const timestamp = nowIso();
       const expiresAt = addMinutes(config.otpTtlMinutes);
+      let authUserId: string | null = null;
+      let storedDocumentPath: string | null = null;
 
-      transaction(() => {
-        run(
-          `INSERT INTO users (id, name, email, phone, password_hash, role, market_id, mfa_enabled, phone_verified_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 'vendor', ?, 0, NULL, ?, ?)`,
-          [
-            userId,
-            body.name.trim(),
-            body.email.trim().toLowerCase(),
-            body.phone.trim(),
-            hashPassword(body.password),
-            market.id,
-            timestamp,
-            timestamp,
-          ],
-        );
-        run(
-          `INSERT INTO vendor_profiles (user_id, approval_status, approval_reason, id_document_name, id_document_path, id_document_mime_type, id_document_size, approved_by, approved_at, rejected_by, rejected_at)
-           VALUES (?, 'pending', NULL, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
-          [userId, file.name, file.storagePath, file.mimeType, file.size],
-        );
-        run(
-          `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
-           VALUES (?, ?, 'registration', ?, ?, ?, NULL, NULL, ?)`,
-          [challengeId, userId, body.phone.trim(), hashOtpCode(otpCode), expiresAt, timestamp],
-        );
-      });
-      queueNotification({
+      try {
+        if (config.supabaseAuthEnabled) {
+          const existingSupabaseUser = await findSupabaseAuthUser({
+            phone: body.phone.trim(),
+            email: body.email.trim().toLowerCase(),
+          });
+          if (existingSupabaseUser) {
+            throw new HttpError(409, "A Supabase Auth user with that phone or email already exists.");
+          }
+
+          const authUser = await createSupabaseAuthUser({
+            email: body.email.trim().toLowerCase(),
+            phone: body.phone.trim(),
+            password: body.password,
+            localUserId: userId,
+            name: body.name.trim(),
+            role: "vendor",
+            marketId: market.id,
+          });
+          authUserId = authUser?.id || null;
+        }
+
+        const file = await persistFilePayload("vendor-documents", userId, body.idDocument!);
+        storedDocumentPath = file.storagePath;
+
+        await transaction(async () => {
+          await run(
+            `INSERT INTO users (id, auth_user_id, name, email, phone, password_hash, role, market_id, mfa_enabled, phone_verified_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'vendor', ?, 0, NULL, ?, ?)`,
+            [
+              userId,
+              authUserId,
+              body.name.trim(),
+              body.email.trim().toLowerCase(),
+              body.phone.trim(),
+              authUserId ? hashPassword(createId("supabase_shadow")) : hashPassword(body.password),
+              market.id,
+              timestamp,
+              timestamp,
+            ],
+          );
+          await run(
+            `INSERT INTO vendor_profiles (user_id, approval_status, approval_reason, id_document_name, id_document_path, id_document_mime_type, id_document_size, approved_by, approved_at, rejected_by, rejected_at)
+             VALUES (?, 'pending', NULL, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
+            [userId, file.name, file.storagePath, file.mimeType, file.size],
+          );
+          await run(
+            `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
+             VALUES (?, ?, 'registration', ?, ?, ?, NULL, NULL, ?)`,
+            [challengeId, userId, body.phone.trim(), hashOtpCode(otpCode), expiresAt, timestamp],
+          );
+        });
+      } catch (error) {
+        await removeStoredFile(storedDocumentPath);
+        if (authUserId) {
+          await deleteSupabaseAuthUser(authUserId);
+        }
+        throw error;
+      }
+      await queueNotification({
         userId,
         type: "otp",
         message: `Your verification code is ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
         channels: ["system", "sms"],
         destinationPhone: body.phone.trim(),
       });
-      const marketManager = getManagerForMarket(market.id);
+      const marketManager = await getManagerForMarket(market.id);
       if (marketManager) {
-        queueNotification({
+        await queueNotification({
           userId: marketManager.id,
           type: "system",
           message: `New vendor registration for ${market.name}: ${body.name.trim()} is awaiting approval.`,
@@ -147,15 +187,15 @@ export const authRoutes: RouteDefinition[] = [
     path: "/auth/verify-registration-otp",
     handler: async ({ req, res }) => {
       const body = await readJsonBody<{ challengeId: string; code: string }>(req);
-      const challenge = validateOtpChallenge({
+      const challenge = await validateOtpChallenge({
         challengeId: body.challengeId,
         code: body.code,
         purpose: "registration",
       });
 
       const timestamp = nowIso();
-      run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
-      run(`UPDATE users SET phone_verified_at = ?, updated_at = ? WHERE id = ?`, [timestamp, timestamp, challenge.user_id]);
+      await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
+      await run(`UPDATE users SET phone_verified_at = ?, updated_at = ? WHERE id = ?`, [timestamp, timestamp, challenge.user_id]);
 
       sendJson(res, 200, {
         status: "pending_approval",
@@ -168,8 +208,20 @@ export const authRoutes: RouteDefinition[] = [
     path: "/auth/login",
     handler: async ({ req, res, config }) => {
       const body = await readJsonBody<{ phone: string; password: string }>(req);
-      const user = getUserRecordByPhone(body.phone?.trim() || "");
-      if (!user || !verifyPassword(body.password || "", user.password_hash)) {
+      const user = await getUserRecordByPhone(body.phone?.trim() || "");
+      if (!user) {
+        throw new HttpError(401, "Invalid phone number or password.");
+      }
+
+      const isPasswordValid =
+        config.supabaseAuthEnabled && user.auth_user_id
+          ? (await verifySupabaseCredentials({
+              phone: user.phone,
+              password: body.password || "",
+            }))?.id === user.auth_user_id
+          : verifyPassword(body.password || "", user.password_hash);
+
+      if (!isPasswordValid) {
         throw new HttpError(401, "Invalid phone number or password.");
       }
 
@@ -185,19 +237,19 @@ export const authRoutes: RouteDefinition[] = [
         }
       }
 
-      if (user.role === "manager" && user.mfa_enabled) {
+      if (requiresPrivilegedMfa(user)) {
         const otpCode = createOtpCode();
         const challengeId = createId("otp");
         const timestamp = nowIso();
-        run(
+        await run(
           `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
            VALUES (?, ?, 'manager_mfa', ?, ?, ?, NULL, NULL, ?)`,
           [challengeId, user.id, user.phone, hashOtpCode(otpCode), addMinutes(config.otpTtlMinutes), timestamp],
         );
-        queueNotification({
+        await queueNotification({
           userId: user.id,
           type: "otp",
-          message: `Your manager MFA code is ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
+          message: `Your secure login code is ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
           channels: ["system", "sms"],
           destinationPhone: user.phone,
         });
@@ -211,7 +263,7 @@ export const authRoutes: RouteDefinition[] = [
         return;
       }
 
-      const token = createSessionForUser(user.id);
+      const token = await createSessionForUser(user.id);
       sendJson(res, 200, {
         token,
         user: serializeAuthUser(user),
@@ -223,21 +275,47 @@ export const authRoutes: RouteDefinition[] = [
     path: "/auth/verify-manager-mfa",
     handler: async ({ req, res }) => {
       const body = await readJsonBody<{ challengeId: string; code: string }>(req);
-      const challenge = validateOtpChallenge({
+      const challenge = await validateOtpChallenge({
         challengeId: body.challengeId,
         code: body.code,
         purpose: "manager_mfa",
       });
 
       const timestamp = nowIso();
-      run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
+      await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
 
-      const user = getUserRecordById(challenge.user_id!);
+      const user = await getUserRecordById(challenge.user_id!);
       if (!user) {
         throw new HttpError(404, "User not found for MFA challenge.");
       }
 
-      const token = createSessionForUser(user.id);
+      const token = await createSessionForUser(user.id);
+      sendJson(res, 200, {
+        token,
+        user: serializeAuthUser(user),
+      });
+    },
+  },
+  {
+    method: "POST",
+    path: "/auth/verify-privileged-mfa",
+    handler: async ({ req, res }) => {
+      const body = await readJsonBody<{ challengeId: string; code: string }>(req);
+      const challenge = await validateOtpChallenge({
+        challengeId: body.challengeId,
+        code: body.code,
+        purpose: "manager_mfa",
+      });
+
+      const timestamp = nowIso();
+      await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
+
+      const user = await getUserRecordById(challenge.user_id!);
+      if (!user) {
+        throw new HttpError(404, "User not found for MFA challenge.");
+      }
+
+      const token = await createSessionForUser(user.id);
       sendJson(res, 200, {
         token,
         user: serializeAuthUser(user),
@@ -247,9 +325,9 @@ export const authRoutes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/auth/logout",
-    handler: ({ res, auth }) => {
+    handler: async ({ res, auth }) => {
       const session = requireAuth(auth);
-      destroySession(session.token);
+      await destroySession(session.token);
       sendEmpty(res);
     },
   },

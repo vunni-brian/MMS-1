@@ -70,8 +70,8 @@ const mapPayment = (row: {
   completedAt: row.completed_at,
 });
 
-const getPaymentById = (paymentId: string) => {
-  const payment = get<{
+const getPaymentById = async (paymentId: string) => {
+  const payment = await get<{
     id: string;
     market_id: string | null;
     market_name: string | null;
@@ -94,7 +94,7 @@ const getPaymentById = (paymentId: string) => {
   return payment ? mapPayment(payment) : null;
 };
 
-const completePayment = ({
+const completePayment = async ({
   paymentId,
   transactionId,
   status,
@@ -103,7 +103,7 @@ const completePayment = ({
   transactionId: string;
   status: "completed" | "failed";
 }) => {
-  const payment = get<{
+  const payment = await get<{
     id: string;
     market_id: string | null;
     booking_id: string;
@@ -133,18 +133,18 @@ const completePayment = ({
       ? `Payment of UGX ${payment.amount.toLocaleString()} confirmed. Transaction ID ${transactionId}.`
       : `Payment for ${payment.stall_name} failed. Reference ${transactionId}.`;
 
-  transaction(() => {
-    run(
+  await transaction(async () => {
+    await run(
       `UPDATE payments
        SET status = ?, transaction_id = ?, receipt_id = ?, receipt_message = ?, updated_at = ?, completed_at = ?
        WHERE id = ?`,
       [status, transactionId, receiptId, receiptMessage, timestamp, status === "completed" ? timestamp : null, paymentId],
     );
-    run(`UPDATE payment_attempts SET status = ?, updated_at = ? WHERE payment_id = ?`, [status, timestamp, paymentId]);
+    await run(`UPDATE payment_attempts SET status = ?, updated_at = ? WHERE payment_id = ?`, [status, timestamp, paymentId]);
 
     if (status === "completed") {
-      run(`UPDATE bookings SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, payment.booking_id]);
-      run(
+      await run(`UPDATE bookings SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, payment.booking_id]);
+      await run(
         `UPDATE stalls
          SET status = 'paid',
              updated_at = ?
@@ -154,14 +154,14 @@ const completePayment = ({
     }
   });
 
-  queueNotification({
+  await queueNotification({
     userId: payment.vendor_id,
     type: "payment",
     message: receiptMessage,
     channels: ["system", "sms"],
     destinationPhone: payment.phone,
   });
-  logAuditEvent({
+  await logAuditEvent({
     actorUserId: null,
     actorName: "System",
     actorRole: "manager",
@@ -173,8 +173,8 @@ const completePayment = ({
   });
 };
 
-export const settlePendingPayments = () => {
-  const duePayments = all<{
+export const settlePendingPayments = async () => {
+  const duePayments = await all<{
     payment_id: string;
     created_at: string;
     provider: string;
@@ -186,26 +186,26 @@ export const settlePendingPayments = () => {
      WHERE payment_attempts.status = 'pending' AND payments.status = 'pending'`,
   );
 
-  duePayments.forEach((attempt) => {
+  for (const attempt of duePayments) {
     if (Date.now() - new Date(attempt.created_at).getTime() < config.paymentSettlementDelayMs) {
-      return;
+      continue;
     }
 
     const providerPrefix = attempt.provider.toUpperCase();
     const transactionId = `${providerPrefix}-${Date.now()}`;
-    completePayment({
+    await completePayment({
       paymentId: attempt.payment_id,
       transactionId,
       status: "completed",
     });
-  });
+  }
 };
 
 export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/payments",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "payment:read", url.searchParams.get("marketId"));
       const clauses: string[] = [];
       const params: string[] = [];
@@ -220,7 +220,7 @@ export const paymentRoutes: RouteDefinition[] = [
       }
 
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-      const payments = all<{
+      const payments = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -260,7 +260,7 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(400, "Booking and payment provider are required.");
       }
 
-      const booking = get<{
+      const booking = await get<{
         id: string;
         market_id: string;
         vendor_id: string;
@@ -277,7 +277,7 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(409, "This booking is not eligible for payment.");
       }
 
-      const existingPending = get<{ id: string }>(
+      const existingPending = await get<{ id: string }>(
         `SELECT id FROM payments WHERE booking_id = ? AND status = 'pending'`,
         [body.bookingId],
       );
@@ -288,8 +288,8 @@ export const paymentRoutes: RouteDefinition[] = [
       const paymentId = createId("payment");
       const externalReference = `EXT-${Date.now()}`;
       const timestamp = nowIso();
-      transaction(() => {
-        run(
+      await transaction(async () => {
+        await run(
           `INSERT INTO payments (id, market_id, booking_id, vendor_id, provider, amount, status, transaction_id, external_reference, phone, receipt_id, receipt_message, created_at, updated_at, completed_at)
            VALUES (?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, NULL, NULL, ?, ?, NULL)`,
           [
@@ -305,14 +305,14 @@ export const paymentRoutes: RouteDefinition[] = [
             timestamp,
           ],
         );
-        run(
+        await run(
           `INSERT INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
            VALUES (?, ?, ?, 'pending', ?, ?)`,
           [createId("attempt"), paymentId, body.provider, timestamp, timestamp],
         );
       });
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -324,7 +324,7 @@ export const paymentRoutes: RouteDefinition[] = [
       });
 
       sendJson(res, 201, {
-        payment: getPaymentById(paymentId),
+        payment: await getPaymentById(paymentId),
         status: "pending",
       });
     },
@@ -339,12 +339,12 @@ export const paymentRoutes: RouteDefinition[] = [
         transactionId?: string;
       }>(req);
 
-      const payment = get<{ id: string }>(`SELECT id FROM payments WHERE external_reference = ?`, [body.externalReference]);
+      const payment = await get<{ id: string }>(`SELECT id FROM payments WHERE external_reference = ?`, [body.externalReference]);
       if (!payment) {
         throw new HttpError(404, "Payment not found for webhook.");
       }
 
-      completePayment({
+      await completePayment({
         paymentId: payment.id,
         transactionId: body.transactionId || `${params.provider.toUpperCase()}-${Date.now()}`,
         status: body.status,
@@ -356,9 +356,9 @@ export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/payments/:id/receipt",
-    handler: ({ res, auth, params }) => {
+    handler: async ({ res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "payment:read");
-      const payment = getPaymentById(params.id);
+      const payment = await getPaymentById(params.id);
       if (!payment) {
         throw new HttpError(404, "Payment not found.");
       }

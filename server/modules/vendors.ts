@@ -56,8 +56,8 @@ const mapVendor = (row: {
     : null,
 });
 
-const getVendorById = (vendorId: string) => {
-  const vendor = get<{
+const getVendorById = async (vendorId: string) => {
+  const vendor = await get<{
     id: string;
     name: string;
     email: string;
@@ -80,10 +80,10 @@ export const vendorRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/vendors",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { marketId } = resolveScopedMarket(auth, "vendor:read", url.searchParams.get("marketId"));
       const params = marketId ? [marketId] : [];
-      const vendors = all<{
+      const vendors = await all<{
         id: string;
         name: string;
         email: string;
@@ -105,9 +105,9 @@ export const vendorRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/vendors/:id",
-    handler: ({ res, auth, params }) => {
+    handler: async ({ res, auth, params }) => {
       const session = requireAuth(auth);
-      const vendor = getVendorById(params.id);
+      const vendor = await getVendorById(params.id);
       if (!vendor) {
         throw new HttpError(404, "Vendor not found.");
       }
@@ -123,14 +123,14 @@ export const vendorRoutes: RouteDefinition[] = [
     path: "/vendors/:id/approve",
     handler: async ({ req, res, auth, params }) => {
       const session = requirePermission(auth, "vendor:review");
-      const vendor = getVendorById(params.id);
+      const vendor = await getVendorById(params.id);
       if (!vendor) {
         throw new HttpError(404, "Vendor not found.");
       }
       assertMarketAccess(session, vendor.marketId);
 
       const timestamp = nowIso();
-      run(
+      await run(
         `UPDATE vendor_profiles
          SET approval_status = 'approved',
              approval_reason = NULL,
@@ -142,7 +142,7 @@ export const vendorRoutes: RouteDefinition[] = [
         [session.user.id, timestamp, params.id],
       );
 
-      queueNotification({
+      await queueNotification({
         userId: params.id,
         type: "system",
         message: "Your vendor profile has been approved. You can now sign in and reserve stalls.",
@@ -150,7 +150,7 @@ export const vendorRoutes: RouteDefinition[] = [
         destinationPhone: vendor.phone,
       });
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -162,7 +162,7 @@ export const vendorRoutes: RouteDefinition[] = [
       });
 
       await readJsonBody<Record<string, never>>(req);
-      sendJson(res, 200, { vendor: getVendorById(params.id) });
+      sendJson(res, 200, { vendor: await getVendorById(params.id) });
     },
   },
   {
@@ -170,7 +170,7 @@ export const vendorRoutes: RouteDefinition[] = [
     path: "/vendors/:id/reject",
     handler: async ({ req, res, auth, params }) => {
       const session = requirePermission(auth, "vendor:review");
-      const vendor = getVendorById(params.id);
+      const vendor = await getVendorById(params.id);
       if (!vendor) {
         throw new HttpError(404, "Vendor not found.");
       }
@@ -183,7 +183,7 @@ export const vendorRoutes: RouteDefinition[] = [
       }
 
       const timestamp = nowIso();
-      run(
+      await run(
         `UPDATE vendor_profiles
          SET approval_status = 'rejected',
              approval_reason = ?,
@@ -195,7 +195,7 @@ export const vendorRoutes: RouteDefinition[] = [
         [reason, session.user.id, timestamp, params.id],
       );
 
-      queueNotification({
+      await queueNotification({
         userId: params.id,
         type: "system",
         message: `Your vendor profile was rejected: ${reason}`,
@@ -203,7 +203,7 @@ export const vendorRoutes: RouteDefinition[] = [
         destinationPhone: vendor.phone,
       });
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -214,7 +214,7 @@ export const vendorRoutes: RouteDefinition[] = [
         details: { vendorName: vendor.name, reason },
       });
 
-      sendJson(res, 200, { vendor: getVendorById(params.id) });
+      sendJson(res, 200, { vendor: await getVendorById(params.id) });
     },
   },
 ];

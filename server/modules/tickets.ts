@@ -5,8 +5,9 @@ import { nowIso } from "../lib/security.ts";
 import { persistFilePayload, validateFilePayload } from "../lib/storage.ts";
 import type { FilePayload } from "../types.ts";
 
-const loadAttachments = (ticketId: string) =>
-  all<{
+const loadAttachments = async (ticketId: string) =>
+  (
+    await all<{
     id: string;
     file_name: string;
     mime_type: string;
@@ -19,6 +20,7 @@ const loadAttachments = (ticketId: string) =>
      WHERE ticket_id = ?
      ORDER BY created_at ASC`,
     [ticketId],
+    )
   ).map((item) => ({
     id: item.id,
     name: item.file_name,
@@ -28,8 +30,9 @@ const loadAttachments = (ticketId: string) =>
     createdAt: item.created_at,
   }));
 
-const loadUpdates = (ticketId: string) =>
-  all<{
+const loadUpdates = async (ticketId: string) =>
+  (
+    await all<{
     id: string;
     actor_user_id: string;
     status: string;
@@ -43,6 +46,7 @@ const loadUpdates = (ticketId: string) =>
      WHERE ticket_updates.ticket_id = ?
      ORDER BY ticket_updates.created_at ASC`,
     [ticketId],
+    )
   ).map((item) => ({
     id: item.id,
     actorUserId: item.actor_user_id,
@@ -52,7 +56,7 @@ const loadUpdates = (ticketId: string) =>
     createdAt: item.created_at,
   }));
 
-const mapTicket = (ticket: {
+const mapTicket = async (ticket: {
   id: string;
   market_id: string | null;
   market_name: string | null;
@@ -78,12 +82,12 @@ const mapTicket = (ticket: {
   resolution: ticket.resolution_note,
   createdAt: ticket.created_at,
   updatedAt: ticket.updated_at,
-  attachments: loadAttachments(ticket.id),
-  updates: loadUpdates(ticket.id),
+  attachments: await loadAttachments(ticket.id),
+  updates: await loadUpdates(ticket.id),
 });
 
-const getTicketById = (ticketId: string) => {
-  const ticket = get<{
+const getTicketById = async (ticketId: string) => {
+  const ticket = await get<{
     id: string;
     market_id: string | null;
     market_name: string | null;
@@ -115,14 +119,14 @@ const getTicketById = (ticketId: string) => {
      WHERE tickets.id = ?`,
     [ticketId],
   );
-  return ticket ? mapTicket(ticket) : null;
+  return ticket ? await mapTicket(ticket) : null;
 };
 
 export const ticketRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/tickets",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "ticket:read", url.searchParams.get("marketId"));
       const clauses: string[] = [];
       const params: string[] = [];
@@ -137,7 +141,7 @@ export const ticketRoutes: RouteDefinition[] = [
       }
 
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-      const tickets = all<{
+      const tickets = await all<{
         id: string;
         market_id: string | null;
         market_name: string | null;
@@ -170,7 +174,7 @@ export const ticketRoutes: RouteDefinition[] = [
          ORDER BY tickets.updated_at DESC`,
         params,
       );
-      sendJson(res, 200, { tickets: tickets.map(mapTicket) });
+      sendJson(res, 200, { tickets: await Promise.all(tickets.map(mapTicket)) });
     },
   },
   {
@@ -199,29 +203,29 @@ export const ticketRoutes: RouteDefinition[] = [
 
       const ticketId = createId("ticket");
       const timestamp = nowIso();
-      run(
+      await run(
         `INSERT INTO tickets (id, market_id, vendor_id, category, subject, description, status, resolution_note, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, 'open', NULL, ?, ?)`,
         [ticketId, marketId, session.user.id, body.category, body.subject.trim(), body.description.trim(), timestamp, timestamp],
       );
-      run(
+      await run(
         `INSERT INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
          VALUES (?, ?, ?, 'open', ?, ?)`,
         [createId("ticket_update"), ticketId, session.user.id, "Ticket created by vendor.", timestamp],
       );
 
       if (body.attachment) {
-        const file = persistFilePayload("ticket-attachments", ticketId, body.attachment);
-        run(
+        const file = await persistFilePayload("ticket-attachments", ticketId, body.attachment);
+        await run(
           `INSERT INTO ticket_attachments (id, ticket_id, file_name, mime_type, file_size, storage_path, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [createId("ticket_file"), ticketId, file.name, file.mimeType, file.size, file.storagePath, timestamp],
         );
       }
 
-      const marketManager = getManagerForMarket(marketId);
+      const marketManager = await getManagerForMarket(marketId);
       if (marketManager) {
-        queueNotification({
+        await queueNotification({
           userId: marketManager.id,
           type: "complaint",
           message: `${session.user.name} created a new ${body.category} ticket.`,
@@ -229,7 +233,7 @@ export const ticketRoutes: RouteDefinition[] = [
           destinationPhone: marketManager.phone,
         });
       }
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -240,7 +244,7 @@ export const ticketRoutes: RouteDefinition[] = [
         details: { category: body.category, subject: body.subject },
       });
 
-      sendJson(res, 201, { ticket: getTicketById(ticketId) });
+      sendJson(res, 201, { ticket: await getTicketById(ticketId) });
     },
   },
   {
@@ -248,7 +252,7 @@ export const ticketRoutes: RouteDefinition[] = [
     path: "/tickets/:id",
     handler: async ({ req, res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "ticket:update");
-      const ticket = getTicketById(params.id);
+      const ticket = await getTicketById(params.id);
       if (!ticket) {
         throw new HttpError(404, "Ticket not found.");
       }
@@ -259,26 +263,26 @@ export const ticketRoutes: RouteDefinition[] = [
       const note = body.note?.trim() || body.resolutionNote?.trim() || "Ticket updated by manager.";
       const timestamp = nowIso();
 
-      run(
+      await run(
         `UPDATE tickets
          SET status = ?, resolution_note = ?, updated_at = ?
          WHERE id = ?`,
         [status, body.resolutionNote?.trim() || ticket.resolution, timestamp, params.id],
       );
-      run(
+      await run(
         `INSERT INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [createId("ticket_update"), params.id, session.user.id, status, note, timestamp],
       );
 
-      queueNotification({
+      await queueNotification({
         userId: ticket.vendorId,
         type: "complaint",
         message: `Your ticket "${ticket.subject}" is now ${status.replace("_", " ")}.`,
         channels: ["system", "sms"],
-        destinationPhone: get<{ phone: string }>(`SELECT phone FROM users WHERE id = ?`, [ticket.vendorId])?.phone,
+        destinationPhone: (await get<{ phone: string }>(`SELECT phone FROM users WHERE id = ?`, [ticket.vendorId]))?.phone,
       });
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -289,7 +293,7 @@ export const ticketRoutes: RouteDefinition[] = [
         details: { status, note },
       });
 
-      sendJson(res, 200, { ticket: getTicketById(params.id) });
+      sendJson(res, 200, { ticket: await getTicketById(params.id) });
     },
   },
 ];

@@ -29,13 +29,13 @@ export const coordinationRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/coordination/messages",
-    handler: ({ res, auth, url }) => {
+    handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "coordination:read", url.searchParams.get("marketId"));
       if (!["manager", "official"].includes(session.user.role)) {
         throw new HttpError(403, "Only managers and officials can access coordination messages.");
       }
 
-      const messages = all<{
+      const messages = await all<{
         id: string;
         sender_user_id: string;
         sender_name: string;
@@ -86,7 +86,7 @@ export const coordinationRoutes: RouteDefinition[] = [
         session.user.role === "official" ? body.marketId?.trim() || null : session.user.marketId;
 
       if (marketId) {
-        const market = get<{ id: string }>(`SELECT id FROM markets WHERE id = ?`, [marketId]);
+        const market = await get<{ id: string }>(`SELECT id FROM markets WHERE id = ?`, [marketId]);
         if (!market) {
           throw new HttpError(400, "Selected market is invalid.");
         }
@@ -94,13 +94,13 @@ export const coordinationRoutes: RouteDefinition[] = [
 
       const messageId = createId("coordination");
       const timestamp = nowIso();
-      run(
+      await run(
         `INSERT INTO coordination_messages (id, sender_user_id, sender_name, sender_role, market_id, subject, body, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [messageId, session.user.id, session.user.name, session.user.role, marketId, subject, messageBody, timestamp],
       );
 
-      logAuditEvent({
+      await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
         actorRole: session.user.role,
@@ -111,7 +111,7 @@ export const coordinationRoutes: RouteDefinition[] = [
         details: { subject },
       });
 
-      const created = get<{
+      const created = await get<{
         id: string;
         sender_user_id: string;
         sender_name: string;

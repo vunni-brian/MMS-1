@@ -5,12 +5,12 @@ import { hasPermission } from "./permissions.ts";
 import { config } from "../config.ts";
 import type { Permission, SessionAuth } from "../types.ts";
 
-export const authenticateToken = (token: string | null) => {
+export const authenticateToken = async (token: string | null) => {
   if (!token) {
     return null;
   }
 
-  const session = get<{ user_id: string; expires_at: string }>(
+  const session = await get<{ user_id: string; expires_at: string }>(
     `SELECT user_id, expires_at FROM sessions WHERE token_hash = ?`,
     [hashToken(token)],
   );
@@ -20,11 +20,11 @@ export const authenticateToken = (token: string | null) => {
   }
 
   if (isExpired(session.expires_at)) {
-    run(`DELETE FROM sessions WHERE token_hash = ?`, [hashToken(token)]);
+    void run(`DELETE FROM sessions WHERE token_hash = ?`, [hashToken(token)]);
     return null;
   }
 
-  const user = getAuthUserById(session.user_id);
+  const user = await getAuthUserById(session.user_id);
   if (!user) {
     return null;
   }
@@ -82,10 +82,10 @@ export const assertMarketAccess = (session: SessionAuth, resourceMarketId: strin
   }
 };
 
-export const createSessionForUser = (userId: string) => {
+export const createSessionForUser = async (userId: string) => {
   const token = createId("session_token");
   const timestamp = nowIso();
-  run(
+  await run(
     `INSERT INTO sessions (id, user_id, token_hash, created_at, expires_at)
      VALUES (?, ?, ?, ?, ?)`,
     [createId("session"), userId, hashToken(token), timestamp, addHours(config.sessionTtlHours)],
@@ -93,6 +93,6 @@ export const createSessionForUser = (userId: string) => {
   return token;
 };
 
-export const destroySession = (token: string) => {
-  run(`DELETE FROM sessions WHERE token_hash = ?`, [hashToken(token)]);
+export const destroySession = async (token: string) => {
+  await run(`DELETE FROM sessions WHERE token_hash = ?`, [hashToken(token)]);
 };
