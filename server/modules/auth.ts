@@ -132,7 +132,7 @@ export const authRoutes: RouteDefinition[] = [
               body.name.trim(),
               body.email.trim().toLowerCase(),
               body.phone.trim(),
-              authUserId ? hashPassword(createId("supabase_shadow")) : hashPassword(body.password),
+              hashPassword(body.password),
               market.id,
               timestamp,
               timestamp,
@@ -213,13 +213,16 @@ export const authRoutes: RouteDefinition[] = [
         throw new HttpError(401, "Invalid phone number or password.");
       }
 
-      const isPasswordValid =
-        config.supabaseAuthEnabled && user.auth_user_id
-          ? (await verifySupabaseCredentials({
+      const password = body.password || "";
+      const isLocalPasswordValid = verifyPassword(password, user.password_hash);
+      const supabaseUser =
+        !isLocalPasswordValid && config.supabaseAuthEnabled && user.auth_user_id
+          ? await verifySupabaseCredentials({
               phone: user.phone,
-              password: body.password || "",
-            }))?.id === user.auth_user_id
-          : verifyPassword(body.password || "", user.password_hash);
+              password,
+            })
+          : null;
+      const isPasswordValid = isLocalPasswordValid || supabaseUser?.id === user.auth_user_id;
 
       if (!isPasswordValid) {
         throw new HttpError(401, "Invalid phone number or password.");
