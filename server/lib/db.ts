@@ -448,15 +448,6 @@ export const seedDatabase = async () => {
     },
   ] as const;
 
-  await transaction(async () => {
-  markets.forEach((market) => {
-    run(
-      `INSERT OR IGNORE INTO markets (id, name, code, location, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [market.id, market.name, market.code, market.location, createdAt],
-    );
-  });
-
   const users = [
     {
       id: "user_vendor_amina",
@@ -555,6 +546,15 @@ export const seedDatabase = async () => {
       vendorStatus: null,
     },
   ] as const;
+
+  await transaction(async () => {
+    markets.forEach((market) => {
+    run(
+      `INSERT OR IGNORE INTO markets (id, name, code, location, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [market.id, market.name, market.code, market.location, createdAt],
+    );
+  });
 
   const managerByMarket: Record<string, string> = {
     market_kampala: "user_manager_sarah",

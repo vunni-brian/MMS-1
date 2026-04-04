@@ -5,6 +5,50 @@ import { fileURLToPath } from "node:url";
 import type { AppConfig } from "./types.ts";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+const loadEnvFile = (filePath: string) => {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const normalizedLine = line.startsWith("export ") ? line.slice(7) : line;
+    const separatorIndex = normalizedLine.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = normalizedLine.slice(0, separatorIndex).trim();
+    if (!key || process.env[key] !== undefined) {
+      continue;
+    }
+
+    let value = normalizedLine.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+};
+
+loadEnvFile(path.join(rootDir, ".env"));
+
+const appUrls = (process.env.APP_URL || "http://localhost:8080")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const primaryAppUrl = appUrls[0] || "http://localhost:8080";
 const dataDir = process.env.MMS_DATA_DIR || path.join(rootDir, "runtime");
 const uploadsDir = path.join(dataDir, "uploads");
 const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/mms";
@@ -26,8 +70,9 @@ fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 export const config: AppConfig = {
-  apiPort: Number(process.env.API_PORT || 3001),
-  appUrl: process.env.APP_URL || "http://localhost:8080",
+  apiPort: Number(process.env.PORT || process.env.API_PORT || 3001),
+  appUrl: primaryAppUrl,
+  appUrls,
   apiUrl: process.env.API_URL || "http://localhost:3001",
   dataDir,
   uploadsDir,

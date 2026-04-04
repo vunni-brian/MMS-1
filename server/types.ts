@@ -78,6 +78,7 @@ export interface FilePayload {
 export interface AppConfig {
   apiPort: number;
   appUrl: string;
+  appUrls: string[];
   apiUrl: string;
   dataDir: string;
   uploadsDir: string;

@@ -70,8 +70,9 @@ Privileged-role MFA and vendor registration OTP return a `developmentCode` in AP
 Optional environment variables:
 
 - `API_PORT` default `3001`
-- `APP_URL` default `http://localhost:8080`
+- `APP_URL` default `http://localhost:8080` and may be a comma-separated list of allowed frontend origins
 - `API_URL` default `http://localhost:3001`
+- `VITE_API_BASE_URL` frontend API base URL for the Vite app
 - `MMS_DATA_DIR` default `./runtime`
 - `DATABASE_URL` default `postgresql://postgres:postgres@localhost:5432/mms`
 - `MIGRATION_DATABASE_URL` optional direct/admin connection string for migrations
@@ -124,6 +125,48 @@ Suggested Supabase setup:
 - The API now stores uploads in Supabase Storage when the Supabase env vars are present, and falls back to `runtime/uploads/` only when they are not.
 - Seed data will sync the demo users into Supabase Auth when Supabase is configured, so the seeded credentials keep working through the same API.
 - Web and mobile clients should share this same backend API so vendor approval, OTP checks, and privileged MFA stay centralized in one place.
+
+## Deploy on Vercel + Render + Supabase
+
+This repo is prepared for a split deployment:
+
+- Vercel hosts the Vite frontend
+- Render hosts the Node API
+- Supabase provides PostgreSQL, Auth, and Storage
+
+### Render API
+
+The API is a long-running Node server and should be deployed to Render using the included `render.yaml`.
+
+Recommended Render environment values:
+
+- `APP_URL=https://your-app.vercel.app` or a comma-separated list such as `https://your-app.vercel.app,https://your-custom-domain.com`
+- `API_URL=https://your-api.onrender.com`
+- `DATABASE_URL` set to your Supabase pooler connection string
+- `MIGRATION_DATABASE_URL` set to your Supabase direct migration connection string
+- `DATABASE_SSL=true`
+- `MMS_AUTO_MIGRATE=true`
+- `MMS_SEED_ON_BOOT=false`
+- `SUPABASE_URL=https://your-project.supabase.co`
+- `SUPABASE_ANON_KEY=sb_publishable_...`
+- `SUPABASE_SERVICE_ROLE_KEY=sb_secret_...`
+- `SUPABASE_STORAGE_BUCKET=mms-uploads`
+
+Notes:
+
+- The API now respects Render's `PORT` env automatically.
+- Health checks use `/health`.
+- Automatic boot seeding should stay disabled in hosted environments.
+
+### Vercel frontend
+
+Deploy the repo root to Vercel as a Vite project. The included `vercel.json` adds SPA rewrites so React Router routes resolve correctly on refresh.
+
+Set this Vercel environment variable:
+
+- `VITE_API_BASE_URL=https://your-api.onrender.com`
+
+If you use a custom frontend domain, add that domain to Render's `APP_URL` list so the API allows it through CORS.
 
 ## Notes
 

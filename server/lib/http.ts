@@ -33,8 +33,12 @@ const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-export const setCorsHeaders = (res: ServerResponse, config: AppConfig) => {
-  res.setHeader("Access-Control-Allow-Origin", config.appUrl);
+export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config: AppConfig) => {
+  const requestOrigin = req.headers.origin;
+  const allowedOrigin = requestOrigin && config.appUrls.includes(requestOrigin) ? requestOrigin : config.appUrl;
+
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
   res.setHeader("Access-Control-Allow-Credentials", "true");

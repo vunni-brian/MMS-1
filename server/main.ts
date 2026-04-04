@@ -44,7 +44,7 @@ setInterval(() => {
 }, 2_000);
 
 const server = createServer(async (req, res) => {
-  setCorsHeaders(res, config);
+  setCorsHeaders(req, res, config);
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
