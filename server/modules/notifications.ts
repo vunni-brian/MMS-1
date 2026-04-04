@@ -2,6 +2,7 @@ import { all, get, run } from "../lib/db.ts";
 import { HttpError, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { requirePermission } from "../lib/session.ts";
 import { nowIso } from "../lib/security.ts";
+import { sendSmsDelivery } from "../lib/sms.ts";
 import { config } from "../config.ts";
 
 const mapNotification = (row: {
@@ -20,66 +21,6 @@ const mapNotification = (row: {
   readAt: row.read_at,
   createdAt: row.created_at,
 });
-
-const sendSmsDelivery = async (destination: string, message: string) => {
-  if (!config.africasTalkingSmsEnabled) {
-    console.log("[delivery:sms:fallback]", destination, message);
-    return;
-  }
-
-  const form = new URLSearchParams({
-    username: config.africasTalkingUsername!,
-    to: destination,
-    message,
-  });
-  if (config.africasTalkingFrom) {
-    form.set("from", config.africasTalkingFrom);
-  }
-
-  const response = await fetch(
-    `${config.africasTalkingUseSandbox ? "https://api.sandbox.africastalking.com" : "https://api.africastalking.com"}/version1/messaging`,
-    {
-      method: "POST",
-      headers: {
-        apiKey: config.africasTalkingApiKey!,
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: form,
-    },
-  );
-
-  let payload: unknown = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    const messageFromPayload =
-      typeof payload === "object" && payload !== null && "message" in payload && typeof (payload as { message?: unknown }).message === "string"
-        ? (payload as { message: string }).message
-        : null;
-    throw new Error(`Africa's Talking SMS delivery failed: ${messageFromPayload || `${response.status} ${response.statusText}`}`);
-  }
-
-  const recipients =
-    typeof payload === "object" &&
-    payload !== null &&
-    "SMSMessageData" in payload &&
-    typeof (payload as { SMSMessageData?: unknown }).SMSMessageData === "object" &&
-    Array.isArray((payload as { SMSMessageData?: { Recipients?: unknown[] } }).SMSMessageData?.Recipients)
-      ? (payload as { SMSMessageData: { Recipients: Array<{ status?: string; number?: string }> } }).SMSMessageData.Recipients
-      : [];
-
-  const failedRecipient = recipients.find((recipient) => !recipient.status || !/^success$/i.test(recipient.status));
-  if (failedRecipient) {
-    throw new Error(
-      `Africa's Talking SMS delivery failed: ${failedRecipient.status || "Unknown status"}${failedRecipient.number ? ` for ${failedRecipient.number}` : ""}`,
-    );
-  }
-};
 
 export const processNotificationDeliveries = async () => {
   const deliveries = await all<{
@@ -112,7 +53,7 @@ export const processNotificationDeliveries = async () => {
     const timestamp = nowIso();
     try {
       if (delivery.channel === "sms") {
-        await sendSmsDelivery(delivery.destination, delivery.message);
+        await sendSmsDelivery(delivery.destination, delivery.message, config);
       } else {
         console.log(`[delivery:${delivery.channel}:fallback]`, delivery.destination, delivery.message);
       }
