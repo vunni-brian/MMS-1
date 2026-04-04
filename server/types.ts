@@ -93,10 +93,11 @@ export interface AppConfig {
   supabaseStorageBucket: string;
   supabaseAuthEnabled: boolean;
   supabaseStorageEnabled: boolean;
-  twilioAccountSid: string | null;
-  twilioAuthToken: string | null;
-  twilioPhoneNumber: string | null;
-  twilioSmsEnabled: boolean;
+  africasTalkingUsername: string | null;
+  africasTalkingApiKey: string | null;
+  africasTalkingFrom: string | null;
+  africasTalkingUseSandbox: boolean;
+  africasTalkingSmsEnabled: boolean;
   otpTtlMinutes: number;
   sessionTtlHours: number;
   notificationRetryCount: number;

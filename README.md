@@ -83,9 +83,10 @@ Optional environment variables:
 - `SUPABASE_ANON_KEY` optional publishable/anon key used by the API to validate phone-password sign-ins against Supabase Auth
 - `SUPABASE_SERVICE_ROLE_KEY` optional service role key used by the API for Auth user provisioning and Storage uploads
 - `SUPABASE_STORAGE_BUCKET` default `mms-uploads`
-- `TWILIO_ACCOUNT_SID` optional Twilio account SID for outbound SMS delivery
-- `TWILIO_AUTH_TOKEN` optional Twilio auth token for outbound SMS delivery
-- `TWILIO_PHONE_NUMBER` optional Twilio sender number in E.164 format for outbound SMS delivery
+- `AFRICAS_TALKING_USERNAME` optional Africa's Talking app username for outbound SMS delivery
+- `AFRICAS_TALKING_API_KEY` optional Africa's Talking API key for outbound SMS delivery
+- `AFRICAS_TALKING_FROM` optional Africa's Talking sender ID or phone number for outbound SMS delivery
+- `AFRICAS_TALKING_USE_SANDBOX` default `false`; use `true` for Africa's Talking sandbox testing
 - `OTP_TTL_MINUTES` default `10`
 - `SESSION_TTL_HOURS` default `24`
 - `NOTIFICATION_RETRY_COUNT` default `2`
@@ -154,6 +155,10 @@ Recommended Render environment values:
 - `SUPABASE_ANON_KEY=sb_publishable_...`
 - `SUPABASE_SERVICE_ROLE_KEY=sb_secret_...`
 - `SUPABASE_STORAGE_BUCKET=mms-uploads`
+- `AFRICAS_TALKING_USERNAME=your_app_username` or `sandbox`
+- `AFRICAS_TALKING_API_KEY=your_api_key`
+- `AFRICAS_TALKING_FROM=your_sender_id_or_number`
+- `AFRICAS_TALKING_USE_SANDBOX=true` for sandbox or `false` for live delivery
 
 Notes:
 

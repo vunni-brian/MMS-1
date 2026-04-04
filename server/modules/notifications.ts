@@ -22,38 +22,62 @@ const mapNotification = (row: {
 });
 
 const sendSmsDelivery = async (destination: string, message: string) => {
-  if (!config.twilioSmsEnabled) {
+  if (!config.africasTalkingSmsEnabled) {
     console.log("[delivery:sms:fallback]", destination, message);
     return;
   }
 
   const form = new URLSearchParams({
-    To: destination,
-    From: config.twilioPhoneNumber!,
-    Body: message,
+    username: config.africasTalkingUsername!,
+    to: destination,
+    message,
   });
+  if (config.africasTalkingFrom) {
+    form.set("from", config.africasTalkingFrom);
+  }
 
   const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${config.twilioAccountSid}/Messages.json`,
+    `${config.africasTalkingUseSandbox ? "https://api.sandbox.africastalking.com" : "https://api.africastalking.com"}/version1/messaging`,
     {
       method: "POST",
       headers: {
-        Authorization: `Basic ${Buffer.from(`${config.twilioAccountSid}:${config.twilioAuthToken}`).toString("base64")}`,
+        apiKey: config.africasTalkingApiKey!,
+        Accept: "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: form,
     },
   );
 
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
   if (!response.ok) {
-    let details = `${response.status} ${response.statusText}`;
-    try {
-      const payload = (await response.json()) as { message?: string; code?: number };
-      details = payload.code ? `${payload.code}: ${payload.message || details}` : payload.message || details;
-    } catch {
-      // Ignore JSON parse failures and use the HTTP-level error instead.
-    }
-    throw new Error(`Twilio SMS delivery failed: ${details}`);
+    const messageFromPayload =
+      typeof payload === "object" && payload !== null && "message" in payload && typeof (payload as { message?: unknown }).message === "string"
+        ? (payload as { message: string }).message
+        : null;
+    throw new Error(`Africa's Talking SMS delivery failed: ${messageFromPayload || `${response.status} ${response.statusText}`}`);
+  }
+
+  const recipients =
+    typeof payload === "object" &&
+    payload !== null &&
+    "SMSMessageData" in payload &&
+    typeof (payload as { SMSMessageData?: unknown }).SMSMessageData === "object" &&
+    Array.isArray((payload as { SMSMessageData?: { Recipients?: unknown[] } }).SMSMessageData?.Recipients)
+      ? (payload as { SMSMessageData: { Recipients: Array<{ status?: string; number?: string }> } }).SMSMessageData.Recipients
+      : [];
+
+  const failedRecipient = recipients.find((recipient) => !recipient.status || !/^success$/i.test(recipient.status));
+  if (failedRecipient) {
+    throw new Error(
+      `Africa's Talking SMS delivery failed: ${failedRecipient.status || "Unknown status"}${failedRecipient.number ? ` for ${failedRecipient.number}` : ""}`,
+    );
   }
 };
 

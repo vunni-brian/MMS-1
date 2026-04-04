@@ -31,9 +31,11 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: mms-uploads
-      - key: TWILIO_ACCOUNT_SID
+      - key: AFRICAS_TALKING_USERNAME
         sync: false
-      - key: TWILIO_AUTH_TOKEN
+      - key: AFRICAS_TALKING_API_KEY
         sync: false
-      - key: TWILIO_PHONE_NUMBER
+      - key: AFRICAS_TALKING_FROM
         sync: false
+      - key: AFRICAS_TALKING_USE_SANDBOX
+        value: "true"

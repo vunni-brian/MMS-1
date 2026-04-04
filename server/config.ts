@@ -53,6 +53,7 @@ const normalizePhoneValue = (value?: string | null) => {
   const normalized = value?.trim().replace(/\s+/g, "") || null;
   return normalized || null;
 };
+const africasTalkingUseSandbox = process.env.AFRICAS_TALKING_USE_SANDBOX === "true";
 const dataDir = process.env.MMS_DATA_DIR || path.join(rootDir, "runtime");
 const uploadsDir = path.join(dataDir, "uploads");
 const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/mms";
@@ -69,10 +70,12 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 
 const supabaseStorageBucket = process.env.SUPABASE_STORAGE_BUCKET?.trim() || "mms-uploads";
 const supabaseAuthEnabled = Boolean(supabaseUrl && supabaseAnonKey && supabaseServiceRoleKey);
 const supabaseStorageEnabled = Boolean(supabaseUrl && supabaseServiceRoleKey && supabaseStorageBucket);
-const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID?.trim() || null;
-const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN?.trim() || null;
-const twilioPhoneNumber = normalizePhoneValue(process.env.TWILIO_PHONE_NUMBER);
-const twilioSmsEnabled = Boolean(twilioAccountSid && twilioAuthToken && twilioPhoneNumber);
+const africasTalkingUsername =
+  process.env.AFRICAS_TALKING_USERNAME?.trim() || (africasTalkingUseSandbox ? "sandbox" : null);
+const africasTalkingApiKey = process.env.AFRICAS_TALKING_API_KEY?.trim() || null;
+const africasTalkingFrom =
+  normalizePhoneValue(process.env.AFRICAS_TALKING_FROM) || process.env.AFRICAS_TALKING_FROM?.trim() || null;
+const africasTalkingSmsEnabled = Boolean(africasTalkingUsername && africasTalkingApiKey);
 
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
@@ -95,10 +98,11 @@ export const config: AppConfig = {
   supabaseStorageBucket,
   supabaseAuthEnabled,
   supabaseStorageEnabled,
-  twilioAccountSid,
-  twilioAuthToken,
-  twilioPhoneNumber,
-  twilioSmsEnabled,
+  africasTalkingUsername,
+  africasTalkingApiKey,
+  africasTalkingFrom,
+  africasTalkingUseSandbox,
+  africasTalkingSmsEnabled,
   otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES || 10),
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),
