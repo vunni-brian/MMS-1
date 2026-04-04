@@ -83,6 +83,9 @@ Optional environment variables:
 - `SUPABASE_ANON_KEY` optional publishable/anon key used by the API to validate phone-password sign-ins against Supabase Auth
 - `SUPABASE_SERVICE_ROLE_KEY` optional service role key used by the API for Auth user provisioning and Storage uploads
 - `SUPABASE_STORAGE_BUCKET` default `mms-uploads`
+- `TWILIO_ACCOUNT_SID` optional Twilio account SID for outbound SMS delivery
+- `TWILIO_AUTH_TOKEN` optional Twilio auth token for outbound SMS delivery
+- `TWILIO_PHONE_NUMBER` optional Twilio sender number in E.164 format for outbound SMS delivery
 - `OTP_TTL_MINUTES` default `10`
 - `SESSION_TTL_HOURS` default `24`
 - `NOTIFICATION_RETRY_COUNT` default `2`

@@ -21,6 +21,42 @@ const mapNotification = (row: {
   createdAt: row.created_at,
 });
 
+const sendSmsDelivery = async (destination: string, message: string) => {
+  if (!config.twilioSmsEnabled) {
+    console.log("[delivery:sms:fallback]", destination, message);
+    return;
+  }
+
+  const form = new URLSearchParams({
+    To: destination,
+    From: config.twilioPhoneNumber!,
+    Body: message,
+  });
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${config.twilioAccountSid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${config.twilioAccountSid}:${config.twilioAuthToken}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form,
+    },
+  );
+
+  if (!response.ok) {
+    let details = `${response.status} ${response.statusText}`;
+    try {
+      const payload = (await response.json()) as { message?: string; code?: number };
+      details = payload.code ? `${payload.code}: ${payload.message || details}` : payload.message || details;
+    } catch {
+      // Ignore JSON parse failures and use the HTTP-level error instead.
+    }
+    throw new Error(`Twilio SMS delivery failed: ${details}`);
+  }
+};
+
 export const processNotificationDeliveries = async () => {
   const deliveries = await all<{
     id: string;
@@ -51,7 +87,11 @@ export const processNotificationDeliveries = async () => {
     const attempts = delivery.attempts + 1;
     const timestamp = nowIso();
     try {
-      console.log(`[delivery:${delivery.channel}]`, delivery.destination, delivery.message);
+      if (delivery.channel === "sms") {
+        await sendSmsDelivery(delivery.destination, delivery.message);
+      } else {
+        console.log(`[delivery:${delivery.channel}:fallback]`, delivery.destination, delivery.message);
+      }
       await run(
         `UPDATE notification_deliveries
          SET status = 'sent',

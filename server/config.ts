@@ -49,6 +49,10 @@ const appUrls = (process.env.APP_URL || "http://localhost:8080")
   .map((value) => value.trim())
   .filter(Boolean);
 const primaryAppUrl = appUrls[0] || "http://localhost:8080";
+const normalizePhoneValue = (value?: string | null) => {
+  const normalized = value?.trim().replace(/\s+/g, "") || null;
+  return normalized || null;
+};
 const dataDir = process.env.MMS_DATA_DIR || path.join(rootDir, "runtime");
 const uploadsDir = path.join(dataDir, "uploads");
 const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/mms";
@@ -65,6 +69,10 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || 
 const supabaseStorageBucket = process.env.SUPABASE_STORAGE_BUCKET?.trim() || "mms-uploads";
 const supabaseAuthEnabled = Boolean(supabaseUrl && supabaseAnonKey && supabaseServiceRoleKey);
 const supabaseStorageEnabled = Boolean(supabaseUrl && supabaseServiceRoleKey && supabaseStorageBucket);
+const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID?.trim() || null;
+const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN?.trim() || null;
+const twilioPhoneNumber = normalizePhoneValue(process.env.TWILIO_PHONE_NUMBER);
+const twilioSmsEnabled = Boolean(twilioAccountSid && twilioAuthToken && twilioPhoneNumber);
 
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
@@ -87,6 +95,10 @@ export const config: AppConfig = {
   supabaseStorageBucket,
   supabaseAuthEnabled,
   supabaseStorageEnabled,
+  twilioAccountSid,
+  twilioAuthToken,
+  twilioPhoneNumber,
+  twilioSmsEnabled,
   otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES || 10),
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),

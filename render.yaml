@@ -31,3 +31,9 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: mms-uploads
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
