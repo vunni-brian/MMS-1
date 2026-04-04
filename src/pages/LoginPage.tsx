@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Store } from "lucide-react";
+import { CheckCircle, Shield, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +17,15 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [pageError, setPageError] = useState<string | null>(null);
+  const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
+  const [pendingVendorVerification, setPendingVendorVerification] = useState<{
+    challengeId: string;
+    expiresAt: string;
+    developmentCode?: string;
+  } | null>(null);
   const isMfaStep = Boolean(pendingMfa);
-  const canSubmit = isMfaStep ? otp.length === 6 : Boolean(phone.trim() && password);
+  const isVendorVerificationStep = Boolean(pendingVendorVerification);
+  const canSubmit = isMfaStep || isVendorVerificationStep ? otp.length === 6 : Boolean(phone.trim() && password);
 
   useEffect(() => {
     if (user) {
@@ -34,7 +41,25 @@ const LoginPage = () => {
         return;
       }
 
+      if (pendingVendorVerification) {
+        const response = await api.verifyRegistrationOtp(pendingVendorVerification.challengeId, otp);
+        setPendingVendorVerification(null);
+        setVerificationSuccess(response.message);
+        setOtp("");
+        return;
+      }
+
       const response = await login(phone, password);
+      if (response.verificationRequired) {
+        setPendingVendorVerification({
+          challengeId: response.challengeId,
+          expiresAt: response.expiresAt,
+          developmentCode: response.developmentCode,
+        });
+        setOtp("");
+        return;
+      }
+
       if (!response.mfaRequired) {
         setOtp("");
       }
@@ -54,6 +79,33 @@ const LoginPage = () => {
     setPageError(null);
   };
 
+  const handleBackToLogin = () => {
+    clearPendingMfa();
+    setPendingVendorVerification(null);
+    setVerificationSuccess(null);
+    setOtp("");
+    setPageError(null);
+  };
+
+  if (verificationSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="card-warm w-full max-w-md text-center">
+          <CardContent className="pt-8 pb-8 space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10">
+              <CheckCircle className="w-8 h-8 text-success" />
+            </div>
+            <h2 className="text-xl font-bold font-heading">Phone Verified</h2>
+            <p className="text-muted-foreground text-sm">{verificationSuccess}</p>
+            <Button onClick={handleBackToLogin} variant="outline">
+              Back to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
@@ -63,20 +115,30 @@ const LoginPage = () => {
           </div>
           <h1 className="text-2xl font-bold font-heading text-foreground">Market Management System</h1>
           <p className="text-muted-foreground text-sm">
-            {pendingMfa ? "Privileged account MFA verification" : "Sign in with your registered credentials"}
+            {pendingMfa
+              ? "Privileged account MFA verification"
+              : isVendorVerificationStep
+                ? "Complete your vendor phone verification"
+                : "Sign in with your registered credentials"}
           </p>
         </div>
 
         <Card className="card-warm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-heading">{isMfaStep ? "Verify privileged access" : "Account sign-in"}</CardTitle>
+            <CardTitle className="text-lg font-heading">
+              {isMfaStep ? "Verify privileged access" : isVendorVerificationStep ? "Verify vendor phone number" : "Account sign-in"}
+            </CardTitle>
             <CardDescription>
-              {isMfaStep ? "Enter the OTP sent to your registered phone number" : "Use your phone number and password"}
+              {isMfaStep
+                ? "Enter the OTP sent to your registered phone number"
+                : isVendorVerificationStep
+                  ? "Enter the OTP sent to the phone number linked to your vendor profile"
+                  : "Use your phone number and password"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
-              {!isMfaStep ? (
+              {!isMfaStep && !isVendorVerificationStep ? (
                 <>
                   <div className="space-y-1.5">
                     <Label htmlFor="phone">Phone Number</Label>
@@ -102,7 +164,7 @@ const LoginPage = () => {
                     />
                   </div>
                 </>
-              ) : (
+              ) : isMfaStep ? (
                 <>
                   <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm">
                     <div className="flex items-center gap-2 font-medium text-warning">
@@ -123,6 +185,21 @@ const LoginPage = () => {
                     <OtpCodeInput id="otp" value={otp} onChange={setOtp} disabled={isLoading} />
                   </div>
                 </>
+              ) : (
+                <>
+                  <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
+                    Enter the six-digit code sent to <span className="font-medium text-foreground">{phone.trim() || "your registered phone number"}</span>.
+                    {pendingVendorVerification?.developmentCode && (
+                      <p className="mt-2 text-xs">
+                        Development OTP: <span className="font-mono font-medium text-foreground">{pendingVendorVerification.developmentCode}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">OTP Code</Label>
+                    <OtpCodeInput id="otp" value={otp} onChange={setOtp} disabled={isLoading} />
+                  </div>
+                </>
               )}
 
               {(pageError || authError) && (
@@ -132,21 +209,29 @@ const LoginPage = () => {
               )}
 
               <Button className="w-full" type="submit" disabled={isLoading || !canSubmit}>
-                {isMfaStep ? "Verify MFA" : "Sign In"}
+                {isMfaStep ? "Verify MFA" : isVendorVerificationStep ? "Verify Phone" : "Sign In"}
               </Button>
 
               <div className="flex items-center justify-between text-sm">
-                <div className="space-y-1.5">
+                {!isMfaStep && !isVendorVerificationStep ? (
+                  <div className="space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/register")}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      Register as vendor
+                    </button>
+                  </div>
+                ) : (
+                  <div />
+                )}
+                {(isMfaStep || isVendorVerificationStep) && (
                   <button
                     type="button"
-                    onClick={() => navigate("/register")}
-                    className="text-primary font-medium hover:underline"
+                    onClick={isMfaStep ? handleResetMfa : handleBackToLogin}
+                    className="text-muted-foreground hover:underline"
                   >
-                    Register as vendor
-                  </button>
-                </div>
-                {isMfaStep && (
-                  <button type="button" onClick={handleResetMfa} className="text-muted-foreground hover:underline">
                     Back to login
                   </button>
                 )}

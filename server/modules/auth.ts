@@ -4,6 +4,7 @@ import {
   getManagerForMarket,
   getUserRecordById,
   getUserRecordByPhone,
+  logAuditEvent,
   queueNotification,
   run,
   serializeAuthUser,
@@ -11,8 +12,8 @@ import {
 } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
-import { addMinutes, createOtpCode, hashOtpCode, hashPassword, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
-import { createSupabaseAuthUser, deleteSupabaseAuthUser, findSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
+import { addMinutes, createOtpCode, createTemporaryPassword, hashOtpCode, hashPassword, normalizePhoneNumber, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
+import { createSupabaseAuthUser, deleteSupabaseAuthUser, findSupabaseAuthUser, updateSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
 import { persistFilePayload, removeStoredFile, validateFilePayload } from "../lib/storage.ts";
 import type { FilePayload } from "../types.ts";
 
@@ -58,6 +59,41 @@ const requiresPrivilegedMfa = (user: {
   mfa_enabled: number;
 }) => user.role === "official" || (user.role === "manager" && Boolean(user.mfa_enabled));
 
+const issueRegistrationChallenge = async ({
+  userId,
+  phone,
+  otpTtlMinutes,
+}: {
+  userId: string;
+  phone: string;
+  otpTtlMinutes: number;
+}) => {
+  const challengeId = createId("otp");
+  const otpCode = createOtpCode();
+  const expiresAt = addMinutes(otpTtlMinutes);
+  const timestamp = nowIso();
+
+  await run(
+    `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
+     VALUES (?, ?, 'registration', ?, ?, ?, NULL, NULL, ?)`,
+    [challengeId, userId, phone, hashOtpCode(otpCode), expiresAt, timestamp],
+  );
+
+  await queueNotification({
+    userId,
+    type: "otp",
+    message: `Your verification code is ${otpCode}. It expires in ${otpTtlMinutes} minutes.`,
+    channels: ["system", "sms"],
+    destinationPhone: phone,
+  });
+
+  return {
+    challengeId,
+    expiresAt,
+    otpCode,
+  };
+};
+
 export const authRoutes: RouteDefinition[] = [
   {
     method: "POST",
@@ -83,7 +119,9 @@ export const authRoutes: RouteDefinition[] = [
         throw new HttpError(400, "Selected market is invalid.");
       }
 
-      const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [body.phone]);
+      const normalizedPhone = normalizePhoneNumber(body.phone);
+
+      const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [normalizedPhone]);
       const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE email = ?`, [body.email]);
       if (existingPhone || existingEmail) {
         throw new HttpError(409, "A user with that phone or email already exists.");
@@ -100,7 +138,7 @@ export const authRoutes: RouteDefinition[] = [
       try {
         if (config.supabaseAuthEnabled) {
           const existingSupabaseUser = await findSupabaseAuthUser({
-            phone: body.phone.trim(),
+            phone: normalizedPhone,
             email: body.email.trim().toLowerCase(),
           });
           if (existingSupabaseUser) {
@@ -109,7 +147,7 @@ export const authRoutes: RouteDefinition[] = [
 
           const authUser = await createSupabaseAuthUser({
             email: body.email.trim().toLowerCase(),
-            phone: body.phone.trim(),
+            phone: normalizedPhone,
             password: body.password,
             localUserId: userId,
             name: body.name.trim(),
@@ -131,7 +169,7 @@ export const authRoutes: RouteDefinition[] = [
               authUserId,
               body.name.trim(),
               body.email.trim().toLowerCase(),
-              body.phone.trim(),
+              normalizedPhone,
               hashPassword(body.password),
               market.id,
               timestamp,
@@ -146,7 +184,7 @@ export const authRoutes: RouteDefinition[] = [
           await run(
             `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
              VALUES (?, ?, 'registration', ?, ?, ?, NULL, NULL, ?)`,
-            [challengeId, userId, body.phone.trim(), hashOtpCode(otpCode), expiresAt, timestamp],
+            [challengeId, userId, normalizedPhone, hashOtpCode(otpCode), expiresAt, timestamp],
           );
         });
       } catch (error) {
@@ -161,7 +199,7 @@ export const authRoutes: RouteDefinition[] = [
         type: "otp",
         message: `Your verification code is ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
         channels: ["system", "sms"],
-        destinationPhone: body.phone.trim(),
+        destinationPhone: normalizedPhone,
       });
       const marketManager = await getManagerForMarket(market.id);
       if (marketManager) {
@@ -205,10 +243,168 @@ export const authRoutes: RouteDefinition[] = [
   },
   {
     method: "POST",
+    path: "/auth/managers",
+    handler: async ({ req, res, auth, config }) => {
+      const session = requireAuth(auth);
+      if (session.user.role !== "official") {
+        throw new HttpError(403, "Only officials can assign market managers.");
+      }
+
+      const body = await readJsonBody<{
+        name?: string;
+        email?: string;
+        phone?: string;
+        marketId?: string;
+      }>(req);
+
+      const name = body.name?.trim();
+      const email = body.email?.trim().toLowerCase();
+      const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
+      const marketId = body.marketId?.trim();
+
+      if (!name || !email || !phone || !marketId) {
+        throw new HttpError(400, "Name, email, phone, and market are required.");
+      }
+
+      const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [marketId]);
+      if (!market) {
+        throw new HttpError(400, "Selected market is invalid.");
+      }
+
+      const existingManager = await get<{
+        id: string;
+        auth_user_id: string | null;
+      }>(
+        `SELECT id, auth_user_id
+         FROM users
+         WHERE role = 'manager' AND market_id = ?
+         ORDER BY created_at ASC
+         LIMIT 1`,
+        [market.id],
+      );
+
+      const duplicatePhone = await get<{ id: string }>(
+        `SELECT id
+         FROM users
+         WHERE phone = ?${existingManager ? " AND id != ?" : ""}
+         LIMIT 1`,
+        existingManager ? [phone, existingManager.id] : [phone],
+      );
+      if (duplicatePhone) {
+        throw new HttpError(409, "A user with that phone number already exists.");
+      }
+
+      const duplicateEmail = await get<{ id: string }>(
+        `SELECT id
+         FROM users
+         WHERE email = ?${existingManager ? " AND id != ?" : ""}
+         LIMIT 1`,
+        existingManager ? [email, existingManager.id] : [email],
+      );
+      if (duplicateEmail) {
+        throw new HttpError(409, "A user with that email address already exists.");
+      }
+
+      const managerUserId = existingManager?.id || createId("user");
+      let authUserId = existingManager?.auth_user_id || null;
+      if (config.supabaseAuthEnabled) {
+        const matchingSupabaseUser = await findSupabaseAuthUser({ phone, email });
+        if (matchingSupabaseUser && matchingSupabaseUser.id !== authUserId) {
+          throw new HttpError(409, "A Supabase Auth user with that phone or email already exists.");
+        }
+      }
+
+      const temporaryPassword = createTemporaryPassword();
+      if (config.supabaseAuthEnabled) {
+        if (authUserId) {
+          const authUser = await updateSupabaseAuthUser(authUserId, {
+            email,
+            phone,
+            password: temporaryPassword,
+            localUserId: managerUserId,
+            name,
+            role: "manager",
+            marketId: market.id,
+          });
+          authUserId = authUser?.id || authUserId;
+        } else {
+          const authUser = await createSupabaseAuthUser({
+            email,
+            phone,
+            password: temporaryPassword,
+            localUserId: managerUserId,
+            name,
+            role: "manager",
+            marketId: market.id,
+          });
+          authUserId = authUser?.id || null;
+        }
+      }
+
+      const timestamp = nowIso();
+      await transaction(async () => {
+        if (existingManager) {
+          await run(
+            `UPDATE users
+             SET auth_user_id = ?,
+                 name = ?,
+                 email = ?,
+                 phone = ?,
+                 password_hash = ?,
+                 role = 'manager',
+                 market_id = ?,
+                 mfa_enabled = 1,
+                 phone_verified_at = ?,
+                 updated_at = ?
+             WHERE id = ?`,
+            [authUserId, name, email, phone, hashPassword(temporaryPassword), market.id, timestamp, timestamp, managerUserId],
+          );
+          await run(`DELETE FROM sessions WHERE user_id = ?`, [managerUserId]);
+        } else {
+          await run(
+            `INSERT INTO users (id, auth_user_id, name, email, phone, password_hash, role, market_id, mfa_enabled, phone_verified_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'manager', ?, 1, ?, ?, ?)`,
+            [managerUserId, authUserId, name, email, phone, hashPassword(temporaryPassword), market.id, timestamp, timestamp, timestamp],
+          );
+        }
+      });
+
+      await queueNotification({
+        userId: managerUserId,
+        type: "system",
+        message: `You are assigned as manager for ${market.name}. Temporary password: ${temporaryPassword}. Sign in at ${config.appUrl} and an OTP will be sent to this phone.`,
+        channels: ["system", "sms"],
+        destinationPhone: phone,
+      });
+
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: market.id,
+        action: "ASSIGN_MANAGER",
+        entityType: "manager",
+        entityId: managerUserId,
+        details: { managerName: name, created: !existingManager },
+      });
+
+      const manager = await getUserRecordById(managerUserId);
+      if (!manager) {
+        throw new HttpError(500, "Unable to load the assigned manager.");
+      }
+
+      sendJson(res, 201, {
+        manager: serializeAuthUser(manager),
+        message: `Manager setup instructions were sent to ${phone}.`,
+      });
+    },
+  },
+  {
+    method: "POST",
     path: "/auth/login",
     handler: async ({ req, res, config }) => {
       const body = await readJsonBody<{ phone: string; password: string }>(req);
-      const user = await getUserRecordByPhone(body.phone?.trim() || "");
+      const user = await getUserRecordByPhone(normalizePhoneNumber(body.phone || ""));
       if (!user) {
         throw new HttpError(401, "Invalid phone number or password.");
       }
@@ -230,7 +426,19 @@ export const authRoutes: RouteDefinition[] = [
 
       if (user.role === "vendor") {
         if (!user.phone_verified_at) {
-          throw new HttpError(403, "Please verify your phone number before signing in.");
+          const challenge = await issueRegistrationChallenge({
+            userId: user.id,
+            phone: user.phone,
+            otpTtlMinutes: config.otpTtlMinutes,
+          });
+
+          sendJson(res, 200, {
+            verificationRequired: true,
+            challengeId: challenge.challengeId,
+            expiresAt: challenge.expiresAt,
+            developmentCode: config.devMode ? challenge.otpCode : undefined,
+          });
+          return;
         }
         if (user.vendor_status === "pending") {
           throw new HttpError(403, "Your vendor profile is awaiting manager approval.");

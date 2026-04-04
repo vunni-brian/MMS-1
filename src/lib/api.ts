@@ -131,11 +131,23 @@ export const api = {
 
   login: (phone: string, password: string) =>
     apiRequest<
+      | { verificationRequired: true; challengeId: string; expiresAt: string; developmentCode?: string }
       | { mfaRequired: true; challengeId: string; expiresAt: string; developmentCode?: string }
       | { token: string; user: AuthUser }
     >("/auth/login", {
       method: "POST",
       body: JSON.stringify({ phone, password }),
+    }),
+
+  createManager: (input: {
+    name: string;
+    email: string;
+    phone: string;
+    marketId: string;
+  }) =>
+    apiRequest<{ manager: AuthUser; message: string }>("/auth/managers", {
+      method: "POST",
+      body: JSON.stringify(input),
     }),
 
   verifyPrivilegedMfa: (challengeId: string, code: string) =>

@@ -12,7 +12,14 @@ interface PendingMfaChallenge {
 interface AuthContextType {
   user: AuthUser | null;
   role: AuthUser["role"] | null;
-  login: (phone: string, password: string) => Promise<{ mfaRequired: boolean; developmentCode?: string }>;
+  login: (
+    phone: string,
+    password: string,
+  ) => Promise<
+    | { mfaRequired: false; verificationRequired: false }
+    | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string; developmentCode?: string }
+    | { mfaRequired: true; verificationRequired: false; developmentCode?: string }
+  >;
   verifyPrivilegedMfa: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -65,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(response.user);
         setPendingMfa(null);
         setAuthError(null);
-        return { mfaRequired: false };
+        return { mfaRequired: false, verificationRequired: false };
       }
 
       if (response.mfaRequired) {
@@ -75,7 +82,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           developmentCode: response.developmentCode,
         });
         setAuthError(null);
-        return { mfaRequired: true, developmentCode: response.developmentCode };
+        return { mfaRequired: true, verificationRequired: false, developmentCode: response.developmentCode };
+      }
+
+      if (response.verificationRequired) {
+        setPendingMfa(null);
+        setAuthError(null);
+        return {
+          mfaRequired: false,
+          verificationRequired: true,
+          challengeId: response.challengeId,
+          expiresAt: response.expiresAt,
+          developmentCode: response.developmentCode,
+        };
       }
 
       throw new Error("Unexpected login response.");
