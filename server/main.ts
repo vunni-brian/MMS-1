@@ -38,9 +38,16 @@ if (config.seedOnBoot) {
   await seedDatabase();
 }
 
+const runBackgroundTask = (label: string, task: () => Promise<void>) => {
+  void task().catch((error) => {
+    const message = error instanceof Error ? error.stack || error.message : String(error);
+    console.error(`[background:${label}]`, message);
+  });
+};
+
 setInterval(() => {
-  void processNotificationDeliveries();
-  void settlePendingPayments();
+  runBackgroundTask("notifications", processNotificationDeliveries);
+  runBackgroundTask("payments", settlePendingPayments);
 }, 2_000);
 
 const server = createServer(async (req, res) => {
