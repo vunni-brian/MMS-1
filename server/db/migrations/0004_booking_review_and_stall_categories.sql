@@ -3,6 +3,14 @@ ALTER TABLE bookings
   ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS review_note TEXT;
 
+ALTER TABLE stalls
+  DROP CONSTRAINT IF EXISTS stalls_status_check;
+
+ALTER TABLE bookings
+  DROP CONSTRAINT IF EXISTS bookings_status_check;
+
+DROP INDEX IF EXISTS idx_unique_active_booking_per_stall;
+
 UPDATE stalls
 SET status = CASE
   WHEN status = 'maintenance' THEN 'maintenance'
@@ -22,20 +30,12 @@ SET status = CASE
 END;
 
 ALTER TABLE stalls
-  DROP CONSTRAINT IF EXISTS stalls_status_check;
-
-ALTER TABLE stalls
   ADD CONSTRAINT stalls_status_check
   CHECK (status IN ('active', 'inactive', 'maintenance'));
 
 ALTER TABLE bookings
-  DROP CONSTRAINT IF EXISTS bookings_status_check;
-
-ALTER TABLE bookings
   ADD CONSTRAINT bookings_status_check
   CHECK (status IN ('pending', 'approved', 'rejected', 'paid'));
-
-DROP INDEX IF EXISTS idx_unique_active_booking_per_stall;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_booking_per_stall
   ON bookings(stall_id)
