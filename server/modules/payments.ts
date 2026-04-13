@@ -144,13 +144,6 @@ const completePayment = async ({
 
     if (status === "completed") {
       await run(`UPDATE bookings SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, payment.booking_id]);
-      await run(
-        `UPDATE stalls
-         SET status = 'paid',
-             updated_at = ?
-         WHERE id = (SELECT stall_id FROM bookings WHERE id = ?)`,
-        [timestamp, payment.booking_id],
-      );
     }
   });
 
@@ -273,7 +266,7 @@ export const paymentRoutes: RouteDefinition[] = [
       if (booking.market_id !== marketId) {
         throw new HttpError(403, "You do not have access to that booking.");
       }
-      if (!["reserved", "paid"].includes(booking.status)) {
+      if (!["approved", "paid"].includes(booking.status)) {
         throw new HttpError(409, "This booking is not eligible for payment.");
       }
 

@@ -2,28 +2,29 @@ import { cn } from "@/lib/utils";
 import type { BookingStatus, PaymentStatus, StallStatus, TicketStatus, VendorApprovalStatus } from "@/types";
 
 const statusStyles: Record<string, string> = {
-  active: 'bg-success/15 text-success',
-  available: 'bg-success/15 text-success',
-  reserved: 'bg-warning/15 text-warning',
-  paid: 'bg-info/15 text-info',
-  confirmed: 'bg-success/15 text-success',
-  maintenance: 'bg-muted text-muted-foreground',
-  late_payment: 'bg-warning/15 text-warning',
-  pending: 'bg-warning/15 text-warning',
-  completed: 'bg-success/15 text-success',
-  failed: 'bg-destructive/15 text-destructive',
-  approved: 'bg-success/15 text-success',
-  rejected: 'bg-destructive/15 text-destructive',
-  suspended: 'bg-destructive/15 text-destructive',
-  open: 'bg-info/15 text-info',
-  in_progress: 'bg-warning/15 text-warning',
-  resolved: 'bg-success/15 text-success',
-  closed: 'bg-muted text-muted-foreground',
+  active: "bg-primary/15 text-primary",
+  inactive: "bg-success/15 text-success",
+  maintenance: "bg-muted text-muted-foreground",
+  pending: "bg-warning/15 text-warning",
+  approved: "bg-success/15 text-success",
+  paid: "bg-info/15 text-info",
+  rejected: "bg-destructive/15 text-destructive",
+  late_payment: "bg-warning/15 text-warning",
+  completed: "bg-success/15 text-success",
+  failed: "bg-destructive/15 text-destructive",
+  suspended: "bg-destructive/15 text-destructive",
+  open: "bg-info/15 text-info",
+  in_progress: "bg-warning/15 text-warning",
+  resolved: "bg-success/15 text-success",
+  closed: "bg-muted text-muted-foreground",
 };
 
 const statusLabels: Record<string, string> = {
-  in_progress: 'In Progress',
-  late_payment: 'Late Payment',
+  active: "Occupied",
+  inactive: "Available",
+  in_progress: "In Progress",
+  late_payment: "Late Payment",
+  pending: "Pending Review",
 };
 
 interface StatusBadgeProps {

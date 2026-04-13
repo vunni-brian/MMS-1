@@ -122,7 +122,7 @@ export const updateSupabaseAuthUser = async (
   }: {
     email: string;
     phone: string;
-    password: string;
+    password?: string;
     localUserId: string;
     name: string;
     role: "vendor" | "manager" | "official";

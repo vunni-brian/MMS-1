@@ -1,7 +1,8 @@
-import { all, get, logAuditEvent, queueNotification, run } from "../lib/db.ts";
+import { all, get, getManagerForMarket, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, requireAuth, requirePermission, resolveScopedMarket } from "../lib/session.ts";
-import { nowIso } from "../lib/security.ts";
+import { normalizePhoneNumber, nowIso } from "../lib/security.ts";
+import { findSupabaseAuthUser, updateSupabaseAuthUser } from "../lib/supabase.ts";
 
 const vendorSelect = `
   SELECT users.id,
@@ -116,6 +117,173 @@ export const vendorRoutes: RouteDefinition[] = [
       }
       assertMarketAccess(session, vendor.marketId);
       sendJson(res, 200, { vendor });
+    },
+  },
+  {
+    method: "PATCH",
+    path: "/vendors/:id/profile",
+    handler: async ({ req, res, auth, params, config }) => {
+      const session = requireAuth(auth);
+      if (session.user.role !== "vendor" || session.user.id !== params.id) {
+        throw new HttpError(403, "You may only update your own vendor profile.");
+      }
+
+      const vendor = await getVendorById(params.id);
+      if (!vendor) {
+        throw new HttpError(404, "Vendor not found.");
+      }
+
+      const userRecord = await get<{ auth_user_id: string | null }>(`SELECT auth_user_id FROM users WHERE id = ?`, [params.id]);
+      const body = await readJsonBody<{
+        name?: string;
+        email?: string;
+        phone?: string;
+        marketId?: string;
+      }>(req);
+
+      const name = body.name?.trim() || vendor.name;
+      const email = body.email?.trim().toLowerCase() || vendor.email;
+      const phone = body.phone ? normalizePhoneNumber(body.phone) : vendor.phone;
+      const marketId = body.marketId?.trim() || vendor.marketId;
+
+      if (!name || !email || !phone || !marketId) {
+        throw new HttpError(400, "Name, email, phone, and market are required.");
+      }
+
+      const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [marketId]);
+      if (!market) {
+        throw new HttpError(400, "Selected market is invalid.");
+      }
+
+      const duplicatePhone = await get<{ id: string }>(
+        `SELECT id FROM users WHERE phone = ? AND id != ? LIMIT 1`,
+        [phone, params.id],
+      );
+      if (duplicatePhone) {
+        throw new HttpError(409, "A user with that phone number already exists.");
+      }
+
+      const duplicateEmail = await get<{ id: string }>(
+        `SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1`,
+        [email, params.id],
+      );
+      if (duplicateEmail) {
+        throw new HttpError(409, "A user with that email address already exists.");
+      }
+
+      const marketChanged = marketId !== vendor.marketId;
+      const phoneChanged = phone !== vendor.phone;
+
+      if (marketChanged) {
+        const activeStall = await get<{ id: string }>(
+          `SELECT id FROM stalls WHERE assigned_vendor_id = ? AND status = 'active' LIMIT 1`,
+          [params.id],
+        );
+        if (activeStall) {
+          throw new HttpError(409, "Transfer to another market is only available when you do not have an active stall.");
+        }
+      }
+
+      if (config.supabaseAuthEnabled && userRecord?.auth_user_id) {
+        const matchingSupabaseUser = await findSupabaseAuthUser({ phone, email });
+        if (matchingSupabaseUser && matchingSupabaseUser.id !== userRecord.auth_user_id) {
+          throw new HttpError(409, "A Supabase Auth user with that phone or email already exists.");
+        }
+
+        await updateSupabaseAuthUser(userRecord.auth_user_id, {
+          email,
+          phone,
+          localUserId: params.id,
+          name,
+          role: "vendor",
+          marketId: market.id,
+        });
+      }
+
+      const timestamp = nowIso();
+      await transaction(async () => {
+        await run(
+          `UPDATE users
+           SET name = ?,
+               email = ?,
+               phone = ?,
+               market_id = ?,
+               phone_verified_at = ?,
+               updated_at = ?
+           WHERE id = ?`,
+          [name, email, phone, market.id, phoneChanged ? timestamp : session.user.phoneVerifiedAt, timestamp, params.id],
+        );
+
+        if (marketChanged) {
+          await run(
+            `UPDATE vendor_profiles
+             SET approval_status = 'pending',
+                 approval_reason = NULL,
+                 approved_by = NULL,
+                 approved_at = NULL,
+                 rejected_by = NULL,
+                 rejected_at = NULL
+             WHERE user_id = ?`,
+            [params.id],
+          );
+          await run(
+            `UPDATE bookings
+             SET status = 'rejected',
+                 reviewed_by_user_id = ?,
+                 reviewed_at = ?,
+                 review_note = ?,
+                 confirmed_at = NULL,
+                 updated_at = ?
+             WHERE vendor_id = ? AND status = 'pending'`,
+            [params.id, timestamp, "Cancelled because the vendor transferred to another market.", timestamp, params.id],
+          );
+        }
+      });
+
+      await queueNotification({
+        userId: params.id,
+        type: "system",
+        message: marketChanged
+          ? `Your profile was updated and your transfer to ${market.name} is now awaiting manager approval.`
+          : "Your profile details were updated successfully.",
+        channels: ["system"],
+      });
+
+      if (marketChanged) {
+        const marketManager = await getManagerForMarket(market.id);
+        if (marketManager) {
+          await queueNotification({
+            userId: marketManager.id,
+            type: "system",
+            message: `${name} transferred into ${market.name} and now needs vendor approval.`,
+            channels: ["system", "sms"],
+            destinationPhone: marketManager.phone,
+          });
+        }
+      }
+
+      await logAuditEvent({
+        actorUserId: params.id,
+        actorName: name,
+        actorRole: "vendor",
+        marketId: market.id,
+        action: marketChanged ? "TRANSFER_VENDOR_MARKET" : "UPDATE_VENDOR_PROFILE",
+        entityType: "vendor",
+        entityId: params.id,
+        details: {
+          previousMarketId: vendor.marketId,
+          marketId: market.id,
+          phoneChanged,
+          emailChanged: email !== vendor.email,
+        },
+      });
+
+      sendJson(res, 200, {
+        vendor: await getVendorById(params.id),
+        message: marketChanged
+          ? `Profile updated. Transfer to ${market.name} is pending manager approval.`
+          : "Profile updated.",
+      });
     },
   },
   {

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CreditCard, Grid3X3, TrendingUp } from "lucide-react";
+import { Bell, ClipboardList, CreditCard, Grid3X3, TrendingUp } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -9,8 +9,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 const VendorDashboard = () => {
   const { user } = useAuth();
   const { data: stallsData } = useQuery({
-    queryKey: ["stalls"],
-    queryFn: () => api.getStalls(),
+    queryKey: ["stalls", "mine"],
+    queryFn: () => api.getStalls({ scope: "mine" }),
   });
   const { data: bookingsData } = useQuery({
     queryKey: ["bookings"],
@@ -26,10 +26,12 @@ const VendorDashboard = () => {
     queryFn: () => api.getNotifications(3),
   });
 
-  const myStalls = (stallsData?.stalls || []).filter((stall) => stall.vendorId === user?.id);
+  const myStalls = (stallsData?.stalls || []).filter((stall) => stall.vendorId === user?.id && stall.status === "active");
   const myBookings = bookingsData?.bookings || [];
   const myPayments = paymentsData?.payments || [];
   const myNotifications = notificationsData?.notifications || [];
+  const pendingApplications = myBookings.filter((booking) => booking.status === "pending");
+  const approvedAwaitingPayment = myBookings.filter((booking) => booking.status === "approved");
 
   const totalPaid = myPayments
     .filter((payment) => payment.status === "completed")
@@ -37,12 +39,12 @@ const VendorDashboard = () => {
 
   const stats = [
     { label: "Active Stalls", value: myStalls.length, icon: Grid3X3, color: "text-primary" },
-    { label: "Total Paid", value: `UGX ${totalPaid.toLocaleString()}`, icon: TrendingUp, color: "text-success" },
+    { label: "Pending Applications", value: pendingApplications.length, icon: ClipboardList, color: "text-warning" },
     {
-      label: "Pending Payments",
-      value: myBookings.filter((booking) => booking.status === "reserved").length,
+      label: "Awaiting Payment",
+      value: approvedAwaitingPayment.length,
       icon: CreditCard,
-      color: "text-warning",
+      color: "text-info",
     },
     { label: "Unread Alerts", value: myNotifications.filter((item) => !item.read).length, icon: Bell, color: "text-info" },
   ];
@@ -51,7 +53,9 @@ const VendorDashboard = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-heading">Welcome back, {user?.name?.split(" ")[0]}!</h1>
-        <p className="text-muted-foreground text-sm mt-1">Here&apos;s your market overview</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Track your stall applications, active assignments, and payment status.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -73,11 +77,13 @@ const VendorDashboard = () => {
       <div className="grid lg:grid-cols-2 gap-4">
         <Card className="card-warm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">My Stalls</CardTitle>
+            <CardTitle className="text-base font-heading">My Active Stalls</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {myStalls.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No stalls reserved yet</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No active stalls yet. Approved applications will appear here.
+              </p>
             ) : (
               myStalls.map((stall) => (
                 <div key={stall.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
@@ -86,7 +92,7 @@ const VendorDashboard = () => {
                       {stall.name} - {stall.zone}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {stall.size} · UGX {stall.pricePerMonth.toLocaleString()}/mo
+                      {stall.size} - UGX {stall.pricePerMonth.toLocaleString()}/mo
                     </p>
                   </div>
                   <StatusBadge status={stall.status} />
@@ -98,27 +104,49 @@ const VendorDashboard = () => {
 
         <Card className="card-warm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Recent Payments</CardTitle>
+            <CardTitle className="text-base font-heading">Booking Applications</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {myPayments.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No payments yet</p>
+            {myBookings.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No applications submitted yet</p>
             ) : (
-              myPayments.slice(0, 4).map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              myBookings.slice(0, 5).map((booking) => (
+                <div key={booking.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 gap-3">
                   <div>
-                    <p className="font-medium text-sm">UGX {payment.amount.toLocaleString()}</p>
+                    <p className="font-medium text-sm">{booking.stallName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {payment.method.toUpperCase()} · {payment.transactionId || payment.externalReference}
+                      {booking.startDate} to {booking.endDate}
                     </p>
+                    {booking.reviewNote && (
+                      <p className="text-xs text-muted-foreground mt-1">{booking.reviewNote}</p>
+                    )}
                   </div>
-                  <StatusBadge status={payment.status} />
+                  <StatusBadge status={booking.status} />
                 </div>
               ))
             )}
           </CardContent>
         </Card>
       </div>
+
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-success" />
+            Payment Snapshot
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Total completed payments</p>
+            <p className="text-2xl font-bold font-heading mt-1">UGX {totalPaid.toLocaleString()}</p>
+          </div>
+          <div className="text-right text-sm text-muted-foreground">
+            <p>{approvedAwaitingPayment.length} approved booking(s) awaiting payment</p>
+            <p>{myPayments.filter((payment) => payment.status === "pending").length} payment(s) still processing</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

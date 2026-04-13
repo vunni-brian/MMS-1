@@ -46,7 +46,7 @@ const StallsPage = () => {
       setStallForm(emptyStallForm);
       setError(null);
     },
-    onError: (error) => setError(error instanceof ApiError ? error.message : "Unable to create stall."),
+    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to create stall."),
   });
 
   const updateStall = useMutation({
@@ -57,7 +57,7 @@ const StallsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setError(null);
     },
-    onError: (error) => setError(error instanceof ApiError ? error.message : "Unable to update stall."),
+    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to update stall."),
   });
 
   const reserveStall = useMutation({
@@ -68,30 +68,18 @@ const StallsPage = () => {
       setSelectedStall(null);
       setError(null);
     },
-    onError: (error) => setError(error instanceof ApiError ? error.message : "Unable to reserve stall."),
+    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to submit stall application."),
   });
 
-  const confirmBooking = useMutation({
-    mutationFn: (bookingId: string) => api.confirmBooking(bookingId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["stalls"] });
-      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      await queryClient.invalidateQueries({ queryKey: ["payments"] });
-      setSelectedStall(null);
-      setError(null);
-    },
-    onError: (error) => setError(error instanceof ApiError ? error.message : "Unable to confirm booking."),
-  });
-
-  const stalls = ((data?.stalls || [])).filter((stall) => (role === "vendor" ? stall.status === "available" : true));
+  const stalls = data?.stalls || [];
   const zones = [...new Set(stalls.map((stall) => stall.zone))];
-  const filtered = filter === "all" ? stalls : stalls.filter((stall) => stall.zone === filter);
+  const filtered = (filter === "all" ? stalls : stalls.filter((stall) => stall.zone === filter)).filter((stall) =>
+    role === "vendor" ? stall.status === "inactive" : true,
+  );
 
   const statusColors: Record<string, string> = {
-    available: "border-success/40 bg-success/5",
-    reserved: "border-warning/40 bg-warning/5",
-    paid: "border-info/40 bg-info/5",
-    confirmed: "border-primary/40 bg-primary/5",
+    inactive: "border-success/40 bg-success/5",
+    active: "border-primary/40 bg-primary/5",
     maintenance: "border-muted bg-muted/30",
   };
 
@@ -100,7 +88,9 @@ const StallsPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold font-heading">Stall Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">{stalls.filter((stall) => stall.status === "available").length} stalls available</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {stalls.filter((stall) => stall.status === "inactive").length} stalls available for application
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={filter} onValueChange={setFilter}>
@@ -116,9 +106,7 @@ const StallsPage = () => {
               ))}
             </SelectContent>
           </Select>
-          {role === "manager" && (
-            <Button onClick={() => setShowCreate(true)}>New Stall</Button>
-          )}
+          {role === "manager" && <Button onClick={() => setShowCreate(true)}>New Stall</Button>}
         </div>
       </div>
 
@@ -148,7 +136,7 @@ const StallsPage = () => {
           <DialogHeader>
             <DialogTitle className="font-heading">Stall {selectedStall?.name}</DialogTitle>
             <DialogDescription>
-              {selectedStall?.zone} · {selectedStall?.size}
+              {selectedStall?.zone} - {selectedStall?.size}
             </DialogDescription>
           </DialogHeader>
           {selectedStall && (
@@ -172,8 +160,11 @@ const StallsPage = () => {
                 )}
               </div>
 
-              {role === "vendor" && selectedStall.status === "available" && (
+              {role === "vendor" && selectedStall.status === "inactive" && (
                 <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Submit an application. The market manager will review it before the stall becomes active on your dashboard.
+                  </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="startDate">Start Date</Label>
@@ -195,25 +186,27 @@ const StallsPage = () => {
                     </div>
                   </div>
                   <Button className="w-full" onClick={() => reserveStall.mutate()} disabled={reserveStall.isPending}>
-                    Reserve This Stall
+                    Apply for This Stall
                   </Button>
                 </div>
               )}
 
               {role === "manager" && (
                 <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() =>
-                      updateStall.mutate({
-                        stallId: selectedStall.id,
-                        status: selectedStall.status === "maintenance" ? "available" : "maintenance",
-                      })
-                    }
-                  >
-                    {selectedStall.status === "maintenance" ? "Restore Availability" : "Mark as Maintenance"}
-                  </Button>
+                  {selectedStall.status !== "active" && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() =>
+                        updateStall.mutate({
+                          stallId: selectedStall.id,
+                          status: selectedStall.status === "maintenance" ? "inactive" : "maintenance",
+                        })
+                      }
+                    >
+                      {selectedStall.status === "maintenance" ? "Restore Availability" : "Mark as Maintenance"}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="w-full"
@@ -226,10 +219,10 @@ const StallsPage = () => {
                   >
                     {selectedStall.isPublished ? "Unpublish Stall" : "Publish Stall"}
                   </Button>
-                  {selectedStall.activeBooking?.status === "paid" && (
-                    <Button className="w-full" onClick={() => confirmBooking.mutate(selectedStall.activeBooking!.id)} disabled={confirmBooking.isPending}>
-                      Confirm Booking
-                    </Button>
+                  {selectedStall.status === "active" && (
+                    <p className="text-xs text-muted-foreground">
+                      Occupied stalls are released through booking review outcomes or vendor transfer, not manual status changes.
+                    </p>
                   )}
                 </div>
               )}
@@ -242,7 +235,7 @@ const StallsPage = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-heading">Create Stall</DialogTitle>
-            <DialogDescription>Add a stall to the published market inventory.</DialogDescription>
+            <DialogDescription>Add a stall to the market inventory.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -277,9 +270,7 @@ const StallsPage = () => {
 
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-success/30" /> Available</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-warning/30" /> Reserved</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-info/30" /> Paid</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary/30" /> Confirmed</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary/30" /> Occupied</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-muted" /> Maintenance</span>
       </div>
     </div>

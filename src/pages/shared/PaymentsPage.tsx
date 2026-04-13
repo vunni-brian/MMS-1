@@ -44,7 +44,7 @@ const PaymentsPage = () => {
 
   const bookings = bookingsData?.bookings || [];
   const payments = paymentsData?.payments || [];
-  const pendingBookings = bookings.filter((booking) => booking.status === "reserved");
+  const pendingBookings = bookings.filter((booking) => booking.status === "approved");
 
   return (
     <div className="space-y-6">
@@ -86,18 +86,18 @@ const PaymentsPage = () => {
 
           <Card className="card-warm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-heading">Pending Booking Payments</CardTitle>
+              <CardTitle className="text-base font-heading">Approved Booking Payments</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {pendingBookings.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No bookings are currently awaiting payment.</p>
+                <p className="text-sm text-muted-foreground">No approved bookings are currently awaiting payment.</p>
               ) : (
                 pendingBookings.map((booking) => (
                   <div key={booking.id} className="rounded-lg bg-muted/50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-medium text-sm">{booking.stallName}</p>
                       <p className="text-xs text-muted-foreground">
-                        {booking.startDate} to {booking.endDate} · UGX {booking.amount.toLocaleString()}
+                        {booking.startDate} to {booking.endDate} - UGX {booking.amount.toLocaleString()}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -126,7 +126,7 @@ const PaymentsPage = () => {
               <div key={booking.id} className="rounded-lg bg-muted/50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-medium text-sm">
-                    {booking.vendorName} · {booking.stallName}
+                    {booking.vendorName} - {booking.stallName}
                   </p>
                   <p className="text-xs text-muted-foreground">UGX {booking.amount.toLocaleString()}</p>
                 </div>

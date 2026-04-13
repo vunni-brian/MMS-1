@@ -41,6 +41,7 @@ const ManagerDashboard = () => {
   const queryClient = useQueryClient();
   const [selectedStallId, setSelectedStallId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [bookingReviewNotes, setBookingReviewNotes] = useState<Record<string, string>>({});
   const [requestForm, setRequestForm] = useState({
     category: "budget" as "budget" | "structural",
     title: "",
@@ -73,6 +74,20 @@ const ManagerDashboard = () => {
     onError: (error) => setRequestError(error instanceof ApiError ? error.message : "Unable to submit request."),
   });
 
+  const reviewBookingApplication = useMutation({
+    mutationFn: ({ bookingId, approved }: { bookingId: string; approved: boolean }) =>
+      approved
+        ? api.approveBooking(bookingId, bookingReviewNotes[bookingId])
+        : api.rejectBooking(bookingId, bookingReviewNotes[bookingId] || "Application requirements were not met."),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["stalls"] });
+      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      setBookingReviewNotes((current) => ({ ...current, [variables.bookingId]: "" }));
+    },
+    onError: (error) => setRequestError(error instanceof ApiError ? error.message : "Unable to review booking application."),
+  });
+
   const stalls = stallsData?.stalls || [];
   const bookings = bookingsData?.bookings || [];
   const payments = paymentsData?.payments || [];
@@ -91,15 +106,17 @@ const ManagerDashboard = () => {
     accumulator[booking.id] = booking;
     return accumulator;
   }, {});
+  const pendingApplications = bookings.filter((booking) => booking.status === "pending");
+  const billableBookings = bookings.filter((booking) => ["approved", "paid"].includes(booking.status));
 
   const totalRevenue = payments.filter((payment) => payment.status === "completed").reduce((sum, payment) => sum + payment.amount, 0);
   const occupancyRate = stalls.length
-    ? Math.round((stalls.filter((stall) => ["reserved", "paid", "confirmed"].includes(stall.status)).length / stalls.length) * 100)
+    ? Math.round((stalls.filter((stall) => stall.status === "active").length / stalls.length) * 100)
     : 0;
-  const collectionRate = bookings.length
+  const collectionRate = billableBookings.length
     ? Math.round(
-        (bookings.reduce((sum, booking) => sum + Math.min(paidByBooking[booking.id] || 0, booking.amount), 0) /
-          bookings.reduce((sum, booking) => sum + booking.amount, 0)) *
+        (billableBookings.reduce((sum, booking) => sum + Math.min(paidByBooking[booking.id] || 0, booking.amount), 0) /
+          billableBookings.reduce((sum, booking) => sum + booking.amount, 0)) *
           100,
       )
     : 0;
@@ -142,14 +159,12 @@ const ManagerDashboard = () => {
         outstanding,
       };
     })
-    .filter((booking) => ["paid", "confirmed"].includes(booking.status) && booking.hoursLeft >= 0 && booking.hoursLeft <= 48)
+    .filter((booking) => ["approved", "paid"].includes(booking.status) && booking.hoursLeft >= 0 && booking.hoursLeft <= 48)
     .sort((left, right) => left.hoursLeft - right.hoursLeft);
 
   const stallFlowData = [
-    { name: "Available", value: stalls.filter((stall) => stall.status === "available").length },
-    { name: "Reserved", value: stalls.filter((stall) => stall.status === "reserved").length },
-    { name: "Paid", value: stalls.filter((stall) => stall.status === "paid").length },
-    { name: "Confirmed", value: stalls.filter((stall) => stall.status === "confirmed").length },
+    { name: "Occupied", value: stalls.filter((stall) => stall.status === "active").length },
+    { name: "Available", value: stalls.filter((stall) => stall.status === "inactive").length },
     { name: "Maintenance", value: stalls.filter((stall) => stall.status === "maintenance").length },
   ];
 
@@ -160,12 +175,14 @@ const ManagerDashboard = () => {
   ];
 
   const zoneLoadData = Object.values(
-    stalls.reduce<Record<string, { zone: string; occupied: number; free: number }>>((accumulator, stall) => {
-      const current = accumulator[stall.zone] || { zone: stall.zone, occupied: 0, free: 0 };
-      if (["reserved", "paid", "confirmed"].includes(stall.status)) {
+    stalls.reduce<Record<string, { zone: string; occupied: number; free: number; maintenance: number }>>((accumulator, stall) => {
+      const current = accumulator[stall.zone] || { zone: stall.zone, occupied: 0, free: 0, maintenance: 0 };
+      if (stall.status === "active") {
         current.occupied += 1;
-      } else if (stall.status === "available") {
+      } else if (stall.status === "inactive") {
         current.free += 1;
+      } else if (stall.status === "maintenance") {
+        current.maintenance += 1;
       }
       accumulator[stall.zone] = current;
       return accumulator;
@@ -175,23 +192,13 @@ const ManagerDashboard = () => {
   const mapTiles = [...stalls]
     .sort((left, right) => left.zone.localeCompare(right.zone) || left.name.localeCompare(right.name))
     .map((stall) => {
-      const activeBooking = stall.activeBooking ? bookingById[stall.activeBooking.id] : null;
-      const outstanding = activeBooking ? Math.max(activeBooking.amount - (paidByBooking[activeBooking.id] || 0), 0) : 0;
-      const isOverdue = Boolean(activeBooking && outstanding > 0 && (activeBooking.status === "reserved" || endOfDay(activeBooking.endDate).getTime() <= Date.now()));
-
       if (stall.status === "maintenance") {
         return { ...stall, stateLabel: "Maintenance", className: "border-slate-300 bg-slate-100 text-slate-700" };
       }
-      if (isOverdue) {
-        return { ...stall, stateLabel: "Overdue", className: "border-destructive/40 bg-destructive/10 text-destructive" };
+      if (stall.status === "active") {
+        return { ...stall, stateLabel: "Occupied", className: "border-primary/40 bg-primary/10 text-primary" };
       }
-      if (["paid", "confirmed"].includes(stall.status) || Boolean(activeBooking && outstanding === 0)) {
-        return { ...stall, stateLabel: "Paid", className: "border-success/40 bg-success/10 text-success" };
-      }
-      if (stall.status === "available") {
-        return { ...stall, stateLabel: "Free", className: "border-primary/20 bg-primary/5 text-primary" };
-      }
-      return { ...stall, stateLabel: "Reserved", className: "border-warning/40 bg-warning/10 text-warning" };
+      return { ...stall, stateLabel: "Available", className: "border-success/40 bg-success/10 text-success" };
     });
 
   const selectedStall = mapTiles.find((stall) => stall.id === selectedStallId) || mapTiles[0] || null;
@@ -199,9 +206,9 @@ const ManagerDashboard = () => {
   const stats = [
     { label: "Total Revenue", value: `UGX ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-success" },
     { label: "Occupancy Rate", value: `${occupancyRate}%`, icon: Grid3X3, color: "text-primary" },
-    { label: "Available Stalls", value: stalls.filter((stall) => stall.status === "available").length, icon: CheckCircle, color: "text-info" },
+    { label: "Available Stalls", value: stalls.filter((stall) => stall.status === "inactive").length, icon: CheckCircle, color: "text-info" },
     { label: "Pending Approvals", value: vendors.filter((vendor) => vendor.status === "pending").length, icon: Users, color: "text-warning" },
-    { label: "Late Payment Risk", value: bookings.filter((booking) => booking.status === "reserved").length, icon: CreditCard, color: "text-warning" },
+    { label: "Booking Applications", value: pendingApplications.length, icon: CreditCard, color: "text-warning" },
     { label: "Open Tickets", value: tickets.filter((ticket) => ticket.status !== "resolved").length, icon: AlertCircle, color: "text-destructive" },
   ];
 
@@ -298,6 +305,59 @@ const ManagerDashboard = () => {
       <div className="grid xl:grid-cols-2 gap-4">
         <Card className="card-warm">
           <CardHeader className="pb-3">
+            <CardTitle className="text-base font-heading">Booking Applications</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pendingApplications.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No pending stall applications right now.</p>
+            ) : (
+              pendingApplications.slice(0, 5).map((booking) => (
+                <div key={booking.id} className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-sm">{booking.vendorName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {booking.stallName} - {booking.stallZone}
+                      </p>
+                    </div>
+                    <StatusBadge status={booking.status} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {booking.startDate} to {booking.endDate} - UGX {booking.amount.toLocaleString()}
+                  </p>
+                  <Textarea
+                    rows={2}
+                    placeholder="Add an approval note or rejection reason"
+                    value={bookingReviewNotes[booking.id] || ""}
+                    onChange={(event) =>
+                      setBookingReviewNotes((current) => ({ ...current, [booking.id]: event.target.value }))
+                    }
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      onClick={() => reviewBookingApplication.mutate({ bookingId: booking.id, approved: true })}
+                      disabled={reviewBookingApplication.isPending}
+                    >
+                      Approve Application
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => reviewBookingApplication.mutate({ bookingId: booking.id, approved: false })}
+                      disabled={reviewBookingApplication.isPending}
+                    >
+                      Reject Application
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="card-warm">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base font-heading">Stall Lifecycle</CardTitle>
           </CardHeader>
           <CardContent className="h-[280px]">
@@ -351,6 +411,7 @@ const ManagerDashboard = () => {
               <Legend />
               <Bar dataKey="occupied" stackId="a" fill="#2563eb" radius={[6, 6, 0, 0]} />
               <Bar dataKey="free" stackId="a" fill="#10b981" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="maintenance" stackId="a" fill="#6b7280" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -383,9 +444,8 @@ const ManagerDashboard = () => {
             </div>
 
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-success" /> Paid</span>
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-destructive" /> Overdue</span>
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-primary" /> Free</span>
+              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-primary" /> Occupied</span>
+              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-success" /> Available</span>
               <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-slate-400" /> Maintenance</span>
             </div>
           </CardContent>

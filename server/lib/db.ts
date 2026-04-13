@@ -220,6 +220,9 @@ export const mapMarket = (row: {
   manager_name: string | null;
   vendor_count: number;
   stall_count: number;
+  active_stall_count: number;
+  inactive_stall_count: number;
+  maintenance_stall_count: number;
 }) => ({
   id: row.id,
   name: row.name,
@@ -229,6 +232,9 @@ export const mapMarket = (row: {
   managerName: row.manager_name,
   vendorCount: row.vendor_count,
   stallCount: row.stall_count,
+  activeStallCount: row.active_stall_count,
+  inactiveStallCount: row.inactive_stall_count,
+  maintenanceStallCount: row.maintenance_stall_count,
 });
 
 export const listMarkets = async () =>
@@ -242,6 +248,9 @@ export const listMarkets = async () =>
       manager_name: string | null;
       vendor_count: number;
       stall_count: number;
+      active_stall_count: number;
+      inactive_stall_count: number;
+      maintenance_stall_count: number;
     }>(
       `SELECT markets.id,
               markets.name,
@@ -250,7 +259,10 @@ export const listMarkets = async () =>
               managers.id AS manager_user_id,
               managers.name AS manager_name,
               COUNT(DISTINCT CASE WHEN vendors.role = 'vendor' THEN vendors.id END)::INT AS vendor_count,
-              COUNT(DISTINCT stalls.id)::INT AS stall_count
+              COUNT(DISTINCT stalls.id)::INT AS stall_count,
+              COUNT(DISTINCT CASE WHEN stalls.status = 'active' THEN stalls.id END)::INT AS active_stall_count,
+              COUNT(DISTINCT CASE WHEN stalls.status = 'inactive' THEN stalls.id END)::INT AS inactive_stall_count,
+              COUNT(DISTINCT CASE WHEN stalls.status = 'maintenance' THEN stalls.id END)::INT AS maintenance_stall_count
        FROM markets
        LEFT JOIN users AS managers ON managers.market_id = markets.id AND managers.role = 'manager'
        LEFT JOIN users AS vendors ON vendors.market_id = markets.id AND vendors.role = 'vendor'
@@ -605,15 +617,15 @@ export const seedDatabase = async () => {
   });
 
   const stalls = [
-    ["stall_a01", "market_kampala", "A-01", "Zone A - Fresh Produce", "3x3m", 150000, "confirmed", 1, "user_vendor_amina"],
-    ["stall_a02", "market_kampala", "A-02", "Zone A - Fresh Produce", "3x3m", 150000, "available", 1, null],
-    ["stall_b01", "market_kampala", "B-01", "Zone B - Dry Goods", "3x3m", 120000, "available", 1, null],
-    ["stall_b02", "market_kampala", "B-02", "Zone B - Dry Goods", "3x3m", 120000, "reserved", 1, "user_vendor_grace"],
+    ["stall_a01", "market_kampala", "A-01", "Zone A - Fresh Produce", "3x3m", 150000, "active", 1, "user_vendor_amina"],
+    ["stall_a02", "market_kampala", "A-02", "Zone A - Fresh Produce", "3x3m", 150000, "inactive", 1, null],
+    ["stall_b01", "market_kampala", "B-01", "Zone B - Dry Goods", "3x3m", 120000, "inactive", 1, null],
+    ["stall_b02", "market_kampala", "B-02", "Zone B - Dry Goods", "3x3m", 120000, "inactive", 1, null],
     ["stall_c01", "market_kampala", "C-01", "Zone C - Clothing", "4x3m", 180000, "maintenance", 1, null],
-    ["stall_d01", "market_kampala", "D-01", "Zone D - Electronics", "3x3m", 200000, "available", 1, null],
-    ["stall_e02", "market_kampala", "E-02", "Zone E - Mixed Goods", "3x3m", 160000, "confirmed", 1, "user_vendor_amina"],
-    ["stall_j01", "market_jinja", "J-01", "Zone J - Textiles", "3x3m", 140000, "confirmed", 1, "user_vendor_mary"],
-    ["stall_j02", "market_jinja", "J-02", "Zone J - Dry Goods", "3x3m", 125000, "available", 1, null],
+    ["stall_d01", "market_kampala", "D-01", "Zone D - Electronics", "3x3m", 200000, "inactive", 1, null],
+    ["stall_e02", "market_kampala", "E-02", "Zone E - Mixed Goods", "3x3m", 160000, "active", 1, "user_vendor_amina"],
+    ["stall_j01", "market_jinja", "J-01", "Zone J - Textiles", "3x3m", 140000, "active", 1, "user_vendor_mary"],
+    ["stall_j02", "market_jinja", "J-02", "Zone J - Dry Goods", "3x3m", 125000, "inactive", 1, null],
     ["stall_j03", "market_jinja", "J-03", "Zone J - Crafts", "4x3m", 155000, "maintenance", 1, null],
   ] as const;
 
@@ -628,17 +640,17 @@ export const seedDatabase = async () => {
 
   run(
     `INSERT OR IGNORE INTO bookings (id, market_id, stall_id, vendor_id, status, start_date, end_date, amount, reserved_until, created_at, updated_at, confirmed_at)
-     VALUES (?, 'market_kampala', ?, ?, 'confirmed', '2026-01-01', '2026-06-30', 900000, NULL, ?, ?, ?)`,
+     VALUES (?, 'market_kampala', ?, ?, 'paid', '2026-01-01', '2026-06-30', 900000, NULL, ?, ?, ?)` ,
     ["booking_amina_1", "stall_a01", "user_vendor_amina", createdAt, createdAt, createdAt],
   );
   run(
     `INSERT OR IGNORE INTO bookings (id, market_id, stall_id, vendor_id, status, start_date, end_date, amount, reserved_until, created_at, updated_at, confirmed_at)
-     VALUES (?, 'market_kampala', ?, ?, 'reserved', '2026-03-01', '2026-03-31', 120000, ?, ?, ?, NULL)`,
-    ["booking_grace_1", "stall_b02", "user_vendor_grace", nowIso(), createdAt, createdAt],
+     VALUES (?, 'market_kampala', ?, ?, 'pending', '2026-03-01', '2026-03-31', 120000, NULL, ?, ?, NULL)`,
+    ["booking_grace_1", "stall_b02", "user_vendor_grace", createdAt, createdAt],
   );
   run(
     `INSERT OR IGNORE INTO bookings (id, market_id, stall_id, vendor_id, status, start_date, end_date, amount, reserved_until, created_at, updated_at, confirmed_at)
-     VALUES (?, 'market_kampala', ?, ?, 'confirmed', ?, ?, 160000, NULL, ?, ?, ?)`,
+     VALUES (?, 'market_kampala', ?, ?, 'paid', ?, ?, 160000, NULL, ?, ?, ?)`,
     [
       "booking_expiring_1",
       "stall_e02",
@@ -652,7 +664,7 @@ export const seedDatabase = async () => {
   );
   run(
     `INSERT OR IGNORE INTO bookings (id, market_id, stall_id, vendor_id, status, start_date, end_date, amount, reserved_until, created_at, updated_at, confirmed_at)
-     VALUES (?, 'market_jinja', ?, ?, 'confirmed', ?, ?, 280000, NULL, ?, ?, ?)`,
+     VALUES (?, 'market_jinja', ?, ?, 'paid', ?, ?, 280000, NULL, ?, ?, ?)`,
     [
       "booking_mary_1",
       "stall_j01",

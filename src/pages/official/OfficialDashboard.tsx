@@ -144,6 +144,15 @@ const OfficialDashboard = () => {
     location: market.location,
     managerName: market.managerName,
   }));
+  const stallSummaryRows = (selectedMarket ? [selectedMarket] : markets).map((market) => ({
+    id: market.id,
+    name: market.name,
+    location: market.location,
+    occupied: market.activeStallCount,
+    available: market.inactiveStallCount,
+    maintenance: market.maintenanceStallCount,
+    total: market.stallCount,
+  }));
 
   useEffect(() => {
     if (!managerForm.marketId && markets.length > 0) {
@@ -163,10 +172,11 @@ const OfficialDashboard = () => {
   const completedPayments = payments.filter((payment) => payment.status === "completed");
   const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const occupancy = stalls.length
-    ? Math.round((stalls.filter((stall) => ["reserved", "paid", "confirmed"].includes(stall.status)).length / stalls.length) * 100)
+    ? Math.round((stalls.filter((stall) => stall.status === "active").length / stalls.length) * 100)
     : 0;
-  const collectionRate = bookings.length
-    ? Math.round((completedPayments.reduce((sum, payment) => sum + payment.amount, 0) / bookings.reduce((sum, booking) => sum + booking.amount, 0)) * 100)
+  const billableBookings = bookings.filter((booking) => ["approved", "paid"].includes(booking.status));
+  const collectionRate = billableBookings.length
+    ? Math.round((completedPayments.reduce((sum, payment) => sum + payment.amount, 0) / billableBookings.reduce((sum, booking) => sum + booking.amount, 0)) * 100)
     : 0;
   const complianceRate = tickets.length
     ? Math.round((tickets.filter((ticket) => ticket.status === "resolved").length / tickets.length) * 100)
@@ -207,10 +217,11 @@ const OfficialDashboard = () => {
     const marketBookings = bookings.filter((booking) => booking.marketId === market.id);
     const marketRevenue = marketPayments.reduce((sum, payment) => sum + payment.amount, 0);
     const marketOccupancy = marketStalls.length
-      ? Math.round((marketStalls.filter((stall) => ["reserved", "paid", "confirmed"].includes(stall.status)).length / marketStalls.length) * 100)
+      ? Math.round((marketStalls.filter((stall) => stall.status === "active").length / marketStalls.length) * 100)
       : 0;
-    const marketCollection = marketBookings.length
-      ? Math.round((marketPayments.reduce((sum, payment) => sum + payment.amount, 0) / marketBookings.reduce((sum, booking) => sum + booking.amount, 0)) * 100)
+    const marketBillableBookings = marketBookings.filter((booking) => ["approved", "paid"].includes(booking.status));
+    const marketCollection = marketBillableBookings.length
+      ? Math.round((marketPayments.reduce((sum, payment) => sum + payment.amount, 0) / marketBillableBookings.reduce((sum, booking) => sum + booking.amount, 0)) * 100)
       : 0;
     const marketCompliance = marketTickets.length
       ? Math.round((marketTickets.filter((ticket) => ticket.status === "resolved").length / marketTickets.length) * 100)
@@ -271,8 +282,8 @@ const OfficialDashboard = () => {
     auditSummary.variance !== 0
       ? `Collections and bank deposits are out of balance by UGX ${Math.abs(auditSummary.variance).toLocaleString()}.`
       : null,
-    bookings.filter((booking) => booking.status === "reserved").length >= 2
-      ? `${bookings.filter((booking) => booking.status === "reserved").length} bookings are still awaiting payment clearance.`
+    bookings.filter((booking) => booking.status === "pending").length >= 2
+      ? `${bookings.filter((booking) => booking.status === "pending").length} booking applications are still waiting for manager review.`
       : null,
   ].filter(Boolean) as string[];
 
@@ -419,6 +430,39 @@ const OfficialDashboard = () => {
         </Card>
       </div>
 
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Stall Summary By Market</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {stallSummaryRows.map((market) => (
+            <div key={market.id} className="rounded-xl border bg-muted/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium text-sm">{market.name}</p>
+                  <p className="text-xs text-muted-foreground">{market.location}</p>
+                </div>
+                <p className="text-sm font-medium">{market.total} stalls</p>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl bg-primary/5 p-3">
+                  <p className="text-xs text-muted-foreground">Occupied</p>
+                  <p className="text-lg font-bold font-heading mt-1">{market.occupied}</p>
+                </div>
+                <div className="rounded-xl bg-success/5 p-3">
+                  <p className="text-xs text-muted-foreground">Available</p>
+                  <p className="text-lg font-bold font-heading mt-1">{market.available}</p>
+                </div>
+                <div className="rounded-xl bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Maintenance</p>
+                  <p className="text-lg font-bold font-heading mt-1">{market.maintenance}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       {selectedMarketId === "all" && marketPerformanceData.length > 1 && (
         <Card className="card-warm">
           <CardHeader className="pb-3">
@@ -559,7 +603,7 @@ const OfficialDashboard = () => {
                   <div>
                     <p className="font-medium">{row.reference}</p>
                     <p className="text-xs text-muted-foreground">
-                      {row.marketName ? `${row.marketName} • ` : ""}
+                      {row.marketName ? `${row.marketName} - ` : ""}
                       {new Date(row.depositedAt).toLocaleString()}
                     </p>
                   </div>
@@ -609,7 +653,7 @@ const OfficialDashboard = () => {
                     <div>
                       <p className="font-medium text-sm">{request.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {request.managerName} • {request.marketName} • {request.category}
+                        {request.managerName} - {request.marketName} - {request.category}
                       </p>
                     </div>
                     <StatusBadge status={request.status} />
@@ -663,7 +707,7 @@ const OfficialDashboard = () => {
                   <div>
                     <p className="font-medium text-sm">{request.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {request.marketName} • Reviewed by {request.reviewedByName || "Official"}
+                      {request.marketName} - Reviewed by {request.reviewedByName || "Official"}
                     </p>
                   </div>
                   <StatusBadge status={request.status} />

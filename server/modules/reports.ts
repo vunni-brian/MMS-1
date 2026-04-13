@@ -100,6 +100,7 @@ export const reportRoutes: RouteDefinition[] = [
          LEFT JOIN payments ON payments.booking_id = bookings.id
          LEFT JOIN markets ON markets.id = bookings.market_id
          WHERE bookings.created_at::date BETWEEN ?::date AND ?::date
+           AND bookings.status IN ('approved', 'paid')
            AND (? IS NULL OR bookings.market_id = ?)
          GROUP BY bookings.id
          HAVING bookings.amount - COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0) > 0

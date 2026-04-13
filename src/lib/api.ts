@@ -162,6 +162,19 @@ export const api = {
 
   getVendors: (marketId?: string) => apiRequest<{ vendors: VendorProfile[] }>(`/vendors${buildQuery({ marketId })}`),
   getVendor: (vendorId: string) => apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}`),
+  updateVendorProfile: (
+    vendorId: string,
+    input: {
+      name: string;
+      email: string;
+      phone: string;
+      marketId: string;
+    },
+  ) =>
+    apiRequest<{ vendor: VendorProfile; message: string }>(`/vendors/${vendorId}/profile`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
   approveVendor: (vendorId: string) =>
     apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}/approve`, { method: "POST" }),
   rejectVendor: (vendorId: string, reason: string) =>
@@ -170,8 +183,8 @@ export const api = {
       body: JSON.stringify({ reason }),
     }),
 
-  getStalls: (options?: { zone?: string; marketId?: string }) =>
-    apiRequest<{ stalls: Stall[] }>(`/stalls${buildQuery({ zone: options?.zone, marketId: options?.marketId })}`),
+  getStalls: (options?: { zone?: string; marketId?: string; scope?: "mine" }) =>
+    apiRequest<{ stalls: Stall[] }>(`/stalls${buildQuery({ zone: options?.zone, marketId: options?.marketId, scope: options?.scope })}`),
   createStall: (input: {
     name: string;
     zone: string;
@@ -194,8 +207,16 @@ export const api = {
       body: JSON.stringify(input),
     }),
   getBookings: (marketId?: string) => apiRequest<{ bookings: Booking[] }>(`/bookings${buildQuery({ marketId })}`),
-  confirmBooking: (bookingId: string) =>
-    apiRequest<{ booking: Booking }>(`/bookings/${bookingId}/confirm`, { method: "POST" }),
+  approveBooking: (bookingId: string, reviewNote?: string) =>
+    apiRequest<{ booking: Booking }>(`/bookings/${bookingId}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ reviewNote }),
+    }),
+  rejectBooking: (bookingId: string, reason: string) =>
+    apiRequest<{ booking: Booking }>(`/bookings/${bookingId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
   markBookingPaid: (bookingId: string, transactionId?: string) =>
     apiRequest<{ booking: Booking }>(`/bookings/${bookingId}/mark-paid`, {
       method: "POST",

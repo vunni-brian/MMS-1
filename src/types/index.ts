@@ -25,8 +25,8 @@ export type Permission =
   | "fallback:query";
 
 export type VendorApprovalStatus = "pending" | "approved" | "rejected";
-export type StallStatus = "available" | "reserved" | "paid" | "confirmed" | "maintenance";
-export type BookingStatus = "reserved" | "paid" | "confirmed";
+export type StallStatus = "active" | "inactive" | "maintenance";
+export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
@@ -44,6 +44,9 @@ export interface Market {
   managerName: string | null;
   vendorCount: number;
   stallCount: number;
+  activeStallCount: number;
+  inactiveStallCount: number;
+  maintenanceStallCount: number;
 }
 
 export interface Attachment {
@@ -126,6 +129,9 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  reviewedByName: string | null;
 }
 
 export interface PaymentAttempt {

@@ -26,8 +26,8 @@ export type Permission =
   | "fallback:query";
 
 export type VendorApprovalStatus = "pending" | "approved" | "rejected";
-export type StallStatus = "available" | "reserved" | "paid" | "confirmed" | "maintenance";
-export type BookingStatus = "reserved" | "paid" | "confirmed";
+export type StallStatus = "active" | "inactive" | "maintenance";
+export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed";
 export type PaymentProvider = "mtn" | "airtel";
 export type TicketStatus = "open" | "in_progress" | "resolved";
@@ -47,6 +47,9 @@ export interface Market {
   managerName: string | null;
   vendorCount: number;
   stallCount: number;
+  activeStallCount: number;
+  inactiveStallCount: number;
+  maintenanceStallCount: number;
 }
 
 export interface AuthUser {

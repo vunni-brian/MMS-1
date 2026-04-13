@@ -4,7 +4,7 @@ import { nowIso } from "../lib/security.ts";
 
 const buildAvailabilityResponse = async () => {
   const stalls = await all<{ name: string; zone: string }>(
-    `SELECT name, zone FROM stalls WHERE status = 'available' AND is_published = 1 ORDER BY zone, name LIMIT 3`,
+    `SELECT name, zone FROM stalls WHERE status = 'inactive' AND is_published = 1 ORDER BY zone, name LIMIT 3`,
   );
   if (stalls.length === 0) {
     return "No stalls are currently available.";

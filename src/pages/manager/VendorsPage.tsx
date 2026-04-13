@@ -72,7 +72,7 @@ const VendorsPage = () => {
     .map((vendor) => {
       const vendorBookings = bookings.filter((booking) => booking.vendorId === vendor.id);
       const nextPermitExpiry = vendorBookings
-        .filter((booking) => ["paid", "confirmed"].includes(booking.status))
+        .filter((booking) => ["approved", "paid"].includes(booking.status))
         .sort((left, right) => endOfDay(left.endDate).getTime() - endOfDay(right.endDate).getTime())[0] || null;
 
       const totalOutstanding = vendorBookings.reduce((sum, booking) => {
@@ -82,7 +82,7 @@ const VendorsPage = () => {
 
       const hasLatePayment = vendorBookings.some((booking) => {
         const outstanding = Math.max(booking.amount - (paidByBooking[booking.id] || 0), 0);
-        return outstanding > 0 && (booking.status === "reserved" || endOfDay(booking.endDate).getTime() < Date.now());
+        return outstanding > 0 && (booking.status === "approved" || endOfDay(booking.endDate).getTime() < Date.now());
       });
 
       return {
