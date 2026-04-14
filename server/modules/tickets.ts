@@ -3,7 +3,8 @@ import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
 import { nowIso } from "../lib/security.ts";
 import { persistFilePayload, validateFilePayload } from "../lib/storage.ts";
-import type { FilePayload } from "../types.ts";
+import { getTicketCreationManagerChannels, getVendorTicketNotification } from "../lib/ticket-notifications.ts";
+import type { FilePayload, TicketStatus } from "../types.ts";
 
 const loadAttachments = async (ticketId: string) =>
   (
@@ -35,7 +36,7 @@ const loadUpdates = async (ticketId: string) =>
     await all<{
     id: string;
     actor_user_id: string;
-    status: string;
+    status: TicketStatus;
     note: string;
     created_at: string;
     actor_name: string;
@@ -65,7 +66,7 @@ const mapTicket = async (ticket: {
   category: string;
   subject: string;
   description: string;
-  status: string;
+  status: TicketStatus;
   resolution_note: string | null;
   created_at: string;
   updated_at: string;
@@ -96,7 +97,7 @@ const getTicketById = async (ticketId: string) => {
     category: string;
     subject: string;
     description: string;
-    status: string;
+    status: TicketStatus;
     resolution_note: string | null;
     created_at: string;
     updated_at: string;
@@ -150,7 +151,7 @@ export const ticketRoutes: RouteDefinition[] = [
         category: string;
         subject: string;
         description: string;
-        status: string;
+        status: TicketStatus;
         resolution_note: string | null;
         created_at: string;
         updated_at: string;
@@ -229,8 +230,7 @@ export const ticketRoutes: RouteDefinition[] = [
           userId: marketManager.id,
           type: "complaint",
           message: `${session.user.name} created a new ${body.category} ticket.`,
-          channels: ["system", "sms"],
-          destinationPhone: marketManager.phone,
+          channels: getTicketCreationManagerChannels(),
         });
       }
       await logAuditEvent({
@@ -258,10 +258,15 @@ export const ticketRoutes: RouteDefinition[] = [
       }
       assertMarketAccess(session, ticket.marketId);
 
-      const body = await readJsonBody<{ status?: string; resolutionNote?: string; note?: string }>(req);
+      const body = await readJsonBody<{ status?: TicketStatus; resolutionNote?: string; note?: string }>(req);
       const status = body.status || ticket.status;
       const note = body.note?.trim() || body.resolutionNote?.trim() || "Ticket updated by manager.";
       const timestamp = nowIso();
+      const vendorNotification = getVendorTicketNotification({
+        previousStatus: ticket.status,
+        nextStatus: status,
+        subject: ticket.subject,
+      });
 
       await run(
         `UPDATE tickets
@@ -278,9 +283,11 @@ export const ticketRoutes: RouteDefinition[] = [
       await queueNotification({
         userId: ticket.vendorId,
         type: "complaint",
-        message: `Your ticket "${ticket.subject}" is now ${status.replace("_", " ")}.`,
-        channels: ["system", "sms"],
-        destinationPhone: (await get<{ phone: string }>(`SELECT phone FROM users WHERE id = ?`, [ticket.vendorId]))?.phone,
+        message: vendorNotification.message,
+        channels: vendorNotification.channels,
+        destinationPhone: vendorNotification.channels.includes("sms")
+          ? (await get<{ phone: string }>(`SELECT phone FROM users WHERE id = ?`, [ticket.vendorId]))?.phone
+          : undefined,
       });
       await logAuditEvent({
         actorUserId: session.user.id,
