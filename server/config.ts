@@ -44,6 +44,7 @@ const loadEnvFile = (filePath: string) => {
 
 loadEnvFile(path.join(rootDir, ".env"));
 
+const devMode = process.env.NODE_ENV !== "production";
 const appName = process.env.APP_NAME?.trim() || "MMS";
 const appUrls = (process.env.APP_URL || "http://localhost:8080")
   .split(",")
@@ -61,10 +62,16 @@ const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@
 const migrationDatabaseUrl = process.env.MIGRATION_DATABASE_URL?.trim() || null;
 const inferredSsl = /supabase\.(co|com)|sslmode=require/i.test(databaseUrl) || Boolean(migrationDatabaseUrl && /supabase\.(co|com)|sslmode=require/i.test(migrationDatabaseUrl));
 const databaseSsl = process.env.DATABASE_SSL ? process.env.DATABASE_SSL === "true" : inferredSsl;
-const autoMigrate = process.env.MMS_AUTO_MIGRATE !== "false";
+const autoMigrate = process.env.MMS_AUTO_MIGRATE ? process.env.MMS_AUTO_MIGRATE === "true" : devMode;
 const seedOnBoot =
   process.env.MMS_SEED_ON_BOOT === "true" ||
   (process.env.MMS_SEED_ON_BOOT !== "false" && process.env.NODE_ENV !== "production");
+const exposeDevOtpCodes = process.env.MMS_EXPOSE_DEV_OTP_CODES === "true";
+const mockPaymentSettlementEnabled = process.env.MMS_ENABLE_MOCK_PAYMENT_SETTLEMENT === "true";
+const fallbackRoutesEnabled =
+  process.env.MMS_ENABLE_FALLBACK_SIMULATION !== undefined
+    ? process.env.MMS_ENABLE_FALLBACK_SIMULATION === "true"
+    : devMode;
 const supabaseUrl = process.env.SUPABASE_URL?.trim() || null;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim() || null;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null;
@@ -108,8 +115,11 @@ export const config: AppConfig = {
   otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES || 10),
   otpRegistrationMessageTemplate: process.env.OTP_REGISTRATION_MESSAGE_TEMPLATE?.trim() || null,
   otpLoginMessageTemplate: process.env.OTP_LOGIN_MESSAGE_TEMPLATE?.trim() || null,
+  exposeDevOtpCodes,
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),
   paymentSettlementDelayMs: Number(process.env.PAYMENT_SETTLEMENT_DELAY_MS || 5000),
-  devMode: process.env.NODE_ENV !== "production",
+  mockPaymentSettlementEnabled,
+  fallbackRoutesEnabled,
+  devMode,
 };

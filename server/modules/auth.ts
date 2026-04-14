@@ -230,7 +230,7 @@ export const authRoutes: RouteDefinition[] = [
       sendJson(res, 201, {
         challengeId,
         expiresAt,
-        developmentCode: config.devMode ? otpCode : undefined,
+        developmentCode: config.exposeDevOtpCodes ? otpCode : undefined,
         status: "otp_sent",
       });
     },
@@ -451,7 +451,7 @@ export const authRoutes: RouteDefinition[] = [
             verificationRequired: true,
             challengeId: challenge.challengeId,
             expiresAt: challenge.expiresAt,
-            developmentCode: config.devMode ? challenge.otpCode : undefined,
+            developmentCode: config.exposeDevOtpCodes ? challenge.otpCode : undefined,
           });
           return;
         }
@@ -489,7 +489,7 @@ export const authRoutes: RouteDefinition[] = [
           mfaRequired: true,
           challengeId,
           expiresAt,
-          developmentCode: config.devMode ? otpCode : undefined,
+          developmentCode: config.exposeDevOtpCodes ? otpCode : undefined,
         });
         return;
       }

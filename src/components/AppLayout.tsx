@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Store, LayoutDashboard, Grid3X3, CreditCard, Bell, MessageSquare,
-  BarChart3, ScrollText, Users, LogOut, Menu, X, Settings, Phone, MessagesSquare
+  BarChart3, ScrollText, Users, LogOut, Menu, X, Settings, MessagesSquare
 } from "lucide-react";
 
 import type { Role } from "@/types";
@@ -28,7 +28,6 @@ const navItems: NavItem[] = [
   { label: 'Reports', path: 'reports', icon: BarChart3, roles: ['manager', 'official'] },
   { label: 'Audit Log', path: 'audit', icon: ScrollText, roles: ['manager', 'official'] },
   { label: 'Coordination', path: 'coordination', icon: MessagesSquare, roles: ['manager', 'official'] },
-  { label: 'USSD/SMS', path: 'ussd', icon: Phone, roles: ['vendor'] },
   { label: 'Profile', path: 'profile', icon: Settings, roles: ['vendor'] },
 ];
 

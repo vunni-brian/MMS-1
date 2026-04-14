@@ -47,7 +47,9 @@ const runBackgroundTask = (label: string, task: () => Promise<void>) => {
 
 setInterval(() => {
   runBackgroundTask("notifications", processNotificationDeliveries);
-  runBackgroundTask("payments", settlePendingPayments);
+  if (config.mockPaymentSettlementEnabled) {
+    runBackgroundTask("payments", settlePendingPayments);
+  }
 }, 2_000);
 
 const server = createServer(async (req, res) => {

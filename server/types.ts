@@ -105,9 +105,12 @@ export interface AppConfig {
   otpTtlMinutes: number;
   otpRegistrationMessageTemplate: string | null;
   otpLoginMessageTemplate: string | null;
+  exposeDevOtpCodes: boolean;
   sessionTtlHours: number;
   notificationRetryCount: number;
   paymentSettlementDelayMs: number;
+  mockPaymentSettlementEnabled: boolean;
+  fallbackRoutesEnabled: boolean;
   devMode: boolean;
 }
 

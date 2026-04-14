@@ -59,7 +59,11 @@ export const fallbackRoutes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/fallback/ussd",
-    handler: async ({ req, res }) => {
+    handler: async ({ req, res, config }) => {
+      if (!config.fallbackRoutesEnabled) {
+        throw new HttpError(404, "Route not found.");
+      }
+
       const body = await readJsonBody<{ phone: string; input: string }>(req);
       if (!body.phone || !body.input) {
         throw new HttpError(400, "Phone and input are required.");
@@ -73,7 +77,11 @@ export const fallbackRoutes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/fallback/sms",
-    handler: async ({ req, res }) => {
+    handler: async ({ req, res, config }) => {
+      if (!config.fallbackRoutesEnabled) {
+        throw new HttpError(404, "Route not found.");
+      }
+
       const body = await readJsonBody<{ phone: string; message: string }>(req);
       if (!body.phone || !body.message) {
         throw new HttpError(400, "Phone and message are required.");

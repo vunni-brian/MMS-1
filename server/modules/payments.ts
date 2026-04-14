@@ -105,6 +105,7 @@ const completePayment = async ({
 }) => {
   const payment = await get<{
     id: string;
+    status: string;
     market_id: string | null;
     booking_id: string;
     vendor_id: string;
@@ -113,7 +114,7 @@ const completePayment = async ({
     vendor_name: string;
     stall_name: string;
   }>(
-    `SELECT payments.id, payments.market_id, payments.booking_id, payments.vendor_id, payments.amount, payments.phone, users.name AS vendor_name, stalls.name AS stall_name
+    `SELECT payments.id, payments.status, payments.market_id, payments.booking_id, payments.vendor_id, payments.amount, payments.phone, users.name AS vendor_name, stalls.name AS stall_name
      FROM payments
      INNER JOIN users ON users.id = payments.vendor_id
      INNER JOIN bookings ON bookings.id = payments.booking_id
@@ -123,6 +124,9 @@ const completePayment = async ({
   );
 
   if (!payment) {
+    return;
+  }
+  if (payment.status !== "pending") {
     return;
   }
 
@@ -266,7 +270,7 @@ export const paymentRoutes: RouteDefinition[] = [
       if (booking.market_id !== marketId) {
         throw new HttpError(403, "You do not have access to that booking.");
       }
-      if (!["approved", "paid"].includes(booking.status)) {
+      if (booking.status !== "approved") {
         throw new HttpError(409, "This booking is not eligible for payment.");
       }
 
@@ -359,6 +363,9 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(403, "You may only view your own receipts.");
       }
       assertMarketAccess(session, payment.marketId);
+      if (payment.status !== "completed" || !payment.receiptId || !payment.completedAt) {
+        throw new HttpError(409, "Receipt is only available after confirmed payment.");
+      }
       sendJson(res, 200, {
         receipt: {
           paymentId: payment.id,

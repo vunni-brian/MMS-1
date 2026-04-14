@@ -21,7 +21,6 @@ import AuditPage from "./pages/shared/AuditPage";
 import CoordinationPage from "./pages/shared/CoordinationPage";
 import NotificationsPage from "./pages/vendor/NotificationsPage";
 import ProfilePage from "./pages/vendor/ProfilePage";
-import UssdPage from "./pages/vendor/UssdPage";
 import VendorsPage from "./pages/manager/VendorsPage";
 import NotFound from "./pages/NotFound";
 
@@ -54,7 +53,6 @@ const App = () => (
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="complaints" element={<ComplaintsPage />} />
               <Route path="profile" element={<ProfilePage />} />
-              <Route path="ussd" element={<UssdPage />} />
             </Route>
 
             {/* Manager routes */}
