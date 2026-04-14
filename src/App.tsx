@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
@@ -33,6 +34,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <SpeedInsights />
       <AuthProvider>
         <BrowserRouter>
           <Routes>
