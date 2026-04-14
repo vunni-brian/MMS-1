@@ -1,7 +1,8 @@
-import { all, get, getManagerForMarket, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
+import { all, get, getManagerForMarket, getUserRecordById, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { applyUserPassword, buildVendorPasswordResetMessage, revokeUserSessions } from "../lib/passwords.ts";
 import { assertMarketAccess, requireAuth, requirePermission, resolveScopedMarket } from "../lib/session.ts";
-import { normalizePhoneNumber, nowIso } from "../lib/security.ts";
+import { createTemporaryPassword, normalizePhoneNumber, nowIso } from "../lib/security.ts";
 import { findSupabaseAuthUser, updateSupabaseAuthUser } from "../lib/supabase.ts";
 
 const vendorSelect = `
@@ -283,6 +284,65 @@ export const vendorRoutes: RouteDefinition[] = [
         message: marketChanged
           ? `Profile updated. Transfer to ${market.name} is pending manager approval.`
           : "Profile updated.",
+      });
+    },
+  },
+  {
+    method: "POST",
+    path: "/vendors/:id/reset-password",
+    handler: async ({ req, res, auth, params, config }) => {
+      const session = requirePermission(auth, "vendor:review");
+      const vendor = await getUserRecordById(params.id);
+      if (!vendor || vendor.role !== "vendor") {
+        throw new HttpError(404, "Vendor not found.");
+      }
+      assertMarketAccess(session, vendor.market_id);
+
+      const body = await readJsonBody<{ reason?: string }>(req);
+      const reason = body.reason?.trim();
+      if (!reason) {
+        throw new HttpError(400, "A reset reason is required.");
+      }
+      if (!vendor.phone_verified_at) {
+        throw new HttpError(409, "Password reset is only available after the vendor verifies their phone number.");
+      }
+      if (session.user.role === "manager" && vendor.vendor_status !== "approved") {
+        throw new HttpError(409, "Managers can only reset passwords for approved vendors.");
+      }
+
+      const temporaryPassword = createTemporaryPassword();
+      await applyUserPassword(vendor, temporaryPassword);
+      await revokeUserSessions({ userId: vendor.id });
+
+      await queueNotification({
+        userId: vendor.id,
+        type: "system",
+        message: buildVendorPasswordResetMessage({
+          temporaryPassword,
+          reason,
+          appUrl: config.appUrl,
+        }),
+        channels: ["system", "sms"],
+        destinationPhone: vendor.phone,
+      });
+
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: vendor.market_id,
+        action: "RESET_VENDOR_PASSWORD",
+        entityType: "vendor",
+        entityId: vendor.id,
+        details: {
+          vendorName: vendor.name,
+          reason,
+          vendorStatus: vendor.vendor_status,
+        },
+      });
+
+      sendJson(res, 200, {
+        message: `A temporary password was sent to ${vendor.phone}.`,
       });
     },
   },

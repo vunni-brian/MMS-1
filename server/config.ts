@@ -44,6 +44,7 @@ const loadEnvFile = (filePath: string) => {
 
 loadEnvFile(path.join(rootDir, ".env"));
 
+const appName = process.env.APP_NAME?.trim() || "MMS";
 const appUrls = (process.env.APP_URL || "http://localhost:8080")
   .split(",")
   .map((value) => value.trim())
@@ -82,6 +83,7 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 
 export const config: AppConfig = {
   apiPort: Number(process.env.PORT || process.env.API_PORT || 3001),
+  appName,
   appUrl: primaryAppUrl,
   appUrls,
   apiUrl: process.env.API_URL || "http://localhost:3001",
@@ -104,6 +106,8 @@ export const config: AppConfig = {
   africasTalkingUseSandbox,
   africasTalkingSmsEnabled,
   otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES || 10),
+  otpRegistrationMessageTemplate: process.env.OTP_REGISTRATION_MESSAGE_TEMPLATE?.trim() || null,
+  otpLoginMessageTemplate: process.env.OTP_LOGIN_MESSAGE_TEMPLATE?.trim() || null,
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),
   paymentSettlementDelayMs: Number(process.env.PAYMENT_SETTLEMENT_DELAY_MS || 5000),

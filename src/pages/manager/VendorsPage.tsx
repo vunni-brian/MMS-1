@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Eye, Search, X } from "lucide-react";
+import { Check, Eye, KeyRound, Search, X } from "lucide-react";
 
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ const VendorsPage = () => {
   const queryClient = useQueryClient();
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [resetReason, setResetReason] = useState("");
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +58,26 @@ const VendorsPage = () => {
     },
     onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to reject vendor."),
   });
+
+  const resetVendorPassword = useMutation({
+    mutationFn: ({ vendorId, reason }: { vendorId: string; reason: string }) => api.resetVendorPassword(vendorId, reason),
+    onSuccess: (response) => {
+      setResetReason("");
+      setResetMessage(response.message);
+      setError(null);
+    },
+    onError: (mutationError) => {
+      setResetMessage(null);
+      setError(mutationError instanceof ApiError ? mutationError.message : "Unable to reset vendor password.");
+    },
+  });
+
+  useEffect(() => {
+    setRejectionReason("");
+    setResetReason("");
+    setResetMessage(null);
+    setError(null);
+  }, [selectedVendorId]);
 
   const vendors = vendorsData?.vendors || [];
   const bookings = bookingsData?.bookings || [];
@@ -230,6 +252,38 @@ const VendorsPage = () => {
                 <div className="rounded-lg bg-muted/40 p-3">
                   <span className="text-muted-foreground">ID Document</span>
                   <p className="font-medium mt-1">{formatAttachmentLabel(selectedRow.vendor.idDocument)}</p>
+                </div>
+              )}
+              {selectedRow.vendor.status === "approved" && (
+                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
+                  <div>
+                    <p className="font-medium">Password Reset</p>
+                    <p className="mt-1 text-muted-foreground">
+                      Send the vendor a temporary password by SMS. A reason is required and the vendor will need to change it after signing in.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reset-reason">Reset Reason</Label>
+                    <Textarea
+                      id="reset-reason"
+                      value={resetReason}
+                      onChange={(event) => setResetReason(event.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                  {resetMessage && (
+                    <div className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+                      {resetMessage}
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => resetVendorPassword.mutate({ vendorId: selectedRow.vendor.id, reason: resetReason })}
+                    disabled={resetVendorPassword.isPending || !resetReason.trim()}
+                  >
+                    <KeyRound className="mr-1 h-4 w-4" />
+                    {resetVendorPassword.isPending ? "Sending Temporary Password..." : "Reset Password"}
+                  </Button>
                 </div>
               )}
               {selectedRow.vendor.status === "pending" && (

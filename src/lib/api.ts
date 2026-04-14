@@ -156,6 +156,12 @@ export const api = {
       body: JSON.stringify({ challengeId, code }),
     }),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiRequest<{ message: string }>("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
   getMe: () => apiRequest<{ user: AuthUser }>("/auth/me"),
   getMarkets: () => apiRequest<{ markets: Market[] }>("/markets"),
@@ -179,6 +185,11 @@ export const api = {
     apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}/approve`, { method: "POST" }),
   rejectVendor: (vendorId: string, reason: string) =>
     apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  resetVendorPassword: (vendorId: string, reason: string) =>
+    apiRequest<{ message: string }>(`/vendors/${vendorId}/reset-password`, {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),

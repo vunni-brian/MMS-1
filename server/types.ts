@@ -80,6 +80,7 @@ export interface FilePayload {
 
 export interface AppConfig {
   apiPort: number;
+  appName: string;
   appUrl: string;
   appUrls: string[];
   apiUrl: string;
@@ -102,6 +103,8 @@ export interface AppConfig {
   africasTalkingUseSandbox: boolean;
   africasTalkingSmsEnabled: boolean;
   otpTtlMinutes: number;
+  otpRegistrationMessageTemplate: string | null;
+  otpLoginMessageTemplate: string | null;
   sessionTtlHours: number;
   notificationRetryCount: number;
   paymentSettlementDelayMs: number;

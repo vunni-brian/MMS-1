@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, FileText, Mail, MapPinned, Phone, User } from "lucide-react";
+import { Calendar, FileText, KeyRound, Mail, MapPinned, Phone, User } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
@@ -22,6 +22,13 @@ const ProfilePage = () => {
   });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ["vendor-profile", user?.id],
@@ -64,6 +71,23 @@ const ProfilePage = () => {
     onError: (mutationError) => {
       setMessage(null);
       setError(mutationError instanceof ApiError ? mutationError.message : "Unable to update profile.");
+    },
+  });
+
+  const changePassword = useMutation({
+    mutationFn: () => api.changePassword(passwordForm.currentPassword, passwordForm.newPassword),
+    onSuccess: (response) => {
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordMessage(response.message);
+      setPasswordError(null);
+    },
+    onError: (mutationError) => {
+      setPasswordMessage(null);
+      setPasswordError(mutationError instanceof ApiError ? mutationError.message : "Unable to change password.");
     },
   });
 
@@ -191,6 +215,85 @@ const ProfilePage = () => {
             }
           >
             {updateProfile.isPending ? "Saving Changes..." : "Save Changes"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="card-warm">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <KeyRound className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold font-heading">Change Password</h2>
+              <p className="text-sm text-muted-foreground">Update your password and sign out other active sessions.</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={passwordForm.currentPassword}
+                onChange={(event) =>
+                  setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.newPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.confirmPassword}
+                onChange={(event) =>
+                  setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
+            Use at least 8 characters. Changing your password keeps this device signed in and logs out your other sessions.
+          </div>
+
+          {passwordMessage && (
+            <div className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+              {passwordMessage}
+            </div>
+          )}
+          {passwordError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {passwordError}
+            </div>
+          )}
+
+          <Button
+            onClick={() => changePassword.mutate()}
+            disabled={
+              changePassword.isPending ||
+              !passwordForm.currentPassword ||
+              !passwordForm.newPassword ||
+              passwordForm.newPassword.length < 8 ||
+              passwordForm.newPassword !== passwordForm.confirmPassword
+            }
+          >
+            {changePassword.isPending ? "Updating Password..." : "Update Password"}
           </Button>
         </CardContent>
       </Card>

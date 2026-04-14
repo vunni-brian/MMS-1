@@ -11,8 +11,10 @@ import {
   transaction,
 } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { getOtpNotificationMessage } from "../lib/otp-messages.ts";
+import { applyUserPassword, revokeUserSessions } from "../lib/passwords.ts";
 import { createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
-import { addMinutes, createOtpCode, createTemporaryPassword, hashOtpCode, hashPassword, normalizePhoneNumber, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
+import { addMinutes, createOtpCode, createTemporaryPassword, hashOtpCode, hashPassword, hashToken, normalizePhoneNumber, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
 import { createSupabaseAuthUser, deleteSupabaseAuthUser, findSupabaseAuthUser, updateSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
 import { persistFilePayload, removeStoredFile, validateFilePayload } from "../lib/storage.ts";
 import type { FilePayload } from "../types.ts";
@@ -62,15 +64,20 @@ const requiresPrivilegedMfa = (user: {
 const issueRegistrationChallenge = async ({
   userId,
   phone,
-  otpTtlMinutes,
+  config,
 }: {
   userId: string;
   phone: string;
-  otpTtlMinutes: number;
+  config: {
+    appName: string;
+    otpTtlMinutes: number;
+    otpRegistrationMessageTemplate: string | null;
+    otpLoginMessageTemplate: string | null;
+  };
 }) => {
   const challengeId = createId("otp");
   const otpCode = createOtpCode();
-  const expiresAt = addMinutes(otpTtlMinutes);
+  const expiresAt = addMinutes(config.otpTtlMinutes);
   const timestamp = nowIso();
 
   await run(
@@ -82,7 +89,11 @@ const issueRegistrationChallenge = async ({
   await queueNotification({
     userId,
     type: "otp",
-    message: `Your verification code is ${otpCode}. It expires in ${otpTtlMinutes} minutes.`,
+    message: getOtpNotificationMessage({
+      config,
+      code: otpCode,
+      purpose: "registration",
+    }),
     channels: ["system", "sms"],
     destinationPhone: phone,
   });
@@ -197,7 +208,11 @@ export const authRoutes: RouteDefinition[] = [
       await queueNotification({
         userId,
         type: "otp",
-        message: `Your verification code is ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
+        message: getOtpNotificationMessage({
+          config,
+          code: otpCode,
+          purpose: "registration",
+        }),
         channels: ["system", "sms"],
         destinationPhone: normalizedPhone,
       });
@@ -429,7 +444,7 @@ export const authRoutes: RouteDefinition[] = [
           const challenge = await issueRegistrationChallenge({
             userId: user.id,
             phone: user.phone,
-            otpTtlMinutes: config.otpTtlMinutes,
+            config,
           });
 
           sendJson(res, 200, {
@@ -452,15 +467,20 @@ export const authRoutes: RouteDefinition[] = [
         const otpCode = createOtpCode();
         const challengeId = createId("otp");
         const timestamp = nowIso();
+        const expiresAt = addMinutes(config.otpTtlMinutes);
         await run(
           `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
            VALUES (?, ?, 'manager_mfa', ?, ?, ?, NULL, NULL, ?)`,
-          [challengeId, user.id, user.phone, hashOtpCode(otpCode), addMinutes(config.otpTtlMinutes), timestamp],
+          [challengeId, user.id, user.phone, hashOtpCode(otpCode), expiresAt, timestamp],
         );
         await queueNotification({
           userId: user.id,
           type: "otp",
-          message: `Your secure login code is ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
+          message: getOtpNotificationMessage({
+            config,
+            code: otpCode,
+            purpose: "login",
+          }),
           channels: ["system", "sms"],
           destinationPhone: user.phone,
         });
@@ -468,7 +488,7 @@ export const authRoutes: RouteDefinition[] = [
         sendJson(res, 200, {
           mfaRequired: true,
           challengeId,
-          expiresAt: addMinutes(config.otpTtlMinutes),
+          expiresAt,
           developmentCode: config.devMode ? otpCode : undefined,
         });
         return;
@@ -531,6 +551,49 @@ export const authRoutes: RouteDefinition[] = [
         token,
         user: serializeAuthUser(user),
       });
+    },
+  },
+  {
+    method: "POST",
+    path: "/auth/change-password",
+    handler: async ({ req, res, auth }) => {
+      const session = requireAuth(auth);
+      const body = await readJsonBody<{ currentPassword?: string; newPassword?: string }>(req);
+      const currentPassword = body.currentPassword || "";
+      const newPassword = body.newPassword || "";
+
+      if (!currentPassword || !newPassword) {
+        throw new HttpError(400, "Current password and new password are required.");
+      }
+      if (currentPassword === newPassword) {
+        throw new HttpError(400, "New password must be different from the current password.");
+      }
+
+      const user = await getUserRecordById(session.user.id);
+      if (!user) {
+        throw new HttpError(404, "User not found.");
+      }
+      if (!verifyPassword(currentPassword, user.password_hash)) {
+        throw new HttpError(401, "Current password is incorrect.");
+      }
+
+      await applyUserPassword(user, newPassword);
+      await revokeUserSessions({
+        userId: user.id,
+        exceptTokenHash: hashToken(session.token),
+      });
+
+      await logAuditEvent({
+        actorUserId: user.id,
+        actorName: user.name,
+        actorRole: user.role,
+        marketId: user.market_id,
+        action: "CHANGE_PASSWORD",
+        entityType: "user",
+        entityId: user.id,
+      });
+
+      sendJson(res, 200, { message: "Password updated." });
     },
   },
   {
