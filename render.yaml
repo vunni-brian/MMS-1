@@ -41,11 +41,19 @@ services:
         sync: false
       - key: AFRICAS_TALKING_USE_SANDBOX
         value: "false"
-      - key: FLUTTERWAVE_SECRET_KEY
+      - key: PESAPAL_CONSUMER_KEY
         sync: false
-      - key: FLUTTERWAVE_PUBLIC_KEY
+      - key: PESAPAL_CONSUMER_SECRET
         sync: false
-      - key: FLUTTERWAVE_WEBHOOK_SECRET
+      - key: PESAPAL_BASE_URL
+        value: https://cybqa.pesapal.com/pesapalv3
+      - key: PESAPAL_CALLBACK_URL
         sync: false
+      - key: PESAPAL_IPN_URL
+        sync: false
+      - key: PESAPAL_IPN_ID
+        sync: false
+      - key: PESAPAL_USE_IFRAME
+        value: "true"
       - key: PAYMENTS_ENABLED
         value: "true"

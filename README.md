@@ -13,8 +13,8 @@ Market Management System (`MMS`) is a full-stack market-operations app in a sing
 - Phone/password login with OTP MFA for privileged accounts
 - Market-scoped management for vendors, stalls, bookings, payments, reports, and audit records
 - Billing controls through `charge_types`, including global and market-specific enable/disable flags
-- Mobile money payments through Flutterwave Uganda for `MTN` and `AIRTEL`
-- Webhook-driven payment confirmation with provider-side verification before marking payments complete
+- Pesapal checkout initiation with iframe or redirect support
+- Callback/IPN-driven payment confirmation with provider-side status verification before marking payments complete
 - Receipt generation after confirmed payment
 - In-app notifications plus background SMS delivery through Africa's Talking when configured
 - Ticketing, coordination messaging, and resource request review flows
@@ -23,15 +23,15 @@ Market Management System (`MMS`) is a full-stack market-operations app in a sing
 
 ## Payment status
 
-The current payment provider in this repo is Flutterwave. Pesapal is not integrated yet.
+The current payment provider in this repo is Pesapal.
 
 Current payment flow:
 
 1. Vendor books a stall.
-2. Vendor initiates a mobile money payment for an approved booking.
-3. The API initiates the Flutterwave charge, then records the payment as `pending` and stores the provider response.
-4. Flutterwave sends a webhook.
-5. The API verifies the transaction with Flutterwave.
+2. Vendor starts a Pesapal checkout session for an approved booking.
+3. The API creates a pending payment, submits the order to Pesapal, and returns a secure checkout URL.
+4. Pesapal redirects the customer back to the frontend callback URL and also triggers the IPN URL.
+5. The API calls Pesapal's transaction-status endpoint before changing the local payment state.
 6. The payment is marked `completed` or `failed`.
 7. A receipt is made available only after confirmed completion.
 
@@ -39,7 +39,7 @@ Current payment flow:
 
 - Frontend: React 18, Vite, TypeScript, TanStack Query, shadcn/ui, Tailwind CSS
 - Backend: Node 22, TypeScript, custom HTTP routing, PostgreSQL via `pg`
-- Integrations: Flutterwave, Africa's Talking, optional Supabase Auth and Storage
+- Integrations: Pesapal, Africa's Talking, optional Supabase Auth and Storage
 - Testing: Vitest
 
 ## Run locally
@@ -103,6 +103,12 @@ npm run build
 npm test
 ```
 
+Pesapal setup helper:
+
+```bash
+npm run pesapal:register-ipn
+```
+
 ## Seed accounts
 
 - Vendor: `+256700100200` / `Vendor123!`
@@ -154,9 +160,13 @@ SMS and OTP settings:
 
 Payments:
 
-- `FLUTTERWAVE_SECRET_KEY`
-- `FLUTTERWAVE_WEBHOOK_SECRET`
-- `FLUTTERWAVE_PUBLIC_KEY` is present in config and env files but is not required by the current server-side payment flow
+- `PESAPAL_CONSUMER_KEY`
+- `PESAPAL_CONSUMER_SECRET`
+- `PESAPAL_BASE_URL` defaults to the Pesapal sandbox URL
+- `PESAPAL_CALLBACK_URL` should point to your frontend callback page such as `https://your-app.vercel.app/payments/callback`
+- `PESAPAL_IPN_URL` should point to your API route such as `https://your-api.onrender.com/payments/webhooks/pesapal`
+- `PESAPAL_IPN_ID` is required for submit-order requests after registering the IPN URL
+- `PESAPAL_USE_IFRAME=true` keeps checkout inside the app with an iframe; `false` uses a full-page redirect
 - `PAYMENTS_ENABLED` defaults to `true`
 - `PAYMENT_SETTLEMENT_DELAY_MS` still exists in config and `.env.example`, but the current payment flow is webhook-driven and does not use a timer-based settlement worker
 
@@ -231,8 +241,13 @@ Recommended Render environment values:
 - `AFRICAS_TALKING_API_KEY=your_api_key`
 - `AFRICAS_TALKING_FROM=your_sender_id_or_number`
 - `AFRICAS_TALKING_USE_SANDBOX=false` for live delivery
-- `FLUTTERWAVE_SECRET_KEY=...`
-- `FLUTTERWAVE_WEBHOOK_SECRET=...`
+- `PESAPAL_CONSUMER_KEY=...`
+- `PESAPAL_CONSUMER_SECRET=...`
+- `PESAPAL_BASE_URL=https://cybqa.pesapal.com/pesapalv3` for sandbox or `https://pay.pesapal.com/v3` for live
+- `PESAPAL_CALLBACK_URL=https://your-app.vercel.app/payments/callback`
+- `PESAPAL_IPN_URL=https://your-api.onrender.com/payments/webhooks/pesapal`
+- `PESAPAL_IPN_ID=...`
+- `PESAPAL_USE_IFRAME=true`
 - `PAYMENTS_ENABLED=true`
 
 Notes:
@@ -240,7 +255,7 @@ Notes:
 - Render's `PORT` env is respected automatically.
 - Health checks use `/health`.
 - Automatic boot seeding should stay disabled in hosted environments.
-- The current Render config is still Flutterwave-based. Update `render.yaml` together with the payment adapter when switching to Pesapal.
+- Register the Pesapal IPN URL once and store the returned `ipn_id` in `PESAPAL_IPN_ID` before enabling checkout in production.
 
 ### Vercel frontend
 
@@ -256,6 +271,6 @@ If you use a custom frontend domain, add that domain to Render's `APP_URL` list 
 
 - Database schema changes live in `server/db/migrations/`
 - Background notification delivery is handled by `processNotificationDeliveries`
-- Payment completion comes from Flutterwave webhook processing and verification, not from a mock settlement loop
+- Payment completion comes from Pesapal callback/IPN processing plus an explicit transaction-status check, not from a mock settlement loop
 - Fallback USSD/SMS routes are disabled unless fallback simulation is enabled
 - Managers, officials, and admins can send coordination messages; officials and admins can review resource requests

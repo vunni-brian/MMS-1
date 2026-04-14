@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
+import PaymentCallbackPage from "./pages/PaymentCallbackPage";
 import RegisterPage from "./pages/RegisterPage";
 import AppLayout from "./components/AppLayout";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/payments/callback" element={<PaymentCallbackPage />} />
 
             {/* Vendor routes */}
             <Route

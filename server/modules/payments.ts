@@ -1,9 +1,9 @@
 import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
-import { initiateFlutterwaveUgandaCharge, isValidFlutterwaveWebhook, verifyFlutterwaveTransaction } from "../lib/flutterwave.ts";
 import { HttpError, readJsonBody, readRawBody, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { getPesapalPaymentOutcome, getPesapalTransactionStatus, submitPesapalOrder } from "../lib/pesapal.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
-import { normalizePhoneNumber, nowIso } from "../lib/security.ts";
+import { nowIso } from "../lib/security.ts";
 import { config } from "../config.ts";
 
 const paymentSelect = `
@@ -103,6 +103,67 @@ const getPaymentById = async (paymentId: string) => {
   }>(`${paymentSelect} WHERE payments.id = ?`, [paymentId]);
 
   return payment ? mapPayment(payment) : null;
+};
+
+const splitName = (fullName: string) => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" "),
+  };
+};
+
+const recordPaymentWebhookEvent = async ({
+  provider,
+  txRef,
+  transactionId,
+  eventType,
+  payload,
+}: {
+  provider: "pesapal";
+  txRef: string | null;
+  transactionId: string | null;
+  eventType: string | null;
+  payload: unknown;
+}) => {
+  await run(
+    `INSERT INTO payment_webhook_events (id, provider, tx_ref, transaction_id, event_type, payload_json, created_at, processed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)` ,
+    [
+      createId("payment_webhook"),
+      provider,
+      txRef,
+      transactionId,
+      eventType,
+      JSON.stringify(payload),
+      nowIso(),
+      nowIso(),
+    ],
+  );
+};
+
+const failPaymentInitiation = async ({
+  paymentId,
+  gatewayResponse,
+  message,
+}: {
+  paymentId: string;
+  gatewayResponse?: unknown;
+  message: string;
+}) => {
+  const timestamp = nowIso();
+  await transaction(async () => {
+    await run(
+      `UPDATE payments
+       SET status = 'failed',
+           receipt_message = ?,
+           gateway_response_json = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      [message, gatewayResponse ? JSON.stringify(gatewayResponse) : null, timestamp, paymentId],
+    );
+    await run(`UPDATE payment_attempts SET status = 'failed', updated_at = ? WHERE payment_id = ?`, [timestamp, paymentId]);
+  });
 };
 
 const completePayment = async ({
@@ -207,6 +268,128 @@ const completePayment = async ({
   });
 };
 
+const readPesapalNotificationPayload = async ({
+  req,
+  url,
+}: {
+  req: Parameters<RouteDefinition["handler"]>[0]["req"];
+  url: URL;
+}) => {
+  const rawBody = await readRawBody(req);
+  const merged = new Map<string, string>();
+
+  for (const [key, value] of url.searchParams.entries()) {
+    merged.set(key, value);
+  }
+
+  if (rawBody) {
+    try {
+      const json = JSON.parse(rawBody) as Record<string, unknown>;
+      Object.entries(json).forEach(([key, value]) => {
+        if (typeof value === "string") {
+          merged.set(key, value);
+        }
+      });
+    } catch {
+      const params = new URLSearchParams(rawBody);
+      for (const [key, value] of params.entries()) {
+        merged.set(key, value);
+      }
+    }
+  }
+
+  return {
+    orderTrackingId:
+      merged.get("OrderTrackingId") || merged.get("orderTrackingId") || merged.get("order_tracking_id") || "",
+    orderNotificationType:
+      merged.get("OrderNotificationType") ||
+      merged.get("orderNotificationType") ||
+      merged.get("order_notification_type") ||
+      "",
+    orderMerchantReference:
+      merged.get("OrderMerchantReference") ||
+      merged.get("orderMerchantReference") ||
+      merged.get("order_merchant_reference") ||
+      "",
+    rawBody,
+  };
+};
+
+const applyPesapalStatus = async ({
+  orderTrackingId,
+  merchantReference,
+}: {
+  orderTrackingId: string;
+  merchantReference: string;
+}) => {
+  const payment = await get<{
+    id: string;
+    status: string;
+    amount: number;
+    currency?: string | null;
+    external_reference: string;
+  }>(
+    `SELECT id, status, amount, external_reference
+     FROM payments
+     WHERE external_reference = ?`,
+    [merchantReference],
+  );
+
+  if (!payment) {
+    throw new HttpError(404, "Payment not found.");
+  }
+
+  const statusResponse = await getPesapalTransactionStatus(orderTrackingId);
+  const timestamp = nowIso();
+
+  await run(
+    `UPDATE payments
+     SET provider_reference = ?,
+         gateway_response_json = ?,
+         updated_at = ?
+     WHERE id = ?`,
+    [orderTrackingId, JSON.stringify(statusResponse), timestamp, payment.id],
+  );
+
+  if (payment.status !== "pending") {
+    return await getPaymentById(payment.id);
+  }
+
+  if (String(statusResponse.merchant_reference || "") !== payment.external_reference) {
+    throw new HttpError(409, "Pesapal merchant reference did not match the expected payment.");
+  }
+
+  if (String(statusResponse.currency || "").toUpperCase() && String(statusResponse.currency || "").toUpperCase() !== "UGX") {
+    throw new HttpError(409, "Pesapal transaction currency did not match UGX.");
+  }
+
+  if (Number(statusResponse.amount || 0) < Number(payment.amount)) {
+    throw new HttpError(409, "Paid amount is below the expected amount.");
+  }
+
+  const outcome = getPesapalPaymentOutcome(statusResponse.payment_status_description);
+
+  if (outcome === "completed") {
+    await completePayment({
+      paymentId: payment.id,
+      transactionId: statusResponse.confirmation_code || orderTrackingId,
+      providerReference: orderTrackingId,
+      status: "completed",
+      gatewayResponse: statusResponse,
+    });
+  } else if (outcome === "failed") {
+    await completePayment({
+      paymentId: payment.id,
+      transactionId: statusResponse.confirmation_code || orderTrackingId,
+      providerReference: orderTrackingId,
+      status: "failed",
+      gatewayResponse: statusResponse,
+    });
+  }
+
+  return await getPaymentById(payment.id);
+};
+
 export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -266,12 +449,11 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(503, "Payments are currently disabled.");
       }
 
-      const body = await readJsonBody<{ bookingId?: string; provider?: "mtn" | "airtel"; phoneNumber?: string }>(req);
-      if (!body.bookingId || !body.provider || !body.phoneNumber) {
-        throw new HttpError(400, "Booking, payment network, and phone number are required.");
+      const body = await readJsonBody<{ bookingId?: string }>(req);
+      if (!body.bookingId) {
+        throw new HttpError(400, "Booking is required.");
       }
 
-      const normalizedPhoneNumber = normalizePhoneNumber(body.phoneNumber);
       const booking = await get<{
         id: string;
         market_id: string;
@@ -300,25 +482,8 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(409, "A payment is already in progress for this booking.");
       }
 
-      const txRef = createId("flwtx");
-      const chargeResponse = await initiateFlutterwaveUgandaCharge({
-        secretKey: config.flutterwaveSecret,
-        txRef,
-        amount: booking.amount,
-        email: session.user.email,
-        phoneNumber: normalizedPhoneNumber,
-        network: body.provider,
-        fullname: session.user.name,
-      });
-
-      const providerReference =
-        chargeResponse.data?.reference != null
-          ? String(chargeResponse.data.reference)
-          : chargeResponse.data?.id != null
-            ? String(chargeResponse.data.id)
-            : null;
-
       const paymentId = createId("payment");
+      const externalReference = paymentId;
       const timestamp = nowIso();
       await transaction(async () => {
         await run(
@@ -329,12 +494,12 @@ export const paymentRoutes: RouteDefinition[] = [
             booking.market_id,
             body.bookingId,
             session.user.id,
-            body.provider,
+            "pesapal",
             booking.amount,
-            providerReference,
-            txRef,
-            normalizedPhoneNumber,
-            JSON.stringify(chargeResponse),
+            null,
+            externalReference,
+            session.user.phone,
+            null,
             timestamp,
             timestamp,
           ],
@@ -342,151 +507,157 @@ export const paymentRoutes: RouteDefinition[] = [
         await run(
           `INSERT INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
            VALUES (?, ?, ?, 'pending', ?, ?)`,
-          [createId("attempt"), paymentId, body.provider, timestamp, timestamp],
+          [createId("attempt"), paymentId, "pesapal", timestamp, timestamp],
         );
       });
 
-      await logAuditEvent({
-        actorUserId: session.user.id,
-        actorName: session.user.name,
-        actorRole: session.user.role,
-        marketId: booking.market_id,
-        action: "INITIATE_PAYMENT",
-        entityType: "payment",
-        entityId: paymentId,
-        details: {
-          bookingId: body.bookingId,
-          provider: body.provider,
-          txRef,
-        },
-      });
+      try {
+        const { firstName, lastName } = splitName(session.user.name);
+        const order = await submitPesapalOrder({
+          id: externalReference,
+          amount: booking.amount,
+          description: `Payment for booking ${booking.id}`,
+          callbackUrl: config.pesapalCallbackUrl,
+          notificationId: config.pesapalIpnId,
+          email: session.user.email,
+          phone: session.user.phone,
+          firstName,
+          lastName,
+          accountNumber: booking.id,
+        });
 
-      sendJson(res, 201, {
-        payment: await getPaymentById(paymentId),
-        status: "pending",
-        message: "Payment initiated. Approve the mobile money prompt on your phone.",
-      });
+        if (!order.order_tracking_id || !order.redirect_url) {
+          await failPaymentInitiation({
+            paymentId,
+            gatewayResponse: order,
+            message: order.message || "Pesapal order creation failed.",
+          });
+          throw new HttpError(502, order.message || "Failed to create Pesapal checkout session.");
+        }
+
+        await run(
+          `UPDATE payments
+           SET transaction_id = ?,
+               provider_reference = ?,
+               gateway_response_json = ?,
+               updated_at = ?
+           WHERE id = ?`,
+          [order.order_tracking_id, order.order_tracking_id, JSON.stringify(order), nowIso(), paymentId],
+        );
+
+        await logAuditEvent({
+          actorUserId: session.user.id,
+          actorName: session.user.name,
+          actorRole: session.user.role,
+          marketId: booking.market_id,
+          action: "INITIATE_PAYMENT",
+          entityType: "payment",
+          entityId: paymentId,
+          details: {
+            bookingId: body.bookingId,
+            provider: "pesapal",
+            merchantReference: externalReference,
+            orderTrackingId: order.order_tracking_id,
+          },
+        });
+
+        sendJson(res, 201, {
+          payment: await getPaymentById(paymentId),
+          status: "pending",
+          redirectUrl: order.redirect_url,
+          orderTrackingId: order.order_tracking_id,
+          iframe: config.pesapalUseIframe,
+          message: "Redirecting to Pesapal secure checkout.",
+        });
+      } catch (error) {
+        if (error instanceof HttpError) {
+          throw error;
+        }
+
+        await failPaymentInitiation({
+          paymentId,
+          gatewayResponse: {
+            message: error instanceof Error ? error.message : "Pesapal order creation failed.",
+          },
+          message: error instanceof Error ? error.message : "Pesapal order creation failed.",
+        });
+        throw new HttpError(502, "Failed to initiate Pesapal checkout.", error);
+      }
     },
   },
   {
     method: "POST",
-    path: "/payments/webhooks/flutterwave",
-    handler: async ({ req, res }) => {
-      const rawBody = await readRawBody(req);
-      const signatureHeader = req.headers["flutterwave-signature"];
-      const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+    path: "/payments/webhooks/pesapal",
+    handler: async ({ req, res, url }) => {
+      const payload = await readPesapalNotificationPayload({ req, url });
 
-      if (
-        !isValidFlutterwaveWebhook({
-          rawBody,
-          signature,
-          secretHash: config.flutterwaveWebhookSecret,
-        })
-      ) {
-        throw new HttpError(401, "Invalid Flutterwave webhook signature.");
+      if (!payload.orderTrackingId || !payload.orderMerchantReference) {
+        throw new HttpError(400, "Missing Pesapal IPN fields.");
       }
 
-      let payload: {
-        id?: string;
-        type?: string;
-        data?: {
-          id?: string | number;
-          tx_ref?: string;
-          txRef?: string;
-          reference?: string;
-          status?: string;
-        };
-      };
+      await recordPaymentWebhookEvent({
+        provider: "pesapal",
+        txRef: payload.orderMerchantReference,
+        transactionId: payload.orderTrackingId,
+        eventType: payload.orderNotificationType || "IPN",
+        payload: payload.rawBody
+          ? (() => {
+              try {
+                return JSON.parse(payload.rawBody);
+              } catch {
+                return {
+                  OrderTrackingId: payload.orderTrackingId,
+                  OrderMerchantReference: payload.orderMerchantReference,
+                  OrderNotificationType: payload.orderNotificationType || "IPN",
+                };
+              }
+            })()
+          : {
+              OrderTrackingId: payload.orderTrackingId,
+              OrderMerchantReference: payload.orderMerchantReference,
+              OrderNotificationType: payload.orderNotificationType || "IPN",
+            },
+      });
 
-      try {
-        payload = JSON.parse(rawBody);
-      } catch (error) {
-        throw new HttpError(400, "Invalid Flutterwave webhook payload.", error);
+      await applyPesapalStatus({
+        orderTrackingId: payload.orderTrackingId,
+        merchantReference: payload.orderMerchantReference,
+      });
+
+      sendJson(res, 200, { status: 200, message: "IPN received" });
+    },
+  },
+  {
+    method: "GET",
+    path: "/payments/pesapal/callback-status",
+    handler: async ({ req, res, url }) => {
+      const payload = await readPesapalNotificationPayload({ req, url });
+
+      if (!payload.orderTrackingId || !payload.orderMerchantReference) {
+        throw new HttpError(400, "Missing callback query parameters.");
       }
 
-      const webhookId = payload.id?.trim();
-      if (!webhookId) {
-        throw new HttpError(400, "Flutterwave webhook is missing an event id.");
-      }
+      await recordPaymentWebhookEvent({
+        provider: "pesapal",
+        txRef: payload.orderMerchantReference,
+        transactionId: payload.orderTrackingId,
+        eventType: payload.orderNotificationType || "CALLBACKURL",
+        payload: {
+          OrderTrackingId: payload.orderTrackingId,
+          OrderMerchantReference: payload.orderMerchantReference,
+          OrderNotificationType: payload.orderNotificationType || "CALLBACKURL",
+        },
+      });
 
-      const existingEvent = await get<{ processed_at: string | null }>(
-        `SELECT processed_at FROM payment_webhook_events WHERE id = ?`,
-        [webhookId],
-      );
-      if (existingEvent?.processed_at) {
-        sendJson(res, 200, { ok: true });
-        return;
-      }
-      if (!existingEvent) {
-        await run(
-          `INSERT INTO payment_webhook_events (id, provider, tx_ref, transaction_id, event_type, payload_json, created_at, processed_at)
-           VALUES (?, 'flutterwave', ?, ?, ?, ?, ?, NULL)`,
-          [
-            webhookId,
-            payload.data?.tx_ref || payload.data?.txRef || payload.data?.reference || null,
-            payload.data?.id != null ? String(payload.data.id) : null,
-            payload.type || null,
-            rawBody,
-            nowIso(),
-          ],
-        );
-      }
+      const payment = await applyPesapalStatus({
+        orderTrackingId: payload.orderTrackingId,
+        merchantReference: payload.orderMerchantReference,
+      });
 
-      const txRef = payload.data?.tx_ref || payload.data?.txRef || payload.data?.reference || "";
-      const transactionId = payload.data?.id != null ? String(payload.data.id) : "";
-      const webhookStatus = (payload.data?.status || "").toLowerCase();
-
-      const payment = txRef
-        ? await get<{ id: string; amount: number; external_reference: string }>(
-            `SELECT id, amount, external_reference FROM payments WHERE external_reference = ?`,
-            [txRef],
-          )
-        : null;
-
-      if (!payment || !transactionId) {
-        await run(`UPDATE payment_webhook_events SET processed_at = ? WHERE id = ?`, [nowIso(), webhookId]);
-        sendJson(res, 200, { ok: true });
-        return;
-      }
-
-      if (webhookStatus === "successful" || webhookStatus === "succeeded") {
-        const verification = await verifyFlutterwaveTransaction({
-          secretKey: config.flutterwaveSecret,
-          transactionId,
-        });
-
-        const verified = verification.data;
-        const verifiedStatus = (verified?.status || "").toLowerCase();
-        if (
-          !verified ||
-          !String(verified.tx_ref || "").trim() ||
-          String(verified.tx_ref) !== payment.external_reference ||
-          Number(verified.amount || 0) !== payment.amount ||
-          String(verified.currency || "").toUpperCase() !== "UGX" ||
-          (verifiedStatus !== "successful" && verifiedStatus !== "succeeded")
-        ) {
-          throw new HttpError(409, "Flutterwave verification did not match the expected transaction.");
-        }
-
-        await completePayment({
-          paymentId: payment.id,
-          transactionId: String(verified.id || transactionId),
-          providerReference: verified.reference ? String(verified.reference) : null,
-          status: "completed",
-          gatewayResponse: verification,
-        });
-      } else if (webhookStatus === "failed" || webhookStatus === "cancelled") {
-        await completePayment({
-          paymentId: payment.id,
-          transactionId,
-          providerReference: payload.data?.reference ? String(payload.data.reference) : null,
-          status: "failed",
-          gatewayResponse: payload,
-        });
-      }
-
-      await run(`UPDATE payment_webhook_events SET processed_at = ? WHERE id = ?`, [nowIso(), webhookId]);
-      sendJson(res, 200, { ok: true });
+      sendJson(res, 200, {
+        ok: true,
+        payment,
+      });
     },
   },
   {

@@ -1,29 +1,38 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ReceiptText, Smartphone, Wallet } from "lucide-react";
+import { ArrowUpRight, ExternalLink, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { PaymentMethod } from "@/types";
+
+const paymentMethodMeta: Record<PaymentMethod, { label: string; className: string }> = {
+  mtn: {
+    label: "MTN",
+    className: "bg-warning/10 text-warning",
+  },
+  airtel: {
+    label: "AIRTEL",
+    className: "bg-destructive/10 text-destructive",
+  },
+  pesapal: {
+    label: "PESAPAL",
+    className: "bg-info/10 text-info",
+  },
+};
 
 const PaymentsPage = () => {
   const { role, user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [selectedReceiptPaymentId, setSelectedReceiptPaymentId] = useState<string | null>(null);
-  const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [checkoutSession, setCheckoutSession] = useState<{ redirectUrl: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [paymentForm, setPaymentForm] = useState({
-    phoneNumber: "",
-    provider: "mtn" as "mtn" | "airtel",
-  });
 
   const { data: bookingsData } = useQuery({ queryKey: ["bookings"], queryFn: () => api.getBookings() });
   const { data: paymentsData } = useQuery({
@@ -37,24 +46,25 @@ const PaymentsPage = () => {
     enabled: Boolean(selectedReceiptPaymentId),
   });
 
-  useEffect(() => {
-    if (user?.phone) {
-      setPaymentForm((current) => ({ ...current, phoneNumber: user.phone }));
-    }
-  }, [user?.phone]);
-
   const initiatePayment = useMutation({
-    mutationFn: ({ bookingId, provider, phoneNumber }: { bookingId: string; provider: "mtn" | "airtel"; phoneNumber: string }) =>
-      api.initiatePayment(bookingId, provider, phoneNumber),
+    mutationFn: ({ bookingId }: { bookingId: string }) => api.initiatePayment(bookingId),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["payments"] });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setPaymentMessage(response.message);
       setError(null);
+      setSelectedBookingId(null);
+
+      if (response.iframe) {
+        setCheckoutSession({
+          redirectUrl: response.redirectUrl,
+        });
+        return;
+      }
+
+      window.location.assign(response.redirectUrl);
     },
     onError: (mutationError) => {
-      setPaymentMessage(null);
       setError(mutationError instanceof ApiError ? mutationError.message : "Unable to initiate payment.");
     },
   });
@@ -128,7 +138,6 @@ const PaymentsPage = () => {
                           <Button
                             onClick={() => {
                               setSelectedBookingId(booking.id);
-                              setPaymentMessage(null);
                               setError(null);
                             }}
                             disabled={Boolean(pendingPayment)}
@@ -171,8 +180,8 @@ const PaymentsPage = () => {
                     {role !== "vendor" && <TableCell className="font-medium">{payment.vendorName}</TableCell>}
                     <TableCell>UGX {payment.amount.toLocaleString()}</TableCell>
                     <TableCell>
-                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${payment.method === "mtn" ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"}`}>
-                        {payment.method.toUpperCase()}
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${paymentMethodMeta[payment.method].className}`}>
+                        {paymentMethodMeta[payment.method].label}
                       </span>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{payment.providerReference || payment.externalReference}</TableCell>
@@ -199,7 +208,7 @@ const PaymentsPage = () => {
       <Dialog open={Boolean(selectedBookingId)} onOpenChange={(open) => !open && setSelectedBookingId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-heading">Mobile Money Payment</DialogTitle>
+            <DialogTitle className="font-heading">Secure Checkout</DialogTitle>
           </DialogHeader>
           {selectedBooking && (
             <div className="space-y-4">
@@ -211,52 +220,61 @@ const PaymentsPage = () => {
                 <p className="mt-2 text-lg font-bold font-heading">UGX {selectedBooking.amount.toLocaleString()}</p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="payment-phone">Phone Number</Label>
-                <Input
-                  id="payment-phone"
-                  value={paymentForm.phoneNumber}
-                  onChange={(event) => setPaymentForm((current) => ({ ...current, phoneNumber: event.target.value }))}
-                  placeholder="+256 7XX XXX XXX"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="payment-provider">Network</Label>
-                <Select
-                  value={paymentForm.provider}
-                  onValueChange={(value: "mtn" | "airtel") => setPaymentForm((current) => ({ ...current, provider: value }))}
-                >
-                  <SelectTrigger id="payment-provider">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mtn">MTN Mobile Money</SelectItem>
-                    <SelectItem value="airtel">Airtel Money</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                After you tap pay, confirm the payment prompt on your phone. The status here will remain pending until Flutterwave confirms the transaction.
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-info" />
+                  <div className="space-y-2">
+                    <p>Pesapal will open a secure checkout where the customer can complete payment.</p>
+                    <p>
+                      {user?.email
+                        ? `The current checkout will use ${user.email} and ${user.phone}.`
+                        : "The current checkout will use the phone number attached to the signed-in vendor account."}
+                    </p>
+                  </div>
+                </div>
               </div>
-
-              {paymentMessage && <div className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">{paymentMessage}</div>}
 
               <Button
                 className="w-full"
-                onClick={() =>
-                  initiatePayment.mutate({
-                    bookingId: selectedBooking.id,
-                    provider: paymentForm.provider,
-                    phoneNumber: paymentForm.phoneNumber,
-                  })
-                }
-                disabled={initiatePayment.isPending || !paymentForm.phoneNumber.trim()}
+                onClick={() => initiatePayment.mutate({ bookingId: selectedBooking.id })}
+                disabled={initiatePayment.isPending}
               >
-                <Smartphone className="mr-2 h-4 w-4" />
-                {initiatePayment.isPending ? "Initiating Payment..." : "Pay with Mobile Money"}
+                <ArrowUpRight className="mr-2 h-4 w-4" />
+                {initiatePayment.isPending ? "Opening Checkout..." : "Continue to Pesapal"}
               </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(checkoutSession)} onOpenChange={(open) => !open && setCheckoutSession(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Pesapal Checkout</DialogTitle>
+          </DialogHeader>
+          {checkoutSession && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+                Complete the payment in the secure Pesapal frame below. After checkout, Pesapal will return the user to the callback page and the app will verify the final status.
+              </div>
+
+              <iframe
+                title="Pesapal Checkout"
+                src={checkoutSession.redirectUrl}
+                className="h-[640px] w-full rounded-xl border border-border/70 bg-white"
+              />
+
+              <div className="flex justify-end">
+                <a
+                  href={checkoutSession.redirectUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open checkout in a new tab
+                </a>
+              </div>
             </div>
           )}
         </DialogContent>

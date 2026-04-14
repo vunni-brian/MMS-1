@@ -35,7 +35,7 @@ export type ChargeTypeScope = "global" | "market";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
-export type PaymentMethod = "mtn" | "airtel";
+export type PaymentMethod = "mtn" | "airtel" | "pesapal";
 export type ResourceRequestCategory = "budget" | "structural";
 export type ResourceRequestStatus = "pending" | "approved" | "rejected";
 

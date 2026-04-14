@@ -31,7 +31,7 @@ export type VendorApprovalStatus = "pending" | "approved" | "rejected";
 export type StallStatus = "active" | "inactive" | "maintenance";
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed";
-export type PaymentProvider = "mtn" | "airtel";
+export type PaymentProvider = "mtn" | "airtel" | "pesapal";
 export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
 export type ChargeTypeScope = "global" | "market";
 export type TicketStatus = "open" | "in_progress" | "resolved";
@@ -115,9 +115,13 @@ export interface AppConfig {
   notificationRetryCount: number;
   paymentSettlementDelayMs: number;
   fallbackRoutesEnabled: boolean;
-  flutterwaveSecret: string;
-  flutterwavePublic: string;
-  flutterwaveWebhookSecret: string;
+  pesapalConsumerKey: string;
+  pesapalConsumerSecret: string;
+  pesapalBaseUrl: string;
+  pesapalCallbackUrl: string;
+  pesapalIpnUrl: string;
+  pesapalIpnId: string;
+  pesapalUseIframe: boolean;
   paymentsEnabled: boolean;
   devMode: boolean;
 }

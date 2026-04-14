@@ -14,6 +14,7 @@
     "start:api": "node --experimental-strip-types server/main.ts",
     "db:migrate": "node --experimental-strip-types server/db/migrate.ts",
     "db:seed": "node --experimental-strip-types server/db/seed.ts",
+    "pesapal:register-ipn": "node --experimental-strip-types scripts/register-pesapal-ipn.ts",
     "db:check": "node check_db.js",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "build:web": "node ./node_modules/vite/bin/vite.js build",

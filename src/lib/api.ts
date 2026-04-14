@@ -241,11 +241,25 @@ export const api = {
       body: JSON.stringify({ transactionId }),
     }),
 
-  initiatePayment: (bookingId: string, provider: PaymentMethod, phoneNumber: string) =>
-    apiRequest<{ payment: Payment; status: string; message: string }>("/payments/initiate", {
+  initiatePayment: (bookingId: string) =>
+    apiRequest<{
+      payment: Payment;
+      status: string;
+      message: string;
+      redirectUrl: string;
+      orderTrackingId: string;
+      iframe: boolean;
+    }>("/payments/initiate", {
       method: "POST",
-      body: JSON.stringify({ bookingId, provider, phoneNumber }),
+      body: JSON.stringify({ bookingId }),
     }),
+  getPesapalCallbackStatus: (orderTrackingId: string, merchantReference: string) =>
+    apiRequest<{ ok: true; payment: Payment | null }>(
+      `/payments/pesapal/callback-status${buildQuery({
+        OrderTrackingId: orderTrackingId,
+        OrderMerchantReference: merchantReference,
+      })}`,
+    ),
   getPayments: (marketId?: string) => apiRequest<{ payments: Payment[] }>(`/payments${buildQuery({ marketId })}`),
   getReceipt: (paymentId: string) =>
     apiRequest<{

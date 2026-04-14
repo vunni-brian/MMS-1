@@ -84,9 +84,13 @@ const africasTalkingFrom =
   normalizePhoneValue(process.env.AFRICAS_TALKING_FROM) || process.env.AFRICAS_TALKING_FROM?.trim() || null;
 const africasTalkingSmsEnabled = Boolean(africasTalkingUsername && africasTalkingApiKey);
 const smsSandbox = process.env.AFRICAS_TALKING_USE_SANDBOX === "true";
-const flutterwaveSecret = process.env.FLUTTERWAVE_SECRET_KEY?.trim() || "";
-const flutterwavePublic = process.env.FLUTTERWAVE_PUBLIC_KEY?.trim() || "";
-const flutterwaveWebhookSecret = process.env.FLUTTERWAVE_WEBHOOK_SECRET?.trim() || "";
+const pesapalConsumerKey = process.env.PESAPAL_CONSUMER_KEY?.trim() || "";
+const pesapalConsumerSecret = process.env.PESAPAL_CONSUMER_SECRET?.trim() || "";
+const pesapalBaseUrl = process.env.PESAPAL_BASE_URL?.trim() || "https://cybqa.pesapal.com/pesapalv3";
+const pesapalCallbackUrl = process.env.PESAPAL_CALLBACK_URL?.trim() || "";
+const pesapalIpnUrl = process.env.PESAPAL_IPN_URL?.trim() || "";
+const pesapalIpnId = process.env.PESAPAL_IPN_ID?.trim() || "";
+const pesapalUseIframe = process.env.PESAPAL_USE_IFRAME === "true";
 const paymentsEnabled = process.env.PAYMENTS_ENABLED !== "false";
 
 fs.mkdirSync(dataDir, { recursive: true });
@@ -125,9 +129,13 @@ export const config: AppConfig = {
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),
   paymentSettlementDelayMs: Number(process.env.PAYMENT_SETTLEMENT_DELAY_MS || 5000),
   fallbackRoutesEnabled,
-  flutterwaveSecret,
-  flutterwavePublic,
-  flutterwaveWebhookSecret,
+  pesapalConsumerKey,
+  pesapalConsumerSecret,
+  pesapalBaseUrl,
+  pesapalCallbackUrl,
+  pesapalIpnUrl,
+  pesapalIpnId,
+  pesapalUseIframe,
   paymentsEnabled,
   devMode,
 };
