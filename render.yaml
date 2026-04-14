@@ -12,9 +12,9 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_URL
-        sync: false
+        value: https://mms-1.vercel.app
       - key: API_URL
-        sync: false
+        value: https://mms-api.onrender.com
       - key: DATABASE_URL
         sync: false
       - key: MIGRATION_DATABASE_URL
@@ -46,13 +46,13 @@ services:
       - key: PESAPAL_CONSUMER_SECRET
         sync: false
       - key: PESAPAL_BASE_URL
-        value: https://cybqa.pesapal.com/pesapalv3
+        value: https://pay.pesapal.com/v3
       - key: PESAPAL_CALLBACK_URL
-        sync: false
+        value: https://mms-1.vercel.app/payments/callback
       - key: PESAPAL_IPN_URL
-        sync: false
+        value: https://mms-api.onrender.com/payments/webhooks/pesapal
       - key: PESAPAL_IPN_ID
-        sync: false
+        value: accdbb0c-34c0-4c00-83ad-da8039991215
       - key: PESAPAL_USE_IFRAME
         value: "true"
       - key: PAYMENTS_ENABLED
