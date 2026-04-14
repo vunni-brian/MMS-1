@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Store, LayoutDashboard, Grid3X3, CreditCard, Bell, MessageSquare,
-  BarChart3, ScrollText, Users, LogOut, Menu, X, Settings, MessagesSquare
+  BarChart3, ScrollText, Users, LogOut, Menu, X, Settings, MessagesSquare, SlidersHorizontal
 } from "lucide-react";
 
 import type { Role } from "@/types";
@@ -19,15 +19,16 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '', icon: LayoutDashboard, roles: ['vendor', 'manager', 'official'] },
+  { label: 'Dashboard', path: '', icon: LayoutDashboard, roles: ['vendor', 'manager', 'official', 'admin'] },
   { label: 'Stalls', path: 'stalls', icon: Grid3X3, roles: ['vendor', 'manager'] },
   { label: 'Payments', path: 'payments', icon: CreditCard, roles: ['vendor', 'manager'] },
   { label: 'Notifications', path: 'notifications', icon: Bell, roles: ['vendor'] },
   { label: 'Complaints', path: 'complaints', icon: MessageSquare, roles: ['vendor', 'manager'] },
   { label: 'Vendors', path: 'vendors', icon: Users, roles: ['manager'] },
-  { label: 'Reports', path: 'reports', icon: BarChart3, roles: ['manager', 'official'] },
-  { label: 'Audit Log', path: 'audit', icon: ScrollText, roles: ['manager', 'official'] },
-  { label: 'Coordination', path: 'coordination', icon: MessagesSquare, roles: ['manager', 'official'] },
+  { label: 'Billing', path: 'billing', icon: SlidersHorizontal, roles: ['manager', 'official', 'admin'] },
+  { label: 'Reports', path: 'reports', icon: BarChart3, roles: ['manager', 'official', 'admin'] },
+  { label: 'Audit Log', path: 'audit', icon: ScrollText, roles: ['manager', 'official', 'admin'] },
+  { label: 'Coordination', path: 'coordination', icon: MessagesSquare, roles: ['manager', 'official', 'admin'] },
   { label: 'Profile', path: 'profile', icon: Settings, roles: ['vendor'] },
 ];
 
@@ -63,7 +64,7 @@ const AppLayout = () => {
             <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">Market Manager</p>
             <p className="text-xs text-sidebar-foreground/60 truncate">{user.name}</p>
             <p className="text-[11px] text-sidebar-foreground/50 truncate mt-0.5">
-              {user.marketName || (user.role === "official" ? "All markets oversight" : "Unassigned market")}
+              {user.marketName || (user.role === "official" || user.role === "admin" ? "All markets oversight" : "Unassigned market")}
             </p>
           </div>
           <button className="lg:hidden text-sidebar-foreground" onClick={() => setSidebarOpen(false)}>
@@ -114,7 +115,7 @@ const AppLayout = () => {
           <div className="flex-1" />
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium bg-muted text-muted-foreground px-2.5 py-1 rounded-full">
-              {user.marketName || (user.role === "official" ? "All Markets" : "No Market")}
+              {user.marketName || (user.role === "official" || user.role === "admin" ? "All Markets" : "No Market")}
             </span>
             <span className="text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full capitalize">{user.role}</span>
           </div>

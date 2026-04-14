@@ -76,7 +76,7 @@ export const createSupabaseAuthUser = async ({
   password: string;
   localUserId: string;
   name: string;
-  role: "vendor" | "manager" | "official";
+  role: "vendor" | "manager" | "official" | "admin";
   marketId: string | null;
 }) => {
   if (!adminClient) {
@@ -125,7 +125,7 @@ export const updateSupabaseAuthUser = async (
     password?: string;
     localUserId: string;
     name: string;
-    role: "vendor" | "manager" | "official";
+    role: "vendor" | "manager" | "official" | "admin";
     marketId: string | null;
   },
 ) => {
@@ -296,7 +296,7 @@ export const syncSeedUserToSupabase = async ({
   password: string;
   localUserId: string;
   name: string;
-  role: "vendor" | "manager" | "official";
+  role: "vendor" | "manager" | "official" | "admin";
   marketId: string | null;
 }) => {
   if (!adminClient) {

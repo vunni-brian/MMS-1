@@ -6,7 +6,6 @@ import type { AuthUser } from "@/types";
 interface PendingMfaChallenge {
   challengeId: string;
   expiresAt: string;
-  developmentCode?: string;
 }
 
 interface AuthContextType {
@@ -17,8 +16,8 @@ interface AuthContextType {
     password: string,
   ) => Promise<
     | { mfaRequired: false; verificationRequired: false }
-    | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string; developmentCode?: string }
-    | { mfaRequired: true; verificationRequired: false; developmentCode?: string }
+    | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string }
+    | { mfaRequired: true; verificationRequired: false }
   >;
   verifyPrivilegedMfa: (code: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -79,10 +78,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setPendingMfa({
           challengeId: response.challengeId,
           expiresAt: response.expiresAt,
-          developmentCode: response.developmentCode,
         });
         setAuthError(null);
-        return { mfaRequired: true, verificationRequired: false, developmentCode: response.developmentCode };
+        return { mfaRequired: true, verificationRequired: false };
       }
 
       if (response.verificationRequired) {
@@ -93,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           verificationRequired: true,
           challengeId: response.challengeId,
           expiresAt: response.expiresAt,
-          developmentCode: response.developmentCode,
         };
       }
 

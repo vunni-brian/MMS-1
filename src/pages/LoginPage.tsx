@@ -21,7 +21,6 @@ const LoginPage = () => {
   const [pendingVendorVerification, setPendingVendorVerification] = useState<{
     challengeId: string;
     expiresAt: string;
-    developmentCode?: string;
   } | null>(null);
   const isMfaStep = Boolean(pendingMfa);
   const isVendorVerificationStep = Boolean(pendingVendorVerification);
@@ -54,7 +53,6 @@ const LoginPage = () => {
         setPendingVendorVerification({
           challengeId: response.challengeId,
           expiresAt: response.expiresAt,
-          developmentCode: response.developmentCode,
         });
         setOtp("");
         return;
@@ -174,11 +172,6 @@ const LoginPage = () => {
                     <p className="mt-1 text-muted-foreground">
                       Enter the six-digit code sent to <span className="font-medium text-foreground">{phone.trim() || "your registered phone number"}</span>.
                     </p>
-                    {pendingMfa?.developmentCode && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Development OTP: <span className="font-mono font-medium">{pendingMfa.developmentCode}</span>
-                      </p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="otp">OTP Code</Label>
@@ -189,11 +182,6 @@ const LoginPage = () => {
                 <>
                   <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
                     Enter the six-digit code sent to <span className="font-medium text-foreground">{phone.trim() || "your registered phone number"}</span>.
-                    {pendingVendorVerification?.developmentCode && (
-                      <p className="mt-2 text-xs">
-                        Development OTP: <span className="font-mono font-medium text-foreground">{pendingVendorVerification.developmentCode}</span>
-                      </p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="otp">OTP Code</Label>

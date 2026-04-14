@@ -18,11 +18,12 @@ const CoordinationPage = () => {
   const [body, setBody] = useState("");
   const [selectedMarketId, setSelectedMarketId] = useState("all");
   const [error, setError] = useState<string | null>(null);
-  const marketId = user?.role === "official" && selectedMarketId !== "all" ? selectedMarketId : undefined;
+  const canScopeMarkets = user?.role === "official" || user?.role === "admin";
+  const marketId = canScopeMarkets && selectedMarketId !== "all" ? selectedMarketId : undefined;
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "coordination"],
     queryFn: () => api.getMarkets(),
-    enabled: user?.role === "official",
+    enabled: canScopeMarkets,
   });
   const { data } = useQuery({
     queryKey: ["coordination-messages", marketId || "all"],
@@ -55,7 +56,7 @@ const CoordinationPage = () => {
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle className="text-base font-heading">Shared Channel</CardTitle>
-              {user?.role === "official" && (
+              {canScopeMarkets && (
                 <div className="w-full lg:w-[220px]">
                   <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
                     <SelectTrigger>
@@ -113,7 +114,7 @@ const CoordinationPage = () => {
             <CardTitle className="text-base font-heading">Post Update</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {user?.role === "official" && (
+            {canScopeMarkets && (
               <div className="space-y-1.5">
                 <Label htmlFor="coordination-market">Market scope</Label>
                 <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>

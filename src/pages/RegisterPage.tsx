@@ -17,7 +17,6 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<RegistrationStep>("form");
   const [challengeId, setChallengeId] = useState<string | null>(null);
-  const [developmentCode, setDevelopmentCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -61,7 +60,6 @@ const RegisterPage = () => {
           idDocument: form.idFile,
         });
         setChallengeId(response.challengeId);
-        setDevelopmentCode(response.developmentCode || null);
         setStep("otp");
         return;
       }
@@ -204,11 +202,6 @@ const RegisterPage = () => {
                 <div className="space-y-3">
                   <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
                     Enter the verification code sent to <span className="font-medium text-foreground">{form.phone}</span>.
-                    {developmentCode && (
-                      <p className="mt-2">
-                        Development OTP: <span className="font-mono font-medium text-foreground">{developmentCode}</span>
-                      </p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="otp">OTP Code</Label>

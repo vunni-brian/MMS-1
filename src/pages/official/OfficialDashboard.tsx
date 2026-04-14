@@ -16,6 +16,7 @@ import {
 } from "recharts";
 
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ const startOfQuarter = (dateValue: Date) => {
 };
 
 const OfficialDashboard = () => {
+  const { role } = useAuth();
   const queryClient = useQueryClient();
   const [selectedMarketId, setSelectedMarketId] = useState("all");
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
@@ -301,7 +303,7 @@ const OfficialDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-heading">Official Dashboard</h1>
+          <h1 className="text-2xl font-bold font-heading">{role === "admin" ? "Admin Dashboard" : "Official Dashboard"}</h1>
           <p className="text-muted-foreground text-sm mt-1">High-level oversight across revenue, compliance, audits, and long-term market trends.</p>
           <p className="text-xs text-muted-foreground mt-2">Scope: {scopeLabel}</p>
         </div>
@@ -339,6 +341,7 @@ const OfficialDashboard = () => {
         ))}
       </div>
 
+      {role === "admin" && (
       <div className="grid xl:grid-cols-[1.05fr_0.95fr] gap-4">
         <Card className="card-warm">
           <CardHeader className="pb-3">
@@ -429,6 +432,7 @@ const OfficialDashboard = () => {
           </CardContent>
         </Card>
       </div>
+      )}
 
       <Card className="card-warm">
         <CardHeader className="pb-3">

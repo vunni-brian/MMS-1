@@ -157,6 +157,14 @@ export const resourceRequestRoutes: RouteDefinition[] = [
           channels: ["system"],
         });
       }
+      for (const admin of await all<{ id: string }>(`SELECT id FROM users WHERE role = 'admin'`)) {
+        await queueNotification({
+          userId: admin.id,
+          type: "system",
+          message: `${session.user.name} submitted a ${body.category} request: ${body.title.trim()}.`,
+          channels: ["system"],
+        });
+      }
       await logAuditEvent({
         actorUserId: session.user.id,
         actorName: session.user.name,
@@ -195,8 +203,8 @@ export const resourceRequestRoutes: RouteDefinition[] = [
     path: "/resource-requests/:id",
     handler: async ({ req, res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "resource:review");
-      if (session.user.role !== "official") {
-        throw new HttpError(403, "Only officials can review resource requests.");
+      if (!["official", "admin"].includes(session.user.role)) {
+        throw new HttpError(403, "Only officials and admins can review resource requests.");
       }
 
       const existing = await get<{

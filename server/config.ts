@@ -44,7 +44,8 @@ const loadEnvFile = (filePath: string) => {
 
 loadEnvFile(path.join(rootDir, ".env"));
 
-const devMode = process.env.NODE_ENV !== "production";
+const appEnv = process.env.APP_ENV?.trim() || process.env.NODE_ENV || "development";
+const devMode = appEnv !== "production";
 const appName = process.env.APP_NAME?.trim() || "MMS";
 const appUrls = (process.env.APP_URL || "http://localhost:8080")
   .split(",")
@@ -62,12 +63,10 @@ const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@
 const migrationDatabaseUrl = process.env.MIGRATION_DATABASE_URL?.trim() || null;
 const inferredSsl = /supabase\.(co|com)|sslmode=require/i.test(databaseUrl) || Boolean(migrationDatabaseUrl && /supabase\.(co|com)|sslmode=require/i.test(migrationDatabaseUrl));
 const databaseSsl = process.env.DATABASE_SSL ? process.env.DATABASE_SSL === "true" : inferredSsl;
-const autoMigrate = process.env.MMS_AUTO_MIGRATE ? process.env.MMS_AUTO_MIGRATE === "true" : devMode;
+const autoMigrate = process.env.MMS_AUTO_MIGRATE === "true";
 const seedOnBoot =
   process.env.MMS_SEED_ON_BOOT === "true" ||
   (process.env.MMS_SEED_ON_BOOT !== "false" && process.env.NODE_ENV !== "production");
-const exposeDevOtpCodes = process.env.MMS_EXPOSE_DEV_OTP_CODES === "true";
-const mockPaymentSettlementEnabled = process.env.MMS_ENABLE_MOCK_PAYMENT_SETTLEMENT === "true";
 const fallbackRoutesEnabled =
   process.env.MMS_ENABLE_FALLBACK_SIMULATION !== undefined
     ? process.env.MMS_ENABLE_FALLBACK_SIMULATION === "true"
@@ -84,12 +83,18 @@ const africasTalkingApiKey = process.env.AFRICAS_TALKING_API_KEY?.trim() || null
 const africasTalkingFrom =
   normalizePhoneValue(process.env.AFRICAS_TALKING_FROM) || process.env.AFRICAS_TALKING_FROM?.trim() || null;
 const africasTalkingSmsEnabled = Boolean(africasTalkingUsername && africasTalkingApiKey);
+const smsSandbox = process.env.AFRICAS_TALKING_USE_SANDBOX === "true";
+const flutterwaveSecret = process.env.FLUTTERWAVE_SECRET_KEY?.trim() || "";
+const flutterwavePublic = process.env.FLUTTERWAVE_PUBLIC_KEY?.trim() || "";
+const flutterwaveWebhookSecret = process.env.FLUTTERWAVE_WEBHOOK_SECRET?.trim() || "";
+const paymentsEnabled = process.env.PAYMENTS_ENABLED !== "false";
 
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 export const config: AppConfig = {
   apiPort: Number(process.env.PORT || process.env.API_PORT || 3001),
+  appEnv,
   appName,
   appUrl: primaryAppUrl,
   appUrls,
@@ -112,14 +117,17 @@ export const config: AppConfig = {
   africasTalkingFrom,
   africasTalkingUseSandbox,
   africasTalkingSmsEnabled,
+  smsSandbox,
   otpTtlMinutes: Number(process.env.OTP_TTL_MINUTES || 10),
   otpRegistrationMessageTemplate: process.env.OTP_REGISTRATION_MESSAGE_TEMPLATE?.trim() || null,
   otpLoginMessageTemplate: process.env.OTP_LOGIN_MESSAGE_TEMPLATE?.trim() || null,
-  exposeDevOtpCodes,
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),
   paymentSettlementDelayMs: Number(process.env.PAYMENT_SETTLEMENT_DELAY_MS || 5000),
-  mockPaymentSettlementEnabled,
   fallbackRoutesEnabled,
+  flutterwaveSecret,
+  flutterwavePublic,
+  flutterwaveWebhookSecret,
+  paymentsEnabled,
   devMode,
 };

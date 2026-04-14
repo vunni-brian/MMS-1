@@ -57,9 +57,9 @@ const validateOtpChallenge = async ({
 };
 
 const requiresPrivilegedMfa = (user: {
-  role: "vendor" | "manager" | "official";
+  role: "vendor" | "manager" | "official" | "admin";
   mfa_enabled: number;
-}) => user.role === "official" || (user.role === "manager" && Boolean(user.mfa_enabled));
+}) => user.role === "official" || user.role === "admin" || (user.role === "manager" && Boolean(user.mfa_enabled));
 
 const issueRegistrationChallenge = async ({
   userId,
@@ -230,7 +230,6 @@ export const authRoutes: RouteDefinition[] = [
       sendJson(res, 201, {
         challengeId,
         expiresAt,
-        developmentCode: config.exposeDevOtpCodes ? otpCode : undefined,
         status: "otp_sent",
       });
     },
@@ -261,8 +260,8 @@ export const authRoutes: RouteDefinition[] = [
     path: "/auth/managers",
     handler: async ({ req, res, auth, config }) => {
       const session = requireAuth(auth);
-      if (session.user.role !== "official") {
-        throw new HttpError(403, "Only officials can assign market managers.");
+      if (session.user.role !== "admin") {
+        throw new HttpError(403, "Only admins can assign market managers.");
       }
 
       const body = await readJsonBody<{
@@ -451,7 +450,6 @@ export const authRoutes: RouteDefinition[] = [
             verificationRequired: true,
             challengeId: challenge.challengeId,
             expiresAt: challenge.expiresAt,
-            developmentCode: config.exposeDevOtpCodes ? challenge.otpCode : undefined,
           });
           return;
         }
@@ -489,7 +487,6 @@ export const authRoutes: RouteDefinition[] = [
           mfaRequired: true,
           challengeId,
           expiresAt,
-          developmentCode: config.exposeDevOtpCodes ? otpCode : undefined,
         });
         return;
       }

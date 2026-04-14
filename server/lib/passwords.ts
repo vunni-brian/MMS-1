@@ -19,7 +19,7 @@ export const applyUserPassword = async (
     email: string;
     phone: string;
     name: string;
-    role: "vendor" | "manager" | "official";
+    role: "vendor" | "manager" | "official" | "admin";
     market_id: string | null;
   },
   newPassword: string,

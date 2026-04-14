@@ -5,10 +5,11 @@ import { getBearerToken, matchRoute, sendError, sendJson, setCorsHeaders, type R
 import { authenticateToken } from "./lib/session.ts";
 import { initDatabase, seedDatabase } from "./lib/db.ts";
 import { authRoutes } from "./modules/auth.ts";
+import { billingRoutes } from "./modules/billing.ts";
 import { marketRoutes } from "./modules/markets.ts";
 import { vendorRoutes } from "./modules/vendors.ts";
 import { stallRoutes } from "./modules/stalls.ts";
-import { paymentRoutes, settlePendingPayments } from "./modules/payments.ts";
+import { paymentRoutes } from "./modules/payments.ts";
 import { notificationRoutes, processNotificationDeliveries } from "./modules/notifications.ts";
 import { ticketRoutes } from "./modules/tickets.ts";
 import { reportRoutes } from "./modules/reports.ts";
@@ -18,6 +19,7 @@ import { resourceRequestRoutes } from "./modules/resources.ts";
 
 const routes: RouteDefinition[] = [
   ...authRoutes,
+  ...billingRoutes,
   ...marketRoutes,
   ...vendorRoutes,
   ...stallRoutes,
@@ -47,9 +49,6 @@ const runBackgroundTask = (label: string, task: () => Promise<void>) => {
 
 setInterval(() => {
   runBackgroundTask("notifications", processNotificationDeliveries);
-  if (config.mockPaymentSettlementEnabled) {
-    runBackgroundTask("payments", settlePendingPayments);
-  }
 }, 2_000);
 
 const server = createServer(async (req, res) => {

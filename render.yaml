@@ -9,6 +9,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22.21.1
+      - key: APP_ENV
+        value: production
       - key: APP_URL
         sync: false
       - key: API_URL
@@ -20,7 +22,7 @@ services:
       - key: DATABASE_SSL
         value: "true"
       - key: MMS_AUTO_MIGRATE
-        value: "true"
+        value: "false"
       - key: MMS_SEED_ON_BOOT
         value: "false"
       - key: SUPABASE_URL
@@ -38,4 +40,12 @@ services:
       - key: AFRICAS_TALKING_FROM
         sync: false
       - key: AFRICAS_TALKING_USE_SANDBOX
+        value: "false"
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_PUBLIC_KEY
+        sync: false
+      - key: FLUTTERWAVE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYMENTS_ENABLED
         value: "true"

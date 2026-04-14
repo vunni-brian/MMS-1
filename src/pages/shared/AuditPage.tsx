@@ -12,11 +12,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const AuditPage = () => {
   const { user } = useAuth();
   const [selectedMarketId, setSelectedMarketId] = useState("all");
-  const marketId = user?.role === "official" && selectedMarketId !== "all" ? selectedMarketId : undefined;
+  const canScopeMarkets = user?.role === "official" || user?.role === "admin";
+  const marketId = canScopeMarkets && selectedMarketId !== "all" ? selectedMarketId : undefined;
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "audit"],
     queryFn: () => api.getMarkets(),
-    enabled: user?.role === "official",
+    enabled: canScopeMarkets,
   });
   const { data } = useQuery({
     queryKey: ["audit", marketId || "all"],
@@ -33,7 +34,7 @@ const AuditPage = () => {
           <p className="text-muted-foreground text-sm mt-1">Immutable log of all system actions</p>
         </div>
         <div className="flex items-center gap-3">
-          {user?.role === "official" && (
+          {canScopeMarkets && (
             <div className="space-y-1 min-w-[220px]">
               <Label className="text-xs">Market</Label>
               <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>

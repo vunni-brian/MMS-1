@@ -14,7 +14,7 @@ export const rolePermissions: Record<Role, Permission[]> = {
     "fallback:query",
   ],
   manager: [
-    "auth:manage",
+    "billing:read",
     "vendor:read",
     "vendor:review",
     "coordination:read",
@@ -33,6 +33,7 @@ export const rolePermissions: Record<Role, Permission[]> = {
     "audit:read",
   ],
   official: [
+    "billing:read",
     "coordination:read",
     "coordination:write",
     "resource:read",
@@ -44,6 +45,23 @@ export const rolePermissions: Record<Role, Permission[]> = {
     "report:read",
     "audit:read",
     "vendor:read",
+  ],
+  admin: [
+    "auth:manage",
+    "billing:read",
+    "billing:manage",
+    "vendor:read",
+    "coordination:read",
+    "coordination:write",
+    "resource:read",
+    "resource:review",
+    "stall:read",
+    "booking:read",
+    "payment:read",
+    "notification:read",
+    "ticket:read",
+    "report:read",
+    "audit:read",
   ],
 };
 

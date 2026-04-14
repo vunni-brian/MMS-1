@@ -557,6 +557,18 @@ export const seedDatabase = async () => {
       verified: createdAt,
       vendorStatus: null,
     },
+    {
+      id: "user_admin_ruth",
+      name: "Ruth Nansubuga",
+      email: "ruth.admin@mms.ug",
+      phone: "+256701111222",
+      password: "Admin123!",
+      role: "admin",
+      marketId: null,
+      mfaEnabled: 1,
+      verified: createdAt,
+      vendorStatus: null,
+    },
   ] as const;
 
   await transaction(async () => {
@@ -956,7 +968,7 @@ export const seedDatabase = async () => {
     [JSON.stringify({ note: "Initial seeded Jinja capital request" }), createdAt],
   );
 
-  run(`UPDATE users SET market_id = 'market_kampala', updated_at = ? WHERE market_id IS NULL AND role != 'official'`, [createdAt]);
+  run(`UPDATE users SET market_id = 'market_kampala', updated_at = ? WHERE market_id IS NULL AND role NOT IN ('official', 'admin')`, [createdAt]);
   run(`UPDATE stalls SET market_id = 'market_kampala', updated_at = ? WHERE market_id IS NULL`, [createdAt]);
   run(
     `UPDATE bookings

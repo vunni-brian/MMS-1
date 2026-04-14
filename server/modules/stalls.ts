@@ -1,6 +1,6 @@
 import { all, createId, get, getManagerForMarket, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
-import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
+import { assertMarketAccess, requirePermission, resolveScopedMarket } from "../lib/session.ts";
 import { nowIso } from "../lib/security.ts";
 
 const monthsBetween = (startDate: string, endDate: string) => {
@@ -718,7 +718,7 @@ export const stallRoutes: RouteDefinition[] = [
     method: "POST",
     path: "/bookings/:id/mark-paid",
     handler: async ({ req, res, auth, params }) => {
-      const { session } = resolveScopedMarket(auth, "booking:update");
+      const session = requirePermission(auth, "billing:manage");
       const booking = await getBookingById(params.id);
       if (!booking) {
         throw new HttpError(404, "Booking not found.");

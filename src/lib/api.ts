@@ -4,6 +4,7 @@ import type {
   AuditEvent,
   AuthUser,
   Booking,
+  ChargeType,
   CoordinationMessage,
   DuesReportRow,
   FinancialAuditRow,
@@ -112,7 +113,6 @@ export const api = {
     return apiRequest<{
       challengeId: string;
       expiresAt: string;
-      developmentCode?: string;
       status: string;
     }>("/auth/register-vendor", {
       method: "POST",
@@ -131,8 +131,8 @@ export const api = {
 
   login: (phone: string, password: string) =>
     apiRequest<
-      | { verificationRequired: true; challengeId: string; expiresAt: string; developmentCode?: string }
-      | { mfaRequired: true; challengeId: string; expiresAt: string; developmentCode?: string }
+      | { verificationRequired: true; challengeId: string; expiresAt: string }
+      | { mfaRequired: true; challengeId: string; expiresAt: string }
       | { token: string; user: AuthUser }
     >("/auth/login", {
       method: "POST",
@@ -165,6 +165,13 @@ export const api = {
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
   getMe: () => apiRequest<{ user: AuthUser }>("/auth/me"),
   getMarkets: () => apiRequest<{ markets: Market[] }>("/markets"),
+  getChargeTypes: (marketId?: string) =>
+    apiRequest<{ chargeTypes: ChargeType[] }>(`/billing/charge-types${buildQuery({ marketId })}`),
+  updateChargeType: (chargeTypeId: string, isEnabled: boolean) =>
+    apiRequest<{ chargeType: ChargeType }>(`/billing/charge-types/${chargeTypeId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ isEnabled }),
+    }),
 
   getVendors: (marketId?: string) => apiRequest<{ vendors: VendorProfile[] }>(`/vendors${buildQuery({ marketId })}`),
   getVendor: (vendorId: string) => apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}`),
@@ -234,10 +241,10 @@ export const api = {
       body: JSON.stringify({ transactionId }),
     }),
 
-  initiatePayment: (bookingId: string, provider: PaymentMethod) =>
-    apiRequest<{ payment: Payment; status: string }>("/payments/initiate", {
+  initiatePayment: (bookingId: string, provider: PaymentMethod, phoneNumber: string) =>
+    apiRequest<{ payment: Payment; status: string; message: string }>("/payments/initiate", {
       method: "POST",
-      body: JSON.stringify({ bookingId, provider }),
+      body: JSON.stringify({ bookingId, provider, phoneNumber }),
     }),
   getPayments: (marketId?: string) => apiRequest<{ payments: Payment[] }>(`/payments${buildQuery({ marketId })}`),
   getReceipt: (paymentId: string) =>

@@ -16,11 +16,12 @@ const ReportsPage = () => {
   const [dateFrom, setDateFrom] = useState("2026-01-01");
   const [dateTo, setDateTo] = useState("2026-12-31");
   const [selectedMarketId, setSelectedMarketId] = useState("all");
-  const marketId = user?.role === "official" && selectedMarketId !== "all" ? selectedMarketId : undefined;
+  const canScopeMarkets = user?.role === "official" || user?.role === "admin";
+  const marketId = canScopeMarkets && selectedMarketId !== "all" ? selectedMarketId : undefined;
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "reports"],
     queryFn: () => api.getMarkets(),
-    enabled: user?.role === "official",
+    enabled: canScopeMarkets,
   });
   const { data: revenueReport } = useQuery({
     queryKey: ["reports", "revenue", dateFrom, dateTo, marketId || "all"],
@@ -67,7 +68,7 @@ const ReportsPage = () => {
           <Label className="text-xs">To</Label>
           <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-40" />
         </div>
-        {user?.role === "official" && (
+        {canScopeMarkets && (
           <div className="space-y-1">
             <Label className="text-xs">Market</Label>
             <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>

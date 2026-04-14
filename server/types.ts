@@ -1,7 +1,9 @@
-export type Role = "vendor" | "manager" | "official";
+export type Role = "vendor" | "manager" | "official" | "admin";
 
 export type Permission =
   | "auth:manage"
+  | "billing:read"
+  | "billing:manage"
   | "vendor:read"
   | "vendor:review"
   | "coordination:read"
@@ -30,6 +32,8 @@ export type StallStatus = "active" | "inactive" | "maintenance";
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed";
 export type PaymentProvider = "mtn" | "airtel";
+export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
+export type ChargeTypeScope = "global" | "market";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
@@ -80,6 +84,7 @@ export interface FilePayload {
 
 export interface AppConfig {
   apiPort: number;
+  appEnv: string;
   appName: string;
   appUrl: string;
   appUrls: string[];
@@ -102,16 +107,31 @@ export interface AppConfig {
   africasTalkingFrom: string | null;
   africasTalkingUseSandbox: boolean;
   africasTalkingSmsEnabled: boolean;
+  smsSandbox: boolean;
   otpTtlMinutes: number;
   otpRegistrationMessageTemplate: string | null;
   otpLoginMessageTemplate: string | null;
-  exposeDevOtpCodes: boolean;
   sessionTtlHours: number;
   notificationRetryCount: number;
   paymentSettlementDelayMs: number;
-  mockPaymentSettlementEnabled: boolean;
   fallbackRoutesEnabled: boolean;
+  flutterwaveSecret: string;
+  flutterwavePublic: string;
+  flutterwaveWebhookSecret: string;
+  paymentsEnabled: boolean;
   devMode: boolean;
+}
+
+export interface ChargeType {
+  id: string;
+  name: ChargeTypeName;
+  displayName: string;
+  scope: ChargeTypeScope;
+  marketId: string | null;
+  isEnabled: boolean;
+  updatedBy: string | null;
+  updatedByName: string | null;
+  updatedAt: string;
 }
 
 export interface CoordinationMessage {

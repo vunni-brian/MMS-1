@@ -7,7 +7,7 @@ const mapMessage = (row: {
   id: string;
   sender_user_id: string;
   sender_name: string;
-  sender_role: "manager" | "official";
+  sender_role: "manager" | "official" | "admin";
   market_id: string | null;
   market_name: string | null;
   subject: string;
@@ -31,15 +31,15 @@ export const coordinationRoutes: RouteDefinition[] = [
     path: "/coordination/messages",
     handler: async ({ res, auth, url }) => {
       const { session, marketId } = resolveScopedMarket(auth, "coordination:read", url.searchParams.get("marketId"));
-      if (!["manager", "official"].includes(session.user.role)) {
-        throw new HttpError(403, "Only managers and officials can access coordination messages.");
+      if (!["manager", "official", "admin"].includes(session.user.role)) {
+        throw new HttpError(403, "Only managers, officials, and admins can access coordination messages.");
       }
 
       const messages = await all<{
         id: string;
         sender_user_id: string;
         sender_name: string;
-        sender_role: "manager" | "official";
+        sender_role: "manager" | "official" | "admin";
         market_id: string | null;
         market_name: string | null;
         subject: string;
@@ -70,8 +70,8 @@ export const coordinationRoutes: RouteDefinition[] = [
     path: "/coordination/messages",
     handler: async ({ req, res, auth }) => {
       const { session } = resolveScopedMarket(auth, "coordination:write");
-      if (!["manager", "official"].includes(session.user.role)) {
-        throw new HttpError(403, "Only managers and officials can send coordination messages.");
+      if (!["manager", "official", "admin"].includes(session.user.role)) {
+        throw new HttpError(403, "Only managers, officials, and admins can send coordination messages.");
       }
 
       const body = await readJsonBody<{ subject?: string; body?: string; marketId?: string | null }>(req);
@@ -83,7 +83,9 @@ export const coordinationRoutes: RouteDefinition[] = [
       }
 
       const marketId =
-        session.user.role === "official" ? body.marketId?.trim() || null : session.user.marketId;
+        session.user.role === "official" || session.user.role === "admin"
+          ? body.marketId?.trim() || null
+          : session.user.marketId;
 
       if (marketId) {
         const market = await get<{ id: string }>(`SELECT id FROM markets WHERE id = ?`, [marketId]);
@@ -115,7 +117,7 @@ export const coordinationRoutes: RouteDefinition[] = [
         id: string;
         sender_user_id: string;
         sender_name: string;
-        sender_role: "manager" | "official";
+        sender_role: "manager" | "official" | "admin";
         market_id: string | null;
         market_name: string | null;
         subject: string;

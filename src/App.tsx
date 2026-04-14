@@ -18,6 +18,7 @@ import PaymentsPage from "./pages/shared/PaymentsPage";
 import ComplaintsPage from "./pages/shared/ComplaintsPage";
 import ReportsPage from "./pages/shared/ReportsPage";
 import AuditPage from "./pages/shared/AuditPage";
+import BillingPage from "./pages/shared/BillingPage";
 import CoordinationPage from "./pages/shared/CoordinationPage";
 import NotificationsPage from "./pages/vendor/NotificationsPage";
 import ProfilePage from "./pages/vendor/ProfilePage";
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="stalls" element={<StallsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="complaints" element={<ComplaintsPage />} />
+              <Route path="billing" element={<BillingPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
@@ -84,6 +86,22 @@ const App = () => (
               }
             >
               <Route index element={<OfficialDashboard />} />
+              <Route path="billing" element={<BillingPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="audit" element={<AuditPage />} />
+              <Route path="coordination" element={<CoordinationPage />} />
+            </Route>
+
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<OfficialDashboard />} />
+              <Route path="billing" element={<BillingPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />

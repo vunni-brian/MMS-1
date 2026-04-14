@@ -1,6 +1,8 @@
-export type Role = "vendor" | "manager" | "official";
+export type Role = "vendor" | "manager" | "official" | "admin";
 export type Permission =
   | "auth:manage"
+  | "billing:read"
+  | "billing:manage"
   | "vendor:read"
   | "vendor:review"
   | "coordination:read"
@@ -28,6 +30,8 @@ export type VendorApprovalStatus = "pending" | "approved" | "rejected";
 export type StallStatus = "active" | "inactive" | "maintenance";
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed";
+export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
+export type ChargeTypeScope = "global" | "market";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
@@ -149,9 +153,11 @@ export interface Payment {
   vendorName: string;
   stallName: string;
   method: PaymentMethod;
+  chargeType: ChargeTypeName;
   amount: number;
   status: PaymentStatus;
   transactionId: string | null;
+  providerReference: string | null;
   externalReference: string;
   phone: string;
   receiptId: string | null;
@@ -164,7 +170,6 @@ export interface Payment {
 export interface OtpChallenge {
   challengeId: string;
   expiresAt: string;
-  developmentCode?: string;
 }
 
 export interface NotificationDelivery {
@@ -253,12 +258,24 @@ export interface CoordinationMessage {
   id: string;
   senderUserId: string;
   senderName: string;
-  senderRole: Extract<Role, "manager" | "official">;
+  senderRole: Extract<Role, "manager" | "official" | "admin">;
   marketId: string | null;
   marketName: string | null;
   subject: string;
   body: string;
   createdAt: string;
+}
+
+export interface ChargeType {
+  id: string;
+  name: ChargeTypeName;
+  displayName: string;
+  scope: ChargeTypeScope;
+  marketId: string | null;
+  isEnabled: boolean;
+  updatedBy: string | null;
+  updatedByName: string | null;
+  updatedAt: string;
 }
 
 export interface ResourceRequest {

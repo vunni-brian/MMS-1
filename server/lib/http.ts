@@ -71,6 +71,19 @@ export const sendError = (res: ServerResponse, error: unknown) => {
 };
 
 export const readJsonBody = async <T>(req: IncomingMessage): Promise<T> => {
+  const rawBody = await readRawBody(req);
+  if (!rawBody) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(rawBody) as T;
+  } catch (error) {
+    throw new HttpError(400, "Invalid JSON payload.", error);
+  }
+};
+
+export const readRawBody = async (req: IncomingMessage) => {
   const chunks: Buffer[] = [];
 
   for await (const chunk of req) {
@@ -78,14 +91,10 @@ export const readJsonBody = async <T>(req: IncomingMessage): Promise<T> => {
   }
 
   if (chunks.length === 0) {
-    return {} as T;
+    return "";
   }
 
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T;
-  } catch (error) {
-    throw new HttpError(400, "Invalid JSON payload.", error);
-  }
+  return Buffer.concat(chunks).toString("utf8");
 };
 
 export const matchRoute = (routePath: string, pathname: string) => {

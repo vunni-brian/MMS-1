@@ -1,7 +1,9 @@
+import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
-import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { initiateFlutterwaveUgandaCharge, isValidFlutterwaveWebhook, verifyFlutterwaveTransaction } from "../lib/flutterwave.ts";
+import { HttpError, readJsonBody, readRawBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
-import { nowIso } from "../lib/security.ts";
+import { normalizePhoneNumber, nowIso } from "../lib/security.ts";
 import { config } from "../config.ts";
 
 const paymentSelect = `
@@ -11,9 +13,11 @@ const paymentSelect = `
          payments.booking_id,
          payments.vendor_id,
          payments.provider,
+         payments.charge_type,
          payments.amount,
          payments.status,
          payments.transaction_id,
+         payments.provider_reference,
          payments.external_reference,
          payments.phone,
          payments.receipt_id,
@@ -37,9 +41,11 @@ const mapPayment = (row: {
   booking_id: string;
   vendor_id: string;
   provider: string;
+  charge_type: string;
   amount: number;
   status: string;
   transaction_id: string | null;
+  provider_reference: string | null;
   external_reference: string;
   phone: string;
   receipt_id: string | null;
@@ -58,9 +64,11 @@ const mapPayment = (row: {
   vendorName: row.vendor_name,
   stallName: row.stall_name,
   method: row.provider,
+  chargeType: row.charge_type,
   amount: row.amount,
   status: row.status,
   transactionId: row.transaction_id,
+  providerReference: row.provider_reference,
   externalReference: row.external_reference,
   phone: row.phone,
   receiptId: row.receipt_id,
@@ -78,9 +86,11 @@ const getPaymentById = async (paymentId: string) => {
     booking_id: string;
     vendor_id: string;
     provider: string;
+    charge_type: string;
     amount: number;
     status: string;
     transaction_id: string | null;
+    provider_reference: string | null;
     external_reference: string;
     phone: string;
     receipt_id: string | null;
@@ -91,17 +101,22 @@ const getPaymentById = async (paymentId: string) => {
     vendor_name: string;
     stall_name: string;
   }>(`${paymentSelect} WHERE payments.id = ?`, [paymentId]);
+
   return payment ? mapPayment(payment) : null;
 };
 
 const completePayment = async ({
   paymentId,
   transactionId,
+  providerReference,
   status,
+  gatewayResponse,
 }: {
   paymentId: string;
   transactionId: string;
+  providerReference?: string | null;
   status: "completed" | "failed";
+  gatewayResponse?: unknown;
 }) => {
   const payment = await get<{
     id: string;
@@ -114,7 +129,15 @@ const completePayment = async ({
     vendor_name: string;
     stall_name: string;
   }>(
-    `SELECT payments.id, payments.status, payments.market_id, payments.booking_id, payments.vendor_id, payments.amount, payments.phone, users.name AS vendor_name, stalls.name AS stall_name
+    `SELECT payments.id,
+            payments.status,
+            payments.market_id,
+            payments.booking_id,
+            payments.vendor_id,
+            payments.amount,
+            payments.phone,
+            users.name AS vendor_name,
+            stalls.name AS stall_name
      FROM payments
      INNER JOIN users ON users.id = payments.vendor_id
      INNER JOIN bookings ON bookings.id = payments.booking_id
@@ -123,26 +146,40 @@ const completePayment = async ({
     [paymentId],
   );
 
-  if (!payment) {
-    return;
-  }
-  if (payment.status !== "pending") {
+  if (!payment || payment.status !== "pending") {
     return;
   }
 
   const timestamp = nowIso();
-  const receiptId = `RCPT-${paymentId.slice(-6).toUpperCase()}`;
+  const receiptId = status === "completed" ? `RCPT-${paymentId.slice(-6).toUpperCase()}` : null;
   const receiptMessage =
     status === "completed"
       ? `Payment of UGX ${payment.amount.toLocaleString()} confirmed. Transaction ID ${transactionId}.`
-      : `Payment for ${payment.stall_name} failed. Reference ${transactionId}.`;
+      : `Payment for ${payment.stall_name} failed. Reference ${providerReference || transactionId}.`;
 
   await transaction(async () => {
     await run(
       `UPDATE payments
-       SET status = ?, transaction_id = ?, receipt_id = ?, receipt_message = ?, updated_at = ?, completed_at = ?
+       SET status = ?,
+           transaction_id = ?,
+           provider_reference = ?,
+           receipt_id = ?,
+           receipt_message = ?,
+           gateway_response_json = ?,
+           updated_at = ?,
+           completed_at = ?
        WHERE id = ?`,
-      [status, transactionId, receiptId, receiptMessage, timestamp, status === "completed" ? timestamp : null, paymentId],
+      [
+        status,
+        transactionId,
+        providerReference || null,
+        receiptId,
+        receiptMessage,
+        gatewayResponse ? JSON.stringify(gatewayResponse) : null,
+        timestamp,
+        status === "completed" ? timestamp : null,
+        paymentId,
+      ],
     );
     await run(`UPDATE payment_attempts SET status = ?, updated_at = ? WHERE payment_id = ?`, [status, timestamp, paymentId]);
 
@@ -161,41 +198,13 @@ const completePayment = async ({
   await logAuditEvent({
     actorUserId: null,
     actorName: "System",
-    actorRole: "manager",
+    actorRole: "admin",
     marketId: payment.market_id,
     action: status === "completed" ? "PAYMENT_COMPLETED" : "PAYMENT_FAILED",
     entityType: "payment",
     entityId: paymentId,
-    details: { transactionId },
+    details: { transactionId, providerReference: providerReference || null },
   });
-};
-
-export const settlePendingPayments = async () => {
-  const duePayments = await all<{
-    payment_id: string;
-    created_at: string;
-    provider: string;
-    payment_status: string;
-  }>(
-    `SELECT payment_attempts.payment_id, payment_attempts.created_at, payment_attempts.provider, payments.status AS payment_status
-     FROM payment_attempts
-     INNER JOIN payments ON payments.id = payment_attempts.payment_id
-     WHERE payment_attempts.status = 'pending' AND payments.status = 'pending'`,
-  );
-
-  for (const attempt of duePayments) {
-    if (Date.now() - new Date(attempt.created_at).getTime() < config.paymentSettlementDelayMs) {
-      continue;
-    }
-
-    const providerPrefix = attempt.provider.toUpperCase();
-    const transactionId = `${providerPrefix}-${Date.now()}`;
-    await completePayment({
-      paymentId: attempt.payment_id,
-      transactionId,
-      status: "completed",
-    });
-  }
 };
 
 export const paymentRoutes: RouteDefinition[] = [
@@ -224,9 +233,11 @@ export const paymentRoutes: RouteDefinition[] = [
         booking_id: string;
         vendor_id: string;
         provider: string;
+        charge_type: string;
         amount: number;
         status: string;
         transaction_id: string | null;
+        provider_reference: string | null;
         external_reference: string;
         phone: string;
         receipt_id: string | null;
@@ -251,12 +262,16 @@ export const paymentRoutes: RouteDefinition[] = [
       if (!marketId) {
         throw new HttpError(403, "Your account is not assigned to a market.");
       }
-
-      const body = await readJsonBody<{ bookingId: string; provider: "mtn" | "airtel" }>(req);
-      if (!body.bookingId || !body.provider) {
-        throw new HttpError(400, "Booking and payment provider are required.");
+      if (!config.paymentsEnabled) {
+        throw new HttpError(503, "Payments are currently disabled.");
       }
 
+      const body = await readJsonBody<{ bookingId?: string; provider?: "mtn" | "airtel"; phoneNumber?: string }>(req);
+      if (!body.bookingId || !body.provider || !body.phoneNumber) {
+        throw new HttpError(400, "Booking, payment network, and phone number are required.");
+      }
+
+      const normalizedPhoneNumber = normalizePhoneNumber(body.phoneNumber);
       const booking = await get<{
         id: string;
         market_id: string;
@@ -274,6 +289,9 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(409, "This booking is not eligible for payment.");
       }
 
+      await assertChargeEnabled("payment_gateway", booking.market_id);
+      await assertChargeEnabled("booking_fee", booking.market_id);
+
       const existingPending = await get<{ id: string }>(
         `SELECT id FROM payments WHERE booking_id = ? AND status = 'pending'`,
         [body.bookingId],
@@ -282,13 +300,30 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(409, "A payment is already in progress for this booking.");
       }
 
+      const txRef = createId("flwtx");
+      const chargeResponse = await initiateFlutterwaveUgandaCharge({
+        secretKey: config.flutterwaveSecret,
+        txRef,
+        amount: booking.amount,
+        email: session.user.email,
+        phoneNumber: normalizedPhoneNumber,
+        network: body.provider,
+        fullname: session.user.name,
+      });
+
+      const providerReference =
+        chargeResponse.data?.reference != null
+          ? String(chargeResponse.data.reference)
+          : chargeResponse.data?.id != null
+            ? String(chargeResponse.data.id)
+            : null;
+
       const paymentId = createId("payment");
-      const externalReference = `EXT-${Date.now()}`;
       const timestamp = nowIso();
       await transaction(async () => {
         await run(
-          `INSERT INTO payments (id, market_id, booking_id, vendor_id, provider, amount, status, transaction_id, external_reference, phone, receipt_id, receipt_message, created_at, updated_at, completed_at)
-           VALUES (?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, NULL, NULL, ?, ?, NULL)`,
+          `INSERT INTO payments (id, market_id, booking_id, vendor_id, provider, charge_type, amount, status, transaction_id, provider_reference, external_reference, phone, receipt_id, receipt_message, gateway_response_json, created_at, updated_at, completed_at)
+           VALUES (?, ?, ?, ?, ?, 'booking_fee', ?, 'pending', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)`,
           [
             paymentId,
             booking.market_id,
@@ -296,8 +331,10 @@ export const paymentRoutes: RouteDefinition[] = [
             session.user.id,
             body.provider,
             booking.amount,
-            externalReference,
-            session.user.phone,
+            providerReference,
+            txRef,
+            normalizedPhoneNumber,
+            JSON.stringify(chargeResponse),
             timestamp,
             timestamp,
           ],
@@ -317,36 +354,138 @@ export const paymentRoutes: RouteDefinition[] = [
         action: "INITIATE_PAYMENT",
         entityType: "payment",
         entityId: paymentId,
-        details: { bookingId: body.bookingId, provider: body.provider },
+        details: {
+          bookingId: body.bookingId,
+          provider: body.provider,
+          txRef,
+        },
       });
 
       sendJson(res, 201, {
         payment: await getPaymentById(paymentId),
         status: "pending",
+        message: "Payment initiated. Approve the mobile money prompt on your phone.",
       });
     },
   },
   {
     method: "POST",
-    path: "/payments/webhooks/:provider",
-    handler: async ({ req, res, params }) => {
-      const body = await readJsonBody<{
-        externalReference: string;
-        status: "completed" | "failed";
-        transactionId?: string;
-      }>(req);
+    path: "/payments/webhooks/flutterwave",
+    handler: async ({ req, res }) => {
+      const rawBody = await readRawBody(req);
+      const signatureHeader = req.headers["flutterwave-signature"];
+      const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
 
-      const payment = await get<{ id: string }>(`SELECT id FROM payments WHERE external_reference = ?`, [body.externalReference]);
-      if (!payment) {
-        throw new HttpError(404, "Payment not found for webhook.");
+      if (
+        !isValidFlutterwaveWebhook({
+          rawBody,
+          signature,
+          secretHash: config.flutterwaveWebhookSecret,
+        })
+      ) {
+        throw new HttpError(401, "Invalid Flutterwave webhook signature.");
       }
 
-      await completePayment({
-        paymentId: payment.id,
-        transactionId: body.transactionId || `${params.provider.toUpperCase()}-${Date.now()}`,
-        status: body.status,
-      });
+      let payload: {
+        id?: string;
+        type?: string;
+        data?: {
+          id?: string | number;
+          tx_ref?: string;
+          txRef?: string;
+          reference?: string;
+          status?: string;
+        };
+      };
 
+      try {
+        payload = JSON.parse(rawBody);
+      } catch (error) {
+        throw new HttpError(400, "Invalid Flutterwave webhook payload.", error);
+      }
+
+      const webhookId = payload.id?.trim();
+      if (!webhookId) {
+        throw new HttpError(400, "Flutterwave webhook is missing an event id.");
+      }
+
+      const existingEvent = await get<{ processed_at: string | null }>(
+        `SELECT processed_at FROM payment_webhook_events WHERE id = ?`,
+        [webhookId],
+      );
+      if (existingEvent?.processed_at) {
+        sendJson(res, 200, { ok: true });
+        return;
+      }
+      if (!existingEvent) {
+        await run(
+          `INSERT INTO payment_webhook_events (id, provider, tx_ref, transaction_id, event_type, payload_json, created_at, processed_at)
+           VALUES (?, 'flutterwave', ?, ?, ?, ?, ?, NULL)`,
+          [
+            webhookId,
+            payload.data?.tx_ref || payload.data?.txRef || payload.data?.reference || null,
+            payload.data?.id != null ? String(payload.data.id) : null,
+            payload.type || null,
+            rawBody,
+            nowIso(),
+          ],
+        );
+      }
+
+      const txRef = payload.data?.tx_ref || payload.data?.txRef || payload.data?.reference || "";
+      const transactionId = payload.data?.id != null ? String(payload.data.id) : "";
+      const webhookStatus = (payload.data?.status || "").toLowerCase();
+
+      const payment = txRef
+        ? await get<{ id: string; amount: number; external_reference: string }>(
+            `SELECT id, amount, external_reference FROM payments WHERE external_reference = ?`,
+            [txRef],
+          )
+        : null;
+
+      if (!payment || !transactionId) {
+        await run(`UPDATE payment_webhook_events SET processed_at = ? WHERE id = ?`, [nowIso(), webhookId]);
+        sendJson(res, 200, { ok: true });
+        return;
+      }
+
+      if (webhookStatus === "successful" || webhookStatus === "succeeded") {
+        const verification = await verifyFlutterwaveTransaction({
+          secretKey: config.flutterwaveSecret,
+          transactionId,
+        });
+
+        const verified = verification.data;
+        const verifiedStatus = (verified?.status || "").toLowerCase();
+        if (
+          !verified ||
+          !String(verified.tx_ref || "").trim() ||
+          String(verified.tx_ref) !== payment.external_reference ||
+          Number(verified.amount || 0) !== payment.amount ||
+          String(verified.currency || "").toUpperCase() !== "UGX" ||
+          (verifiedStatus !== "successful" && verifiedStatus !== "succeeded")
+        ) {
+          throw new HttpError(409, "Flutterwave verification did not match the expected transaction.");
+        }
+
+        await completePayment({
+          paymentId: payment.id,
+          transactionId: String(verified.id || transactionId),
+          providerReference: verified.reference ? String(verified.reference) : null,
+          status: "completed",
+          gatewayResponse: verification,
+        });
+      } else if (webhookStatus === "failed" || webhookStatus === "cancelled") {
+        await completePayment({
+          paymentId: payment.id,
+          transactionId,
+          providerReference: payload.data?.reference ? String(payload.data.reference) : null,
+          status: "failed",
+          gatewayResponse: payload,
+        });
+      }
+
+      await run(`UPDATE payment_webhook_events SET processed_at = ? WHERE id = ?`, [nowIso(), webhookId]);
       sendJson(res, 200, { ok: true });
     },
   },

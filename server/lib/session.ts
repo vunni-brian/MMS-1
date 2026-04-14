@@ -53,7 +53,7 @@ export const resolveScopedMarket = (
   requestedMarketId?: string | null,
 ) => {
   const session = requirePermission(auth, permission);
-  if (session.user.role === "official") {
+  if (session.user.role === "official" || session.user.role === "admin") {
     return {
       session,
       marketId: requestedMarketId?.trim() || null,
@@ -74,7 +74,7 @@ export const resolveScopedMarket = (
 };
 
 export const assertMarketAccess = (session: SessionAuth, resourceMarketId: string | null | undefined) => {
-  if (session.user.role === "official") {
+  if (session.user.role === "official" || session.user.role === "admin") {
     return;
   }
   if (!resourceMarketId || session.user.marketId !== resourceMarketId) {
