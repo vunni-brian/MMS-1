@@ -1,104 +1,178 @@
 # Market Management System
 
-Market Management System is now a full-stack MVP in a single repo:
+Market Management System (`MMS`) is a full-stack market-operations app in a single repo.
 
 - `src/` contains the Vite + React frontend
-- `server/` contains a modular TypeScript API using Node's built-in HTTP runtime and PostgreSQL
-- `runtime/` is created locally for fallback uploads and other runtime artifacts
+- `server/` contains the modular TypeScript API running on Node's built-in HTTP server
+- `runtime/` stores local uploads and runtime artifacts when cloud storage is not configured
 
-## What is implemented
+## Current implementation
 
-- Vendor registration with ID upload, OTP verification, and manager approval
-- Credential login with privileged-role MFA for managers and officials
-- Role-based access control for vendor, manager, and official users
-- Stall publishing, reservation, payment status progression, and booking confirmation
-- Payment initiation with sandbox-style MTN/Airtel adapters and webhook endpoint
-- Notification history plus background SMS/email delivery simulation
-- Complaint/ticket workflow with manager updates
-- Revenue, dues, and audit reporting
-- USSD/SMS fallback query handlers
-- Multi-market oversight with market-scoped managers, vendors, stalls, and reports
+- Role-based access for `vendor`, `manager`, `official`, and `admin`
+- Vendor registration with ID upload, OTP phone verification, and manager approval
+- Phone/password login with OTP MFA for privileged accounts
+- Market-scoped management for vendors, stalls, bookings, payments, reports, and audit records
+- Billing controls through `charge_types`, including global and market-specific enable/disable flags
+- Mobile money payments through Flutterwave Uganda for `MTN` and `AIRTEL`
+- Webhook-driven payment confirmation with provider-side verification before marking payments complete
+- Receipt generation after confirmed payment
+- In-app notifications plus background SMS delivery through Africa's Talking when configured
+- Ticketing, coordination messaging, and resource request review flows
+- Optional USSD/SMS fallback simulation endpoints for development and demos
+- Optional Supabase integration for Auth and Storage
+
+## Payment status
+
+The current payment provider in this repo is Flutterwave. Pesapal is not integrated yet.
+
+Current payment flow:
+
+1. Vendor books a stall.
+2. Vendor initiates a mobile money payment for an approved booking.
+3. The API initiates the Flutterwave charge, then records the payment as `pending` and stores the provider response.
+4. Flutterwave sends a webhook.
+5. The API verifies the transaction with Flutterwave.
+6. The payment is marked `completed` or `failed`.
+7. A receipt is made available only after confirmed completion.
+
+## Tech stack
+
+- Frontend: React 18, Vite, TypeScript, TanStack Query, shadcn/ui, Tailwind CSS
+- Backend: Node 22, TypeScript, custom HTTP routing, PostgreSQL via `pg`
+- Integrations: Flutterwave, Africa's Talking, optional Supabase Auth and Storage
+- Testing: Vitest
 
 ## Run locally
 
-Install dependencies if they are not already present, then use two terminals:
+Requirements:
+
+- Node 22.x
+- PostgreSQL
+- npm
+
+Setup:
+
+1. Copy `.env.example` to `.env`.
+2. Update `DATABASE_URL` and any provider credentials you want to use locally.
+3. Install dependencies:
 
 ```bash
-npm run dev:web
+npm install
 ```
 
-```bash
-npm run dev:api
-```
-
-The frontend runs on `http://localhost:8080`.
-The API runs on `http://localhost:3001`.
-
-Before starting the API, point `DATABASE_URL` at a reachable PostgreSQL database and run the migrations:
+4. Run migrations:
 
 ```bash
 npm run db:migrate
 ```
 
-For a one-off API start without watch mode:
+5. Optionally seed demo data:
 
 ```bash
-npm run api
+npm run db:seed
 ```
+
+6. Start the API:
+
+```bash
+npm run dev:api
+```
+
+7. Start the frontend in a second terminal:
+
+```bash
+npm run dev:web
+```
+
+Default local URLs:
+
+- Frontend: `http://localhost:8080`
+- API: `http://localhost:3001`
+
+Notes:
+
+- The checked-in `.env.example` enables auto-migration and seed-on-boot for local development.
+- If Africa's Talking is not configured and the app is not running in production mode, SMS messages are logged to the API console instead of being sent.
+- OTP codes are not returned in API responses.
 
 ## Verification
 
 ```bash
 npm run lint
 npm run build
+npm test
 ```
 
 ## Seed accounts
 
 - Vendor: `+256700100200` / `Vendor123!`
-- Vendor (pending approval): `+256770200300` / `Vendor123!`
+- Vendor, pending approval: `+256770200300` / `Vendor123!`
 - Vendor: `+256780300400` / `Vendor123!`
-- Vendor (Jinja): `+256702800900` / `Vendor123!`
-- Manager: `+256700500600` / `Manager123!`
-- Manager (Jinja): `+256703700800` / `Manager123!`
+- Vendor, rejected: `+256701900100` / `Vendor123!`
+- Vendor, Jinja: `+256702800900` / `Vendor123!`
+- Manager, Kampala: `+256700500600` / `Manager123!`
+- Manager, Jinja: `+256703700800` / `Manager123!`
 - Official: `+256700600700` / `Official123!`
-
-Privileged-role MFA and vendor registration OTP return a `developmentCode` in API responses while `NODE_ENV` is not `production`.
+- Admin: `+256701111222` / `Admin123!`
 
 ## Environment
 
-Optional environment variables:
+Core app settings:
 
-- `API_PORT` default `3001`
-- `APP_URL` default `http://localhost:8080` and may be a comma-separated list of allowed frontend origins
-- `API_URL` default `http://localhost:3001`
-- `VITE_API_BASE_URL` frontend API base URL for the Vite app
-- `MMS_DATA_DIR` default `./runtime`
-- `DATABASE_URL` default `postgresql://postgres:postgres@localhost:5432/mms`
-- `MIGRATION_DATABASE_URL` optional direct/admin connection string for migrations
-- `DATABASE_SSL` default `false`
-- `MMS_AUTO_MIGRATE` default `true`
-- `MMS_SEED_ON_BOOT` default `true` in development and `false` in production
-- `SUPABASE_URL` optional project URL for Supabase Auth and Storage
-- `SUPABASE_ANON_KEY` optional publishable/anon key used by the API to validate phone-password sign-ins against Supabase Auth
-- `SUPABASE_SERVICE_ROLE_KEY` optional service role key used by the API for Auth user provisioning and Storage uploads
-- `SUPABASE_STORAGE_BUCKET` default `mms-uploads`
-- `AFRICAS_TALKING_USERNAME` optional Africa's Talking app username for outbound SMS delivery
-- `AFRICAS_TALKING_API_KEY` optional Africa's Talking API key for outbound SMS delivery
-- `AFRICAS_TALKING_FROM` optional Africa's Talking sender ID or phone number for outbound SMS delivery
-- `AFRICAS_TALKING_USE_SANDBOX` default `false`; use `true` for Africa's Talking sandbox testing
-- `OTP_TTL_MINUTES` default `10`
-- `SESSION_TTL_HOURS` default `24`
-- `NOTIFICATION_RETRY_COUNT` default `2`
-- `PAYMENT_SETTLEMENT_DELAY_MS` default `5000`
+- `API_PORT` defaults to `3001`
+- `APP_ENV` defaults to `development`
+- `APP_NAME` defaults to `MMS`
+- `APP_URL` defaults to `http://localhost:8080` and can be a comma-separated list of allowed frontend origins
+- `API_URL` defaults to `http://localhost:3001`
+- `VITE_API_BASE_URL` sets the frontend API base URL
+- `MMS_DATA_DIR` defaults to `./runtime`
+
+Database settings:
+
+- `DATABASE_URL` defaults to `postgresql://postgres:postgres@localhost:5432/mms`
+- `MIGRATION_DATABASE_URL` is optional and can point at a separate direct/admin database connection
+- `DATABASE_SSL` is optional; when unset, SSL is inferred for Supabase-style connection strings
+- `MMS_AUTO_MIGRATE=true` runs migrations on API boot
+- `MMS_SEED_ON_BOOT` seeds demo data on boot; if unset, it is effectively enabled outside production unless explicitly set to `false`
+
+Supabase settings:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_STORAGE_BUCKET` defaults to `mms-uploads`
+
+SMS and OTP settings:
+
+- `AFRICAS_TALKING_USERNAME`
+- `AFRICAS_TALKING_API_KEY`
+- `AFRICAS_TALKING_FROM`
+- `AFRICAS_TALKING_USE_SANDBOX` defaults to `false`
+- `OTP_TTL_MINUTES` defaults to `10`
+- `OTP_REGISTRATION_MESSAGE_TEMPLATE` is optional
+- `OTP_LOGIN_MESSAGE_TEMPLATE` is optional
+
+Payments:
+
+- `FLUTTERWAVE_SECRET_KEY`
+- `FLUTTERWAVE_WEBHOOK_SECRET`
+- `FLUTTERWAVE_PUBLIC_KEY` is present in config and env files but is not required by the current server-side payment flow
+- `PAYMENTS_ENABLED` defaults to `true`
+- `PAYMENT_SETTLEMENT_DELAY_MS` still exists in config and `.env.example`, but the current payment flow is webhook-driven and does not use a timer-based settlement worker
+
+Sessions, notifications, fallback simulation:
+
+- `SESSION_TTL_HOURS` defaults to `24`
+- `NOTIFICATION_RETRY_COUNT` defaults to `2`
+- `MMS_ENABLE_FALLBACK_SIMULATION` defaults to enabled in development and disabled in production unless explicitly set
 
 ## Supabase deployment
 
-This repo is now set up for a shared Supabase-backed deployment flow:
+This repo supports a shared Supabase-backed deployment flow:
 
 1. Use `DATABASE_URL` for the application's normal runtime connection.
-2. Use `MIGRATION_DATABASE_URL` for migration and admin tasks when you want a separate direct connection.
-3. Set `DATABASE_SSL=true` for Supabase.
+2. Use `MIGRATION_DATABASE_URL` for migrations when you want a separate direct connection.
+3. Set `DATABASE_SSL=true` for Supabase-hosted PostgreSQL unless your connection string already forces SSL.
 4. Add your Supabase project settings:
 
 ```bash
@@ -108,48 +182,46 @@ SUPABASE_SERVICE_ROLE_KEY=sb_service_role_key
 SUPABASE_STORAGE_BUCKET=mms-uploads
 ```
 
-5. Disable automatic boot seeding in hosted environments with `MMS_SEED_ON_BOOT=false`.
+5. Disable boot seeding in hosted environments with `MMS_SEED_ON_BOOT=false`.
 6. Run migrations explicitly:
 
 ```bash
 npm run db:migrate
 ```
 
-7. Seed only when you actually want demo data:
+7. Seed only when you want demo data:
 
 ```bash
 npm run db:seed
 ```
 
-Suggested Supabase setup:
+Notes:
 
-- For long-running backend servers, use the Supabase direct connection string or a session pooler connection for `DATABASE_URL`.
-- For migrations, prefer `MIGRATION_DATABASE_URL` with a direct connection string when available.
-- Turn on Phone auth in Supabase if you want to keep the current phone-number login UX.
-- The API now stores uploads in Supabase Storage when the Supabase env vars are present, and falls back to `runtime/uploads/` only when they are not.
-- Seed data will sync the demo users into Supabase Auth when Supabase is configured, so the seeded credentials keep working through the same API.
-- Web and mobile clients should share this same backend API so vendor approval, OTP checks, and privileged MFA stay centralized in one place.
+- Uploads go to Supabase Storage when the required env vars are present and fall back to `runtime/uploads/` otherwise.
+- Seed data syncs demo users into Supabase Auth when Supabase Auth is configured.
+- Web and mobile clients should use the same backend API so approval, OTP, payment, and audit flows stay centralized.
 
 ## Deploy on Vercel + Render + Supabase
 
 This repo is prepared for a split deployment:
 
-- Vercel hosts the Vite frontend
-- Render hosts the Node API
-- Supabase provides PostgreSQL, Auth, and Storage
+- Vercel hosts the frontend
+- Render hosts the long-running Node API
+- Supabase provides PostgreSQL, optional Auth, and optional Storage
 
 ### Render API
 
-The API is a long-running Node server and should be deployed to Render using the included `render.yaml`.
+The API can be deployed to Render using the included `render.yaml`.
 
 Recommended Render environment values:
 
-- `APP_URL=https://your-app.vercel.app` or a comma-separated list such as `https://your-app.vercel.app,https://your-custom-domain.com`
+- `APP_ENV=production`
+- `APP_URL=https://your-app.vercel.app` or a comma-separated list of frontend origins
 - `API_URL=https://your-api.onrender.com`
-- `DATABASE_URL` set to your Supabase pooler connection string
-- `MIGRATION_DATABASE_URL` set to your Supabase direct migration connection string
+- `DATABASE_URL` set to your runtime PostgreSQL connection string
+- `MIGRATION_DATABASE_URL` set to your direct migration connection string when available
 - `DATABASE_SSL=true`
-- `MMS_AUTO_MIGRATE=true`
+- `MMS_AUTO_MIGRATE=false`
 - `MMS_SEED_ON_BOOT=false`
 - `SUPABASE_URL=https://your-project.supabase.co`
 - `SUPABASE_ANON_KEY=sb_publishable_...`
@@ -158,13 +230,17 @@ Recommended Render environment values:
 - `AFRICAS_TALKING_USERNAME=your_app_username` or `sandbox`
 - `AFRICAS_TALKING_API_KEY=your_api_key`
 - `AFRICAS_TALKING_FROM=your_sender_id_or_number`
-- `AFRICAS_TALKING_USE_SANDBOX=true` for sandbox or `false` for live delivery
+- `AFRICAS_TALKING_USE_SANDBOX=false` for live delivery
+- `FLUTTERWAVE_SECRET_KEY=...`
+- `FLUTTERWAVE_WEBHOOK_SECRET=...`
+- `PAYMENTS_ENABLED=true`
 
 Notes:
 
-- The API now respects Render's `PORT` env automatically.
+- Render's `PORT` env is respected automatically.
 - Health checks use `/health`.
 - Automatic boot seeding should stay disabled in hosted environments.
+- The current Render config is still Flutterwave-based. Update `render.yaml` together with the payment adapter when switching to Pesapal.
 
 ### Vercel frontend
 
@@ -178,8 +254,8 @@ If you use a custom frontend domain, add that domain to Render's `APP_URL` list 
 
 ## Notes
 
-- File uploads use Supabase Storage when configured, otherwise they fall back to `runtime/uploads/`
 - Database schema changes live in `server/db/migrations/`
-- Notification delivery is simulated through the outbox worker and console logging
-- Payment settlement is simulated in the background worker unless a provider webhook is posted explicitly
-- Officials can review resource requests and send coordination messages, but they do not mutate core vendor, stall, booking, or payment records
+- Background notification delivery is handled by `processNotificationDeliveries`
+- Payment completion comes from Flutterwave webhook processing and verification, not from a mock settlement loop
+- Fallback USSD/SMS routes are disabled unless fallback simulation is enabled
+- Managers, officials, and admins can send coordination messages; officials and admins can review resource requests
