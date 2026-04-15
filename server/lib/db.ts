@@ -938,6 +938,126 @@ export const seedDatabase = async () => {
     );
   });
 
+  [
+    [
+      "utility_charge_amina_electricity_1",
+      "market_kampala",
+      "user_vendor_amina",
+      "booking_expiring_1",
+      "electricity",
+      "Electricity - March 2026",
+      "March 2026",
+      120,
+      "kWh",
+      500,
+      "metered",
+      60000,
+      dateFromDayOffset(-20),
+      "paid",
+      "user_manager_sarah",
+      isoFromDayOffset(-25),
+      isoFromDayOffset(-18),
+      isoFromDayOffset(-18),
+    ],
+    [
+      "utility_charge_amina_water_1",
+      "market_kampala",
+      "user_vendor_amina",
+      "booking_expiring_1",
+      "water",
+      "Water - April 2026",
+      "April 2026",
+      40,
+      "units",
+      1500,
+      "estimated",
+      60000,
+      dateFromDayOffset(5),
+      "unpaid",
+      "user_manager_sarah",
+      isoFromDayOffset(-4),
+      isoFromDayOffset(-4),
+      null,
+    ],
+    [
+      "utility_charge_grace_sanitation_1",
+      "market_kampala",
+      "user_vendor_grace",
+      "booking_grace_1",
+      "sanitation",
+      "Sanitation - March 2026",
+      "March 2026",
+      null,
+      null,
+      null,
+      "fixed",
+      30000,
+      dateFromDayOffset(-10),
+      "overdue",
+      "user_manager_sarah",
+      isoFromDayOffset(-14),
+      isoFromDayOffset(-10),
+      null,
+    ],
+    [
+      "utility_charge_mary_water_1",
+      "market_jinja",
+      "user_vendor_mary",
+      "booking_mary_1",
+      "water",
+      "Water - April 2026",
+      "April 2026",
+      25,
+      "units",
+      2000,
+      "estimated",
+      50000,
+      dateFromDayOffset(7),
+      "unpaid",
+      "user_manager_brian",
+      isoFromDayOffset(-3),
+      isoFromDayOffset(-3),
+      null,
+    ],
+  ].forEach((charge) => {
+    run(
+      `INSERT OR IGNORE INTO utility_charges (
+         id, market_id, vendor_id, booking_id, utility_type, description, billing_period, usage_quantity, unit, rate_per_unit,
+         calculation_method, amount, due_date, status, created_by, created_at, updated_at, paid_at
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      charge,
+    );
+  });
+
+  run(
+    `INSERT OR IGNORE INTO payments (id, market_id, booking_id, utility_charge_id, vendor_id, provider, charge_type, amount, status, transaction_id, provider_reference, external_reference, phone, receipt_id, receipt_message, created_at, updated_at, completed_at)
+     VALUES (?, 'market_kampala', NULL, ?, 'user_vendor_amina', 'pesapal', 'utilities', 60000, 'completed', 'PESA-UTILITY-0001', 'PESA-UTILITY-0001', 'EXT-UTILITY-0001', '+256700100200', 'RCPT-UTILITY-0001', ?, ?, ?, ?)`,
+    [
+      "payment_utility_amina_1",
+      "utility_charge_amina_electricity_1",
+      [
+        "Payment Successful",
+        "",
+        "Your payment of UGX 60,000 for Electricity - March 2026 has been received successfully.",
+        "",
+        "Reference: PESA-UTILITY-0001",
+        "Status: Confirmed",
+        `Date: ${isoFromDayOffset(-18)}`,
+        "",
+        "Thank you.",
+      ].join("\n"),
+      isoFromDayOffset(-18),
+      isoFromDayOffset(-18),
+      isoFromDayOffset(-18),
+    ],
+  );
+  run(
+    `INSERT OR IGNORE INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
+     VALUES (?, ?, 'pesapal', 'completed', ?, ?)`,
+    ["attempt_utility_amina_1", "payment_utility_amina_1", isoFromDayOffset(-18), isoFromDayOffset(-18)],
+  );
+
   run(
     `INSERT OR IGNORE INTO payments (id, market_id, booking_id, vendor_id, provider, amount, status, transaction_id, external_reference, phone, receipt_id, receipt_message, created_at, updated_at, completed_at)
      VALUES (?, 'market_kampala', ?, 'user_vendor_grace', 'mtn', 120000, 'failed', 'MTN-FAILED-0001', 'EXT-GRACE-FAIL-0001', '+256780300400', NULL, 'Payment for B-02 failed. Reference MTN-FAILED-0001.', ?, ?, NULL)`,

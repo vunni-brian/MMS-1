@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
+import { getPaymentPurpose } from "@/lib/payment-history";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -87,13 +88,17 @@ const PaymentCallbackPage = () => {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-center gap-3">
-                <StatusBadge status={paymentStatus} />
+                <StatusBadge status={paymentStatus} label={paymentStatus === "pending" ? "Pending" : undefined} />
                 <span className="text-muted-foreground">Order tracking ID: {orderTrackingId}</span>
               </div>
 
               {payment ? (
                 <>
                   <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl bg-muted/30 p-4 sm:col-span-2">
+                      <p className="text-xs text-muted-foreground">Purpose</p>
+                      <p className="mt-1 font-medium">{getPaymentPurpose(payment)}</p>
+                    </div>
                     <div className="rounded-xl bg-muted/30 p-4">
                       <p className="text-xs text-muted-foreground">Amount</p>
                       <p className="mt-1 font-medium">UGX {payment.amount.toLocaleString()}</p>

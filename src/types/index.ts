@@ -4,6 +4,8 @@ export type Permission =
   | "auth:manage"
   | "billing:read"
   | "billing:manage"
+  | "utility:read"
+  | "utility:manage"
   | "vendor:read"
   | "vendor:review"
   | "coordination:read"
@@ -33,6 +35,9 @@ export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed";
 export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
 export type ChargeTypeScope = "global" | "market";
+export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "other";
+export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
+export type UtilityChargeStatus = "unpaid" | "pending" | "paid" | "overdue" | "cancelled";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
@@ -149,10 +154,12 @@ export interface Payment {
   id: string;
   marketId: string | null;
   marketName: string | null;
-  bookingId: string;
+  bookingId: string | null;
+  utilityChargeId: string | null;
   vendorId: string;
   vendorName: string;
-  stallName: string;
+  stallName: string | null;
+  description: string | null;
   method: PaymentMethod;
   chargeType: ChargeTypeName;
   amount: number;
@@ -166,6 +173,38 @@ export interface Payment {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+}
+
+export interface UtilityCharge {
+  id: string;
+  marketId: string;
+  marketName: string | null;
+  vendorId: string;
+  vendorName: string;
+  vendorPhone: string;
+  bookingId: string | null;
+  stallName: string | null;
+  utilityType: UtilityType;
+  description: string;
+  billingPeriod: string;
+  usageQuantity: number | null;
+  unit: string | null;
+  ratePerUnit: number | null;
+  calculationMethod: UtilityCalculationMethod;
+  amount: number;
+  dueDate: string;
+  status: UtilityChargeStatus;
+  createdBy: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paidAt: string | null;
+  latestPaymentId: string | null;
+  latestPaymentStatus: PaymentStatus | null;
+  latestPaymentReceiptId: string | null;
+  latestPaymentReference: string | null;
+  latestPaymentCompletedAt: string | null;
+  paymentCount: number;
 }
 
 export interface OtpChallenge {

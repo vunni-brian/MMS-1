@@ -16,6 +16,7 @@ import { reportRoutes } from "./modules/reports.ts";
 import { fallbackRoutes } from "./modules/fallback.ts";
 import { coordinationRoutes } from "./modules/coordination.ts";
 import { resourceRequestRoutes } from "./modules/resources.ts";
+import { utilityChargeRoutes } from "./modules/utilities.ts";
 
 const routes: RouteDefinition[] = [
   ...authRoutes,
@@ -29,6 +30,7 @@ const routes: RouteDefinition[] = [
   ...reportRoutes,
   ...coordinationRoutes,
   ...resourceRequestRoutes,
+  ...utilityChargeRoutes,
   ...fallbackRoutes,
 ];
 

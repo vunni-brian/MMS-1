@@ -122,13 +122,18 @@ const OfficialDashboard = () => {
   }));
 
   const completedPayments = payments.filter((payment) => payment.status === "completed");
+  const completedBookingPayments = completedPayments.filter((payment) => payment.chargeType === "booking_fee" && payment.bookingId);
   const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const occupancy = stalls.length
     ? Math.round((stalls.filter((stall) => stall.status === "active").length / stalls.length) * 100)
     : 0;
   const billableBookings = bookings.filter((booking) => ["approved", "paid"].includes(booking.status));
   const collectionRate = billableBookings.length
-    ? Math.round((completedPayments.reduce((sum, payment) => sum + payment.amount, 0) / billableBookings.reduce((sum, booking) => sum + booking.amount, 0)) * 100)
+    ? Math.round(
+        (completedBookingPayments.reduce((sum, payment) => sum + payment.amount, 0) /
+          billableBookings.reduce((sum, booking) => sum + booking.amount, 0)) *
+          100,
+      )
     : 0;
   const complianceRate = tickets.length
     ? Math.round((tickets.filter((ticket) => ticket.status === "resolved").length / tickets.length) * 100)
@@ -165,6 +170,7 @@ const OfficialDashboard = () => {
   const marketPerformanceData = markets.map((market) => {
     const marketStalls = stalls.filter((stall) => stall.marketId === market.id);
     const marketPayments = completedPayments.filter((payment) => payment.marketId === market.id);
+    const marketBookingPayments = marketPayments.filter((payment) => payment.chargeType === "booking_fee" && payment.bookingId);
     const marketTickets = tickets.filter((ticket) => ticket.marketId === market.id);
     const marketBookings = bookings.filter((booking) => booking.marketId === market.id);
     const marketRevenue = marketPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -173,7 +179,11 @@ const OfficialDashboard = () => {
       : 0;
     const marketBillableBookings = marketBookings.filter((booking) => ["approved", "paid"].includes(booking.status));
     const marketCollection = marketBillableBookings.length
-      ? Math.round((marketPayments.reduce((sum, payment) => sum + payment.amount, 0) / marketBillableBookings.reduce((sum, booking) => sum + booking.amount, 0)) * 100)
+      ? Math.round(
+          (marketBookingPayments.reduce((sum, payment) => sum + payment.amount, 0) /
+            marketBillableBookings.reduce((sum, booking) => sum + booking.amount, 0)) *
+            100,
+        )
       : 0;
     const marketCompliance = marketTickets.length
       ? Math.round((marketTickets.filter((ticket) => ticket.status === "resolved").length / marketTickets.length) * 100)

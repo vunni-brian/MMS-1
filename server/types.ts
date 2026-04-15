@@ -5,6 +5,8 @@ export type Permission =
   | "auth:manage"
   | "billing:read"
   | "billing:manage"
+  | "utility:read"
+  | "utility:manage"
   | "vendor:read"
   | "vendor:review"
   | "coordination:read"
@@ -35,6 +37,9 @@ export type PaymentStatus = "pending" | "completed" | "failed";
 export type PaymentProvider = "mtn" | "airtel" | "pesapal";
 export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
 export type ChargeTypeScope = "global" | "market";
+export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "other";
+export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
+export type UtilityChargeStatus = "unpaid" | "pending" | "paid" | "overdue" | "cancelled";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";

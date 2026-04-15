@@ -56,7 +56,7 @@ const NotificationsPage = () => {
                     <Icon className={`w-4 h-4 ${!notification.read ? "text-primary" : "text-muted-foreground"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${!notification.read ? "font-medium" : ""}`}>{notification.message}</p>
+                    <p className={`text-sm whitespace-pre-line ${!notification.read ? "font-medium" : ""}`}>{notification.message}</p>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(notification.createdAt).toLocaleString()}</p>
                   </div>
                   {!notification.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />}

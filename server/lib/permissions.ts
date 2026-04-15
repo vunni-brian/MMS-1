@@ -7,6 +7,7 @@ export const rolePermissions: Record<Role, Permission[]> = {
     "booking:create",
     "payment:read",
     "payment:create",
+    "utility:read",
     "notification:read",
     "notification:update",
     "ticket:read",
@@ -15,6 +16,8 @@ export const rolePermissions: Record<Role, Permission[]> = {
   ],
   manager: [
     "billing:read",
+    "utility:read",
+    "utility:manage",
     "vendor:read",
     "vendor:review",
     "coordination:read",
@@ -34,6 +37,7 @@ export const rolePermissions: Record<Role, Permission[]> = {
   ],
   official: [
     "billing:read",
+    "utility:read",
     "coordination:read",
     "coordination:write",
     "resource:read",
@@ -50,6 +54,8 @@ export const rolePermissions: Record<Role, Permission[]> = {
     "auth:manage",
     "billing:read",
     "billing:manage",
+    "utility:read",
+    "utility:manage",
     "vendor:read",
     "coordination:read",
     "coordination:write",

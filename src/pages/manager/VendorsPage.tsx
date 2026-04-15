@@ -84,7 +84,7 @@ const VendorsPage = () => {
   const payments = paymentsData?.payments || [];
 
   const paidByBooking = payments.reduce<Record<string, number>>((accumulator, payment) => {
-    if (payment.status === "completed") {
+    if (payment.status === "completed" && payment.bookingId) {
       accumulator[payment.bookingId] = (accumulator[payment.bookingId] || 0) + payment.amount;
     }
     return accumulator;

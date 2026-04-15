@@ -18,6 +18,9 @@ import type {
   Ticket,
   TicketCategory,
   TicketStatus,
+  UtilityCalculationMethod,
+  UtilityCharge,
+  UtilityType,
   VendorProfile,
 } from "@/types";
 
@@ -241,7 +244,7 @@ export const api = {
       body: JSON.stringify({ transactionId }),
     }),
 
-  initiatePayment: (bookingId: string) =>
+  initiatePayment: (input: { bookingId?: string | null; utilityChargeId?: string | null }) =>
     apiRequest<{
       payment: Payment;
       status: string;
@@ -251,7 +254,7 @@ export const api = {
       iframe: boolean;
     }>("/payments/initiate", {
       method: "POST",
-      body: JSON.stringify({ bookingId }),
+      body: JSON.stringify(input),
     }),
   getPesapalCallbackStatus: (orderTrackingId: string, merchantReference: string) =>
     apiRequest<{ ok: true; payment: Payment | null }>(
@@ -261,6 +264,32 @@ export const api = {
       })}`,
     ),
   getPayments: (marketId?: string) => apiRequest<{ payments: Payment[] }>(`/payments${buildQuery({ marketId })}`),
+  getUtilityCharges: (options?: { marketId?: string; status?: string }) =>
+    apiRequest<{ utilityCharges: UtilityCharge[] }>(
+      `/utility-charges${buildQuery({ marketId: options?.marketId, status: options?.status })}`,
+    ),
+  createUtilityCharge: (input: {
+    marketId?: string;
+    vendorId: string;
+    bookingId?: string | null;
+    utilityType: UtilityType;
+    description: string;
+    billingPeriod: string;
+    usageQuantity?: number | null;
+    unit?: string | null;
+    ratePerUnit?: number | null;
+    calculationMethod: UtilityCalculationMethod;
+    amount?: number | null;
+    dueDate: string;
+  }) =>
+    apiRequest<{ utilityCharge: UtilityCharge }>("/utility-charges", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cancelUtilityCharge: (utilityChargeId: string) =>
+    apiRequest<{ utilityCharge: UtilityCharge }>(`/utility-charges/${utilityChargeId}/cancel`, {
+      method: "POST",
+    }),
   getReceipt: (paymentId: string) =>
     apiRequest<{
       receipt: {
