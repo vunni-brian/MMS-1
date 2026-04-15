@@ -95,7 +95,7 @@ npm install
 npm run db:migrate
 ```
 
-5. Optionally seed demo data:
+5. Optionally seed demo data for local development or presentation demos only:
 
 ```bash
 npm run db:seed
@@ -120,7 +120,7 @@ Default local URLs:
 
 Notes:
 
-- The checked-in `.env.example` enables auto-migration and seed-on-boot for local development.
+- The checked-in `.env.example` enables auto-migration and seed-on-boot for local development only. In production or hosted environments, set `MMS_SEED_ON_BOOT=false`.
 - If Africa's Talking is not configured and the app is not running in production mode, SMS messages are logged to the API console instead of being sent.
 - OTP codes are not returned in API responses.
 
@@ -138,7 +138,11 @@ Pesapal setup helper:
 npm run pesapal:register-ipn
 ```
 
-## Seed accounts
+## Demo seed accounts
+
+The following accounts are for local development and presentation demos only.
+They must not be enabled or relied upon in production deployments.
+In hosted environments, set `MMS_SEED_ON_BOOT=false` and provision real users through the proper administrative flow.
 
 - Vendor: `+256700100200` / `Vendor123!`
 - Vendor, pending approval: `+256770200300` / `Vendor123!`
@@ -149,6 +153,16 @@ npm run pesapal:register-ipn
 - Manager, Jinja: `+256703700800` / `Manager123!`
 - Official: `+256700600700` / `Official123!`
 - Admin: `+256701111222` / `Admin123!`
+
+Additional testing users:
+
+- Admin, Vunni Brian: `vunnibrian14@gmail.com` / `+256764854885` / `Admin123!`
+- Manager, Kigozi Duncan: `kigoziduncan72@gmail.com` / `+256743180351` / `Manager123!`
+- Official, Nassanga Shakirah Kakembo: `nassanga681@gmail.com` / `+256758616651` / `Official123!`
+- Vendor, Kakembo James: `jameskakembotj@gmail.com` / `+256705366092` / `Vendor123!`
+- Vendor, Kemigisha Precious Loy: `preciousloy175@gmail.com` / `+256760749576` / `Vendor123!`
+
+The additional manager and vendor testing accounts are assigned to the seeded `MMS Demo Test Market` so they do not override the existing Kampala and Jinja demo managers.
 
 ## Environment
 
@@ -168,7 +182,7 @@ Database settings:
 - `MIGRATION_DATABASE_URL` is optional and can point at a separate direct/admin database connection
 - `DATABASE_SSL` is optional; when unset, SSL is inferred for Supabase-style connection strings
 - `MMS_AUTO_MIGRATE=true` runs migrations on API boot
-- `MMS_SEED_ON_BOOT` seeds demo data on boot; if unset, it is effectively enabled outside production unless explicitly set to `false`
+- `MMS_SEED_ON_BOOT` seeds demo data on boot for local or demo use; set `MMS_SEED_ON_BOOT=false` in production and hosted environments
 
 Supabase settings:
 
@@ -228,7 +242,7 @@ SUPABASE_STORAGE_BUCKET=mms-uploads
 npm run db:migrate
 ```
 
-7. Seed only when you want demo data:
+7. Seed only when you want demo data in a local or staging demo environment:
 
 ```bash
 npm run db:seed
@@ -237,7 +251,7 @@ npm run db:seed
 Notes:
 
 - Uploads go to Supabase Storage when the required env vars are present and fall back to `runtime/uploads/` otherwise.
-- Seed data syncs demo users into Supabase Auth when Supabase Auth is configured.
+- Seed data syncs demo users into Supabase Auth when Supabase Auth is configured, so it should remain disabled in production.
 - Web and mobile clients should use the same backend API so approval, OTP, payment, and audit flows stay centralized.
 
 ## Deploy on Vercel + Render + Supabase
@@ -272,7 +286,7 @@ Recommended Render environment values:
 - `AFRICAS_TALKING_USE_SANDBOX=false` for live delivery
 - `PESAPAL_CONSUMER_KEY=...`
 - `PESAPAL_CONSUMER_SECRET=...`
-- `PESAPAL_BASE_URL=https://cybqa.pesapal.com/pesapalv3` for sandbox or `https://pay.pesapal.com/v3` for live
+- `PESAPAL_BASE_URL=https://cybqa.pesapal.com/pesapalv3` for sandbox testing
 - `PESAPAL_CALLBACK_URL=https://your-app.vercel.app/payments/callback`
 - `PESAPAL_IPN_URL=https://your-api.onrender.com/payments/webhooks/pesapal`
 - `PESAPAL_IPN_ID=...`
@@ -284,7 +298,9 @@ Notes:
 - Render's `PORT` env is respected automatically.
 - Health checks use `/health`.
 - Automatic boot seeding should stay disabled in hosted environments.
-- Register the Pesapal IPN URL once and store the returned `ipn_id` in `PESAPAL_IPN_ID` before enabling checkout in production.
+- For hosted team testing, keep Pesapal on sandbox until you are ready for a real production cutover.
+- Register the sandbox Pesapal IPN URL with `npm run pesapal:register-ipn` and store the returned `ipn_id` in `PESAPAL_IPN_ID` before enabling checkout.
+- Switch to the live Pesapal base URL only when you also replace the sandbox credentials and sandbox IPN ID.
 
 ### Vercel frontend
 

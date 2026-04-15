@@ -458,6 +458,12 @@ export const seedDatabase = async () => {
       code: "JIN-MAIN",
       location: "Jinja",
     },
+    {
+      id: "market_demo_test",
+      name: "MMS Demo Test Market",
+      code: "MMS-DEMO",
+      location: "Local Testbed",
+    },
   ] as const;
 
   const users = [
@@ -569,6 +575,66 @@ export const seedDatabase = async () => {
       verified: createdAt,
       vendorStatus: null,
     },
+    {
+      id: "user_admin_vunni",
+      name: "Vunni Brian",
+      email: "vunnibrian14@gmail.com",
+      phone: "+256764854885",
+      password: "Admin123!",
+      role: "admin",
+      marketId: null,
+      mfaEnabled: 1,
+      verified: createdAt,
+      vendorStatus: null,
+    },
+    {
+      id: "user_manager_kigozi",
+      name: "Kigozi Duncan",
+      email: "kigoziduncan72@gmail.com",
+      phone: "+256743180351",
+      password: "Manager123!",
+      role: "manager",
+      marketId: "market_demo_test",
+      mfaEnabled: 1,
+      verified: createdAt,
+      vendorStatus: null,
+    },
+    {
+      id: "user_official_nassanga",
+      name: "Nassanga Shakirah Kakembo",
+      email: "nassanga681@gmail.com",
+      phone: "+256758616651",
+      password: "Official123!",
+      role: "official",
+      marketId: null,
+      mfaEnabled: 1,
+      verified: createdAt,
+      vendorStatus: null,
+    },
+    {
+      id: "user_vendor_kakembo_james",
+      name: "Kakembo James",
+      email: "jameskakembotj@gmail.com",
+      phone: "+256705366092",
+      password: "Vendor123!",
+      role: "vendor",
+      marketId: "market_demo_test",
+      mfaEnabled: 0,
+      verified: createdAt,
+      vendorStatus: "approved",
+    },
+    {
+      id: "user_vendor_kemigisha_precious",
+      name: "Kemigisha Precious Loy",
+      email: "preciousloy175@gmail.com",
+      phone: "+256760749576",
+      password: "Vendor123!",
+      role: "vendor",
+      marketId: "market_demo_test",
+      mfaEnabled: 0,
+      verified: createdAt,
+      vendorStatus: "approved",
+    },
   ] as const;
 
   await transaction(async () => {
@@ -583,6 +649,7 @@ export const seedDatabase = async () => {
   const managerByMarket: Record<string, string> = {
     market_kampala: "user_manager_sarah",
     market_jinja: "user_manager_brian",
+    market_demo_test: "user_manager_kigozi",
   };
 
   users.forEach((user) => {
@@ -604,9 +671,31 @@ export const seedDatabase = async () => {
       ],
     );
 
-    if (user.marketId) {
-      run(`UPDATE users SET market_id = ?, updated_at = ? WHERE id = ?`, [user.marketId, createdAt, user.id]);
-    }
+    run(
+      `UPDATE users
+       SET name = ?,
+           email = ?,
+           phone = ?,
+           password_hash = ?,
+           role = ?,
+           market_id = ?,
+           mfa_enabled = ?,
+           phone_verified_at = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      [
+        user.name,
+        user.email,
+        user.phone,
+        hashPassword(user.password),
+        user.role,
+        user.marketId,
+        user.mfaEnabled,
+        user.verified,
+        createdAt,
+        user.id,
+      ],
+    );
   });
 
   users.filter((user) => user.role === "vendor").forEach((user) => {
@@ -624,6 +713,31 @@ export const seedDatabase = async () => {
         user.vendorStatus === "approved" ? createdAt : null,
         user.vendorStatus === "rejected" ? managerUserId : null,
         user.vendorStatus === "rejected" ? createdAt : null,
+      ],
+    );
+    run(
+      `UPDATE vendor_profiles
+       SET approval_status = ?,
+           approval_reason = NULL,
+           id_document_name = ?,
+           id_document_path = ?,
+           id_document_mime_type = 'application/pdf',
+           id_document_size = ?,
+           approved_by = ?,
+           approved_at = ?,
+           rejected_by = ?,
+           rejected_at = ?
+       WHERE user_id = ?`,
+      [
+        user.vendorStatus,
+        `${user.name.replace(/\s+/g, "_").toLowerCase()}_id.pdf`,
+        path.join(config.uploadsDir, "seed", `${user.id}.pdf`),
+        1024,
+        user.vendorStatus === "approved" ? managerUserId : null,
+        user.vendorStatus === "approved" ? createdAt : null,
+        user.vendorStatus === "rejected" ? managerUserId : null,
+        user.vendorStatus === "rejected" ? createdAt : null,
+        user.id,
       ],
     );
   });

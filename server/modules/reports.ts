@@ -9,6 +9,13 @@ const normalizeDateRange = (from: string | null, to: string | null) => {
   };
 };
 
+const appendMarketScope = (clauses: string[], params: Array<string | null>, column: string, marketId: string | null) => {
+  if (marketId) {
+    clauses.push(`${column} = ?`);
+    params.push(marketId);
+  }
+};
+
 export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -16,6 +23,9 @@ export const reportRoutes: RouteDefinition[] = [
     handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
+      const clauses = ["payments.created_at::date BETWEEN ?::date AND ?::date"];
+      const params: Array<string | null> = [range.from, range.to];
+      appendMarketScope(clauses, params, "payments.market_id", marketId);
       const rows = await all<{
         id: string;
         market_id: string | null;
@@ -39,10 +49,9 @@ export const reportRoutes: RouteDefinition[] = [
          FROM payments
          INNER JOIN users ON users.id = payments.vendor_id
          LEFT JOIN markets ON markets.id = payments.market_id
-         WHERE payments.created_at::date BETWEEN ?::date AND ?::date
-           AND (? IS NULL OR payments.market_id = ?)
+         WHERE ${clauses.join(" AND ")}
          ORDER BY payments.created_at DESC`,
-        [range.from, range.to, marketId, marketId],
+        params,
       );
 
       const completed = rows.filter((row) => row.status === "completed");
@@ -74,6 +83,12 @@ export const reportRoutes: RouteDefinition[] = [
     handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
+      const clauses = [
+        "bookings.created_at::date BETWEEN ?::date AND ?::date",
+        "bookings.status IN ('approved', 'paid')",
+      ];
+      const params: Array<string | null> = [range.from, range.to];
+      appendMarketScope(clauses, params, "bookings.market_id", marketId);
       const rows = await all<{
         id: string;
         market_id: string | null;
@@ -99,13 +114,11 @@ export const reportRoutes: RouteDefinition[] = [
          INNER JOIN stalls ON stalls.id = bookings.stall_id
          LEFT JOIN payments ON payments.booking_id = bookings.id
          LEFT JOIN markets ON markets.id = bookings.market_id
-         WHERE bookings.created_at::date BETWEEN ?::date AND ?::date
-           AND bookings.status IN ('approved', 'paid')
-           AND (? IS NULL OR bookings.market_id = ?)
-         GROUP BY bookings.id
+         WHERE ${clauses.join(" AND ")}
+         GROUP BY bookings.id, bookings.market_id, markets.name, users.name, stalls.name, bookings.amount, bookings.status, bookings.created_at
          HAVING bookings.amount - COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0) > 0
          ORDER BY bookings.created_at DESC`,
-        [range.from, range.to, marketId, marketId],
+        params,
       );
 
       sendJson(res, 200, {
@@ -135,6 +148,9 @@ export const reportRoutes: RouteDefinition[] = [
     path: "/audit",
     handler: async ({ res, auth, url }) => {
       const { marketId } = resolveScopedMarket(auth, "audit:read", url.searchParams.get("marketId"));
+      const clauses = ["1 = 1"];
+      const params: Array<string | null> = [];
+      appendMarketScope(clauses, params, "audit_events.market_id", marketId);
       const rows = await all<{
         id: string;
         actor_user_id: string | null;
@@ -161,9 +177,9 @@ export const reportRoutes: RouteDefinition[] = [
                 audit_events.created_at
          FROM audit_events
          LEFT JOIN markets ON markets.id = audit_events.market_id
-         WHERE (? IS NULL OR audit_events.market_id = ?)
+         WHERE ${clauses.join(" AND ")}
          ORDER BY audit_events.created_at DESC`,
-        [marketId, marketId],
+        params,
       );
       sendJson(res, 200, {
         events: rows.map((row) => ({
@@ -188,14 +204,18 @@ export const reportRoutes: RouteDefinition[] = [
     handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
+      const collectionClauses = ["status = 'completed'", "created_at::date BETWEEN ?::date AND ?::date"];
+      const collectionParams: Array<string | null> = [range.from, range.to];
+      appendMarketScope(collectionClauses, collectionParams, "market_id", marketId);
       const collection = await all<{ amount: number }>(
         `SELECT amount
          FROM payments
-         WHERE status = 'completed'
-           AND created_at::date BETWEEN ?::date AND ?::date
-           AND (? IS NULL OR market_id = ?)`,
-        [range.from, range.to, marketId, marketId],
+         WHERE ${collectionClauses.join(" AND ")}`,
+        collectionParams,
       );
+      const depositClauses = ["bank_deposits.deposited_at::date BETWEEN ?::date AND ?::date"];
+      const depositParams: Array<string | null> = [range.from, range.to];
+      appendMarketScope(depositClauses, depositParams, "bank_deposits.market_id", marketId);
       const deposits = await all<{
         id: string;
         market_id: string | null;
@@ -212,10 +232,9 @@ export const reportRoutes: RouteDefinition[] = [
                 bank_deposits.deposited_at
          FROM bank_deposits
          LEFT JOIN markets ON markets.id = bank_deposits.market_id
-         WHERE bank_deposits.deposited_at::date BETWEEN ?::date AND ?::date
-           AND (? IS NULL OR bank_deposits.market_id = ?)
+         WHERE ${depositClauses.join(" AND ")}
          ORDER BY bank_deposits.deposited_at DESC`,
-        [range.from, range.to, marketId, marketId],
+        depositParams,
       );
 
       const collectedTotal = collection.reduce((total, row) => total + row.amount, 0);

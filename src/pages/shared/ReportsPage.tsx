@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+const formatCurrency = (value: number) => `UGX ${value.toLocaleString()}`;
+const formatDateTime = (value: string) => new Date(value).toLocaleString();
+
 const ReportsPage = () => {
   const { user } = useAuth();
   const [dateFrom, setDateFrom] = useState("2026-01-01");
@@ -31,6 +34,30 @@ const ReportsPage = () => {
     queryKey: ["reports", "dues", dateFrom, dateTo, marketId || "all"],
     queryFn: () => api.getDuesReport(dateFrom, dateTo, marketId),
   });
+  const { data: financialAuditReport } = useQuery({
+    queryKey: ["reports", "financial-audit", dateFrom, dateTo, marketId || "all"],
+    queryFn: () => api.getFinancialAudit(dateFrom, dateTo, marketId),
+  });
+
+  const auditSummary = financialAuditReport?.summary || {
+    collectedTotal: 0,
+    depositedTotal: 0,
+    variance: 0,
+  };
+  const varianceToneClass =
+    auditSummary.variance === 0 ? "text-success" : auditSummary.variance > 0 ? "text-warning" : "text-destructive";
+  const variancePanelClass =
+    auditSummary.variance === 0
+      ? "border-success/30 bg-success/5 text-success"
+      : auditSummary.variance > 0
+        ? "border-warning/30 bg-warning/5 text-warning"
+        : "border-destructive/30 bg-destructive/5 text-destructive";
+  const varianceMessage =
+    auditSummary.variance === 0
+      ? "Collections and recorded bank deposits are balanced for the selected period."
+      : auditSummary.variance > 0
+        ? `Collections exceed recorded deposits by ${formatCurrency(auditSummary.variance)}.`
+        : `Recorded deposits exceed collections by ${formatCurrency(Math.abs(auditSummary.variance))}.`;
 
   const exportCSV = () => {
     const header = "Date,Market,Vendor,Amount,Method,Transaction ID,Status\n";
@@ -51,7 +78,7 @@ const ReportsPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold font-heading">Reports</h1>
-          <p className="text-muted-foreground text-sm mt-1">Revenue and outstanding dues</p>
+          <p className="text-muted-foreground text-sm mt-1">Revenue, outstanding dues, and financial reconciliation</p>
         </div>
         <Button onClick={exportCSV} variant="outline">
           <Download className="w-4 h-4 mr-1" />
@@ -92,13 +119,13 @@ const ReportsPage = () => {
         <Card className="card-warm">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Revenue</p>
-            <p className="text-xl font-bold font-heading text-success mt-1">UGX {(revenueReport?.summary.totalRevenue || 0).toLocaleString()}</p>
+            <p className="text-xl font-bold font-heading text-success mt-1">{formatCurrency(revenueReport?.summary.totalRevenue || 0)}</p>
           </CardContent>
         </Card>
         <Card className="card-warm">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Outstanding Dues</p>
-            <p className="text-xl font-bold font-heading text-warning mt-1">UGX {(duesReport?.summary.outstandingTotal || 0).toLocaleString()}</p>
+            <p className="text-xl font-bold font-heading text-warning mt-1">{formatCurrency(duesReport?.summary.outstandingTotal || 0)}</p>
           </CardContent>
         </Card>
         <Card className="card-warm">
@@ -108,6 +135,29 @@ const ReportsPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="card-warm border-warning/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Financial Audit</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-xs text-muted-foreground">Collected Total</p>
+              <p className="mt-1 text-xl font-bold font-heading text-success">{formatCurrency(auditSummary.collectedTotal)}</p>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-xs text-muted-foreground">Deposited Total</p>
+              <p className="mt-1 text-xl font-bold font-heading">{formatCurrency(auditSummary.depositedTotal)}</p>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-xs text-muted-foreground">Variance</p>
+              <p className={`mt-1 text-xl font-bold font-heading ${varianceToneClass}`}>{formatCurrency(auditSummary.variance)}</p>
+            </div>
+          </div>
+          <div className={`rounded-xl border px-4 py-3 text-sm ${variancePanelClass}`}>{varianceMessage}</div>
+        </CardContent>
+      </Card>
 
       <Card className="card-warm">
         <CardHeader className="pb-3">
@@ -129,10 +179,10 @@ const ReportsPage = () => {
               <TableBody>
                 {(revenueReport?.rows || []).map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="text-muted-foreground">{row.createdAt}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateTime(row.createdAt)}</TableCell>
                     <TableCell>{row.marketName || "Unassigned"}</TableCell>
                     <TableCell className="font-medium">{row.vendorName}</TableCell>
-                    <TableCell>UGX {row.amount.toLocaleString()}</TableCell>
+                    <TableCell>{formatCurrency(row.amount)}</TableCell>
                     <TableCell>{row.method.toUpperCase()}</TableCell>
                     <TableCell className="capitalize">{row.status}</TableCell>
                   </TableRow>
@@ -166,11 +216,49 @@ const ReportsPage = () => {
                     <TableCell>{row.marketName || "Unassigned"}</TableCell>
                     <TableCell className="font-medium">{row.vendorName}</TableCell>
                     <TableCell>{row.stallName}</TableCell>
-                    <TableCell>UGX {row.amount.toLocaleString()}</TableCell>
-                    <TableCell>UGX {row.paidAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-warning">UGX {row.outstandingAmount.toLocaleString()}</TableCell>
+                    <TableCell>{formatCurrency(row.amount)}</TableCell>
+                    <TableCell>{formatCurrency(row.paidAmount)}</TableCell>
+                    <TableCell className="text-warning">{formatCurrency(row.outstandingAmount)}</TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Bank Deposits</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Market</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Deposited At</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(financialAuditReport?.rows || []).length > 0 ? (
+                  (financialAuditReport?.rows || []).map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>{row.marketName || "Unassigned"}</TableCell>
+                      <TableCell className="font-medium">{row.reference}</TableCell>
+                      <TableCell>{formatCurrency(row.amount)}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatDateTime(row.depositedAt)}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                      No bank deposits were recorded for the selected filters.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
