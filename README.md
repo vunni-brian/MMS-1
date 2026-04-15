@@ -13,6 +13,7 @@ Market Management System (`MMS`) is a full-stack market-operations app in a sing
 - Phone/password login with OTP MFA for privileged accounts
 - Market-scoped management for vendors, stalls, bookings, payments, reports, and audit records
 - Billing controls through `charge_types`, including global and market-specific enable/disable flags
+- Centralized billing governance where only admins can toggle charge categories and payment infrastructure
 - Pesapal checkout initiation with iframe or redirect support
 - Callback/IPN-driven payment confirmation with provider-side status verification before marking payments complete
 - Receipt generation after confirmed payment
@@ -34,6 +35,34 @@ Current payment flow:
 5. The API calls Pesapal's transaction-status endpoint before changing the local payment state.
 6. The payment is marked `completed` or `failed`.
 7. A receipt is made available only after confirmed completion.
+
+## Governance model
+
+The system separates operational authority from policy authority. Managers run markets, officials oversee compliance, and admin centrally controls charge activation and payment infrastructure to avoid fragmented or unauthorized billing changes.
+
+### Vendor role
+
+The Vendor interacts only with active services and charges and cannot modify system billing settings.
+
+### Manager role
+
+The Manager handles day-to-day market operations, including vendor supervision, stall management, booking review, and complaint handling. Billing controls are visible but not editable by managers.
+
+### Official role
+
+The Official performs supervisory and oversight functions. This role may inspect billing states, reports, and audit logs, and participate in governance decisions, but does not directly toggle billing controls in the current implementation.
+
+### Admin role
+
+The Admin is the highest control level in the system and is responsible for centralized governance of billing and payment controls. The Admin can enable or disable market dues, utilities, penalties, booking fees, and the payment gateway. The Admin also has access to cross-market audit records, reports, and coordination tools.
+
+| Charge / Control | Vendor | Manager | Official | Admin |
+| --- | --- | --- | --- | --- |
+| Market Dues | No access | View only | View / recommend | Toggle |
+| Utilities | No access | View only | View only | Toggle |
+| Penalties | No access | View only | View only | Toggle |
+| Booking Fee | No access | View only | View only | Toggle |
+| Payment Gateway | No access | View only | View only | Toggle |
 
 ## Tech stack
 

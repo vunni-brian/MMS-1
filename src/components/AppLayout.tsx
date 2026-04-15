@@ -43,6 +43,28 @@ const AppLayout = () => {
 
   const filtered = navItems.filter(n => n.roles.includes(user.role));
   const basePath = `/${user.role}`;
+  const workspaceTitle =
+    user.role === "admin"
+      ? "System Admin"
+      : user.role === "official"
+        ? "Market Oversight"
+        : user.role === "vendor"
+          ? "Vendor Workspace"
+          : "Market Manager";
+  const workspaceScope =
+    user.marketName ||
+    (user.role === "admin"
+      ? "System-wide control"
+      : user.role === "official"
+        ? "All markets oversight"
+        : "Unassigned market");
+  const headerScope =
+    user.marketName ||
+    (user.role === "admin"
+      ? "All Markets Admin"
+      : user.role === "official"
+        ? "All Markets Oversight"
+        : "No Market");
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -61,11 +83,9 @@ const AppLayout = () => {
             <Store className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">Market Manager</p>
+            <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">{workspaceTitle}</p>
             <p className="text-xs text-sidebar-foreground/60 truncate">{user.name}</p>
-            <p className="text-[11px] text-sidebar-foreground/50 truncate mt-0.5">
-              {user.marketName || (user.role === "official" || user.role === "admin" ? "All markets oversight" : "Unassigned market")}
-            </p>
+            <p className="text-[11px] text-sidebar-foreground/50 truncate mt-0.5">{workspaceScope}</p>
           </div>
           <button className="lg:hidden text-sidebar-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="w-5 h-5" />
@@ -114,9 +134,7 @@ const AppLayout = () => {
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium bg-muted text-muted-foreground px-2.5 py-1 rounded-full">
-              {user.marketName || (user.role === "official" || user.role === "admin" ? "All Markets" : "No Market")}
-            </span>
+            <span className="text-xs font-medium bg-muted text-muted-foreground px-2.5 py-1 rounded-full">{headerScope}</span>
             <span className="text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full capitalize">{user.role}</span>
           </div>
         </header>

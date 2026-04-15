@@ -15,6 +15,7 @@ import AppLayout from "./components/AppLayout";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import OfficialDashboard from "./pages/official/OfficialDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import StallsPage from "./pages/shared/StallsPage";
 import PaymentsPage from "./pages/shared/PaymentsPage";
 import ComplaintsPage from "./pages/shared/ComplaintsPage";
@@ -104,7 +105,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route index element={<OfficialDashboard />} />
+              <Route index element={<AdminDashboard />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />

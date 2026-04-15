@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Landmark, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import {
@@ -16,7 +16,6 @@ import {
 } from "recharts";
 
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,20 +39,11 @@ const startOfQuarter = (dateValue: Date) => {
 };
 
 const OfficialDashboard = () => {
-  const { role } = useAuth();
   const queryClient = useQueryClient();
   const [selectedMarketId, setSelectedMarketId] = useState("all");
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [approvedAmounts, setApprovedAmounts] = useState<Record<string, string>>({});
   const [reviewError, setReviewError] = useState<string | null>(null);
-  const [managerError, setManagerError] = useState<string | null>(null);
-  const [managerMessage, setManagerMessage] = useState<string | null>(null);
-  const [managerForm, setManagerForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    marketId: "",
-  });
   const marketId = selectedMarketId === "all" ? undefined : selectedMarketId;
 
   const { data: marketsData } = useQuery({
@@ -111,25 +101,6 @@ const OfficialDashboard = () => {
     onError: (error) => setReviewError(error instanceof ApiError ? error.message : "Unable to review resource request."),
   });
 
-  const assignManager = useMutation({
-    mutationFn: () => api.createManager(managerForm),
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: ["markets"] });
-      setManagerMessage(response.message);
-      setManagerError(null);
-      setManagerForm((current) => ({
-        ...current,
-        name: "",
-        email: "",
-        phone: "",
-      }));
-    },
-    onError: (error) => {
-      setManagerMessage(null);
-      setManagerError(error instanceof ApiError ? error.message : "Unable to assign manager.");
-    },
-  });
-
   const markets = marketsData?.markets || [];
   const stalls = stallsData?.stalls || [];
   const vendors = vendorsData?.vendors || [];
@@ -140,12 +111,6 @@ const OfficialDashboard = () => {
   const auditSummary = financialAuditData?.summary || { collectedTotal: 0, depositedTotal: 0, variance: 0 };
   const depositRows = financialAuditData?.rows || [];
   const selectedMarket = markets.find((market) => market.id === selectedMarketId) || null;
-  const managerAssignments = markets.map((market) => ({
-    id: market.id,
-    name: market.name,
-    location: market.location,
-    managerName: market.managerName,
-  }));
   const stallSummaryRows = (selectedMarket ? [selectedMarket] : markets).map((market) => ({
     id: market.id,
     name: market.name,
@@ -155,21 +120,6 @@ const OfficialDashboard = () => {
     maintenance: market.maintenanceStallCount,
     total: market.stallCount,
   }));
-
-  useEffect(() => {
-    if (!managerForm.marketId && markets.length > 0) {
-      setManagerForm((current) => ({
-        ...current,
-        marketId: selectedMarketId !== "all" ? selectedMarketId : markets[0].id,
-      }));
-    }
-  }, [managerForm.marketId, markets, selectedMarketId]);
-
-  useEffect(() => {
-    if (selectedMarketId !== "all") {
-      setManagerForm((current) => ({ ...current, marketId: selectedMarketId }));
-    }
-  }, [selectedMarketId]);
 
   const completedPayments = payments.filter((payment) => payment.status === "completed");
   const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -303,8 +253,8 @@ const OfficialDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-heading">{role === "admin" ? "Admin Dashboard" : "Official Dashboard"}</h1>
-          <p className="text-muted-foreground text-sm mt-1">High-level oversight across revenue, compliance, audits, and long-term market trends.</p>
+          <h1 className="text-2xl font-bold font-heading">Official Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">Oversight across revenue, compliance, audits, and policy-level exceptions.</p>
           <p className="text-xs text-muted-foreground mt-2">Scope: {scopeLabel}</p>
         </div>
         <div className="w-full lg:w-[280px] space-y-1.5">
@@ -340,99 +290,6 @@ const OfficialDashboard = () => {
           </Card>
         ))}
       </div>
-
-      {role === "admin" && (
-      <div className="grid xl:grid-cols-[1.05fr_0.95fr] gap-4">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Manager Provisioning</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Create a market manager account from the official workspace. If the selected market already has a manager, this replaces the current manager record and sends fresh setup SMS instructions.
-            </p>
-            {managerMessage && <div className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">{managerMessage}</div>}
-            {managerError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{managerError}</div>}
-            <div className="grid md:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="manager-name">Manager Name</Label>
-                <Input
-                  id="manager-name"
-                  value={managerForm.name}
-                  onChange={(event) => setManagerForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Full name"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="manager-phone">Phone Number</Label>
-                <Input
-                  id="manager-phone"
-                  value={managerForm.phone}
-                  onChange={(event) => setManagerForm((current) => ({ ...current, phone: event.target.value }))}
-                  placeholder="+256 7XX XXX XXX"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="manager-email">Email Address</Label>
-                <Input
-                  id="manager-email"
-                  type="email"
-                  value={managerForm.email}
-                  onChange={(event) => setManagerForm((current) => ({ ...current, email: event.target.value }))}
-                  placeholder="manager@example.com"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="manager-market">Assigned Market</Label>
-                <Select value={managerForm.marketId} onValueChange={(value) => setManagerForm((current) => ({ ...current, marketId: value }))}>
-                  <SelectTrigger id="manager-market">
-                    <SelectValue placeholder="Select market" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {markets.map((market) => (
-                      <SelectItem key={market.id} value={market.id}>
-                        {market.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button
-              onClick={() => assignManager.mutate()}
-              disabled={
-                assignManager.isPending ||
-                !managerForm.name.trim() ||
-                !managerForm.email.trim() ||
-                !managerForm.phone.trim() ||
-                !managerForm.marketId
-              }
-            >
-              {assignManager.isPending ? "Saving Manager..." : "Assign Manager"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Current Market Managers</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {managerAssignments.map((market) => (
-              <div key={market.id} className="rounded-xl border bg-muted/20 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-sm">{market.name}</p>
-                    <p className="text-xs text-muted-foreground">{market.location}</p>
-                  </div>
-                  <p className="text-sm font-medium">{market.managerName || "Unassigned"}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-      )}
 
       <Card className="card-warm">
         <CardHeader className="pb-3">

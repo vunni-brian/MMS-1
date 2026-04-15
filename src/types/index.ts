@@ -1,4 +1,5 @@
 export type Role = "vendor" | "manager" | "official" | "admin";
+export const roleOrder: Role[] = ["vendor", "manager", "official", "admin"];
 export type Permission =
   | "auth:manage"
   | "billing:read"

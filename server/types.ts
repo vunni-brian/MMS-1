@@ -1,4 +1,5 @@
 export type Role = "vendor" | "manager" | "official" | "admin";
+export const roleOrder: Role[] = ["vendor", "manager", "official", "admin"];
 
 export type Permission =
   | "auth:manage"
@@ -142,7 +143,7 @@ export interface CoordinationMessage {
   id: string;
   senderUserId: string;
   senderName: string;
-  senderRole: Extract<Role, "manager" | "official">;
+  senderRole: Extract<Role, "manager" | "official" | "admin">;
   marketId: string | null;
   marketName: string | null;
   subject: string;
