@@ -25,6 +25,7 @@ import {
 } from "recharts";
 
 import { api, ApiError } from "@/lib/api";
+import { formatCurrency, formatHumanDate, formatHumanDateRange } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -204,7 +205,7 @@ const ManagerDashboard = () => {
   const selectedStall = mapTiles.find((stall) => stall.id === selectedStallId) || mapTiles[0] || null;
 
   const stats = [
-    { label: "Total Revenue", value: `UGX ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-success" },
+    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-success" },
     { label: "Occupancy Rate", value: `${occupancyRate}%`, icon: Grid3X3, color: "text-primary" },
     { label: "Available Stalls", value: stalls.filter((stall) => stall.status === "inactive").length, icon: CheckCircle, color: "text-info" },
     { label: "Pending Approvals", value: vendors.filter((vendor) => vendor.status === "pending").length, icon: Users, color: "text-warning" },
@@ -286,14 +287,14 @@ const ManagerDashboard = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-sm">{alert.vendorName}</p>
-                      <p className="text-xs text-muted-foreground">{alert.stallName} permit ends on {alert.endDate}</p>
+                      <p className="text-xs text-muted-foreground">{alert.stallName} permit ends on {formatHumanDate(alert.endDate)}</p>
                     </div>
                     <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-medium text-destructive">
                       {alert.hoursLeft}h left
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Outstanding balance: UGX {alert.outstanding.toLocaleString()}
+                    Outstanding balance: {formatCurrency(alert.outstanding)}
                   </p>
                 </div>
               ))
@@ -323,7 +324,7 @@ const ManagerDashboard = () => {
                     <StatusBadge status={booking.status} />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {booking.startDate} to {booking.endDate} - UGX {booking.amount.toLocaleString()}
+                    {formatHumanDateRange(booking.startDate, booking.endDate)} - {formatCurrency(booking.amount)}
                   </p>
                   <Textarea
                     rows={2}
@@ -469,7 +470,7 @@ const ManagerDashboard = () => {
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
                     <p className="text-xs text-muted-foreground">Monthly Rent</p>
-                    <p className="mt-1 font-medium">UGX {selectedStall.pricePerMonth.toLocaleString()}</p>
+                    <p className="mt-1 font-medium">{formatCurrency(selectedStall.pricePerMonth)}</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3 col-span-2">
                     <p className="text-xs text-muted-foreground">Vendor</p>
@@ -480,15 +481,15 @@ const ManagerDashboard = () => {
                   <div className="rounded-xl border bg-muted/20 p-4">
                     <p className="text-xs text-muted-foreground">Current booking</p>
                     <p className="mt-1 text-sm font-medium">
-                      {bookingById[selectedStall.activeBooking.id].startDate} to {bookingById[selectedStall.activeBooking.id].endDate}
+                      {formatHumanDateRange(bookingById[selectedStall.activeBooking.id].startDate, bookingById[selectedStall.activeBooking.id].endDate)}
                     </p>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Outstanding: UGX{" "}
-                      {Math.max(
+                      Outstanding:{" "}
+                      {formatCurrency(Math.max(
                         bookingById[selectedStall.activeBooking.id].amount -
                           (paidByBooking[selectedStall.activeBooking.id] || 0),
                         0,
-                      ).toLocaleString()}
+                      ))}
                     </p>
                   </div>
                 )}
@@ -566,9 +567,9 @@ const ManagerDashboard = () => {
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{request.description}</p>
                   <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Asked: UGX {request.amountRequested.toLocaleString()}</span>
+                    <span>Asked: {formatCurrency(request.amountRequested)}</span>
                     <span>
-                      {request.approvedAmount ? `Approved: UGX ${request.approvedAmount.toLocaleString()}` : "Awaiting review"}
+                      {request.approvedAmount ? `Approved: ${formatCurrency(request.approvedAmount)}` : "Awaiting review"}
                     </span>
                   </div>
                 </div>

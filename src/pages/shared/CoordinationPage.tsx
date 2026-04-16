@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Send, Shield, UserCog } from "lucide-react";
+import { CheckCircle2, Send, Shield, UserCog } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
+import { formatHumanDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +19,16 @@ const CoordinationPage = () => {
   const [body, setBody] = useState("");
   const [selectedMarketId, setSelectedMarketId] = useState("all");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const canScopeMarkets = user?.role === "official" || user?.role === "admin";
   const marketId = canScopeMarkets && selectedMarketId !== "all" ? selectedMarketId : undefined;
+
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "coordination"],
     queryFn: () => api.getMarkets(),
     enabled: canScopeMarkets,
   });
+
   const { data } = useQuery({
     queryKey: ["coordination-messages", marketId || "all"],
     queryFn: () => api.getCoordinationMessages(marketId),
@@ -38,8 +42,12 @@ const CoordinationPage = () => {
       setSubject("");
       setBody("");
       setError(null);
+      setSuccess("Message sent successfully.");
     },
-    onError: (error) => setError(error instanceof ApiError ? error.message : "Unable to send coordination message."),
+    onError: (error) => {
+      setSuccess(null);
+      setError(error instanceof ApiError ? error.message : "Unable to send coordination message.");
+    },
   });
 
   const messages = data?.messages || [];
@@ -48,7 +56,9 @@ const CoordinationPage = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-heading">Manager & Official Coordination</h1>
-        <p className="text-muted-foreground text-sm mt-1">Share operational updates, oversight requests, and action items.</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Share operational updates, oversight requests, and action items.
+        </p>
       </div>
 
       <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
@@ -81,8 +91,9 @@ const CoordinationPage = () => {
             ) : (
               messages.map((message) => {
                 const Icon = message.senderRole === "manager" ? UserCog : Shield;
+
                 return (
-                  <div key={message.id} className="rounded-xl border bg-muted/40 p-4">
+                  <div key={message.id} className="interactive-row border p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -92,11 +103,13 @@ const CoordinationPage = () => {
                           <p className="font-medium text-sm">{message.senderName}</p>
                           <p className="text-xs text-muted-foreground capitalize">
                             {message.senderRole}
-                            {message.marketName ? ` • ${message.marketName}` : " • All markets"}
+                            {message.marketName ? ` - ${message.marketName}` : " - All markets"}
                           </p>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(message.createdAt).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatHumanDateTime(message.createdAt)}
+                      </p>
                     </div>
                     <div className="mt-3">
                       <p className="font-heading font-semibold text-sm">{message.subject}</p>
@@ -134,13 +147,34 @@ const CoordinationPage = () => {
             )}
             <div className="space-y-1.5">
               <Label htmlFor="coordination-subject">Subject</Label>
-              <Input id="coordination-subject" value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Weekly update, oversight note, action request..." />
+              <Input
+                id="coordination-subject"
+                value={subject}
+                onChange={(event) => setSubject(event.target.value)}
+                placeholder="Weekly update, oversight note, action request..."
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="coordination-body">Message</Label>
-              <Textarea id="coordination-body" value={body} onChange={(event) => setBody(event.target.value)} rows={6} placeholder="Write a concise operational update or request." />
+              <Textarea
+                id="coordination-body"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                rows={6}
+                placeholder="Write a concise operational update or request."
+              />
             </div>
-            {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
+            {success && (
+              <div className="flex items-center gap-2 rounded-lg border border-success/25 bg-success/10 px-3 py-2 text-sm text-success">
+                <CheckCircle2 className="h-4 w-4" />
+                {success}
+              </div>
+            )}
+            {error && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             <Button className="w-full" onClick={() => postMessage.mutate()} disabled={postMessage.isPending}>
               <Send className="w-4 h-4 mr-2" />
               Send Message

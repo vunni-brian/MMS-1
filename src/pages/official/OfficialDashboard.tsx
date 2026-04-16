@@ -16,6 +16,7 @@ import {
 } from "recharts";
 
 import { api, ApiError } from "@/lib/api";
+import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -302,7 +303,7 @@ const OfficialDashboard = () => {
       : null,
     openMaintenanceTickets > 0 ? `${openMaintenanceTickets} critical safety or maintenance issues remain open.` : null,
     auditSummary.variance !== 0
-      ? `Collections and bank deposits are out of balance by UGX ${Math.abs(auditSummary.variance).toLocaleString()}.`
+      ? `Collections and bank deposits are out of balance by ${formatCurrency(Math.abs(auditSummary.variance))}.`
       : null,
     bookings.filter((booking) => booking.status === "pending").length >= 2
       ? `${bookings.filter((booking) => booking.status === "pending").length} booking applications are still waiting for manager review.`
@@ -313,8 +314,8 @@ const OfficialDashboard = () => {
   const scopeLabel = selectedMarket ? `${selectedMarket.name} (${selectedMarket.location})` : "All Markets";
 
   const stats = [
-    { label: "Total Revenue", value: `UGX ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-success" },
-    { label: "Utility Collections", value: `UGX ${utilityCollections.toLocaleString()}`, icon: Landmark, color: "text-info" },
+    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-success" },
+    { label: "Utility Collections", value: formatCurrency(utilityCollections), icon: Landmark, color: "text-info" },
     { label: "Total Vendors", value: vendors.length.toLocaleString(), icon: Users, color: "text-primary" },
     { label: "Active Stalls", value: activeStalls.toLocaleString(), icon: ShieldCheck, color: "text-success" },
   ];
@@ -372,7 +373,7 @@ const OfficialDashboard = () => {
             <div className="rounded-xl bg-destructive/10 p-3"><p className="text-xs text-muted-foreground">Rejected Vendors</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "rejected").length}</p></div>
             <div className="rounded-xl bg-warning/10 p-3"><p className="text-xs text-muted-foreground">Pending Approvals</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "pending").length}</p></div>
             <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Unpaid Penalties</p><p className="mt-1 text-lg font-bold font-heading">{unpaidPenalties}</p></div>
-            <div className="rounded-xl bg-success/10 p-3"><p className="text-xs text-muted-foreground">Penalty Collections</p><p className="mt-1 text-lg font-bold font-heading">UGX {penaltyCollections.toLocaleString()}</p></div>
+            <div className="rounded-xl bg-success/10 p-3"><p className="text-xs text-muted-foreground">Penalty Collections</p><p className="mt-1 text-lg font-bold font-heading">{formatCurrency(penaltyCollections)}</p></div>
           </CardContent>
         </Card>
 
@@ -391,7 +392,7 @@ const OfficialDashboard = () => {
                   <div key={event.id} className="rounded-xl border bg-muted/20 p-3 text-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div><p className="font-medium">{event.action.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{event.actorName} - {event.entityType}</p></div>
-                      <p className="text-xs text-muted-foreground">{new Date(event.createdAt).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">{formatHumanDateTime(event.createdAt)}</p>
                     </div>
                   </div>
                 ))
@@ -459,10 +460,10 @@ const OfficialDashboard = () => {
                 <div key={penalty.id} className="rounded-xl border bg-background/80 p-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div><p className="font-medium">Penalty - {penalty.reason}</p><p className="mt-1 text-xs text-muted-foreground">{penalty.vendorName} - {penalty.marketName || penalty.marketId}</p></div>
-                    <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">UGX {penalty.amount.toLocaleString()}</span></div>
+                    <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">{formatCurrency(penalty.amount)}</span></div>
                   </div>
                   <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                    <span>Issued by {penalty.issuedByName || "Official"} on {new Date(penalty.createdAt).toLocaleString()}</span>
+                    <span>Issued by {penalty.issuedByName || "Official"} on {formatHumanDateTime(penalty.createdAt)}</span>
                     <span>{penalty.latestPaymentReference ? `Reference: ${penalty.latestPaymentReference}` : "No payment reference yet"}</span>
                   </div>
                   {(penalty.status === "unpaid" || penalty.status === "pending") && (
@@ -633,15 +634,15 @@ const OfficialDashboard = () => {
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="rounded-xl bg-muted/40 p-3">
                 <p className="text-xs text-muted-foreground">Collected</p>
-                <p className="text-lg font-bold font-heading mt-1">UGX {auditSummary.collectedTotal.toLocaleString()}</p>
+                <p className="text-lg font-bold font-heading mt-1">{formatCurrency(auditSummary.collectedTotal)}</p>
               </div>
               <div className="rounded-xl bg-muted/40 p-3">
                 <p className="text-xs text-muted-foreground">Deposited</p>
-                <p className="text-lg font-bold font-heading mt-1">UGX {auditSummary.depositedTotal.toLocaleString()}</p>
+                <p className="text-lg font-bold font-heading mt-1">{formatCurrency(auditSummary.depositedTotal)}</p>
               </div>
               <div className="rounded-xl bg-muted/40 p-3">
                 <p className="text-xs text-muted-foreground">Variance</p>
-                <p className="text-lg font-bold font-heading mt-1">UGX {auditSummary.variance.toLocaleString()}</p>
+                <p className="text-lg font-bold font-heading mt-1">{formatCurrency(auditSummary.variance)}</p>
               </div>
             </div>
             <div className="space-y-2">
@@ -651,10 +652,10 @@ const OfficialDashboard = () => {
                     <p className="font-medium">{row.reference}</p>
                     <p className="text-xs text-muted-foreground">
                       {row.marketName ? `${row.marketName} - ` : ""}
-                      {new Date(row.depositedAt).toLocaleString()}
+                      {formatHumanDateTime(row.depositedAt)}
                     </p>
                   </div>
-                  <p className="font-semibold">UGX {row.amount.toLocaleString()}</p>
+                  <p className="font-semibold">{formatCurrency(row.amount)}</p>
                 </div>
               ))}
             </div>

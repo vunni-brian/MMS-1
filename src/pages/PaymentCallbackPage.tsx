@@ -6,6 +6,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { getPaymentPurpose } from "@/lib/payment-history";
+import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -101,7 +102,7 @@ const PaymentCallbackPage = () => {
                     </div>
                     <div className="rounded-xl bg-muted/30 p-4">
                       <p className="text-xs text-muted-foreground">Amount</p>
-                      <p className="mt-1 font-medium">UGX {payment.amount.toLocaleString()}</p>
+                      <p className="mt-1 font-medium">{formatCurrency(payment.amount)}</p>
                     </div>
                     <div className="rounded-xl bg-muted/30 p-4">
                       <p className="text-xs text-muted-foreground">Reference</p>

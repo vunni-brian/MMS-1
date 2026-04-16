@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -117,7 +118,7 @@ const StallsPage = () => {
           <button
             key={stall.id}
             onClick={() => setSelectedStall(stall)}
-            className={`text-left p-4 rounded-xl border-2 transition-all hover:shadow-md ${statusColors[stall.status] || "border-border"}`}
+            className={`text-left p-4 rounded-xl border-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${statusColors[stall.status] || "border-border"}`}
           >
             <div className="flex items-center justify-between mb-2 gap-2">
               <span className="font-heading font-bold text-lg">{stall.name}</span>
@@ -125,7 +126,7 @@ const StallsPage = () => {
             </div>
             <p className="text-xs text-muted-foreground">{stall.zone}</p>
             <p className="text-xs text-muted-foreground">{stall.size}</p>
-            <p className="font-medium text-sm mt-2">UGX {stall.pricePerMonth.toLocaleString()}/mo</p>
+            <p className="font-medium text-sm mt-2">{formatCurrency(stall.pricePerMonth)}/mo</p>
             {stall.vendorName && <p className="text-xs text-muted-foreground mt-1">{stall.vendorName}</p>}
           </button>
         ))}
@@ -150,7 +151,7 @@ const StallsPage = () => {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Monthly Rent</span>
-                  <p className="font-medium mt-1">UGX {selectedStall.pricePerMonth.toLocaleString()}</p>
+                  <p className="font-medium mt-1">{formatCurrency(selectedStall.pricePerMonth)}</p>
                 </div>
                 {selectedStall.vendorName && (
                   <div className="col-span-2">

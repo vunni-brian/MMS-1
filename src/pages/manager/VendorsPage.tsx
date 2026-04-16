@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Eye, KeyRound, Search, X } from "lucide-react";
 
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
+import { formatCurrency, formatHumanDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -180,8 +181,8 @@ const VendorsPage = () => {
                     <TableCell>
                       <StatusBadge status={row.operationalStatus} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground">UGX {row.totalOutstanding.toLocaleString()}</TableCell>
-                    <TableCell className="text-muted-foreground">{row.nextPermitExpiry?.endDate || "No active permit"}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatCurrency(row.totalOutstanding)}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No active permit"}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" onClick={() => setSelectedVendorId(row.vendor.id)}>
@@ -233,7 +234,7 @@ const VendorsPage = () => {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Outstanding</span>
-                  <p className="font-medium">UGX {selectedRow.totalOutstanding.toLocaleString()}</p>
+                  <p className="font-medium">{formatCurrency(selectedRow.totalOutstanding)}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Phone</span>
@@ -246,7 +247,7 @@ const VendorsPage = () => {
               </div>
               <div className="rounded-lg bg-muted/40 p-3">
                 <span className="text-muted-foreground">Next Permit Expiry</span>
-                <p className="font-medium mt-1">{selectedRow.nextPermitExpiry?.endDate || "No active permit on record"}</p>
+                <p className="font-medium mt-1">{selectedRow.nextPermitExpiry ? formatHumanDate(selectedRow.nextPermitExpiry.endDate) : "No active permit on record"}</p>
               </div>
               {selectedRow.vendor.idDocument && (
                 <div className="rounded-lg bg-muted/40 p-3">

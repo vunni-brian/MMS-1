@@ -4,6 +4,7 @@ import { Lock } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
+import { formatHumanDateTime } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,7 +78,7 @@ const AuditPage = () => {
               <TableBody>
                 {events.map((event) => (
                   <TableRow key={event.id}>
-                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{new Date(event.createdAt).toLocaleString()}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatHumanDateTime(event.createdAt)}</TableCell>
                     <TableCell className="text-sm">{event.marketName || "All markets"}</TableCell>
                     <TableCell className="font-medium text-sm">{event.actorName}</TableCell>
                     <TableCell>

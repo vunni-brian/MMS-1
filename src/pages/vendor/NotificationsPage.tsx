@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CreditCard, Grid3X3, MessageSquare, Settings } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { formatHumanDateTime } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
 const iconMap = {
@@ -10,6 +11,14 @@ const iconMap = {
   booking: Grid3X3,
   complaint: MessageSquare,
   system: Bell,
+};
+
+const typeLabels = {
+  otp: "Security",
+  payment: "Payment",
+  booking: "Booking",
+  complaint: "Complaint",
+  system: "System",
 };
 
 const NotificationsPage = () => {
@@ -44,7 +53,7 @@ const NotificationsPage = () => {
             return (
               <Card
                 key={notification.id}
-                className={`card-warm cursor-pointer ${!notification.read ? "border-primary/30" : ""}`}
+                className={`card-warm cursor-pointer ${!notification.read ? "border-primary/30 bg-primary/5" : ""}`}
                 onClick={() => {
                   if (!notification.read) {
                     markRead.mutate(notification.id);
@@ -56,8 +65,11 @@ const NotificationsPage = () => {
                     <Icon className={`w-4 h-4 ${!notification.read ? "text-primary" : "text-muted-foreground"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="status-badge border-primary/15 bg-primary/10 text-primary">{typeLabels[notification.type]}</span>
+                      <span className="text-xs text-muted-foreground">{formatHumanDateTime(notification.createdAt)}</span>
+                    </div>
                     <p className={`text-sm whitespace-pre-line ${!notification.read ? "font-medium" : ""}`}>{notification.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{new Date(notification.createdAt).toLocaleString()}</p>
                   </div>
                   {!notification.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />}
                 </CardContent>

@@ -5,6 +5,7 @@ import { ArrowUpRight, CalendarRange, ExternalLink, ReceiptText, ShieldCheck, Wa
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { filterPaymentsByHistory, getPaymentHistoryYears, getPaymentPurpose, getPaymentReference, type PaymentHistoryStatusFilter } from "@/lib/payment-history";
+import { formatCurrency, formatHumanDate, formatHumanDateRange, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,15 +38,11 @@ const paymentStatusFilters: { label: string; value: PaymentHistoryStatusFilter }
 ];
 
 const formatDateTime = (value: string | null, fallback = "Not available") => {
-  if (!value) return fallback;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? fallback : parsed.toLocaleString();
+  return formatHumanDateTime(value, fallback);
 };
 
 const formatDate = (value: string | null, fallback = "Not available") => {
-  if (!value) return fallback;
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? fallback : parsed.toLocaleDateString();
+  return formatHumanDate(value ? `${value}T00:00:00` : null, fallback);
 };
 
 const getPaymentStatusLabel = (status: Payment["status"]) => (status === "pending" ? "Pending" : undefined);
@@ -67,7 +64,7 @@ const getUtilityCalculationSummary = (charge: UtilityCharge) => {
   if (charge.calculationMethod === "fixed") return "Fixed service charge";
   if (charge.usageQuantity == null || charge.ratePerUnit == null) return `${charge.calculationMethod} usage`;
   const unit = charge.unit || "unit";
-  return `${charge.usageQuantity.toLocaleString()} ${unit} x UGX ${charge.ratePerUnit.toLocaleString()} per ${unit}`;
+  return `${charge.usageQuantity.toLocaleString()} ${unit} x ${formatCurrency(charge.ratePerUnit)} per ${unit}`;
 };
 
 const getReceiptMessageClassName = (status: Payment["status"]) =>
@@ -194,10 +191,10 @@ const PaymentsPage = () => {
                 return (
                   <div key={booking.id} className="rounded-lg bg-muted/50 p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div><p className="font-medium text-sm">{booking.stallName}</p><p className="text-xs text-muted-foreground">{booking.startDate} to {booking.endDate} - UGX {booking.amount.toLocaleString()}</p></div>
+                      <div><p className="font-medium text-sm">{booking.stallName}</p><p className="text-xs text-muted-foreground">{formatHumanDateRange(booking.startDate, booking.endDate)} - {formatCurrency(booking.amount)}</p></div>
                       <div className="flex items-center gap-2">
                         {pendingPayment && <StatusBadge status="pending" label="Pending" />}
-                        <Button onClick={() => { setPaymentIntent({ title: booking.stallName, subtitle: `${booking.startDate} to ${booking.endDate}`, amount: booking.amount, payload: { bookingId: booking.id } }); setError(null); }} disabled={Boolean(pendingPayment)}>
+                        <Button onClick={() => { setPaymentIntent({ title: booking.stallName, subtitle: formatHumanDateRange(booking.startDate, booking.endDate), amount: booking.amount, payload: { bookingId: booking.id } }); setError(null); }} disabled={Boolean(pendingPayment)}>
                           <Wallet className="mr-1 h-4 w-4" />
                           {pendingPayment ? "Awaiting Confirmation" : "Pay Now"}
                         </Button>
@@ -221,7 +218,7 @@ const PaymentsPage = () => {
                   <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div><p className="font-medium">{getUtilityChargeTitle(charge)}</p><p className="mt-1 text-xs text-muted-foreground">{utilityTypeLabels[charge.utilityType]} - {charge.billingPeriod}{charge.stallName ? ` - ${charge.stallName}` : ""}</p></div>
-                      <div className="flex items-center gap-2"><StatusBadge status={charge.status} label={getUtilityStatusLabel(charge.status)} /><span className="text-sm font-semibold">UGX {charge.amount.toLocaleString()}</span></div>
+                      <div className="flex items-center gap-2"><StatusBadge status={charge.status} label={getUtilityStatusLabel(charge.status)} /><span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span></div>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
@@ -252,7 +249,7 @@ const PaymentsPage = () => {
                   <div key={penalty.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div><p className="font-medium">Penalty - {penalty.reason}</p><p className="mt-1 text-xs text-muted-foreground">{penalty.marketName || "Market"}{penalty.relatedUtilityChargeDescription ? ` - ${penalty.relatedUtilityChargeDescription}` : ""}</p></div>
-                      <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">UGX {penalty.amount.toLocaleString()}</span></div>
+                      <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">{formatCurrency(penalty.amount)}</span></div>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <EvidenceField label="Issued At" value={formatDateTime(penalty.createdAt)} />
@@ -317,7 +314,7 @@ const PaymentsPage = () => {
                     <TableRow key={payment.id}>
                       {role !== "vendor" && <TableCell className="font-medium">{payment.vendorName}</TableCell>}
                       <TableCell className="min-w-[240px]"><div><p className="font-medium">{getPaymentPurpose(payment)}</p><div className="mt-2 flex items-center gap-2"><span className={`rounded px-2 py-0.5 text-xs font-medium ${paymentMethodMeta[payment.method].className}`}>{paymentMethodMeta[payment.method].label}</span><span className="text-xs text-muted-foreground">{getPaymentChannelDescription(payment)}</span></div></div></TableCell>
-                      <TableCell>UGX {payment.amount.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
                       <TableCell className="min-w-[180px] font-mono text-xs">{getPaymentReference(payment)}</TableCell>
                       <TableCell className="min-w-[180px] font-mono text-xs">{payment.transactionId || "Awaiting confirmation"}</TableCell>
                       <TableCell><StatusBadge status={payment.status} label={getPaymentStatusLabel(payment.status)} /></TableCell>
@@ -338,7 +335,7 @@ const PaymentsPage = () => {
           <DialogHeader><DialogTitle className="font-heading">Secure Checkout</DialogTitle></DialogHeader>
           {paymentIntent && (
             <div className="space-y-4">
-              <div className="rounded-xl bg-muted/40 p-4 text-sm"><p className="font-medium">{paymentIntent.title}</p><p className="mt-1 text-muted-foreground">{paymentIntent.subtitle}</p><p className="mt-2 text-lg font-bold font-heading">UGX {paymentIntent.amount.toLocaleString()}</p></div>
+              <div className="rounded-xl bg-muted/40 p-4 text-sm"><p className="font-medium">{paymentIntent.title}</p><p className="mt-1 text-muted-foreground">{paymentIntent.subtitle}</p><p className="mt-2 text-lg font-bold font-heading">{formatCurrency(paymentIntent.amount)}</p></div>
               <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-4 w-4 text-info" /><div className="space-y-2"><p>Pesapal will open a secure checkout where the customer can complete payment.</p><p>{user?.email ? `The current checkout will use ${user.email} and ${user.phone}.` : "The current checkout will use the phone number attached to the signed-in vendor account."}</p></div></div></div>
               <Button className="w-full" onClick={() => initiatePayment.mutate(paymentIntent.payload)} disabled={initiatePayment.isPending}><ArrowUpRight className="mr-2 h-4 w-4" />{initiatePayment.isPending ? "Opening Checkout..." : "Continue to Pesapal"}</Button>
             </div>
@@ -367,7 +364,7 @@ const PaymentsPage = () => {
               <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 p-4"><div><p className="text-xs text-muted-foreground">Receipt ID</p><p className="mt-1 font-medium">{paymentReceiptId}</p></div><StatusBadge status={selectedReceiptPayment.status} label={getPaymentStatusLabel(selectedReceiptPayment.status)} /></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <EvidenceField label="Purpose" value={paymentPurpose || "Payment"} />
-                <EvidenceField label="Amount" value={`UGX ${paymentAmount.toLocaleString()}`} />
+                <EvidenceField label="Amount" value={formatCurrency(paymentAmount)} />
                 <EvidenceField label="Reference" value={paymentReference || "Awaiting reference"} mono />
                 <EvidenceField label="Transaction ID" value={paymentTransactionId} mono />
                 <EvidenceField label="Created At" value={formatDateTime(selectedReceiptPayment.createdAt)} />

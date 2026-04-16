@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, BarChart3, CreditCard, MessagesSquare, Scrol
 import { Link } from "react-router-dom";
 
 import { api, ApiError } from "@/lib/api";
+import { formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -224,7 +225,7 @@ const AdminDashboard = () => {
               <CardContent className="space-y-3 text-sm">
                 <p className="text-muted-foreground">{chargeDescriptions[chargeType.name]}</p>
                 <div className="rounded-xl bg-muted/30 p-3 text-xs text-muted-foreground">
-                  Last updated by {chargeType.updatedByName || "system"} on {new Date(chargeType.updatedAt).toLocaleString()}.
+                  Last updated by {chargeType.updatedByName || "system"} on {formatHumanDateTime(chargeType.updatedAt)}.
                 </div>
               </CardContent>
             </Card>

@@ -4,6 +4,7 @@ import { PlusCircle, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
+import { formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,15 +29,11 @@ const calculationOptions: { value: UtilityCalculationMethod; label: string }[] =
 ];
 
 const formatDate = (value: string | null, fallback = "Not available") => {
-  if (!value) return fallback;
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? fallback : parsed.toLocaleDateString();
+  return formatHumanDate(value ? `${value}T00:00:00` : null, fallback);
 };
 
 const formatDateTime = (value: string | null, fallback = "Not available") => {
-  if (!value) return fallback;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? fallback : parsed.toLocaleString();
+  return formatHumanDateTime(value, fallback);
 };
 
 const BillingPage = () => {
@@ -217,7 +214,7 @@ const BillingPage = () => {
                 <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Scope</p><p className="mt-1 font-medium capitalize">{chargeType.scope}</p></div>
                 <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Status</p><p className={`mt-1 font-medium ${chargeType.isEnabled ? "text-success" : "text-destructive"}`}>{chargeType.isEnabled ? "Enabled" : "Disabled"}</p></div>
               </div>
-              <div className="rounded-xl bg-muted/20 p-3 text-muted-foreground">Last updated by {chargeType.updatedByName || "system"} on {new Date(chargeType.updatedAt).toLocaleString()}.</div>
+              <div className="rounded-xl bg-muted/20 p-3 text-muted-foreground">Last updated by {chargeType.updatedByName || "system"} on {formatHumanDateTime(chargeType.updatedAt)}.</div>
               <Button variant={chargeType.isEnabled ? "destructive" : "default"} disabled={!canManageChargeTypes || updateChargeType.isPending} onClick={() => updateChargeType.mutate({ chargeTypeId: chargeType.id, isEnabled: !chargeType.isEnabled })}>
                 {chargeType.isEnabled ? "Disable Charge Type" : "Enable Charge Type"}
               </Button>
@@ -317,7 +314,7 @@ const BillingPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={charge.status} label={charge.status === "pending" ? "Pending" : undefined} />
-                  <span className="text-sm font-semibold">UGX {charge.amount.toLocaleString()}</span>
+                  <span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span>
                 </div>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
