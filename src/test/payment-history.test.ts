@@ -9,6 +9,7 @@ const makePayment = (overrides: Partial<Payment>): Payment => ({
   marketName: "Kampala Central Market",
   bookingId: "booking_1",
   utilityChargeId: null,
+  penaltyId: null,
   vendorId: "vendor_1",
   vendorName: "Amina",
   stallName: "Stall A12",

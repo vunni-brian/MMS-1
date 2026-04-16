@@ -9,6 +9,7 @@ import type {
   DuesReportRow,
   FinancialAuditRow,
   Market,
+  Penalty,
   Payment,
   PaymentMethod,
   ResourceRequest,
@@ -244,7 +245,7 @@ export const api = {
       body: JSON.stringify({ transactionId }),
     }),
 
-  initiatePayment: (input: { bookingId?: string | null; utilityChargeId?: string | null }) =>
+  initiatePayment: (input: { bookingId?: string | null; utilityChargeId?: string | null; penaltyId?: string | null }) =>
     apiRequest<{
       payment: Payment;
       status: string;
@@ -288,6 +289,23 @@ export const api = {
     }),
   cancelUtilityCharge: (utilityChargeId: string) =>
     apiRequest<{ utilityCharge: UtilityCharge }>(`/utility-charges/${utilityChargeId}/cancel`, {
+      method: "POST",
+    }),
+  getPenalties: (options?: { marketId?: string; status?: string }) =>
+    apiRequest<{ penalties: Penalty[] }>(`/penalties${buildQuery({ marketId: options?.marketId, status: options?.status })}`),
+  createPenalty: (input: {
+    marketId?: string;
+    vendorId: string;
+    relatedUtilityChargeId?: string | null;
+    amount: number;
+    reason: string;
+  }) =>
+    apiRequest<{ penalty: Penalty }>("/penalties", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  cancelPenalty: (penaltyId: string) =>
+    apiRequest<{ penalty: Penalty }>(`/penalties/${penaltyId}/cancel`, {
       method: "POST",
     }),
   getReceipt: (paymentId: string) =>

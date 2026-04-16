@@ -320,3 +320,4 @@ If you use a custom frontend domain, add that domain to Render's `APP_URL` list 
 - Fallback USSD/SMS routes are disabled unless fallback simulation is enabled
 - Managers, officials, and admins can send coordination messages; officials and admins can review resource requests
 - Planned utilities billing design notes are documented in [docs/utilities-billing-design.md](C:\Users\ousam\OneDrive\Desktop\MMS-1\docs\utilities-billing-design.md)
+- Penalties and compliance enforcement notes are documented in [docs/penalties-compliance-design.md](C:\Users\ousam\OneDrive\Desktop\MMS-1\docs\penalties-compliance-design.md)

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import type { Payment, PaymentMethod, UtilityCharge, UtilityType } from "@/types";
+import type { Payment, PaymentMethod, Penalty, UtilityCharge, UtilityType } from "@/types";
 
 const paymentMethodMeta: Record<PaymentMethod, { label: string; className: string }> = {
   mtn: { label: "MTN", className: "bg-warning/10 text-warning" },
@@ -56,6 +56,7 @@ const getPaymentChannelDescription = (payment: Payment) => {
   const methodLabel = paymentMethodMeta[payment.method].label;
   if (payment.bookingId) return `${methodLabel} payment for booking ${payment.bookingId}`;
   if (payment.utilityChargeId) return `${methodLabel} utility payment`;
+  if (payment.penaltyId) return `${methodLabel} penalty payment`;
   return `${methodLabel} payment`;
 };
 
@@ -86,7 +87,7 @@ const EvidenceField = ({ label, value, mono = false }: { label: string; value: s
 const PaymentsPage = () => {
   const { role, user } = useAuth();
   const queryClient = useQueryClient();
-  const [paymentIntent, setPaymentIntent] = useState<{ title: string; subtitle: string; amount: number; payload: { bookingId?: string | null; utilityChargeId?: string | null } } | null>(null);
+  const [paymentIntent, setPaymentIntent] = useState<{ title: string; subtitle: string; amount: number; payload: { bookingId?: string | null; utilityChargeId?: string | null; penaltyId?: string | null } } | null>(null);
   const [selectedReceiptPaymentId, setSelectedReceiptPaymentId] = useState<string | null>(null);
   const [checkoutSession, setCheckoutSession] = useState<{ redirectUrl: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<PaymentHistoryStatusFilter>("all");
@@ -103,6 +104,12 @@ const PaymentsPage = () => {
     enabled: role === "vendor",
     refetchInterval: 8_000,
   });
+  const { data: penaltiesData } = useQuery({
+    queryKey: ["penalties", role, user?.marketId || "all"],
+    queryFn: () => api.getPenalties(),
+    enabled: role === "vendor",
+    refetchInterval: 8_000,
+  });
   const receiptQuery = useQuery({
     queryKey: ["receipt", selectedReceiptPaymentId],
     queryFn: () => api.getReceipt(selectedReceiptPaymentId!),
@@ -110,11 +117,12 @@ const PaymentsPage = () => {
   });
 
   const initiatePayment = useMutation({
-    mutationFn: (payload: { bookingId?: string | null; utilityChargeId?: string | null }) => api.initiatePayment(payload),
+    mutationFn: (payload: { bookingId?: string | null; utilityChargeId?: string | null; penaltyId?: string | null }) => api.initiatePayment(payload),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["payments"] });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["utility-charges"] });
+      await queryClient.invalidateQueries({ queryKey: ["penalties"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setError(null);
       setPaymentIntent(null);
@@ -130,6 +138,7 @@ const PaymentsPage = () => {
   const bookings = bookingsData?.bookings || [];
   const payments = paymentsData?.payments || [];
   const utilityCharges = utilityChargesData?.utilityCharges || [];
+  const penalties = penaltiesData?.penalties || [];
   const pendingBookings = bookings.filter((booking) => booking.status === "approved");
   const filteredPayments = role === "vendor"
     ? filterPaymentsByHistory(payments, { status: statusFilter, year: yearFilter, dateFrom, dateTo })
@@ -141,6 +150,10 @@ const PaymentsPage = () => {
   }, {});
   const pendingPaymentByUtilityCharge = payments.reduce<Record<string, Payment>>((acc, payment) => {
     if (payment.status === "pending" && payment.utilityChargeId) acc[payment.utilityChargeId] = payment;
+    return acc;
+  }, {});
+  const pendingPaymentByPenalty = payments.reduce<Record<string, Payment>>((acc, payment) => {
+    if (payment.status === "pending" && payment.penaltyId) acc[payment.penaltyId] = payment;
     return acc;
   }, {});
   const selectedReceiptPayment = payments.find((payment) => payment.id === selectedReceiptPaymentId) || null;
@@ -169,7 +182,7 @@ const PaymentsPage = () => {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Approved Bookings</p><p className="mt-1 text-xl font-bold font-heading">{pendingBookings.length}</p></CardContent></Card>
             <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Utility Charges</p><p className="mt-1 text-xl font-bold font-heading">{utilityCharges.length}</p></CardContent></Card>
-            <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Pending Payments</p><p className="mt-1 text-xl font-bold font-heading">{payments.filter((payment) => payment.status === "pending").length}</p></CardContent></Card>
+            <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Penalties</p><p className="mt-1 text-xl font-bold font-heading">{penalties.length}</p></CardContent></Card>
             <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Completed Payments</p><p className="mt-1 text-xl font-bold font-heading">{payments.filter((payment) => payment.status === "completed").length}</p></CardContent></Card>
           </div>
 
@@ -220,6 +233,37 @@ const PaymentsPage = () => {
                       {canPay && <Button onClick={() => { setPaymentIntent({ title: getUtilityChargeTitle(charge), subtitle: `${utilityTypeLabels[charge.utilityType]} - ${charge.billingPeriod}`, amount: charge.amount, payload: { utilityChargeId: charge.id } }); setError(null); }} disabled={Boolean(pendingPayment)}><Wallet className="mr-1 h-4 w-4" />{actionLabel}</Button>}
                       {!canPay && (pendingPayment || charge.status === "pending") && <Button disabled><Wallet className="mr-1 h-4 w-4" />Awaiting Confirmation</Button>}
                       {canViewReceipt && <Button variant="outline" onClick={() => setSelectedReceiptPaymentId(charge.latestPaymentId!)}><ReceiptText className="mr-1 h-4 w-4" />View Receipt</Button>}
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          <Card className="card-warm">
+            <CardHeader className="pb-3"><CardTitle className="text-base font-heading">Penalties</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {penalties.length === 0 ? <p className="text-sm text-muted-foreground">No penalties have been issued to your account.</p> : penalties.map((penalty: Penalty) => {
+                const pendingPayment = pendingPaymentByPenalty[penalty.id];
+                const canPay = penalty.status === "unpaid";
+                const canViewReceipt = penalty.status === "paid" && Boolean(penalty.latestPaymentId);
+                const actionLabel = pendingPayment || penalty.status === "pending" ? "Awaiting Confirmation" : penalty.paymentCount > 0 ? "Retry Payment" : "Pay Now";
+                return (
+                  <div key={penalty.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div><p className="font-medium">Penalty - {penalty.reason}</p><p className="mt-1 text-xs text-muted-foreground">{penalty.marketName || "Market"}{penalty.relatedUtilityChargeDescription ? ` - ${penalty.relatedUtilityChargeDescription}` : ""}</p></div>
+                      <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">UGX {penalty.amount.toLocaleString()}</span></div>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <EvidenceField label="Issued At" value={formatDateTime(penalty.createdAt)} />
+                      <EvidenceField label="Latest Reference" value={penalty.latestPaymentReference || "Awaiting payment reference"} mono={Boolean(penalty.latestPaymentReference)} />
+                      <EvidenceField label="Payment Attempts" value={String(penalty.paymentCount)} />
+                      <EvidenceField label="Paid At" value={formatDateTime(penalty.paidAt, "Awaiting payment")} />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {canPay && <Button onClick={() => { setPaymentIntent({ title: `Penalty - ${penalty.reason}`, subtitle: penalty.relatedUtilityChargeDescription || "Compliance enforcement", amount: penalty.amount, payload: { penaltyId: penalty.id } }); setError(null); }} disabled={Boolean(pendingPayment)}><Wallet className="mr-1 h-4 w-4" />{actionLabel}</Button>}
+                      {!canPay && (pendingPayment || penalty.status === "pending") && <Button disabled><Wallet className="mr-1 h-4 w-4" />Awaiting Confirmation</Button>}
+                      {canViewReceipt && <Button variant="outline" onClick={() => setSelectedReceiptPaymentId(penalty.latestPaymentId!)}><ReceiptText className="mr-1 h-4 w-4" />View Receipt</Button>}
                     </div>
                   </div>
                 );

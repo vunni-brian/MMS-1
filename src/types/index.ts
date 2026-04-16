@@ -6,6 +6,8 @@ export type Permission =
   | "billing:manage"
   | "utility:read"
   | "utility:manage"
+  | "penalty:read"
+  | "penalty:manage"
   | "vendor:read"
   | "vendor:review"
   | "coordination:read"
@@ -38,6 +40,7 @@ export type ChargeTypeScope = "global" | "market";
 export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "other";
 export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
 export type UtilityChargeStatus = "unpaid" | "pending" | "paid" | "overdue" | "cancelled";
+export type PenaltyStatus = "unpaid" | "pending" | "paid" | "cancelled";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
@@ -156,6 +159,7 @@ export interface Payment {
   marketName: string | null;
   bookingId: string | null;
   utilityChargeId: string | null;
+  penaltyId: string | null;
   vendorId: string;
   vendorName: string;
   stallName: string | null;
@@ -196,6 +200,31 @@ export interface UtilityCharge {
   status: UtilityChargeStatus;
   createdBy: string | null;
   createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paidAt: string | null;
+  latestPaymentId: string | null;
+  latestPaymentStatus: PaymentStatus | null;
+  latestPaymentReceiptId: string | null;
+  latestPaymentReference: string | null;
+  latestPaymentCompletedAt: string | null;
+  paymentCount: number;
+}
+
+export interface Penalty {
+  id: string;
+  marketId: string;
+  marketName: string | null;
+  vendorId: string;
+  vendorName: string;
+  vendorPhone: string;
+  relatedUtilityChargeId: string | null;
+  relatedUtilityChargeDescription: string | null;
+  amount: number;
+  reason: string;
+  status: PenaltyStatus;
+  issuedBy: string | null;
+  issuedByName: string | null;
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;

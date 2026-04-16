@@ -7,6 +7,8 @@ export type Permission =
   | "billing:manage"
   | "utility:read"
   | "utility:manage"
+  | "penalty:read"
+  | "penalty:manage"
   | "vendor:read"
   | "vendor:review"
   | "coordination:read"
@@ -40,6 +42,7 @@ export type ChargeTypeScope = "global" | "market";
 export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "other";
 export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
 export type UtilityChargeStatus = "unpaid" | "pending" | "paid" | "overdue" | "cancelled";
+export type PenaltyStatus = "unpaid" | "pending" | "paid" | "cancelled";
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";

@@ -44,6 +44,13 @@ const OfficialDashboard = () => {
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [approvedAmounts, setApprovedAmounts] = useState<Record<string, string>>({});
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [penaltyError, setPenaltyError] = useState<string | null>(null);
+  const [penaltyForm, setPenaltyForm] = useState({
+    vendorId: "",
+    relatedUtilityChargeId: "none",
+    amount: "",
+    reason: "",
+  });
   const marketId = selectedMarketId === "all" ? undefined : selectedMarketId;
 
   const { data: marketsData } = useQuery({
@@ -78,6 +85,18 @@ const OfficialDashboard = () => {
     queryKey: ["resource-requests", "official", marketId || "all"],
     queryFn: () => api.getResourceRequests(marketId),
   });
+  const { data: utilityChargesData } = useQuery({
+    queryKey: ["utility-charges", "official", marketId || "all"],
+    queryFn: () => api.getUtilityCharges({ marketId }),
+  });
+  const { data: penaltiesData } = useQuery({
+    queryKey: ["penalties", "official", marketId || "all"],
+    queryFn: () => api.getPenalties({ marketId }),
+  });
+  const { data: auditData } = useQuery({
+    queryKey: ["audit", "official-dashboard", marketId || "all"],
+    queryFn: () => api.getAudit(marketId),
+  });
 
   const reviewResourceRequest = useMutation({
     mutationFn: ({
@@ -101,6 +120,36 @@ const OfficialDashboard = () => {
     onError: (error) => setReviewError(error instanceof ApiError ? error.message : "Unable to review resource request."),
   });
 
+  const issuePenalty = useMutation({
+    mutationFn: () =>
+      api.createPenalty({
+        marketId,
+        vendorId: penaltyForm.vendorId,
+        relatedUtilityChargeId: penaltyForm.relatedUtilityChargeId === "none" ? null : penaltyForm.relatedUtilityChargeId,
+        amount: Number(penaltyForm.amount),
+        reason: penaltyForm.reason,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["penalties"] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      await queryClient.invalidateQueries({ queryKey: ["audit"] });
+      setPenaltyForm({ vendorId: "", relatedUtilityChargeId: "none", amount: "", reason: "" });
+      setPenaltyError(null);
+    },
+    onError: (error) => setPenaltyError(error instanceof ApiError ? error.message : "Unable to issue penalty."),
+  });
+
+  const cancelPenalty = useMutation({
+    mutationFn: (penaltyId: string) => api.cancelPenalty(penaltyId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["penalties"] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      await queryClient.invalidateQueries({ queryKey: ["audit"] });
+      setPenaltyError(null);
+    },
+    onError: (error) => setPenaltyError(error instanceof ApiError ? error.message : "Unable to cancel penalty."),
+  });
+
   const markets = marketsData?.markets || [];
   const stalls = stallsData?.stalls || [];
   const vendors = vendorsData?.vendors || [];
@@ -108,6 +157,9 @@ const OfficialDashboard = () => {
   const tickets = ticketsData?.tickets || [];
   const bookings = bookingsData?.bookings || [];
   const resourceRequests = resourceRequestsData?.requests || [];
+  const utilityCharges = utilityChargesData?.utilityCharges || [];
+  const penalties = penaltiesData?.penalties || [];
+  const auditEvents = auditData?.events || [];
   const auditSummary = financialAuditData?.summary || { collectedTotal: 0, depositedTotal: 0, variance: 0 };
   const depositRows = financialAuditData?.rows || [];
   const selectedMarket = markets.find((market) => market.id === selectedMarketId) || null;
@@ -124,6 +176,14 @@ const OfficialDashboard = () => {
   const completedPayments = payments.filter((payment) => payment.status === "completed");
   const completedBookingPayments = completedPayments.filter((payment) => payment.chargeType === "booking_fee" && payment.bookingId);
   const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const utilityCollections = completedPayments.filter((payment) => payment.chargeType === "utilities").reduce((sum, payment) => sum + payment.amount, 0);
+  const penaltyCollections = completedPayments.filter((payment) => payment.chargeType === "penalties").reduce((sum, payment) => sum + payment.amount, 0);
+  const activeStalls = stalls.filter((stall) => stall.status === "active").length;
+  const unpaidUtilities = utilityCharges.filter((charge) => charge.status === "unpaid").length;
+  const overdueUtilities = utilityCharges.filter((charge) => charge.status === "overdue").length;
+  const unpaidPenalties = penalties.filter((penalty) => penalty.status === "unpaid" || penalty.status === "pending").length;
+  const paidPenalties = penalties.filter((penalty) => penalty.status === "paid").length;
+  const selectedVendorUtilityCharges = utilityCharges.filter((charge) => charge.vendorId === penaltyForm.vendorId);
   const occupancy = stalls.length
     ? Math.round((stalls.filter((stall) => stall.status === "active").length / stalls.length) * 100)
     : 0;
@@ -253,10 +313,10 @@ const OfficialDashboard = () => {
   const scopeLabel = selectedMarket ? `${selectedMarket.name} (${selectedMarket.location})` : "All Markets";
 
   const stats = [
-    { label: "Market Health Score", value: `${marketHealthScore}/100`, icon: ShieldCheck, color: "text-success" },
-    { label: "Aggregate Revenue", value: `UGX ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-success" },
-    { label: "Manager Performance", value: `${managerPerformanceIndex}/100`, icon: Users, color: "text-primary" },
-    { label: "Audit Variance", value: `UGX ${Math.abs(auditSummary.variance).toLocaleString()}`, icon: Landmark, color: "text-warning" },
+    { label: "Total Revenue", value: `UGX ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-success" },
+    { label: "Utility Collections", value: `UGX ${utilityCollections.toLocaleString()}`, icon: Landmark, color: "text-info" },
+    { label: "Total Vendors", value: vendors.length.toLocaleString(), icon: Users, color: "text-primary" },
+    { label: "Active Stalls", value: activeStalls.toLocaleString(), icon: ShieldCheck, color: "text-success" },
   ];
 
   return (
@@ -300,6 +360,122 @@ const OfficialDashboard = () => {
           </Card>
         ))}
       </div>
+
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <Card className="card-warm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-heading">Compliance Indicators</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-3">
+            <div className="rounded-xl bg-warning/10 p-3"><p className="text-xs text-muted-foreground">Unpaid Utilities</p><p className="mt-1 text-lg font-bold font-heading">{unpaidUtilities}</p></div>
+            <div className="rounded-xl bg-destructive/10 p-3"><p className="text-xs text-muted-foreground">Overdue Payments</p><p className="mt-1 text-lg font-bold font-heading">{overdueUtilities + unpaidPenalties}</p></div>
+            <div className="rounded-xl bg-destructive/10 p-3"><p className="text-xs text-muted-foreground">Rejected Vendors</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "rejected").length}</p></div>
+            <div className="rounded-xl bg-warning/10 p-3"><p className="text-xs text-muted-foreground">Pending Approvals</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "pending").length}</p></div>
+            <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Unpaid Penalties</p><p className="mt-1 text-lg font-bold font-heading">{unpaidPenalties}</p></div>
+            <div className="rounded-xl bg-success/10 p-3"><p className="text-xs text-muted-foreground">Penalty Collections</p><p className="mt-1 text-lg font-bold font-heading">UGX {penaltyCollections.toLocaleString()}</p></div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-warm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-heading">Audit Highlights</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {auditEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No audit actions are available for this scope yet.</p>
+            ) : (
+              auditEvents
+                .filter((event) => ["PAYMENT_COMPLETED", "CREATE_UTILITY_CHARGE", "ISSUE_PENALTY", "UPDATE_STALL", "UPDATE_TICKET"].includes(event.action) || event.action.includes("PAYMENT") || event.action.includes("TICKET"))
+                .slice(0, 5)
+                .map((event) => (
+                  <div key={event.id} className="rounded-xl border bg-muted/20 p-3 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div><p className="font-medium">{event.action.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{event.actorName} - {event.entityType}</p></div>
+                      <p className="text-xs text-muted-foreground">{new Date(event.createdAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <CardTitle className="text-base font-heading">Penalties & Compliance Enforcement</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">Issue penalties for overdue utilities or other non-compliance and track settlement through the payment gateway.</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Issued: {penalties.length} - Unpaid: {unpaidPenalties} - Paid: {paidPenalties}</p>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {penaltyError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{penaltyError}</div>}
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+            {!marketId ? (
+              <p className="text-sm text-muted-foreground">Select a specific market before issuing a penalty.</p>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="penalty-vendor">Vendor</Label>
+                  <Select value={penaltyForm.vendorId} onValueChange={(value) => setPenaltyForm((current) => ({ ...current, vendorId: value, relatedUtilityChargeId: "none" }))}>
+                    <SelectTrigger id="penalty-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                    <SelectContent>{vendors.filter((vendor) => vendor.status === "approved").map((vendor) => <SelectItem key={vendor.id} value={vendor.id}>{vendor.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="penalty-utility">Related Utility</Label>
+                  <Select value={penaltyForm.relatedUtilityChargeId} onValueChange={(value) => setPenaltyForm((current) => ({ ...current, relatedUtilityChargeId: value }))} disabled={!penaltyForm.vendorId}>
+                    <SelectTrigger id="penalty-utility"><SelectValue placeholder="Optional" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No utility link</SelectItem>
+                      {selectedVendorUtilityCharges.map((charge) => <SelectItem key={charge.id} value={charge.id}>{charge.description} ({charge.status})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="penalty-amount">Amount</Label>
+                  <Input id="penalty-amount" type="number" value={penaltyForm.amount} onChange={(event) => setPenaltyForm((current) => ({ ...current, amount: event.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="penalty-reason">Reason</Label>
+                  <Input id="penalty-reason" value={penaltyForm.reason} onChange={(event) => setPenaltyForm((current) => ({ ...current, reason: event.target.value }))} placeholder="Late utility payment, violation, etc." />
+                </div>
+                <div className="lg:col-span-2">
+                  <Button onClick={() => issuePenalty.mutate()} disabled={issuePenalty.isPending || !penaltyForm.vendorId || !penaltyForm.amount || !penaltyForm.reason.trim()}>
+                    {issuePenalty.isPending ? "Issuing Penalty..." : "Issue Penalty"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {penalties.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No penalties have been issued for this scope yet.</p>
+            ) : (
+              penalties.slice(0, 6).map((penalty) => (
+                <div key={penalty.id} className="rounded-xl border bg-background/80 p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div><p className="font-medium">Penalty - {penalty.reason}</p><p className="mt-1 text-xs text-muted-foreground">{penalty.vendorName} - {penalty.marketName || penalty.marketId}</p></div>
+                    <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">UGX {penalty.amount.toLocaleString()}</span></div>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                    <span>Issued by {penalty.issuedByName || "Official"} on {new Date(penalty.createdAt).toLocaleString()}</span>
+                    <span>{penalty.latestPaymentReference ? `Reference: ${penalty.latestPaymentReference}` : "No payment reference yet"}</span>
+                  </div>
+                  {(penalty.status === "unpaid" || penalty.status === "pending") && (
+                    <div className="mt-3">
+                      <Button variant="outline" size="sm" onClick={() => cancelPenalty.mutate(penalty.id)} disabled={cancelPenalty.isPending}>Cancel Penalty</Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="card-warm">
         <CardHeader className="pb-3">

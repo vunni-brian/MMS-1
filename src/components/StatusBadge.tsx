@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { BookingStatus, PaymentStatus, StallStatus, TicketStatus, UtilityChargeStatus, VendorApprovalStatus } from "@/types";
+import type { BookingStatus, PaymentStatus, PenaltyStatus, StallStatus, TicketStatus, UtilityChargeStatus, VendorApprovalStatus } from "@/types";
 
 const statusStyles: Record<string, string> = {
   active: "bg-primary/15 text-primary",
@@ -35,6 +35,7 @@ interface StatusBadgeProps {
   status:
     | BookingStatus
     | PaymentStatus
+    | PenaltyStatus
     | StallStatus
     | TicketStatus
     | UtilityChargeStatus

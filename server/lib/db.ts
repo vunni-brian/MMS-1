@@ -1058,6 +1058,82 @@ export const seedDatabase = async () => {
     ["attempt_utility_amina_1", "payment_utility_amina_1", isoFromDayOffset(-18), isoFromDayOffset(-18)],
   );
 
+  [
+    [
+      "penalty_grace_utility_late_1",
+      "market_kampala",
+      "user_vendor_grace",
+      "utility_charge_grace_sanitation_1",
+      15000,
+      "Late utility payment",
+      "unpaid",
+      "user_official_david",
+      isoFromDayOffset(-9),
+      isoFromDayOffset(-9),
+      null,
+    ],
+    [
+      "penalty_amina_paid_1",
+      "market_kampala",
+      "user_vendor_amina",
+      "utility_charge_amina_electricity_1",
+      10000,
+      "Late payment settlement",
+      "paid",
+      "user_official_david",
+      isoFromDayOffset(-12),
+      isoFromDayOffset(-8),
+      isoFromDayOffset(-8),
+    ],
+    [
+      "penalty_mary_utility_late_1",
+      "market_jinja",
+      "user_vendor_mary",
+      "utility_charge_mary_water_1",
+      12000,
+      "Delayed utility settlement",
+      "unpaid",
+      "user_official_david",
+      isoFromDayOffset(-2),
+      isoFromDayOffset(-2),
+      null,
+    ],
+  ].forEach((penalty) => {
+    run(
+      `INSERT OR IGNORE INTO penalties (id, market_id, vendor_id, related_utility_charge_id, amount, reason, status, issued_by, created_at, updated_at, paid_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      penalty,
+    );
+  });
+
+  run(
+    `INSERT OR IGNORE INTO payments (id, market_id, booking_id, utility_charge_id, penalty_id, vendor_id, provider, charge_type, amount, status, transaction_id, provider_reference, external_reference, phone, receipt_id, receipt_message, created_at, updated_at, completed_at)
+     VALUES (?, 'market_kampala', NULL, NULL, ?, 'user_vendor_amina', 'pesapal', 'penalties', 10000, 'completed', 'PESA-PENALTY-0001', 'PESA-PENALTY-0001', 'EXT-PENALTY-0001', '+256700100200', 'RCPT-PENALTY-0001', ?, ?, ?, ?)`,
+    [
+      "payment_penalty_amina_1",
+      "penalty_amina_paid_1",
+      [
+        "Payment Successful",
+        "",
+        "Your payment of UGX 10,000 for Penalty - Late payment settlement has been received successfully.",
+        "",
+        "Reference: PESA-PENALTY-0001",
+        "Status: Confirmed",
+        `Date: ${isoFromDayOffset(-8)}`,
+        "",
+        "Thank you.",
+      ].join("\n"),
+      isoFromDayOffset(-8),
+      isoFromDayOffset(-8),
+      isoFromDayOffset(-8),
+    ],
+  );
+  run(
+    `INSERT OR IGNORE INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
+     VALUES (?, ?, 'pesapal', 'completed', ?, ?)`,
+    ["attempt_penalty_amina_1", "payment_penalty_amina_1", isoFromDayOffset(-8), isoFromDayOffset(-8)],
+  );
+
   run(
     `INSERT OR IGNORE INTO payments (id, market_id, booking_id, vendor_id, provider, amount, status, transaction_id, external_reference, phone, receipt_id, receipt_message, created_at, updated_at, completed_at)
      VALUES (?, 'market_kampala', ?, 'user_vendor_grace', 'mtn', 120000, 'failed', 'MTN-FAILED-0001', 'EXT-GRACE-FAIL-0001', '+256780300400', NULL, 'Payment for B-02 failed. Reference MTN-FAILED-0001.', ?, ?, NULL)`,
