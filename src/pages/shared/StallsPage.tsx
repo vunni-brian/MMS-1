@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Grid3X3, Store, Wrench } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ConsolePage, DetailSheet, EmptyState, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
+import { toast } from "@/components/ui/sonner";
 import type { Stall } from "@/types";
 
 const emptyStallForm = {
@@ -21,7 +23,7 @@ const emptyStallForm = {
 };
 
 const StallsPage = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [selectedStall, setSelectedStall] = useState<Stall | null>(null);
@@ -46,8 +48,13 @@ const StallsPage = () => {
       setShowCreate(false);
       setStallForm(emptyStallForm);
       setError(null);
+      toast.success("Stall created", { description: "The stall is now part of the market inventory." });
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to create stall."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to create stall.";
+      setError(message);
+      toast.error("Stall was not created", { description: message });
+    },
   });
 
   const updateStall = useMutation({
@@ -57,8 +64,13 @@ const StallsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["stalls"] });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setError(null);
+      toast.success("Stall updated");
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to update stall."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to update stall.";
+      setError(message);
+      toast.error("Stall was not updated", { description: message });
+    },
   });
 
   const reserveStall = useMutation({
@@ -68,8 +80,15 @@ const StallsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setSelectedStall(null);
       setError(null);
+      toast.success("Application submitted", {
+        description: "The market manager will review the stall application.",
+      });
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to submit stall application."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to submit stall application.";
+      setError(message);
+      toast.error("Application was not submitted", { description: message });
+    },
   });
 
   const stalls = data?.stalls || [];
@@ -77,6 +96,16 @@ const StallsPage = () => {
   const filtered = (filter === "all" ? stalls : stalls.filter((stall) => stall.zone === filter)).filter((stall) =>
     role === "vendor" ? stall.status === "inactive" : true,
   );
+  const availableStalls = stalls.filter((stall) => stall.status === "inactive").length;
+  const occupiedStalls = stalls.filter((stall) => stall.status === "active").length;
+  const maintenanceStalls = stalls.filter((stall) => stall.status === "maintenance").length;
+  const visibleInventoryValue = filtered.reduce((sum, stall) => sum + stall.pricePerMonth, 0);
+  const stallKpis = [
+    { label: "Available", value: availableStalls, detail: "Open for vendor application", icon: CheckCircle2, tone: "success" as const },
+    { label: "Occupied", value: occupiedStalls, detail: "Currently assigned stalls", icon: Store, tone: "info" as const },
+    { label: "Maintenance", value: maintenanceStalls, detail: "Not available for booking", icon: Wrench, tone: maintenanceStalls ? "warning" as const : "default" as const },
+    { label: "Visible Monthly Value", value: formatCurrency(visibleInventoryValue), detail: "Based on current filter", icon: Grid3X3, tone: "default" as const },
+  ];
 
   const statusColors: Record<string, string> = {
     inactive: "border-success/40 bg-success/5",
@@ -85,17 +114,24 @@ const StallsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold font-heading">Stall Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {stalls.filter((stall) => stall.status === "inactive").length} stalls available for application
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <ConsolePage>
+      <PageHeader
+        eyebrow={role === "vendor" ? "Stall marketplace" : "Market inventory"}
+        title="Stall Management"
+        description={role === "vendor" ? "Find available stalls, inspect the rent and location, then submit an application for manager review." : "Manage stall availability, publication, maintenance state, and vendor allocation from one inventory workspace."}
+        actions={role === "manager" && <Button onClick={() => setShowCreate(true)}>New Stall</Button>}
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Market: {user?.marketName || "Current scope"}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{availableStalls} available for application</span>
+          </>
+        }
+      />
+
+      <ScopeBar>
+        <ScopeItem label="Zone filter" className="w-full sm:w-[220px]">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger>
               <SelectValue placeholder="Filter by zone" />
             </SelectTrigger>
             <SelectContent>
@@ -107,14 +143,25 @@ const StallsPage = () => {
               ))}
             </SelectContent>
           </Select>
-          {role === "manager" && <Button onClick={() => setShowCreate(true)}>New Stall</Button>}
-        </div>
-      </div>
+        </ScopeItem>
+        <ScopeItem label="Role context">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm capitalize">{role}</div>
+        </ScopeItem>
+        <ScopeItem label="Primary action">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">{role === "vendor" ? "Apply for an available stall" : "Keep stall inventory accurate"}</div>
+        </ScopeItem>
+      </ScopeBar>
 
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
+      <KpiStrip items={stallKpis} />
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {filtered.map((stall) => (
+        {filtered.length === 0 ? (
+          <div className="col-span-full">
+            <EmptyState title="No stalls match this view" description={role === "vendor" ? "Try another zone or check back after the manager publishes more stalls." : "Adjust the zone filter or create a new stall for this market."} />
+          </div>
+        ) : filtered.map((stall) => (
           <button
             key={stall.id}
             onClick={() => setSelectedStall(stall)}
@@ -125,6 +172,7 @@ const StallsPage = () => {
               <StatusBadge status={stall.status} />
             </div>
             <p className="text-xs text-muted-foreground">{stall.zone}</p>
+            {stall.marketName && <p className="text-xs text-muted-foreground">{stall.marketName}</p>}
             <p className="text-xs text-muted-foreground">{stall.size}</p>
             <p className="font-medium text-sm mt-2">{formatCurrency(stall.pricePerMonth)}/mo</p>
             {stall.vendorName && <p className="text-xs text-muted-foreground mt-1">{stall.vendorName}</p>}
@@ -132,31 +180,22 @@ const StallsPage = () => {
         ))}
       </div>
 
-      <Dialog open={Boolean(selectedStall)} onOpenChange={() => setSelectedStall(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-heading">Stall {selectedStall?.name}</DialogTitle>
-            <DialogDescription>
-              {selectedStall?.zone} - {selectedStall?.size}
-            </DialogDescription>
-          </DialogHeader>
+      <DetailSheet
+        open={Boolean(selectedStall)}
+        onOpenChange={(open) => !open && setSelectedStall(null)}
+        title={`Stall ${selectedStall?.name || ""}`}
+        description={selectedStall ? `${selectedStall.zone} - ${selectedStall.size}` : undefined}
+      >
           {selectedStall && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Status</span>
-                  <div className="mt-1">
-                    <StatusBadge status={selectedStall.status} />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Monthly Rent</span>
-                  <p className="font-medium mt-1">{formatCurrency(selectedStall.pricePerMonth)}</p>
-                </div>
+                <EvidenceField label="Status" value={<StatusBadge status={selectedStall.status} />} />
+                <EvidenceField label="Monthly Rent" value={formatCurrency(selectedStall.pricePerMonth)} />
+                <EvidenceField label="Market" value={selectedStall.marketName || "Current market"} />
+                <EvidenceField label="Publication" value={selectedStall.isPublished ? "Published" : "Unpublished"} />
                 {selectedStall.vendorName && (
                   <div className="col-span-2">
-                    <span className="text-muted-foreground">Assigned To</span>
-                    <p className="font-medium mt-1">{selectedStall.vendorName}</p>
+                    <EvidenceField label="Assigned To" value={selectedStall.vendorName} />
                   </div>
                 )}
               </div>
@@ -229,8 +268,7 @@ const StallsPage = () => {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+      </DetailSheet>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
@@ -274,7 +312,7 @@ const StallsPage = () => {
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary/30" /> Occupied</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-muted" /> Maintenance</span>
       </div>
-    </div>
+    </ConsolePage>
   );
 };
 

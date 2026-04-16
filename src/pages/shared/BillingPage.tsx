@@ -7,11 +7,13 @@ import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConsolePage, EmptyState, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/sonner";
 import type { UtilityCalculationMethod, UtilityType } from "@/types";
 
 const utilityTypeOptions: { value: UtilityType; label: string }[] = [
@@ -35,6 +37,11 @@ const formatDate = (value: string | null, fallback = "Not available") => {
 const formatDateTime = (value: string | null, fallback = "Not available") => {
   return formatHumanDateTime(value, fallback);
 };
+
+const getObligationStatusLabel = (status: string) =>
+  status === "pending" || status === "pending_payment"
+    ? "Pending Payment"
+    : status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ");
 
 const BillingPage = () => {
   const { user } = useAuth();
@@ -102,8 +109,13 @@ const BillingPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["charge-types"] });
       await queryClient.invalidateQueries({ queryKey: ["payments"] });
       setError(null);
+      toast.success("Billing switch updated");
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to update billing switch."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to update billing switch.";
+      setError(message);
+      toast.error("Billing switch was not updated", { description: message });
+    },
   });
 
   const createUtilityCharge = useMutation({
@@ -138,8 +150,15 @@ const BillingPage = () => {
         dueDate: "",
       }));
       setError(null);
+      toast.success("Utility charge created", {
+        description: "The vendor can now review the obligation and pay through Pesapal.",
+      });
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to create utility charge."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to create utility charge.";
+      setError(message);
+      toast.error("Utility charge was not created", { description: message });
+    },
   });
 
   const cancelUtilityCharge = useMutation({
@@ -148,8 +167,13 @@ const BillingPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["utility-charges"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setError(null);
+      toast.success("Utility charge cancelled");
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to cancel utility charge."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to cancel utility charge.";
+      setError(message);
+      toast.error("Utility charge was not cancelled", { description: message });
+    },
   });
 
   const chargeTypes = chargeTypesData?.chargeTypes || [];
@@ -163,19 +187,60 @@ const BillingPage = () => {
     : utilityChargesError instanceof ApiError
       ? utilityChargesError.message
       : null;
+  const outstandingUtilityTotal = utilityCharges
+    .filter((charge) => charge.status === "unpaid" || charge.status === "overdue")
+    .reduce((sum, charge) => sum + charge.amount, 0);
+  const pendingUtilityCount = utilityCharges.filter((charge) => charge.status === "pending" || charge.status === "pending_payment").length;
+  const overdueUtilityCount = utilityCharges.filter((charge) => charge.status === "overdue").length;
+  const enabledChargeTypes = chargeTypes.filter((chargeType) => chargeType.isEnabled).length;
+  const billingKpis = [
+    {
+      label: "Enabled Charge Types",
+      value: `${enabledChargeTypes}/${chargeTypes.length || 0}`,
+      detail: canManageChargeTypes ? "Admin-governed billing switches" : "Visible under your role permissions",
+      icon: SlidersHorizontal,
+      tone: "info" as const,
+    },
+    {
+      label: "Open Utility Obligations",
+      value: formatCurrency(outstandingUtilityTotal),
+      detail: "Unpaid and overdue utility charges",
+      icon: PlusCircle,
+      tone: outstandingUtilityTotal > 0 ? "warning" as const : "success" as const,
+    },
+    {
+      label: "Pending Payment",
+      value: pendingUtilityCount,
+      detail: "Vendor started payment; waiting for gateway confirmation",
+      icon: ShieldCheck,
+      tone: "info" as const,
+    },
+    {
+      label: "Overdue",
+      value: overdueUtilityCount,
+      detail: overdueUtilityCount ? "Needs manager follow-up" : "No overdue utility charges",
+      icon: ShieldCheck,
+      tone: overdueUtilityCount ? "destructive" as const : "success" as const,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold font-heading">Billing Controls</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage billing switches and utility charges with a clean separation between billable charges and payment transactions.
-          </p>
-        </div>
-        {!isManager && (
-          <div className="w-full lg:w-[260px] space-y-1.5">
-            <Label htmlFor="billing-market-filter">Market</Label>
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Billing and utilities"
+        title="Billing Controls"
+        description="Manage charge policy, utility obligations, usage calculations, payment references, and settlement evidence without mixing what is owed with how it was paid."
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Role: {user?.role}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Obligation first, payment attempt second</span>
+          </>
+        }
+      />
+
+      <ScopeBar>
+        {!isManager ? (
+          <ScopeItem label="Market scope" className="w-full lg:w-[260px]">
             <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
               <SelectTrigger id="billing-market-filter">
                 <SelectValue placeholder="All markets" />
@@ -185,9 +250,19 @@ const BillingPage = () => {
                 {markets.map((market) => <SelectItem key={market.id} value={market.id}>{market.name}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
+          </ScopeItem>
+        ) : (
+          <ScopeItem label="Market scope">
+            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">{user?.marketName || "Assigned market"}</div>
+          </ScopeItem>
         )}
-      </div>
+        <ScopeItem label="Pricing model">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Metered, estimated, and fixed charges</div>
+        </ScopeItem>
+        <ScopeItem label="Payment gateway">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Pesapal confirmation required</div>
+        </ScopeItem>
+      </ScopeBar>
 
       {!canManageUtilities && (
         <Card className="card-warm border-info/20 bg-info/5">
@@ -199,6 +274,8 @@ const BillingPage = () => {
       )}
 
       {(error || loadError) && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error || loadError}</div>}
+
+      <KpiStrip items={billingKpis} />
 
       <div className="grid gap-4 md:grid-cols-2">
         {chargeTypes.map((chargeType) => (
@@ -305,7 +382,7 @@ const BillingPage = () => {
           <CardTitle className="text-base font-heading">Utility Charge Register</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {utilityCharges.length === 0 ? <p className="text-sm text-muted-foreground">No utility charges have been recorded for the selected scope yet.</p> : utilityCharges.map((charge) => (
+          {utilityCharges.length === 0 ? <EmptyState title="No utility charges recorded" description="Create metered, estimated, or fixed utility obligations for vendors in the selected market." /> : utilityCharges.map((charge) => (
             <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -313,15 +390,15 @@ const BillingPage = () => {
                   <p className="mt-1 text-xs text-muted-foreground">{charge.vendorName} - {charge.marketName || charge.marketId} - {charge.billingPeriod}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={charge.status} label={charge.status === "pending" ? "Pending" : undefined} />
+                  <StatusBadge status={charge.status} label={getObligationStatusLabel(charge.status)} context="obligation" />
                   <span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span>
                 </div>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl bg-muted/20 p-3"><p className="text-xs text-muted-foreground">Due Date</p><p className="mt-1 text-sm font-medium">{formatDate(charge.dueDate)}</p></div>
-                <div className="rounded-xl bg-muted/20 p-3"><p className="text-xs text-muted-foreground">Calculation</p><p className="mt-1 text-sm font-medium">{charge.calculationMethod} {charge.unit ? `(${charge.unit})` : ""}</p></div>
-                <div className="rounded-xl bg-muted/20 p-3"><p className="text-xs text-muted-foreground">Payment Attempts</p><p className="mt-1 text-sm font-medium">{charge.paymentCount}</p></div>
-                <div className="rounded-xl bg-muted/20 p-3"><p className="text-xs text-muted-foreground">Latest Reference</p><p className="mt-1 break-words text-sm font-medium">{charge.latestPaymentReference || "Awaiting payment"}</p></div>
+                <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
+                <EvidenceField label="Calculation" value={`${charge.calculationMethod} ${charge.unit ? `(${charge.unit})` : ""}`} />
+                <EvidenceField label="Payment Attempts" value={charge.paymentCount} />
+                <EvidenceField label="Latest Reference" value={charge.latestPaymentReference || "Awaiting payment"} mono={Boolean(charge.latestPaymentReference)} />
               </div>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-muted-foreground">
@@ -337,7 +414,7 @@ const BillingPage = () => {
           ))}
         </CardContent>
       </Card>
-    </div>
+    </ConsolePage>
   );
 };
 

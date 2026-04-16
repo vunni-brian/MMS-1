@@ -34,7 +34,7 @@
     --input: 30 15% 88%;
     --ring: 16 65% 45%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     --success: 145 45% 42%;
     --success-foreground: 0 0% 100%;
@@ -79,7 +79,7 @@
 
 @layer utilities {
   .card-warm {
-    @apply bg-card/95 rounded-xl border border-border/80 shadow-sm transition-all duration-300 ease-out;
+    @apply bg-card/95 rounded-lg border border-border/80 shadow-sm transition-all duration-300 ease-out;
     box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04), 0 1px 2px -1px hsl(var(--foreground) / 0.04);
     backdrop-filter: blur(10px);
   }
@@ -94,7 +94,7 @@
   }
 
   .stat-card {
-    @apply relative overflow-hidden bg-card/95 rounded-xl border border-border/80 shadow-sm transition-all duration-300 ease-out;
+    @apply relative overflow-hidden bg-card/95 rounded-lg border border-border/80 shadow-sm transition-all duration-300 ease-out;
     box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04), 0 1px 2px -1px hsl(var(--foreground) / 0.04);
   }
 
@@ -104,7 +104,7 @@
   }
 
   .interactive-row {
-    @apply rounded-lg bg-muted/45 transition-all duration-200 hover:bg-muted/70 hover:shadow-sm;
+    @apply rounded-md bg-muted/45 transition-all duration-200 hover:bg-muted/70 hover:shadow-sm;
   }
 
   .insight-chip {
@@ -117,6 +117,18 @@
 
   .soft-glow {
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.12), 0 18px 44px -30px hsl(var(--primary) / 0.65);
+  }
+
+  .console-section {
+    @apply rounded-lg border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur lg:p-5;
+  }
+
+  .console-scope-bar {
+    @apply flex flex-col gap-3 rounded-lg border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur lg:flex-row lg:items-end lg:justify-between;
+  }
+
+  .console-table-card {
+    @apply overflow-hidden rounded-lg border border-border/80 bg-card/95 shadow-sm;
   }
 
   .animate-fade-in-up {

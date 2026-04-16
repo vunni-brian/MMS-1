@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Eye, KeyRound, Search, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Eye, KeyRound, Search, UserX, Users, X } from "lucide-react";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
 import { formatCurrency, formatHumanDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConsolePage, DetailSheet, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/sonner";
 
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 type OperationalVendorStatus = "active" | "late_payment" | "suspended";
 
 const VendorsPage = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -45,8 +48,13 @@ const VendorsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["vendors"] });
       setSelectedVendorId(null);
       setError(null);
+      toast.success("Vendor approved");
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to approve vendor."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to approve vendor.";
+      setError(message);
+      toast.error("Vendor was not approved", { description: message });
+    },
   });
 
   const rejectVendor = useMutation({
@@ -56,8 +64,13 @@ const VendorsPage = () => {
       setSelectedVendorId(null);
       setRejectionReason("");
       setError(null);
+      toast.success("Vendor rejected");
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to reject vendor."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to reject vendor.";
+      setError(message);
+      toast.error("Vendor was not rejected", { description: message });
+    },
   });
 
   const resetVendorPassword = useMutation({
@@ -66,10 +79,13 @@ const VendorsPage = () => {
       setResetReason("");
       setResetMessage(response.message);
       setError(null);
+      toast.success("Temporary password sent", { description: response.message });
     },
     onError: (mutationError) => {
       setResetMessage(null);
-      setError(mutationError instanceof ApiError ? mutationError.message : "Unable to reset vendor password.");
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to reset vendor password.";
+      setError(message);
+      toast.error("Password reset failed", { description: message });
     },
   });
 
@@ -125,42 +141,82 @@ const VendorsPage = () => {
     });
 
   const selectedRow = allVendorRows.find((row) => row.vendor.id === selectedVendorId) || null;
+  const vendorKpis = [
+    {
+      label: "Active Vendors",
+      value: vendorRows.filter((row) => row.operationalStatus === "active").length,
+      detail: "Approved and currently in good standing",
+      icon: CheckCircle2,
+      tone: "success" as const,
+    },
+    {
+      label: "Late Payment",
+      value: vendorRows.filter((row) => row.operationalStatus === "late_payment").length,
+      detail: "Outstanding booking or permit balance",
+      icon: AlertTriangle,
+      tone: vendorRows.some((row) => row.operationalStatus === "late_payment") ? "warning" as const : "default" as const,
+    },
+    {
+      label: "Suspended",
+      value: vendorRows.filter((row) => row.operationalStatus === "suspended").length,
+      detail: "Rejected or not approved for operations",
+      icon: UserX,
+      tone: "destructive" as const,
+    },
+    {
+      label: "Pending Approval",
+      value: vendors.filter((vendor) => vendor.status === "pending").length,
+      detail: "Needs manager review",
+      icon: Users,
+      tone: vendors.some((vendor) => vendor.status === "pending") ? "info" as const : "default" as const,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold font-heading">Vendor Directory</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Search vendors and track approval, permit coverage, and payment risk in one place.
-          </p>
-        </div>
-        <div className="relative w-full lg:w-[320px]">
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Vendor operations"
+        title="Vendor Directory"
+        description="Search vendors, review approval evidence, track permit coverage, and act on payment or account risk without leaving the directory."
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Market: {user?.marketName || "Assigned market"}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Rows: {vendorRows.length}</span>
+          </>
+        }
+      />
+
+      <ScopeBar>
+        <ScopeItem label="Vendor search" className="w-full lg:w-[360px]">
+          <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search by name, phone, or email" value={search} onChange={(event) => setSearch(event.target.value)} />
-        </div>
-      </div>
+          </div>
+        </ScopeItem>
+        <ScopeItem label="Market scope">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">{user?.marketName || "Assigned market"}</div>
+        </ScopeItem>
+        <ScopeItem label="Primary action">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Review pending vendors and account risk</div>
+        </ScopeItem>
+      </ScopeBar>
 
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Active</p><p className="text-xl font-bold font-heading mt-1">{vendorRows.filter((row) => row.operationalStatus === "active").length}</p></CardContent></Card>
-        <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Late Payment</p><p className="text-xl font-bold font-heading mt-1">{vendorRows.filter((row) => row.operationalStatus === "late_payment").length}</p></CardContent></Card>
-        <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Suspended</p><p className="text-xl font-bold font-heading mt-1">{vendorRows.filter((row) => row.operationalStatus === "suspended").length}</p></CardContent></Card>
-        <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Pending Approval</p><p className="text-xl font-bold font-heading mt-1">{vendors.filter((vendor) => vendor.status === "pending").length}</p></CardContent></Card>
-      </div>
+      <KpiStrip items={vendorKpis} />
 
       <Card className="card-warm">
         <CardContent className="pt-4">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Approval</TableHead>
-                  <TableHead>Operational</TableHead>
-                  <TableHead>Outstanding</TableHead>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Market</TableHead>
+                    <TableHead>Approval</TableHead>
+                    <TableHead>Operational</TableHead>
+                    <TableHead>Outstanding</TableHead>
                   <TableHead>Permit Expiry</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -175,6 +231,7 @@ const VendorsPage = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{row.vendor.phone}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.vendor.marketName || user?.marketName || "Assigned market"}</TableCell>
                     <TableCell>
                       <StatusBadge status={row.vendor.status} />
                     </TableCell>
@@ -208,42 +265,22 @@ const VendorsPage = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(selectedVendorId)} onOpenChange={() => setSelectedVendorId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-heading">Vendor Details</DialogTitle>
-          </DialogHeader>
+      <DetailSheet
+        open={Boolean(selectedVendorId)}
+        onOpenChange={(open) => !open && setSelectedVendorId(null)}
+        title="Vendor Details"
+        description="Approval, permit, payment risk, and account evidence."
+      >
           {selectedRow && (
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-muted-foreground">Name</span>
-                  <p className="font-medium">{selectedRow.vendor.name}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Approval</span>
-                  <div className="mt-1">
-                    <StatusBadge status={selectedRow.vendor.status} />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Operational Status</span>
-                  <div className="mt-1">
-                    <StatusBadge status={selectedRow.operationalStatus} />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Outstanding</span>
-                  <p className="font-medium">{formatCurrency(selectedRow.totalOutstanding)}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Phone</span>
-                  <p className="font-medium">{selectedRow.vendor.phone}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Email</span>
-                  <p className="font-medium">{selectedRow.vendor.email}</p>
-                </div>
+                <EvidenceField label="Name" value={selectedRow.vendor.name} />
+                <EvidenceField label="Market" value={selectedRow.vendor.marketName || user?.marketName || "Assigned market"} />
+                <EvidenceField label="Approval" value={<StatusBadge status={selectedRow.vendor.status} />} />
+                <EvidenceField label="Operational Status" value={<StatusBadge status={selectedRow.operationalStatus} />} />
+                <EvidenceField label="Outstanding" value={formatCurrency(selectedRow.totalOutstanding)} />
+                <EvidenceField label="Phone" value={selectedRow.vendor.phone} />
+                <EvidenceField label="Email" value={selectedRow.vendor.email} className="col-span-2" />
               </div>
               <div className="rounded-lg bg-muted/40 p-3">
                 <span className="text-muted-foreground">Next Permit Expiry</span>
@@ -311,9 +348,8 @@ const VendorsPage = () => {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-    </div>
+      </DetailSheet>
+    </ConsolePage>
   );
 };
 

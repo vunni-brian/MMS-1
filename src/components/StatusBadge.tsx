@@ -6,6 +6,7 @@ const statusStyles: Record<string, string> = {
   inactive: "border-success/20 bg-success/15 text-success",
   maintenance: "border-border bg-muted text-muted-foreground",
   pending: "border-warning/25 bg-warning/15 text-warning",
+  pending_payment: "border-info/20 bg-info/15 text-info",
   unpaid: "border-warning/25 bg-warning/15 text-warning",
   approved: "border-success/20 bg-success/15 text-success",
   paid: "border-success/20 bg-success/15 text-success",
@@ -28,7 +29,33 @@ const statusLabels: Record<string, string> = {
   in_progress: "In Progress",
   late_payment: "Late Payment",
   pending: "Pending Review",
+  pending_payment: "Pending Payment",
   unpaid: "Unpaid",
+};
+
+type StatusContext = "default" | "booking" | "payment" | "obligation" | "vendor" | "ticket";
+
+const contextLabels: Partial<Record<StatusContext, Record<string, string>>> = {
+  payment: {
+    pending: "Pending Confirmation",
+    completed: "Completed",
+    failed: "Failed",
+    cancelled: "Cancelled",
+  },
+  obligation: {
+    pending: "Pending Payment",
+    pending_payment: "Pending Payment",
+    unpaid: "Unpaid",
+    paid: "Paid",
+    overdue: "Overdue",
+    cancelled: "Cancelled",
+  },
+  booking: {
+    pending: "Pending Review",
+    approved: "Approved",
+    rejected: "Rejected",
+    paid: "Paid",
+  },
 };
 
 interface StatusBadgeProps {
@@ -45,10 +72,14 @@ interface StatusBadgeProps {
     | "suspended";
   className?: string;
   label?: string;
+  context?: StatusContext;
 }
 
-export const StatusBadge = ({ status, className, label }: StatusBadgeProps) => (
+export const StatusBadge = ({ status, className, label, context = "default" }: StatusBadgeProps) => (
   <span className={cn('status-badge', statusStyles[status], className)}>
-    {label || statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1)}
+    {label ||
+      contextLabels[context]?.[status] ||
+      statusLabels[status] ||
+      status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ")}
   </span>
 );

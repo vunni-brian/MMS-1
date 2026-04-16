@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarRange, ExternalLink, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CalendarRange, CheckCircle2, Clock3, ExternalLink, ReceiptText, ShieldCheck, Wallet, XCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -8,11 +8,13 @@ import { filterPaymentsByHistory, getPaymentHistoryYears, getPaymentPurpose, get
 import { formatCurrency, formatHumanDate, formatHumanDateRange, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConsolePage, DetailSheet, EmptyState, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentMethod, Penalty, UtilityCharge, UtilityType } from "@/types";
 
 const paymentMethodMeta: Record<PaymentMethod, { label: string; className: string }> = {
@@ -47,7 +49,7 @@ const formatDate = (value: string | null, fallback = "Not available") => {
 
 const getPaymentStatusLabel = (status: Payment["status"]) => (status === "pending" ? "Pending" : undefined);
 const getUtilityStatusLabel = (status: UtilityCharge["status"]) =>
-  status === "pending" ? "Pending" : status.charAt(0).toUpperCase() + status.slice(1);
+  status === "pending" || status === "pending_payment" ? "Pending Payment" : status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ");
 
 const getPaymentChannelDescription = (payment: Payment) => {
   const methodLabel = paymentMethodMeta[payment.method].label;
@@ -73,13 +75,6 @@ const getReceiptMessageClassName = (status: Payment["status"]) =>
     : status === "failed"
       ? "border-destructive/20 bg-destructive/5 text-destructive"
       : "border-border/70 bg-muted/20 text-muted-foreground";
-
-const EvidenceField = ({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) => (
-  <div className="rounded-xl bg-muted/20 p-3">
-    <p className="text-xs text-muted-foreground">{label}</p>
-    <p className={`mt-1 break-words text-sm font-medium ${mono ? "font-mono text-xs" : ""}`}>{value}</p>
-  </div>
-);
 
 const PaymentsPage = () => {
   const { role, user } = useAuth();
@@ -121,6 +116,9 @@ const PaymentsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["utility-charges"] });
       await queryClient.invalidateQueries({ queryKey: ["penalties"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Checkout session prepared", {
+        description: "Complete the Pesapal checkout to confirm the payment.",
+      });
       setError(null);
       setPaymentIntent(null);
       if (response.iframe) {
@@ -129,7 +127,11 @@ const PaymentsPage = () => {
       }
       window.location.assign(response.redirectUrl);
     },
-    onError: (mutationError) => setError(mutationError instanceof ApiError ? mutationError.message : "Unable to initiate payment."),
+    onError: (mutationError) => {
+      const message = mutationError instanceof ApiError ? mutationError.message : "Unable to initiate payment.";
+      setError(message);
+      toast.error("Payment could not start", { description: message });
+    },
   });
 
   const bookings = bookingsData?.bookings || [];
@@ -162,27 +164,151 @@ const PaymentsPage = () => {
   const paymentTransactionId = receiptQuery.data?.receipt.transactionId || selectedReceiptPayment?.transactionId || "Awaiting confirmation";
   const paymentAmount = receiptQuery.data?.receipt.amount || selectedReceiptPayment?.amount || 0;
   const paymentCompletedAt = receiptQuery.data?.receipt.createdAt || selectedReceiptPayment?.completedAt || null;
+  const completedPayments = payments.filter((payment) => payment.status === "completed");
+  const pendingConfirmationPayments = payments.filter((payment) => payment.status === "pending");
+  const failedPayments = payments.filter((payment) => payment.status === "failed");
+  const vendorObligationTotal =
+    pendingBookings.reduce((sum, booking) => sum + booking.amount, 0) +
+    utilityCharges.filter((charge) => charge.status === "unpaid" || charge.status === "overdue").reduce((sum, charge) => sum + charge.amount, 0) +
+    penalties.filter((penalty) => penalty.status === "unpaid").reduce((sum, penalty) => sum + penalty.amount, 0);
+  const completedPaymentTotal = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pageKpis =
+    role === "vendor"
+      ? [
+          {
+            label: "Open Obligations",
+            value: formatCurrency(vendorObligationTotal),
+            detail: "Bookings, utilities, and penalties still requiring payment",
+            icon: Wallet,
+            tone: vendorObligationTotal > 0 ? "warning" as const : "success" as const,
+          },
+          {
+            label: "Pending Confirmation",
+            value: pendingConfirmationPayments.length,
+            detail: "Pesapal attempt awaiting gateway status",
+            icon: Clock3,
+            tone: "info" as const,
+          },
+          {
+            label: "Completed Payments",
+            value: completedPayments.length,
+            detail: formatCurrency(completedPaymentTotal),
+            icon: CheckCircle2,
+            tone: "success" as const,
+          },
+          {
+            label: "Failed Attempts",
+            value: failedPayments.length,
+            detail: failedPayments.length ? "Retry from the original obligation" : "No failed attempts",
+            icon: XCircle,
+            tone: failedPayments.length ? "destructive" as const : "default" as const,
+          },
+        ]
+      : [
+          {
+            label: "Collections Confirmed",
+            value: formatCurrency(completedPaymentTotal),
+            detail: `${completedPayments.length} completed payment${completedPayments.length === 1 ? "" : "s"}`,
+            icon: CheckCircle2,
+            tone: "success" as const,
+          },
+          {
+            label: "Pending Confirmation",
+            value: pendingConfirmationPayments.length,
+            detail: "Gateway attempts still processing",
+            icon: Clock3,
+            tone: "info" as const,
+          },
+          {
+            label: "Failed Attempts",
+            value: failedPayments.length,
+            detail: "Failed Pesapal or legacy attempts",
+            icon: AlertTriangle,
+            tone: failedPayments.length ? "destructive" as const : "default" as const,
+          },
+          {
+            label: "Payment Records",
+            value: payments.length,
+            detail: "Evidence rows in the current scope",
+            icon: ReceiptText,
+            tone: "default" as const,
+          },
+        ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Payments</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {role === "vendor" ? "Track bookings, utilities, receipts, and full payment evidence from one place." : "Track payment records and payment status."}
-        </p>
-      </div>
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Payments and evidence"
+        title="Payments"
+        description={
+          role === "vendor"
+            ? "Track what you owe, what is processing, and every confirmed receipt from one trusted payment workspace."
+            : "Review Pesapal attempts, payment status, references, receipts, and gateway evidence across the current market scope."
+        }
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Role: {role}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Gateway: Pesapal</span>
+            {user?.marketName && <span className="rounded-full bg-muted px-2.5 py-1">Market: {user.marketName}</span>}
+          </>
+        }
+      />
 
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
+      {role === "vendor" ? (
+        <ScopeBar>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <CalendarRange className="h-4 w-4 text-info" />
+              Payment history filters
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Find receipts and failed attempts by status, year, or date range.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {paymentStatusFilters.map((filter) => (
+                <Button key={filter.value} type="button" variant={statusFilter === filter.value ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter(filter.value)}>
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3 lg:min-w-[560px]">
+            <ScopeItem label="Year">
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger><SelectValue placeholder="All years" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All years</SelectItem>
+                  {paymentHistoryYears.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </ScopeItem>
+            <ScopeItem label="From">
+              <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} max={dateTo || undefined} />
+            </ScopeItem>
+            <ScopeItem label="To">
+              <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} min={dateFrom || undefined} />
+            </ScopeItem>
+          </div>
+          {hasHistoryFilters && <Button variant="outline" size="sm" onClick={() => { setStatusFilter("all"); setYearFilter("all"); setDateFrom(""); setDateTo(""); }}>Clear Filters</Button>}
+        </ScopeBar>
+      ) : (
+        <ScopeBar>
+          <ScopeItem label="Market scope">
+            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">{user?.marketName || "All accessible markets"}</div>
+          </ScopeItem>
+          <ScopeItem label="Evidence policy">
+            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Receipts only after gateway confirmation</div>
+          </ScopeItem>
+          <ScopeItem label="Refresh">
+            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Live status polling enabled</div>
+          </ScopeItem>
+        </ScopeBar>
+      )}
+
+      <KpiStrip items={pageKpis} />
+
       {role === "vendor" && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Approved Bookings</p><p className="mt-1 text-xl font-bold font-heading">{pendingBookings.length}</p></CardContent></Card>
-            <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Utility Charges</p><p className="mt-1 text-xl font-bold font-heading">{utilityCharges.length}</p></CardContent></Card>
-            <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Penalties</p><p className="mt-1 text-xl font-bold font-heading">{penalties.length}</p></CardContent></Card>
-            <Card className="card-warm"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Completed Payments</p><p className="mt-1 text-xl font-bold font-heading">{payments.filter((payment) => payment.status === "completed").length}</p></CardContent></Card>
-          </div>
-
           <Card className="card-warm">
             <CardHeader className="pb-3"><CardTitle className="text-base font-heading">Approved Booking Payments</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -193,7 +319,7 @@ const PaymentsPage = () => {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div><p className="font-medium text-sm">{booking.stallName}</p><p className="text-xs text-muted-foreground">{formatHumanDateRange(booking.startDate, booking.endDate)} - {formatCurrency(booking.amount)}</p></div>
                       <div className="flex items-center gap-2">
-                        {pendingPayment && <StatusBadge status="pending" label="Pending" />}
+                        {pendingPayment && <StatusBadge status="pending" context="payment" />}
                         <Button onClick={() => { setPaymentIntent({ title: booking.stallName, subtitle: formatHumanDateRange(booking.startDate, booking.endDate), amount: booking.amount, payload: { bookingId: booking.id } }); setError(null); }} disabled={Boolean(pendingPayment)}>
                           <Wallet className="mr-1 h-4 w-4" />
                           {pendingPayment ? "Awaiting Confirmation" : "Pay Now"}
@@ -218,7 +344,7 @@ const PaymentsPage = () => {
                   <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div><p className="font-medium">{getUtilityChargeTitle(charge)}</p><p className="mt-1 text-xs text-muted-foreground">{utilityTypeLabels[charge.utilityType]} - {charge.billingPeriod}{charge.stallName ? ` - ${charge.stallName}` : ""}</p></div>
-                      <div className="flex items-center gap-2"><StatusBadge status={charge.status} label={getUtilityStatusLabel(charge.status)} /><span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span></div>
+                      <div className="flex items-center gap-2"><StatusBadge status={charge.status} label={getUtilityStatusLabel(charge.status)} context="obligation" /><span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span></div>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
@@ -249,7 +375,7 @@ const PaymentsPage = () => {
                   <div key={penalty.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div><p className="font-medium">Penalty - {penalty.reason}</p><p className="mt-1 text-xs text-muted-foreground">{penalty.marketName || "Market"}{penalty.relatedUtilityChargeDescription ? ` - ${penalty.relatedUtilityChargeDescription}` : ""}</p></div>
-                      <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending" : undefined} /><span className="text-sm font-semibold">{formatCurrency(penalty.amount)}</span></div>
+                      <div className="flex items-center gap-2"><StatusBadge status={penalty.status} label={penalty.status === "pending" ? "Pending Payment" : undefined} context="obligation" /><span className="text-sm font-semibold">{formatCurrency(penalty.amount)}</span></div>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <EvidenceField label="Issued At" value={formatDateTime(penalty.createdAt)} />
@@ -278,27 +404,18 @@ const PaymentsPage = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {role === "vendor" && (
-            <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div><div className="flex items-center gap-2 text-sm font-medium"><CalendarRange className="h-4 w-4 text-info" />Payment history filters</div><p className="mt-1 text-xs text-muted-foreground">Filter by status, year, or a date range to find older payment evidence quickly.</p></div>
-                {hasHistoryFilters && <Button variant="outline" size="sm" onClick={() => { setStatusFilter("all"); setYearFilter("all"); setDateFrom(""); setDateTo(""); }}>Clear Filters</Button>}
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">{paymentStatusFilters.map((filter) => <Button key={filter.value} type="button" variant={statusFilter === filter.value ? "secondary" : "outline"} size="sm" onClick={() => setStatusFilter(filter.value)}>{filter.label}</Button>)}</div>
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                <div className="space-y-2"><p className="text-xs font-medium text-muted-foreground">Year</p><Select value={yearFilter} onValueChange={setYearFilter}><SelectTrigger><SelectValue placeholder="All years" /></SelectTrigger><SelectContent><SelectItem value="all">All years</SelectItem>{paymentHistoryYears.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}</SelectContent></Select></div>
-                <div className="space-y-2"><p className="text-xs font-medium text-muted-foreground">From</p><Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} max={dateTo || undefined} /></div>
-                <div className="space-y-2"><p className="text-xs font-medium text-muted-foreground">To</p><Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} min={dateFrom || undefined} /></div>
-              </div>
-            </div>
-          )}
-
-          {filteredPayments.length === 0 ? <div className="rounded-xl border border-dashed border-border/70 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">{role === "vendor" && hasHistoryFilters ? statusFilter === "cancelled" ? "No cancelled payments are recorded in the system yet." : "No payments matched the selected history filters." : "No payment records are available yet."}</div> : (
+          {filteredPayments.length === 0 ? (
+            <EmptyState
+              title={role === "vendor" && hasHistoryFilters ? "No matching payment evidence" : "No payment records yet"}
+              description={role === "vendor" && statusFilter === "cancelled" ? "No cancelled payments are recorded in the system yet." : role === "vendor" && hasHistoryFilters ? "Adjust the filters to find older receipts or payment attempts." : "Payment rows will appear here after a checkout attempt is created."}
+            />
+          ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     {role !== "vendor" && <TableHead>Vendor</TableHead>}
+                    <TableHead>Market</TableHead>
                     <TableHead>Purpose</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Reference</TableHead>
@@ -313,11 +430,12 @@ const PaymentsPage = () => {
                   {filteredPayments.map((payment) => (
                     <TableRow key={payment.id}>
                       {role !== "vendor" && <TableCell className="font-medium">{payment.vendorName}</TableCell>}
+                      <TableCell className="min-w-[150px] text-sm text-muted-foreground">{payment.marketName || "Unassigned"}</TableCell>
                       <TableCell className="min-w-[240px]"><div><p className="font-medium">{getPaymentPurpose(payment)}</p><div className="mt-2 flex items-center gap-2"><span className={`rounded px-2 py-0.5 text-xs font-medium ${paymentMethodMeta[payment.method].className}`}>{paymentMethodMeta[payment.method].label}</span><span className="text-xs text-muted-foreground">{getPaymentChannelDescription(payment)}</span></div></div></TableCell>
                       <TableCell>{formatCurrency(payment.amount)}</TableCell>
                       <TableCell className="min-w-[180px] font-mono text-xs">{getPaymentReference(payment)}</TableCell>
                       <TableCell className="min-w-[180px] font-mono text-xs">{payment.transactionId || "Awaiting confirmation"}</TableCell>
-                      <TableCell><StatusBadge status={payment.status} label={getPaymentStatusLabel(payment.status)} /></TableCell>
+                      <TableCell><StatusBadge status={payment.status} label={getPaymentStatusLabel(payment.status)} context="payment" /></TableCell>
                       <TableCell className="min-w-[160px] text-sm text-muted-foreground">{formatDateTime(payment.createdAt)}</TableCell>
                       <TableCell className="min-w-[160px] text-sm text-muted-foreground">{formatDateTime(payment.completedAt, "Awaiting confirmation")}</TableCell>
                       <TableCell className="min-w-[190px]">{payment.status === "completed" ? <Button variant="outline" size="sm" onClick={() => setSelectedReceiptPaymentId(payment.id)}><ReceiptText className="mr-1 h-4 w-4" />View Receipt</Button> : <span className="text-xs text-muted-foreground">Available after success</span>}</TableCell>
@@ -356,12 +474,15 @@ const PaymentsPage = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(selectedReceiptPaymentId)} onOpenChange={(open) => !open && setSelectedReceiptPaymentId(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="font-heading">Payment Receipt & Evidence</DialogTitle></DialogHeader>
+      <DetailSheet
+        open={Boolean(selectedReceiptPaymentId)}
+        onOpenChange={(open) => !open && setSelectedReceiptPaymentId(null)}
+        title="Payment Receipt & Evidence"
+        description="Confirmed payment evidence, references, transaction identifiers, and receipt message."
+      >
           {selectedReceiptPayment ? (
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 p-4"><div><p className="text-xs text-muted-foreground">Receipt ID</p><p className="mt-1 font-medium">{paymentReceiptId}</p></div><StatusBadge status={selectedReceiptPayment.status} label={getPaymentStatusLabel(selectedReceiptPayment.status)} /></div>
+              <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 p-4"><div><p className="text-xs text-muted-foreground">Receipt ID</p><p className="mt-1 font-medium">{paymentReceiptId}</p></div><StatusBadge status={selectedReceiptPayment.status} label={getPaymentStatusLabel(selectedReceiptPayment.status)} context="payment" /></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <EvidenceField label="Purpose" value={paymentPurpose || "Payment"} />
                 <EvidenceField label="Amount" value={formatCurrency(paymentAmount)} />
@@ -373,9 +494,8 @@ const PaymentsPage = () => {
               <div className={`whitespace-pre-line rounded-xl border p-4 ${getReceiptMessageClassName(selectedReceiptPayment.status)}`}>{receiptQuery.isError ? "Unable to refresh the receipt from the server. The stored payment record is shown below.\n\n" : ""}{paymentMessage}</div>
             </div>
           ) : <p className="text-sm text-muted-foreground">Select a completed payment to view its receipt.</p>}
-        </DialogContent>
-      </Dialog>
-    </div>
+      </DetailSheet>
+    </ConsolePage>
   );
 };
 

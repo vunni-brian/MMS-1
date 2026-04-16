@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { AlertTriangle, BarChart3, Download, ReceiptText, Wallet } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConsolePage, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "@/components/ui/sonner";
 
 const formatCurrency = (value: number) => `UGX ${value.toLocaleString()}`;
 const formatDateTime = (value: string) => new Date(value).toLocaleString();
@@ -71,35 +73,72 @@ const ReportsPage = () => {
     link.download = `revenue_report_${dateFrom}_${dateTo}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+    toast.success("CSV export started", {
+      description: "Revenue rows for the selected period are being downloaded.",
+    });
   };
+  const reportKpis = [
+    {
+      label: "Total Revenue",
+      value: formatCurrency(revenueReport?.summary.totalRevenue || 0),
+      detail: "Completed payments in selected period",
+      icon: Wallet,
+      tone: "success" as const,
+    },
+    {
+      label: "Outstanding Dues",
+      value: formatCurrency(duesReport?.summary.outstandingTotal || 0),
+      detail: "Unsettled booking obligations",
+      icon: AlertTriangle,
+      tone: (duesReport?.summary.outstandingTotal || 0) > 0 ? "warning" as const : "success" as const,
+    },
+    {
+      label: "Transactions",
+      value: revenueReport?.summary.transactionCount || 0,
+      detail: "Payment rows in scope",
+      icon: ReceiptText,
+      tone: "info" as const,
+    },
+    {
+      label: "Audit Variance",
+      value: formatCurrency(auditSummary.variance),
+      detail: "Collected vs deposited",
+      icon: BarChart3,
+      tone: auditSummary.variance === 0 ? "success" as const : "destructive" as const,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold font-heading">Reports</h1>
-          <p className="text-muted-foreground text-sm mt-1">Revenue, outstanding dues, and financial reconciliation</p>
-        </div>
-        <Button onClick={exportCSV} variant="outline">
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Reports and reconciliation"
+        title="Reports"
+        description="Review revenue, outstanding dues, bank deposits, and payment evidence by date and market scope."
+        actions={
+          <Button onClick={exportCSV} variant="outline">
           <Download className="w-4 h-4 mr-1" />
           Export CSV
-        </Button>
-      </div>
+          </Button>
+        }
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">From {dateFrom}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">To {dateTo}</span>
+          </>
+        }
+      />
 
-      <div className="flex flex-wrap gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs">From</Label>
+      <ScopeBar>
+        <ScopeItem label="From">
           <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="w-40" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">To</Label>
+        </ScopeItem>
+        <ScopeItem label="To">
           <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="w-40" />
-        </div>
+        </ScopeItem>
         {canScopeMarkets && (
-          <div className="space-y-1">
-            <Label className="text-xs">Market</Label>
+          <ScopeItem label="Market" className="w-full sm:w-[240px]">
             <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger>
                 <SelectValue placeholder="Select market" />
               </SelectTrigger>
               <SelectContent>
@@ -111,30 +150,14 @@ const ReportsPage = () => {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </ScopeItem>
         )}
-      </div>
+        <ScopeItem label="Evidence policy">
+          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Use confirmed gateway status for revenue</div>
+        </ScopeItem>
+      </ScopeBar>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <Card className="card-warm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Revenue</p>
-            <p className="text-xl font-bold font-heading text-success mt-1">{formatCurrency(revenueReport?.summary.totalRevenue || 0)}</p>
-          </CardContent>
-        </Card>
-        <Card className="card-warm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Outstanding Dues</p>
-            <p className="text-xl font-bold font-heading text-warning mt-1">{formatCurrency(duesReport?.summary.outstandingTotal || 0)}</p>
-          </CardContent>
-        </Card>
-        <Card className="card-warm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Transactions</p>
-            <p className="text-xl font-bold font-heading mt-1">{revenueReport?.summary.transactionCount || 0}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <KpiStrip items={reportKpis} />
 
       <Card className="card-warm border-warning/20">
         <CardHeader className="pb-3">
@@ -173,6 +196,7 @@ const ReportsPage = () => {
                   <TableHead>Vendor</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
+                  <TableHead>Reference</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -184,7 +208,8 @@ const ReportsPage = () => {
                     <TableCell className="font-medium">{row.vendorName}</TableCell>
                     <TableCell>{formatCurrency(row.amount)}</TableCell>
                     <TableCell>{row.method.toUpperCase()}</TableCell>
-                    <TableCell className="capitalize">{row.status}</TableCell>
+                    <TableCell className="font-mono text-xs">{row.transactionId || "Awaiting confirmation"}</TableCell>
+                    <TableCell><StatusBadge status={row.status} context="payment" /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -264,7 +289,7 @@ const ReportsPage = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ConsolePage>
   );
 };
 
