@@ -1,6 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ClipboardList, CreditCard, Grid3X3, ReceiptText, Store } from "lucide-react";
+import {
+  Bell,
+  ClipboardList,
+  CreditCard,
+  Grid3X3,
+  ReceiptText,
+  Store,
+  ArrowRight,
+} from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -8,7 +16,6 @@ import { formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const dashboardDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
@@ -19,6 +26,13 @@ const dashboardDateFormatter = new Intl.DateTimeFormat("en-US", {
 const compactDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   month: "short",
+});
+
+const alertDateFormatter = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
 });
 
 const parseDate = (value?: string | Date | null) => {
@@ -47,28 +61,47 @@ const formatDashboardDateRange = (start?: string | Date | null, end?: string | D
   return `${formatDashboardDate(startDate)} - ${formatDashboardDate(endDate)}`;
 };
 
+const formatAlertDate = (value?: string | Date | null) => {
+  const date = parseDate(value);
+  return date ? alertDateFormatter.format(date) : "Unknown time";
+};
+
 const VendorDashboard = () => {
   const { user } = useAuth();
+
   const { data: stallsData } = useQuery({
     queryKey: ["stalls", "mine"],
     queryFn: () => api.getStalls({ scope: "mine" }),
   });
+
   const { data: bookingsData } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.getBookings(),
   });
+
   const { data: paymentsData } = useQuery({
     queryKey: ["payments"],
     queryFn: () => api.getPayments(),
     refetchInterval: 10_000,
   });
-  const myStalls = (stallsData?.stalls || []).filter((stall) => stall.vendorId === user?.id && stall.status === "active");
+
+  const { data: notificationsData } = useQuery({
+    queryKey: ["notifications", 5],
+    queryFn: () => api.getNotifications(5),
+  });
+
+  const myStalls = (stallsData?.stalls || []).filter(
+    (stall) => stall.vendorId === user?.id && stall.status === "active",
+  );
   const myBookings = bookingsData?.bookings || [];
   const myPayments = paymentsData?.payments || [];
+  const myNotifications = notificationsData?.notifications || [];
+
   const pendingApplications = myBookings.filter((booking) => booking.status === "pending");
   const approvedAwaitingPayment = myBookings.filter((booking) => booking.status === "approved");
   const pendingPayments = myPayments.filter((payment) => payment.status === "pending");
   const completedPayments = myPayments.filter((payment) => payment.status === "completed");
+  const unreadAlerts = myNotifications.filter((item) => !item.read);
 
   const totalPaid = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const awaitingPaymentTotal = approvedAwaitingPayment.reduce((sum, booking) => sum + booking.amount, 0);
@@ -79,19 +112,28 @@ const VendorDashboard = () => {
       label: "Active Stalls",
       value: myStalls.length,
       icon: Grid3X3,
-      detail: "Currently occupied",
+      detail:
+        myStalls.length === 1
+          ? "1 currently assigned stall"
+          : `${myStalls.length} currently assigned stalls`,
     },
     {
       label: "Pending Applications",
       value: pendingApplications.length,
       icon: ClipboardList,
-      detail: "Under review",
+      detail: pendingApplications.length > 0 ? "Under review" : "No pending reviews",
     },
     {
       label: "Awaiting Payment",
       value: approvedAwaitingPayment.length,
       icon: CreditCard,
       detail: awaitingPaymentTotal > 0 ? `${formatCurrency(awaitingPaymentTotal)} due` : "Nothing due",
+    },
+    {
+      label: "Unread Alerts",
+      value: unreadAlerts.length,
+      icon: Bell,
+      detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up",
     },
   ];
 
@@ -100,44 +142,56 @@ const VendorDashboard = () => {
       label: "View My Stalls",
       path: "/vendor/stalls",
       icon: Grid3X3,
+      description: "Check current allocations and lease details.",
+      variant: "outline" as const,
     },
     {
       label: "Pay Pending Bills",
       path: "/vendor/payments",
       icon: ReceiptText,
+      description: "Settle booking, utility, and penalty payments.",
+      variant: "default" as const,
     },
     {
       label: "Apply for Stall",
       path: "/vendor/stalls",
       icon: Store,
+      description: "Browse available stalls and submit applications.",
+      variant: "outline" as const,
     },
   ];
 
   const getStallLeaseExpiry = (stallId: string) => {
-    const booking = myBookings.find((item) => item.stallId === stallId && (item.status === "approved" || item.status === "paid")) ||
-      myBookings.find((item) => item.stallId === stallId);
+    const booking =
+      myBookings.find(
+        (item) => item.stallId === stallId && (item.status === "approved" || item.status === "paid"),
+      ) || myBookings.find((item) => item.stallId === stallId);
 
     return formatDashboardDate(booking?.endDate);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="animate-fade-in-up rounded-lg border border-border/80 bg-card p-5 shadow-sm lg:p-6">
-        <h1 className="text-2xl font-bold font-heading lg:text-3xl">{getTimeAwareGreeting(firstName)} 👋</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Here's a quick overview of your stalls and payments.</p>
+    <div className="space-y-4 lg:space-y-5">
+      <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
+        <h1 className="text-2xl font-bold font-heading lg:text-3xl">
+          {getTimeAwareGreeting(firstName)} 👋
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Here&apos;s a quick overview of your stalls, applications, and payments.
+        </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {stats.map((stat, index) => (
-          <Card key={stat.label} className="stat-card animate-fade-in-up" style={{ animationDelay: `${index * 70}ms` }}>
-            <CardContent className="p-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="border border-border/80 bg-card shadow-sm">
+            <CardContent className="p-3.5 lg:p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="text-xl font-bold font-heading mt-1">{stat.value}</p>
+                  <p className="mt-1 text-lg font-bold font-heading lg:text-xl">{stat.value}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{stat.detail}</p>
                 </div>
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                   <stat.icon className="h-4 w-4" />
                 </span>
               </div>
@@ -146,125 +200,176 @@ const VendorDashboard = () => {
         ))}
       </div>
 
-      <Card className="card-warm">
+      <Card className="border border-border/80 bg-card shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           {quickActions.map((action) => (
-            <Button key={action.label} asChild variant={action.label === "Pay Pending Bills" ? "default" : "outline"} className="justify-start gap-2">
-              <Link to={action.path}>
-                <action.icon className="h-4 w-4" />
-                {action.label}
-              </Link>
-            </Button>
+            <div
+              key={action.label}
+              className="rounded-xl border border-border/70 bg-background p-3.5 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <action.icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{action.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{action.description}</p>
+                </div>
+              </div>
+              <Button asChild variant={action.variant} size="sm" className="mt-3 w-full">
+                <Link to={action.path}>{action.label}</Link>
+              </Button>
+            </div>
           ))}
         </CardContent>
       </Card>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">My Active Stalls</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {myStalls.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No active stalls yet. Approved applications will appear here.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Stall</TableHead>
-                  <TableHead>Zone</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Lease Expiry</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myStalls.map((stall) => (
-                  <TableRow key={stall.id}>
-                    <TableCell className="font-medium">{stall.name}</TableCell>
-                    <TableCell>{stall.zone}</TableCell>
-                    <TableCell className="text-muted-foreground">{stall.size}</TableCell>
-                    <TableCell><StatusBadge status={stall.status} /></TableCell>
-                    <TableCell className="text-muted-foreground">{getStallLeaseExpiry(stall.id)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild size="sm" variant="outline">
-                        <Link to="/vendor/stalls">View</Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Booking Applications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {myBookings.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No applications submitted yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Stall</TableHead>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myBookings.slice(0, 5).map((booking) => (
-                  <TableRow key={booking.id}>
-                    <TableCell>
-                      <p className="font-medium">{booking.stallName}</p>
-                      <p className="text-xs text-muted-foreground">{booking.stallZone}</p>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{formatDashboardDateRange(booking.startDate, booking.endDate)}</TableCell>
-                    <TableCell><StatusBadge status={booking.status} context="booking" /></TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild size="sm" variant={booking.status === "approved" ? "default" : "outline"}>
-                        <Link to={booking.status === "approved" ? "/vendor/payments" : "/vendor/stalls"}>
-                          {booking.status === "approved" ? "Pay Now" : "View"}
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Payments Overview</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 rounded-lg bg-muted/25 p-4 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="text-xs text-muted-foreground">Total Paid</p>
-            <p className="text-2xl font-bold font-heading mt-1">{formatCurrency(totalPaid)}</p>
-          </div>
-          <div className="grid gap-2 text-sm text-muted-foreground lg:min-w-[260px]">
-            <div className="interactive-row flex items-center justify-between px-3 py-2">
-              <span>Pending payments</span>
-              <strong className="text-foreground">{pendingPayments.length}</strong>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border border-border/80 bg-card shadow-sm h-[360px] flex flex-col">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base font-heading">My Active Stalls</CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0">
+                <Link to="/vendor/stalls">View all</Link>
+              </Button>
             </div>
-            <Button asChild size="sm" className="mt-1 justify-self-start lg:justify-self-end">
-              <Link to="/vendor/payments">View Payment History</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto space-y-3">
+            {myStalls.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No active stalls yet. Approved applications will appear here.
+              </p>
+            ) : (
+              myStalls.slice(0, 3).map((stall) => (
+                <div
+                  key={stall.id}
+                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{stall.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{stall.zone}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {stall.size} • {formatCurrency(stall.pricePerMonth)}/mo
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Lease expiry: {getStallLeaseExpiry(stall.id)}
+                      </p>
+                    </div>
+                    <StatusBadge status={stall.status} />
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/80 bg-card shadow-sm h-[360px] flex flex-col">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base font-heading">Booking Applications</CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0">
+                <Link to="/vendor/stalls">View all</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto space-y-3">
+            {myBookings.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No applications submitted yet.
+              </p>
+            ) : (
+              myBookings.slice(0, 3).map((booking) => (
+                <div
+                  key={booking.id}
+                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{booking.stallName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{booking.stallZone}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatDashboardDateRange(booking.startDate, booking.endDate)}
+                      </p>
+                    </div>
+                    <StatusBadge status={booking.status} context="booking" />
+                  </div>
+
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant={booking.status === "approved" ? "default" : "outline"}
+                    >
+                      <Link to={booking.status === "approved" ? "/vendor/payments" : "/vendor/stalls"}>
+                        {booking.status === "approved" ? "Pay Now" : "View"}
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card className="border border-border/80 bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-heading">Payments Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 rounded-xl bg-muted/20 p-4 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-xs text-muted-foreground">Total paid</p>
+              <p className="mt-1 text-2xl font-bold font-heading">{formatCurrency(totalPaid)}</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Pending payments: <strong className="text-foreground">{pendingPayments.length}</strong>
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 lg:min-w-[220px]">
+              <div className="rounded-lg border border-border/70 bg-background px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Awaiting payment:</span>{" "}
+                <strong>{formatCurrency(awaitingPaymentTotal)}</strong>
+              </div>
+              <Button asChild size="sm">
+                <Link to="/vendor/payments">View Payment History</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/80 bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base font-heading">Recent Alerts</CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0">
+                <Link to="/vendor/notifications">View all</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {myNotifications.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No recent alerts.</p>
+            ) : (
+              myNotifications.slice(0, 3).map((notification) => (
+                <div
+                  key={notification.id}
+                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                >
+                  <p className="text-sm font-medium leading-5">{notification.message}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatAlertDate(notification.createdAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
