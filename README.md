@@ -2,13 +2,22 @@
 
 Market Management System (`MMS`) is a full-stack market-operations app in a single repo.
 
+Current release: `1.0.0` - April 17, 2026.
+
 - `src/` contains the Vite + React frontend
 - `server/` contains the modular TypeScript API running on Node's built-in HTTP server
 - `runtime/` stores local uploads and runtime artifacts when cloud storage is not configured
 
+## Release status
+
+MMS `1.0.0` is the first production-shaped market operations console release. It packages the role-based workspaces, stall booking workflow, Pesapal payment lifecycle, utilities billing, notifications, reporting, audit evidence, and coordination tools into a calm, premium operational UI.
+
+Release notes are documented in [RELEASE.md](RELEASE.md).
+
 ## Current implementation
 
 - Role-based access for `vendor`, `manager`, `official`, and `admin`
+- Premium operations-console layout with structured page headers, scope filters, KPI strips, tables, detail drawers, and evidence panels
 - Vendor registration with ID upload, OTP phone verification, and manager approval
 - Phone/password login with OTP MFA for privileged accounts
 - Market-scoped management for vendors, stalls, bookings, payments, reports, and audit records
@@ -21,6 +30,17 @@ Market Management System (`MMS`) is a full-stack market-operations app in a sing
 - Ticketing, coordination messaging, and resource request review flows
 - Optional USSD/SMS fallback simulation endpoints for development and demos
 - Optional Supabase integration for Auth and Storage
+
+## Design direction
+
+MMS `1.0.0` uses a neutral-first interface where color is rare and meaningful. The console favors flat cards, subtle borders, clear typography, human-readable dates and currency, consistent status badges, and one clear primary action per section.
+
+Color is reserved for operational meaning:
+
+- Green: available, completed, paid, resolved, success
+- Orange: pending, review, attention, unpaid
+- Red: failed, overdue, rejected, destructive action
+- Blue: rare informational context only
 
 ## Payment status
 
