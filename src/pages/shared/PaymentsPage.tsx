@@ -18,9 +18,9 @@ import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentMethod, Penalty, UtilityCharge, UtilityType } from "@/types";
 
 const paymentMethodMeta: Record<PaymentMethod, { label: string; className: string }> = {
-  mtn: { label: "MTN", className: "bg-warning/10 text-warning" },
-  airtel: { label: "AIRTEL", className: "bg-destructive/10 text-destructive" },
-  pesapal: { label: "PESAPAL", className: "bg-info/10 text-info" },
+  mtn: { label: "MTN", className: "bg-muted text-muted-foreground" },
+  airtel: { label: "AIRTEL", className: "bg-muted text-muted-foreground" },
+  pesapal: { label: "PESAPAL", className: "bg-muted text-muted-foreground" },
 };
 
 const utilityTypeLabels: Record<UtilityType, string> = {
@@ -260,7 +260,7 @@ const PaymentsPage = () => {
         <ScopeBar>
           <div className="flex-1">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <CalendarRange className="h-4 w-4 text-info" />
+              <CalendarRange className="h-4 w-4 text-muted-foreground" />
               Payment history filters
             </div>
             <p className="mt-1 text-xs text-muted-foreground">Find receipts and failed attempts by status, year, or date range.</p>
@@ -454,7 +454,7 @@ const PaymentsPage = () => {
           {paymentIntent && (
             <div className="space-y-4">
               <div className="rounded-xl bg-muted/40 p-4 text-sm"><p className="font-medium">{paymentIntent.title}</p><p className="mt-1 text-muted-foreground">{paymentIntent.subtitle}</p><p className="mt-2 text-lg font-bold font-heading">{formatCurrency(paymentIntent.amount)}</p></div>
-              <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-4 w-4 text-info" /><div className="space-y-2"><p>Pesapal will open a secure checkout where the customer can complete payment.</p><p>{user?.email ? `The current checkout will use ${user.email} and ${user.phone}.` : "The current checkout will use the phone number attached to the signed-in vendor account."}</p></div></div></div>
+              <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-4 w-4 text-muted-foreground" /><div className="space-y-2"><p>Pesapal will open a secure checkout where the customer can complete payment.</p><p>{user?.email ? `The current checkout will use ${user.email} and ${user.phone}.` : "The current checkout will use the phone number attached to the signed-in vendor account."}</p></div></div></div>
               <Button className="w-full" onClick={() => initiatePayment.mutate(paymentIntent.payload)} disabled={initiatePayment.isPending}><ArrowUpRight className="mr-2 h-4 w-4" />{initiatePayment.isPending ? "Opening Checkout..." : "Continue to Pesapal"}</Button>
             </div>
           )}
@@ -468,7 +468,7 @@ const PaymentsPage = () => {
             <div className="space-y-4">
               <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">Complete the payment in the secure Pesapal frame below. After checkout, Pesapal will return the user to the callback page and the app will verify the final status.</div>
               <iframe title="Pesapal Checkout" src={checkoutSession.redirectUrl} className="h-[640px] w-full rounded-xl border border-border/70 bg-white" />
-              <div className="flex justify-end"><a href={checkoutSession.redirectUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-primary underline-offset-4 hover:underline"><ExternalLink className="h-4 w-4" />Open checkout in a new tab</a></div>
+              <div className="flex justify-end"><a href={checkoutSession.redirectUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"><ExternalLink className="h-4 w-4" />Open checkout in a new tab</a></div>
             </div>
           )}
         </DialogContent>

@@ -70,32 +70,32 @@ const VendorDashboard = () => {
       label: "Active Stalls",
       value: myStalls.length,
       icon: Grid3X3,
-      color: "text-primary",
-      accent: "bg-primary",
+      color: "text-muted-foreground",
+      accent: "bg-border",
       detail: myStalls.length === 1 ? "1 stall currently allocated" : `${myStalls.length} stalls currently allocated`,
     },
     {
       label: "Pending Applications",
       value: pendingApplications.length,
       icon: ClipboardList,
-      color: "text-warning",
-      accent: "bg-warning",
+      color: "text-muted-foreground",
+      accent: "bg-border",
       detail: pendingApplications.length ? "Awaiting manager review" : "No application waiting",
     },
     {
       label: "Awaiting Payment",
       value: approvedAwaitingPayment.length,
       icon: CreditCard,
-      color: "text-info",
-      accent: "bg-info",
+      color: "text-muted-foreground",
+      accent: "bg-border",
       detail: approvedAwaitingPayment.length ? "Approved booking(s) need action" : "No approved booking unpaid",
     },
     {
       label: "Unread Alerts",
       value: myNotifications.filter((item) => !item.read).length,
       icon: Bell,
-      color: "text-info",
-      accent: "bg-accent",
+      color: "text-muted-foreground",
+      accent: "bg-border",
       detail: myNotifications.some((item) => !item.read) ? "New update needs attention" : "All alerts reviewed",
     },
   ];
@@ -160,7 +160,7 @@ const VendorDashboard = () => {
           {quickActions.map((action) => (
             <Link key={action.label} to={action.path} className="interactive-row group flex items-center justify-between gap-3 p-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                   <action.icon className="h-5 w-5" />
                 </div>
                 <div>
@@ -168,7 +168,7 @@ const VendorDashboard = () => {
                   <p className="mt-1 text-xs text-muted-foreground">{action.description}</p>
                 </div>
               </div>
-              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
             </Link>
           ))}
         </CardContent>
@@ -232,7 +232,7 @@ const VendorDashboard = () => {
       <Card className="card-warm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-success" />
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
             Payment Snapshot
           </CardTitle>
         </CardHeader>

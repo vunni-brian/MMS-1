@@ -53,7 +53,7 @@ const NotificationsPage = () => {
             return (
               <Card
                 key={notification.id}
-                className={`card-warm cursor-pointer ${!notification.read ? "border-primary/30 bg-primary/5" : ""}`}
+                className={`card-warm cursor-pointer ${!notification.read ? "border-border bg-muted/15" : ""}`}
                 onClick={() => {
                   if (!notification.read) {
                     markRead.mutate(notification.id);
@@ -61,17 +61,17 @@ const NotificationsPage = () => {
                 }}
               >
                 <CardContent className="p-4 flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${!notification.read ? "bg-primary/10" : "bg-muted"}`}>
-                    <Icon className={`w-4 h-4 ${!notification.read ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-muted">
+                    <Icon className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="status-badge border-primary/15 bg-primary/10 text-primary">{typeLabels[notification.type]}</span>
+                      <span className="status-badge border-border/70 bg-muted/50 text-muted-foreground">{typeLabels[notification.type]}</span>
                       <span className="text-xs text-muted-foreground">{formatHumanDateTime(notification.createdAt)}</span>
                     </div>
                     <p className={`text-sm whitespace-pre-line ${!notification.read ? "font-medium" : ""}`}>{notification.message}</p>
                   </div>
-                  {!notification.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />}
+                  {!notification.read && <span className="w-2 h-2 rounded-full bg-foreground shrink-0 mt-2" />}
                 </CardContent>
               </Card>
             );

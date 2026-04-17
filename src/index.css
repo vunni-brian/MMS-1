@@ -43,14 +43,14 @@
     --info: 210 70% 50%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 35 33% 98%;
-    --sidebar-foreground: 20 25% 18%;
-    --sidebar-primary: 16 65% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 35 20% 93%;
-    --sidebar-accent-foreground: 20 25% 15%;
-    --sidebar-border: 30 15% 88%;
-    --sidebar-ring: 16 65% 45%;
+    --sidebar-background: 210 13% 16%;
+    --sidebar-foreground: 35 20% 92%;
+    --sidebar-primary: 35 20% 92%;
+    --sidebar-primary-foreground: 210 13% 16%;
+    --sidebar-accent: 210 11% 23%;
+    --sidebar-accent-foreground: 35 20% 96%;
+    --sidebar-border: 210 10% 25%;
+    --sidebar-ring: 35 20% 92%;
 
     --font-heading: 'Plus Jakarta Sans', sans-serif;
     --font-body: 'DM Sans', sans-serif;
@@ -100,11 +100,11 @@
   }
 
   .insight-chip {
-    @apply inline-flex items-center rounded-full border border-primary/15 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary;
+    @apply inline-flex items-center rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-xs font-semibold text-muted-foreground;
   }
 
   .page-kicker {
-    @apply text-xs font-semibold uppercase tracking-[0.2em] text-primary;
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground;
   }
 
   .soft-glow {

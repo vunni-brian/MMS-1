@@ -131,37 +131,37 @@ const AdminDashboard = () => {
       value: markets.length,
       detail: "Cross-market platform footprint",
       icon: Store,
-      accent: "text-primary",
+      accent: "text-muted-foreground",
     },
     {
       label: "Total Vendors",
       value: vendors.length,
       detail: "Registered service consumers",
       icon: Users,
-      accent: "text-primary",
+      accent: "text-muted-foreground",
     },
     {
       label: "Payments Monitored",
       value: payments.length,
       detail: "Transactions under platform oversight",
       icon: CreditCard,
-      accent: "text-success",
+      accent: "text-muted-foreground",
     },
     {
       label: "Open Governance Items",
       value: openGovernanceItems,
       detail: "Audit, dispute, and approval signals",
       icon: AlertTriangle,
-      accent: openGovernanceItems > 0 ? "text-warning" : "text-success",
+      accent: "text-muted-foreground",
     },
   ];
 
   return (
     <div className="space-y-6">
-      <Card className="card-warm border-primary/20">
+      <Card className="card-warm">
         <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/70 px-3 py-1 text-xs font-medium text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-xs font-medium text-muted-foreground">
               <ShieldCheck className="h-4 w-4" />
               Top-Level Governance
             </div>
@@ -172,7 +172,7 @@ const AdminDashboard = () => {
               </p>
             </div>
           </div>
-          <div className="rounded-2xl border border-primary/15 bg-background/70 p-4 text-sm text-muted-foreground lg:max-w-sm">
+          <div className="rounded-lg border border-border/70 bg-muted/25 p-4 text-sm text-muted-foreground lg:max-w-sm">
             Only the Admin role may directly activate or deactivate charge categories and payment infrastructure.
           </div>
         </CardContent>
@@ -360,7 +360,7 @@ const AdminDashboard = () => {
           </div>
           <Card className="card-warm">
             <CardContent className="space-y-4 p-5 text-sm text-muted-foreground">
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4 text-foreground">
+              <div className="rounded-lg border border-border/70 bg-muted/25 p-4 text-foreground">
                 The Admin Dashboard is the top-level governance page of the system. It centralizes billing status, system activity, and regulatory control points across all markets.
               </div>
               <div className="space-y-3">

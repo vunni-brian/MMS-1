@@ -86,8 +86,8 @@ const AppLayout = () => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}>
         <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Store className="w-5 h-5 text-sidebar-primary-foreground" />
+          <div className="w-9 h-9 rounded-lg border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center">
+            <Store className="w-5 h-5 text-sidebar-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">{workspaceTitle}</p>
@@ -109,7 +109,7 @@ const AppLayout = () => {
               className={({ isActive }) => cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200',
                 isActive
-                  ? 'bg-sidebar-primary/10 text-sidebar-accent-foreground font-semibold'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
                   : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
               )}
             >
@@ -143,9 +143,9 @@ const AppLayout = () => {
               <button
                 type="button"
                 onClick={() => setProfileOpen((current) => !current)}
-                className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1.5 text-left shadow-sm transition-colors duration-150 hover:border-primary/25 hover:bg-muted/50"
+                className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1.5 text-left shadow-sm transition-colors duration-150 hover:border-border hover:bg-muted/50"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <UserCircle className="h-5 w-5" />
                 </span>
                 <span className="hidden min-w-0 sm:block">
@@ -158,12 +158,12 @@ const AppLayout = () => {
               {profileOpen && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-lg border border-border/70 bg-card p-3 shadow-md">
                   <div className="flex items-start gap-3 rounded-lg bg-muted/30 p-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <UserCircle className="h-7 w-7" />
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-base font-semibold font-heading">{user.name}</p>
-                      <p className="text-xs font-medium text-primary">{roleLabel} - {headerScope}</p>
+                      <p className="text-xs font-medium text-muted-foreground">{roleLabel} - {headerScope}</p>
                       <p className="mt-1 truncate text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </div>

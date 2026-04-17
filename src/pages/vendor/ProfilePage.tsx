@@ -107,8 +107,8 @@ const ProfilePage = () => {
       <Card className="card-warm">
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <User className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+              <User className="w-8 h-8 text-muted-foreground" />
             </div>
             <div>
               <h2 className="text-xl font-bold font-heading">{user.name}</h2>
@@ -222,8 +222,8 @@ const ProfilePage = () => {
       <Card className="card-warm">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <KeyRound className="h-5 w-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+              <KeyRound className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
               <h2 className="text-lg font-bold font-heading">Change Password</h2>

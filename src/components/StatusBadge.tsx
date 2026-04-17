@@ -2,11 +2,11 @@ import { cn } from "@/lib/utils";
 import type { BookingStatus, PaymentStatus, PenaltyStatus, StallStatus, TicketStatus, UtilityChargeStatus, VendorApprovalStatus } from "@/types";
 
 const statusStyles: Record<string, string> = {
-  active: "border-primary/20 bg-primary/15 text-primary",
+  active: "border-border bg-muted text-muted-foreground",
   inactive: "border-success/20 bg-success/15 text-success",
   maintenance: "border-border bg-muted text-muted-foreground",
   pending: "border-warning/25 bg-warning/15 text-warning",
-  pending_payment: "border-info/20 bg-info/15 text-info",
+  pending_payment: "border-warning/25 bg-warning/15 text-warning",
   unpaid: "border-warning/25 bg-warning/15 text-warning",
   approved: "border-success/20 bg-success/15 text-success",
   paid: "border-success/20 bg-success/15 text-success",

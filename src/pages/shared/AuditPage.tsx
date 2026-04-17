@@ -104,7 +104,7 @@ const AuditPage = () => {
                     <TableCell className="text-sm">{event.marketName || "All markets"}</TableCell>
                     <TableCell className="font-medium text-sm">{event.actorName}</TableCell>
                     <TableCell>
-                      <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded capitalize">{event.actorRole}</span>
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium capitalize text-muted-foreground">{event.actorRole}</span>
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{event.action}</span>

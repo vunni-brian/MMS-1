@@ -47,10 +47,10 @@ const ReportsPage = () => {
     variance: 0,
   };
   const varianceToneClass =
-    auditSummary.variance === 0 ? "text-success" : auditSummary.variance > 0 ? "text-warning" : "text-destructive";
+    auditSummary.variance === 0 ? "text-foreground" : auditSummary.variance > 0 ? "text-warning" : "text-destructive";
   const variancePanelClass =
     auditSummary.variance === 0
-      ? "border-success/30 bg-success/5 text-success"
+      ? "border-border/70 bg-muted/20 text-muted-foreground"
       : auditSummary.variance > 0
         ? "border-warning/30 bg-warning/5 text-warning"
         : "border-destructive/30 bg-destructive/5 text-destructive";
@@ -159,7 +159,7 @@ const ReportsPage = () => {
 
       <KpiStrip items={reportKpis} />
 
-      <Card className="card-warm border-warning/20">
+      <Card className="card-warm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">Financial Audit</CardTitle>
         </CardHeader>
@@ -167,7 +167,7 @@ const ReportsPage = () => {
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-xl bg-muted/40 p-4">
               <p className="text-xs text-muted-foreground">Collected Total</p>
-              <p className="mt-1 text-xl font-bold font-heading text-success">{formatCurrency(auditSummary.collectedTotal)}</p>
+              <p className="mt-1 text-xl font-bold font-heading">{formatCurrency(auditSummary.collectedTotal)}</p>
             </div>
             <div className="rounded-xl bg-muted/40 p-4">
               <p className="text-xs text-muted-foreground">Deposited Total</p>
@@ -243,7 +243,7 @@ const ReportsPage = () => {
                     <TableCell>{row.stallName}</TableCell>
                     <TableCell>{formatCurrency(row.amount)}</TableCell>
                     <TableCell>{formatCurrency(row.paidAmount)}</TableCell>
-                    <TableCell className="text-warning">{formatCurrency(row.outstandingAmount)}</TableCell>
+                    <TableCell>{formatCurrency(row.outstandingAmount)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

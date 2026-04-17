@@ -169,7 +169,7 @@ const ComplaintsPage = () => {
             </div>
             <div className="space-y-1.5">
               <Label>Attachment (optional)</Label>
-              <label className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/40 transition-colors block">
+              <label className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-foreground/25 transition-colors block">
                 <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-1" />
                 <p className="text-xs text-muted-foreground">{newTicket.attachment ? newTicket.attachment.name : "Click to upload a photo or document"}</p>
                 <input

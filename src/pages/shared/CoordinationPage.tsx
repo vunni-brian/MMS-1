@@ -96,8 +96,8 @@ const CoordinationPage = () => {
                   <div key={message.id} className="interactive-row border p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-primary" />
+                        <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <div>
                           <p className="font-medium text-sm">{message.senderName}</p>

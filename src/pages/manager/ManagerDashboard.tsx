@@ -130,22 +130,22 @@ const ManagerDashboard = () => {
 
   const sentiment = sentimentScore >= 75
     ? {
-        label: "Green",
-        color: "bg-success",
-        ring: "ring-success/20",
+      label: "Green",
+      color: "bg-success",
+      ring: "ring-border",
         text: "Collections are healthy, complaints are contained, and the market is moving well.",
       }
     : sentimentScore >= 50
       ? {
           label: "Amber",
           color: "bg-warning",
-          ring: "ring-warning/20",
+          ring: "ring-border",
           text: "Conditions are stable but need follow-up on dues, complaints, or occupancy pressure.",
         }
       : {
           label: "Red",
           color: "bg-destructive",
-          ring: "ring-destructive/20",
+          ring: "ring-border",
           text: "Vendor friction or weak collections need immediate management attention.",
         };
 
@@ -194,22 +194,22 @@ const ManagerDashboard = () => {
     .sort((left, right) => left.zone.localeCompare(right.zone) || left.name.localeCompare(right.name))
     .map((stall) => {
       if (stall.status === "maintenance") {
-        return { ...stall, stateLabel: "Maintenance", className: "border-slate-300 bg-slate-100 text-slate-700" };
+        return { ...stall, stateLabel: "Maintenance", className: "border-border bg-muted/30 text-foreground" };
       }
       if (stall.status === "active") {
-        return { ...stall, stateLabel: "Occupied", className: "border-primary/40 bg-primary/10 text-primary" };
+        return { ...stall, stateLabel: "Occupied", className: "border-border bg-card text-foreground" };
       }
-      return { ...stall, stateLabel: "Available", className: "border-success/40 bg-success/10 text-success" };
+      return { ...stall, stateLabel: "Available", className: "border-border bg-card text-foreground" };
     });
 
   const selectedStall = mapTiles.find((stall) => stall.id === selectedStallId) || mapTiles[0] || null;
 
   const stats = [
-    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-success" },
-    { label: "Occupancy Rate", value: `${occupancyRate}%`, icon: Grid3X3, color: "text-primary" },
-    { label: "Available Stalls", value: stalls.filter((stall) => stall.status === "inactive").length, icon: CheckCircle, color: "text-info" },
-    { label: "Pending Approvals", value: vendors.filter((vendor) => vendor.status === "pending").length, icon: Users, color: "text-warning" },
-    { label: "Booking Applications", value: pendingApplications.length, icon: CreditCard, color: "text-warning" },
+    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-muted-foreground" },
+    { label: "Occupancy Rate", value: `${occupancyRate}%`, icon: Grid3X3, color: "text-muted-foreground" },
+    { label: "Available Stalls", value: stalls.filter((stall) => stall.status === "inactive").length, icon: CheckCircle, color: "text-muted-foreground" },
+    { label: "Pending Approvals", value: vendors.filter((vendor) => vendor.status === "pending").length, icon: Users, color: "text-muted-foreground" },
+    { label: "Booking Applications", value: pendingApplications.length, icon: CreditCard, color: "text-muted-foreground" },
     { label: "Open Tickets", value: tickets.filter((ticket) => ticket.status !== "resolved").length, icon: AlertCircle, color: "text-destructive" },
   ];
 
@@ -278,7 +278,7 @@ const ManagerDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {permitAlerts.length === 0 ? (
-              <div className="rounded-xl border border-success/20 bg-success/5 p-4 text-sm text-muted-foreground">
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
                 No active permits expire within the next 48 hours.
               </div>
             ) : (
@@ -433,7 +433,7 @@ const ManagerDashboard = () => {
                   key={stall.id}
                   type="button"
                   onClick={() => setSelectedStallId(stall.id)}
-                  className={`rounded-lg border p-4 text-left transition-colors hover:bg-muted/40 ${stall.className} ${selectedStallId === stall.id ? "ring-2 ring-primary/40" : ""}`}
+                  className={`rounded-lg border p-4 text-left transition-colors hover:bg-muted/40 ${stall.className} ${selectedStallId === stall.id ? "ring-2 ring-foreground/20" : ""}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold font-heading">{stall.name}</span>
@@ -445,8 +445,8 @@ const ManagerDashboard = () => {
             </div>
 
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-primary" /> Occupied</span>
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-success" /> Available</span>
+              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-muted-foreground/35" /> Occupied</span>
+              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-success/70" /> Available</span>
               <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-slate-400" /> Maintenance</span>
             </div>
           </CardContent>

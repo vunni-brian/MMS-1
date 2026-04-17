@@ -108,8 +108,8 @@ const StallsPage = () => {
   ];
 
   const statusColors: Record<string, string> = {
-    inactive: "border-success/40 bg-success/5",
-    active: "border-primary/40 bg-primary/5",
+    inactive: "border-border bg-card",
+    active: "border-border bg-card",
     maintenance: "border-muted bg-muted/30",
   };
 
@@ -165,7 +165,7 @@ const StallsPage = () => {
           <button
             key={stall.id}
             onClick={() => setSelectedStall(stall)}
-            className={`text-left p-4 rounded-lg border-2 transition-colors duration-150 hover:bg-muted/40 ${statusColors[stall.status] || "border-border"}`}
+            className={`text-left p-4 rounded-lg border transition-colors duration-150 hover:bg-muted/40 ${statusColors[stall.status] || "border-border"}`}
           >
             <div className="flex items-center justify-between mb-2 gap-2">
               <span className="font-heading font-bold text-lg">{stall.name}</span>
@@ -308,8 +308,8 @@ const StallsPage = () => {
       </Dialog>
 
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-success/30" /> Available</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary/30" /> Occupied</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-success/60" /> Available</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-muted-foreground/35" /> Occupied</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-muted" /> Maintenance</span>
       </div>
     </ConsolePage>

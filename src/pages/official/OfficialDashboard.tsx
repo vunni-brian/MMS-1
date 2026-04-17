@@ -314,10 +314,10 @@ const OfficialDashboard = () => {
   const scopeLabel = selectedMarket ? `${selectedMarket.name} (${selectedMarket.location})` : "All Markets";
 
   const stats = [
-    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-success" },
-    { label: "Utility Collections", value: formatCurrency(utilityCollections), icon: Landmark, color: "text-info" },
-    { label: "Total Vendors", value: vendors.length.toLocaleString(), icon: Users, color: "text-primary" },
-    { label: "Active Stalls", value: activeStalls.toLocaleString(), icon: ShieldCheck, color: "text-success" },
+    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-muted-foreground" },
+    { label: "Utility Collections", value: formatCurrency(utilityCollections), icon: Landmark, color: "text-muted-foreground" },
+    { label: "Total Vendors", value: vendors.length.toLocaleString(), icon: Users, color: "text-muted-foreground" },
+    { label: "Active Stalls", value: activeStalls.toLocaleString(), icon: ShieldCheck, color: "text-muted-foreground" },
   ];
 
   return (
@@ -368,12 +368,12 @@ const OfficialDashboard = () => {
             <CardTitle className="text-base font-heading">Compliance Indicators</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3 text-sm lg:grid-cols-3">
-            <div className="rounded-xl bg-warning/10 p-3"><p className="text-xs text-muted-foreground">Unpaid Utilities</p><p className="mt-1 text-lg font-bold font-heading">{unpaidUtilities}</p></div>
-            <div className="rounded-xl bg-destructive/10 p-3"><p className="text-xs text-muted-foreground">Overdue Payments</p><p className="mt-1 text-lg font-bold font-heading">{overdueUtilities + unpaidPenalties}</p></div>
-            <div className="rounded-xl bg-destructive/10 p-3"><p className="text-xs text-muted-foreground">Rejected Vendors</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "rejected").length}</p></div>
-            <div className="rounded-xl bg-warning/10 p-3"><p className="text-xs text-muted-foreground">Pending Approvals</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "pending").length}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Unpaid Utilities</p><p className="mt-1 text-lg font-bold font-heading">{unpaidUtilities}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Overdue Payments</p><p className="mt-1 text-lg font-bold font-heading">{overdueUtilities + unpaidPenalties}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Rejected Vendors</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "rejected").length}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Pending Approvals</p><p className="mt-1 text-lg font-bold font-heading">{vendors.filter((vendor) => vendor.status === "pending").length}</p></div>
             <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Unpaid Penalties</p><p className="mt-1 text-lg font-bold font-heading">{unpaidPenalties}</p></div>
-            <div className="rounded-xl bg-success/10 p-3"><p className="text-xs text-muted-foreground">Penalty Collections</p><p className="mt-1 text-lg font-bold font-heading">{formatCurrency(penaltyCollections)}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Penalty Collections</p><p className="mt-1 text-lg font-bold font-heading">{formatCurrency(penaltyCollections)}</p></div>
           </CardContent>
         </Card>
 
@@ -493,11 +493,11 @@ const OfficialDashboard = () => {
                 <p className="text-sm font-medium">{market.total} stalls</p>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-xl bg-primary/5 p-3">
+                <div className="rounded-lg bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Occupied</p>
                   <p className="text-lg font-bold font-heading mt-1">{market.occupied}</p>
                 </div>
-                <div className="rounded-xl bg-success/5 p-3">
+                <div className="rounded-lg bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Available</p>
                   <p className="text-lg font-bold font-heading mt-1">{market.available}</p>
                 </div>
@@ -673,7 +673,7 @@ const OfficialDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-3">
             {criticalExceptions.length === 0 ? (
-              <div className="rounded-xl border border-success/20 bg-success/5 p-4 text-sm text-muted-foreground">
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
                 No major exceptions are currently flagged.
               </div>
             ) : (

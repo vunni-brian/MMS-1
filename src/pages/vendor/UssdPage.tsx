@@ -39,9 +39,9 @@ const UssdPage = () => {
         <p className="text-muted-foreground text-sm mt-1">Access market info without a smartphone</p>
       </div>
 
-      <Card className="card-warm border-info/30 bg-info/5">
+      <Card className="card-warm">
         <CardContent className="p-4 flex items-start gap-3">
-          <Phone className="w-5 h-5 text-info mt-0.5 shrink-0" />
+          <Phone className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
           <div>
             <p className="font-medium text-sm">No smartphone? No problem!</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -55,8 +55,8 @@ const UssdPage = () => {
         {commands.map((cmd, i) => (
           <Card key={i} className="card-warm">
             <CardContent className="p-4 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                {cmd.code.startsWith('*') ? <Hash className="w-5 h-5 text-primary" /> : <MessageSquare className="w-5 h-5 text-primary" />}
+              <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                {cmd.code.startsWith('*') ? <Hash className="w-5 h-5 text-muted-foreground" /> : <MessageSquare className="w-5 h-5 text-muted-foreground" />}
               </div>
               <div className="flex-1">
                 <p className="font-mono font-bold text-sm">{cmd.code}</p>

@@ -112,8 +112,8 @@ const RegisterPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
-            <Store className="w-7 h-7 text-primary" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-muted mb-2">
+            <Store className="w-7 h-7 text-muted-foreground" />
           </div>
           <h1 className="text-2xl font-bold font-heading">Vendor Registration</h1>
           <p className="text-muted-foreground text-sm">
@@ -184,7 +184,7 @@ const RegisterPage = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label>ID Document (PDF/JPG/PNG, max 5MB)</Label>
-                    <label className="block border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-primary/40 transition-colors cursor-pointer">
+                    <label className="block border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-foreground/25 transition-colors cursor-pointer">
                       <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">
                         {form.idFile ? form.idFile.name : "Click to choose an ID document"}

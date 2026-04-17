@@ -265,9 +265,9 @@ const BillingPage = () => {
       </ScopeBar>
 
       {!canManageUtilities && (
-        <Card className="card-warm border-info/20 bg-info/5">
+        <Card className="card-warm">
           <CardContent className="flex items-start gap-3 p-4">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-info" />
+            <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
             <div className="text-sm text-muted-foreground">This view is read-only for your role. Utility charges and switches are shown for oversight only.</div>
           </CardContent>
         </Card>
@@ -282,7 +282,7 @@ const BillingPage = () => {
           <Card key={chargeType.id} className="card-warm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-heading">
-                <SlidersHorizontal className="h-4 w-4 text-primary" />
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
                 {chargeType.displayName}
               </CardTitle>
             </CardHeader>
@@ -304,7 +304,7 @@ const BillingPage = () => {
         <Card className="card-warm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-heading">
-              <PlusCircle className="h-4 w-4 text-primary" />
+              <PlusCircle className="h-4 w-4 text-muted-foreground" />
               Create Utility Charge
             </CardTitle>
           </CardHeader>

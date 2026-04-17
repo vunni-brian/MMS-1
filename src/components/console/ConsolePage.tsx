@@ -66,11 +66,11 @@ interface KpiItem {
 }
 
 const kpiToneStyles: Record<NonNullable<KpiItem["tone"]>, string> = {
-  default: "text-foreground bg-muted/45",
-  success: "text-success bg-success/10",
-  warning: "text-warning bg-warning/10",
-  destructive: "text-destructive bg-destructive/10",
-  info: "text-info bg-info/10",
+  default: "text-muted-foreground bg-muted/45",
+  success: "text-foreground bg-muted/45",
+  warning: "text-foreground bg-muted/45",
+  destructive: "text-foreground bg-muted/45",
+  info: "text-foreground bg-muted/45",
 };
 
 interface KpiStripProps {
