@@ -1,92 +1,154 @@
-import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   AlertCircle,
-  CheckCircle,
+  CheckCircle2,
+  ClipboardList,
   CreditCard,
   Grid3X3,
-  MapPinned,
-  ShieldAlert,
-  TrendingUp,
-  Users,
+  MessageSquare,
+  ReceiptText,
+  SlidersHorizontal,
+  Wrench,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
-import { formatCurrency, formatHumanDate, formatHumanDateRange } from "@/lib/utils";
+import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
-
-const chartPalette = ["#2563eb", "#f59e0b", "#10b981", "#ef4444", "#6b7280"];
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "@/components/ui/sonner";
+import type { BookingStatus, ChargeTypeName, Payment, Ticket, UtilityCharge, UtilityType, VendorApprovalStatus } from "@/types";
 
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 
+const categoryLabels: Record<Ticket["category"], string> = {
+  billing: "Billing",
+  maintenance: "Maintenance",
+  dispute: "Dispute",
+  other: "Other",
+};
+
+const utilityLabels: Record<UtilityType, string> = {
+  electricity: "Electricity",
+  water: "Water",
+  sanitation: "Sanitation",
+  garbage: "Garbage",
+  other: "Utility",
+};
+
+const chargeTypeLabels: Record<ChargeTypeName, string> = {
+  market_dues: "Market dues",
+  utilities: "Utility charge",
+  penalties: "Penalty",
+  booking_fee: "Booking fee",
+  payment_gateway: "Payment gateway",
+};
+
+type ApprovalRow =
+  | {
+      id: string;
+      kind: "vendor";
+      vendorId: string;
+      vendorName: string;
+      detail: string;
+      market: string;
+      appliedAt: string;
+      status: VendorApprovalStatus;
+    }
+  | {
+      id: string;
+      kind: "booking";
+      bookingId: string;
+      vendorName: string;
+      detail: string;
+      market: string;
+      appliedAt: string;
+      status: BookingStatus;
+    };
+
+type ComplaintPriority = "High" | "Medium" | "Normal";
+
+const getPaymentPurpose = (payment: Payment) => {
+  if (payment.description?.trim()) return payment.description;
+  if (payment.stallName) return `Stall ${payment.stallName}`;
+  return chargeTypeLabels[payment.chargeType];
+};
+
+const getPaymentReference = (payment: Payment) =>
+  payment.providerReference || payment.transactionId || payment.externalReference || "Awaiting reference";
+
+const getComplaintPriority = (ticket: Ticket): ComplaintPriority => {
+  if (ticket.category === "dispute") return "High";
+  if (ticket.category === "billing" || ticket.category === "maintenance") return "Medium";
+  return "Normal";
+};
+
+const utilityStatusWeight: Record<UtilityCharge["status"], number> = {
+  overdue: 0,
+  unpaid: 1,
+  pending: 2,
+  pending_payment: 2,
+  paid: 3,
+  cancelled: 4,
+};
+
 const ManagerDashboard = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedStallId, setSelectedStallId] = useState<string | null>(null);
-  const [requestError, setRequestError] = useState<string | null>(null);
-  const [bookingReviewNotes, setBookingReviewNotes] = useState<Record<string, string>>({});
-  const [requestForm, setRequestForm] = useState({
-    category: "budget" as "budget" | "structural",
-    title: "",
-    description: "",
-    amountRequested: 0,
-  });
 
   const { data: stallsData } = useQuery({ queryKey: ["stalls"], queryFn: () => api.getStalls() });
   const { data: bookingsData } = useQuery({ queryKey: ["bookings"], queryFn: () => api.getBookings() });
   const { data: paymentsData } = useQuery({ queryKey: ["payments"], queryFn: () => api.getPayments(), refetchInterval: 10_000 });
   const { data: vendorsData } = useQuery({ queryKey: ["vendors"], queryFn: () => api.getVendors() });
   const { data: ticketsData } = useQuery({ queryKey: ["tickets"], queryFn: () => api.getTickets() });
-  const { data: resourceRequestsData } = useQuery({
-    queryKey: ["resource-requests"],
-    queryFn: () => api.getResourceRequests(),
+  const { data: utilityChargesData } = useQuery({
+    queryKey: ["utility-charges", "manager-dashboard"],
+    queryFn: () => api.getUtilityCharges(),
+    refetchInterval: 10_000,
   });
 
-  const createResourceRequest = useMutation({
-    mutationFn: () => api.createResourceRequest(requestForm),
+  const approveVendor = useMutation({
+    mutationFn: (vendorId: string) => api.approveVendor(vendorId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["resource-requests"] });
-      setRequestForm({
-        category: "budget",
-        title: "",
-        description: "",
-        amountRequested: 0,
-      });
-      setRequestError(null);
+      await queryClient.invalidateQueries({ queryKey: ["vendors"] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Vendor approved");
     },
-    onError: (error) => setRequestError(error instanceof ApiError ? error.message : "Unable to submit request."),
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "Unable to approve vendor.";
+      toast.error("Vendor was not approved", { description: message });
+    },
+  });
+
+  const rejectVendor = useMutation({
+    mutationFn: (vendorId: string) => api.rejectVendor(vendorId, "Rejected from manager dashboard review."),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["vendors"] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Vendor rejected");
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "Unable to reject vendor.";
+      toast.error("Vendor was not rejected", { description: message });
+    },
   });
 
   const reviewBookingApplication = useMutation({
     mutationFn: ({ bookingId, approved }: { bookingId: string; approved: boolean }) =>
-      approved
-        ? api.approveBooking(bookingId, bookingReviewNotes[bookingId])
-        : api.rejectBooking(bookingId, bookingReviewNotes[bookingId] || "Application requirements were not met."),
-    onSuccess: async (_, variables) => {
+      approved ? api.approveBooking(bookingId) : api.rejectBooking(bookingId, "Application requirements were not met."),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["stalls"] });
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setBookingReviewNotes((current) => ({ ...current, [variables.bookingId]: "" }));
+      toast.success("Application reviewed");
     },
-    onError: (error) => setRequestError(error instanceof ApiError ? error.message : "Unable to review booking application."),
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "Unable to review booking application.";
+      toast.error("Application was not reviewed", { description: message });
+    },
   });
 
   const stalls = stallsData?.stalls || [];
@@ -94,490 +156,413 @@ const ManagerDashboard = () => {
   const payments = paymentsData?.payments || [];
   const vendors = vendorsData?.vendors || [];
   const tickets = ticketsData?.tickets || [];
-  const resourceRequests = resourceRequestsData?.requests || [];
+  const utilityCharges = utilityChargesData?.utilityCharges || [];
 
-  const paidByBooking = payments.reduce<Record<string, number>>((accumulator, payment) => {
-    if (payment.status === "completed" && payment.bookingId) {
-      accumulator[payment.bookingId] = (accumulator[payment.bookingId] || 0) + payment.amount;
-    }
-    return accumulator;
-  }, {});
-
-  const bookingById = bookings.reduce<Record<string, (typeof bookings)[number]>>((accumulator, booking) => {
-    accumulator[booking.id] = booking;
-    return accumulator;
-  }, {});
+  const pendingVendors = vendors.filter((vendor) => vendor.status === "pending");
   const pendingApplications = bookings.filter((booking) => booking.status === "pending");
-  const billableBookings = bookings.filter((booking) => ["approved", "paid"].includes(booking.status));
+  const activeStalls = stalls.filter((stall) => stall.status === "active");
+  const vacantStalls = stalls.filter((stall) => stall.status === "inactive");
+  const maintenanceStalls = stalls.filter((stall) => stall.status === "maintenance");
+  const pendingPayments = payments.filter((payment) => payment.status === "pending");
+  const openComplaints = tickets.filter((ticket) => ticket.status !== "resolved");
+  const highPriorityComplaints = openComplaints.filter((ticket) => getComplaintPriority(ticket) === "High");
+  const firstName = user?.name?.split(" ")[0] || "there";
 
-  const totalRevenue = payments.filter((payment) => payment.status === "completed").reduce((sum, payment) => sum + payment.amount, 0);
-  const occupancyRate = stalls.length
-    ? Math.round((stalls.filter((stall) => stall.status === "active").length / stalls.length) * 100)
-    : 0;
-  const collectionRate = billableBookings.length
-    ? Math.round(
-        (billableBookings.reduce((sum, booking) => sum + Math.min(paidByBooking[booking.id] || 0, booking.amount), 0) /
-          billableBookings.reduce((sum, booking) => sum + booking.amount, 0)) *
-          100,
-      )
-    : 0;
-  const unresolvedTicketRate = tickets.length
-    ? tickets.filter((ticket) => ticket.status !== "resolved").length / tickets.length
-    : 0;
-  const sentimentScore = Math.round(
-    collectionRate * 0.45 + occupancyRate * 0.35 + (1 - unresolvedTicketRate) * 20,
-  );
+  const renewalPending = bookings.filter((booking) => {
+    if (!["approved", "paid"].includes(booking.status)) return false;
+    const hoursLeft = Math.round((endOfDay(booking.endDate).getTime() - Date.now()) / (1000 * 60 * 60));
+    return hoursLeft >= 0 && hoursLeft <= 24 * 7;
+  });
 
-  const sentiment = sentimentScore >= 75
-    ? {
-      label: "Green",
-      color: "bg-success",
-      ring: "ring-border",
-        text: "Collections are healthy, complaints are contained, and the market is moving well.",
-      }
-    : sentimentScore >= 50
-      ? {
-          label: "Amber",
-          color: "bg-warning",
-          ring: "ring-border",
-          text: "Conditions are stable but need follow-up on dues, complaints, or occupancy pressure.",
-        }
-      : {
-          label: "Red",
-          color: "bg-destructive",
-          ring: "ring-border",
-          text: "Vendor friction or weak collections need immediate management attention.",
-        };
+  const approvalRows: ApprovalRow[] = [
+    ...pendingVendors.map((vendor) => ({
+      id: `vendor-${vendor.id}`,
+      kind: "vendor" as const,
+      vendorId: vendor.id,
+      vendorName: vendor.name,
+      detail: "Vendor registration",
+      market: vendor.marketName || user?.marketName || "Assigned market",
+      appliedAt: vendor.createdAt,
+      status: vendor.status,
+    })),
+    ...pendingApplications.map((booking) => ({
+      id: `booking-${booking.id}`,
+      kind: "booking" as const,
+      bookingId: booking.id,
+      vendorName: booking.vendorName,
+      detail: `Stall ${booking.stallName} application`,
+      market: booking.marketName || user?.marketName || "Assigned market",
+      appliedAt: booking.createdAt,
+      status: booking.status,
+    })),
+  ].sort((left, right) => new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime());
 
-  const permitAlerts = bookings
-    .map((booking) => {
-      const expiresAt = endOfDay(booking.endDate);
-      const hoursLeft = Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60));
-      const outstanding = Math.max(booking.amount - (paidByBooking[booking.id] || 0), 0);
-      return {
-        ...booking,
-        hoursLeft,
-        outstanding,
-      };
+  const stallRows = [...stalls]
+    .sort((left, right) => {
+      const weight = { inactive: 0, maintenance: 1, active: 2 };
+      return weight[left.status] - weight[right.status] || left.zone.localeCompare(right.zone) || left.name.localeCompare(right.name);
     })
-    .filter((booking) => ["approved", "paid"].includes(booking.status) && booking.hoursLeft >= 0 && booking.hoursLeft <= 48)
-    .sort((left, right) => left.hoursLeft - right.hoursLeft);
+    .slice(0, 8);
 
-  const stallFlowData = [
-    { name: "Occupied", value: stalls.filter((stall) => stall.status === "active").length },
-    { name: "Available", value: stalls.filter((stall) => stall.status === "inactive").length },
-    { name: "Maintenance", value: stalls.filter((stall) => stall.status === "maintenance").length },
+  const utilityRows = utilityCharges
+    .filter((charge) => charge.status !== "paid" && charge.status !== "cancelled")
+    .sort((left, right) => utilityStatusWeight[left.status] - utilityStatusWeight[right.status])
+    .slice(0, 5);
+
+  const complaintRows = [...openComplaints]
+    .sort((left, right) => {
+      const priorityWeight = { High: 0, Medium: 1, Normal: 2 };
+      const priorityDifference = priorityWeight[getComplaintPriority(left)] - priorityWeight[getComplaintPriority(right)];
+      return priorityDifference || new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    })
+    .slice(0, 6);
+
+  const actionDisabled = approveVendor.isPending || rejectVendor.isPending || reviewBookingApplication.isPending;
+
+  const approveRow = (row: ApprovalRow) => {
+    if (row.kind === "vendor") {
+      approveVendor.mutate(row.vendorId);
+      return;
+    }
+    reviewBookingApplication.mutate({ bookingId: row.bookingId, approved: true });
+  };
+
+  const rejectRow = (row: ApprovalRow) => {
+    if (row.kind === "vendor") {
+      rejectVendor.mutate(row.vendorId);
+      return;
+    }
+    reviewBookingApplication.mutate({ bookingId: row.bookingId, approved: false });
+  };
+
+  const kpis = [
+    {
+      label: "Pending Approvals",
+      value: approvalRows.length,
+      detail: "Applications awaiting review",
+      icon: ClipboardList,
+    },
+    {
+      label: "Active Stalls",
+      value: activeStalls.length,
+      detail: `${vacantStalls.length} stalls currently vacant`,
+      icon: Grid3X3,
+    },
+    {
+      label: "Payments Awaiting Confirmation",
+      value: pendingPayments.length,
+      detail: "Vendor payments still processing",
+      icon: CreditCard,
+    },
+    {
+      label: "Open Complaints",
+      value: openComplaints.length,
+      detail: `${highPriorityComplaints.length} high-priority issues`,
+      icon: AlertCircle,
+    },
   ];
 
-  const paymentStatusData = [
-    { name: "Completed", value: payments.filter((payment) => payment.status === "completed").length },
-    { name: "Pending", value: payments.filter((payment) => payment.status === "pending").length },
-    { name: "Failed", value: payments.filter((payment) => payment.status === "failed").length },
+  const quickActions = [
+    { label: "Review Applications", path: "/manager/vendors", icon: ClipboardList },
+    { label: "Assign Utility Charge", path: "/manager/billing", icon: SlidersHorizontal },
+    { label: "View Pending Payments", path: "/manager/payments", icon: ReceiptText },
+    { label: "Resolve Complaints", path: "/manager/complaints", icon: MessageSquare },
   ];
 
-  const zoneLoadData = Object.values(
-    stalls.reduce<Record<string, { zone: string; occupied: number; free: number; maintenance: number }>>((accumulator, stall) => {
-      const current = accumulator[stall.zone] || { zone: stall.zone, occupied: 0, free: 0, maintenance: 0 };
-      if (stall.status === "active") {
-        current.occupied += 1;
-      } else if (stall.status === "inactive") {
-        current.free += 1;
-      } else if (stall.status === "maintenance") {
-        current.maintenance += 1;
-      }
-      accumulator[stall.zone] = current;
-      return accumulator;
-    }, {}),
-  );
-
-  const mapTiles = [...stalls]
-    .sort((left, right) => left.zone.localeCompare(right.zone) || left.name.localeCompare(right.name))
-    .map((stall) => {
-      if (stall.status === "maintenance") {
-        return { ...stall, stateLabel: "Maintenance", className: "border-border bg-muted/30 text-foreground" };
-      }
-      if (stall.status === "active") {
-        return { ...stall, stateLabel: "Occupied", className: "border-border bg-card text-foreground" };
-      }
-      return { ...stall, stateLabel: "Available", className: "border-border bg-card text-foreground" };
-    });
-
-  const selectedStall = mapTiles.find((stall) => stall.id === selectedStallId) || mapTiles[0] || null;
-
-  const stats = [
-    { label: "Total Revenue", value: formatCurrency(totalRevenue), icon: TrendingUp, color: "text-muted-foreground" },
-    { label: "Occupancy Rate", value: `${occupancyRate}%`, icon: Grid3X3, color: "text-muted-foreground" },
-    { label: "Available Stalls", value: stalls.filter((stall) => stall.status === "inactive").length, icon: CheckCircle, color: "text-muted-foreground" },
-    { label: "Pending Approvals", value: vendors.filter((vendor) => vendor.status === "pending").length, icon: Users, color: "text-muted-foreground" },
-    { label: "Booking Applications", value: pendingApplications.length, icon: CreditCard, color: "text-muted-foreground" },
-    { label: "Open Tickets", value: tickets.filter((ticket) => ticket.status !== "resolved").length, icon: AlertCircle, color: "text-destructive" },
+  const occupancySummary = [
+    { label: "Occupied Stalls", value: activeStalls.length, detail: "Assigned to vendors", icon: CheckCircle2 },
+    { label: "Vacant Stalls", value: vacantStalls.length, detail: "Available for allocation", icon: Grid3X3 },
+    { label: "Maintenance Stalls", value: maintenanceStalls.length, detail: "Need follow-up", icon: Wrench },
+    { label: "Renewal Pending", value: renewalPending.length, detail: "Expiring within 7 days", icon: AlertCircle },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Manager Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Operations, alerts, stall activity, and escalation requests.</p>
-      </div>
+      <section className="rounded-lg border border-border/80 bg-card p-5 shadow-sm lg:p-6">
+        <h1 className="text-2xl font-bold font-heading lg:text-3xl">{getTimeAwareGreeting(firstName)} 👋</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Here&apos;s today&apos;s market operations overview.
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Monitor approvals, stalls, payments, utilities, and complaints in one place.
+        </p>
+      </section>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="card-warm">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((item) => (
+          <Card key={item.label} className="stat-card">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="text-xl font-bold font-heading mt-1">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 text-xl font-bold font-heading">{item.value}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{item.detail}</p>
                 </div>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                  <item.icon className="h-4 w-4" />
+                </span>
               </div>
             </CardContent>
           </Card>
         ))}
-      </div>
+      </section>
 
-      <div className="grid xl:grid-cols-[0.9fr_1.1fr] gap-4">
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {quickActions.map((action, index) => (
+            <Button key={action.label} asChild variant={index === 0 ? "default" : "outline"} className="justify-start gap-2">
+              <Link to={action.path}>
+                <action.icon className="h-4 w-4" />
+                {action.label}
+              </Link>
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Vendor Approvals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {approvalRows.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No vendor or stall applications need review right now.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vendor Name</TableHead>
+                  <TableHead>Market</TableHead>
+                  <TableHead>Applied On</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {approvalRows.slice(0, 6).map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <p className="font-medium">{row.vendorName}</p>
+                      <p className="text-xs text-muted-foreground">{row.detail}</p>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{row.market}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatHumanDate(row.appliedAt)}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={row.status} context={row.kind === "booking" ? "booking" : "vendor"} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={row.kind === "vendor" ? "/manager/vendors" : "/manager/stalls"}>View Details</Link>
+                        </Button>
+                        <Button size="sm" onClick={() => approveRow(row)} disabled={actionDisabled}>
+                          Approve
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => rejectRow(row)} disabled={actionDisabled}>
+                          Reject
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="card-warm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Stall & Occupancy Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {occupancySummary.map((item) => (
+              <div key={item.label} className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 text-lg font-bold font-heading">{item.value}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
+                  </div>
+                  <item.icon className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stall</TableHead>
+                <TableHead>Zone</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Monthly Fee</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stallRows.map((stall) => (
+                <TableRow key={stall.id}>
+                  <TableCell>
+                    <p className="font-medium">{stall.name}</p>
+                    <p className="text-xs text-muted-foreground">{stall.vendorName || "Unassigned"}</p>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{stall.zone}</TableCell>
+                  <TableCell className="text-muted-foreground">{stall.size}</TableCell>
+                  <TableCell><StatusBadge status={stall.status} /></TableCell>
+                  <TableCell>{formatCurrency(stall.pricePerMonth)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/manager/stalls">View</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card className="card-warm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Market Sentiment</CardTitle>
+            <CardTitle className="text-base font-heading">Payments Awaiting Confirmation</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className={`rounded-lg border bg-card p-4 ring-1 ${sentiment.ring}`}>
-              <div className="flex items-center gap-3">
-                <div className={`h-4 w-4 rounded-full ${sentiment.color}`} />
-                <div>
-                  <p className="text-sm font-semibold font-heading">{sentiment.label} Signal</p>
-                  <p className="text-xs text-muted-foreground">Score {sentimentScore}/100</p>
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">{sentiment.text}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-xl bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Collection</p>
-                <p className="text-lg font-bold font-heading mt-1">{collectionRate}%</p>
-              </div>
-              <div className="rounded-xl bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Occupancy</p>
-                <p className="text-lg font-bold font-heading mt-1">{occupancyRate}%</p>
-              </div>
-              <div className="rounded-xl bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Feedback Pressure</p>
-                <p className="text-lg font-bold font-heading mt-1">{Math.round(unresolvedTicketRate * 100)}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm border-destructive/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-destructive" />
-              Critical Permit Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {permitAlerts.length === 0 ? (
-              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                No active permits expire within the next 48 hours.
-              </div>
+          <CardContent>
+            {pendingPayments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No vendor payments are awaiting confirmation.</p>
             ) : (
-              permitAlerts.map((alert) => (
-                <div key={alert.id} className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-sm">{alert.vendorName}</p>
-                      <p className="text-xs text-muted-foreground">{alert.stallName} permit ends on {formatHumanDate(alert.endDate)}</p>
-                    </div>
-                    <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-medium text-destructive">
-                      {alert.hoursLeft}h left
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Outstanding balance: {formatCurrency(alert.outstanding)}
-                  </p>
-                </div>
-              ))
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Purpose</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingPayments.slice(0, 5).map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-medium">{payment.vendorName}</TableCell>
+                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                      <TableCell className="text-muted-foreground">{getPaymentPurpose(payment)}</TableCell>
+                      <TableCell><StatusBadge status={payment.status} context="payment" /></TableCell>
+                      <TableCell className="max-w-[180px] truncate font-mono text-xs text-muted-foreground">
+                        {getPaymentReference(payment)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="outline">
+                          <Link to="/manager/payments">View</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid xl:grid-cols-2 gap-4">
         <Card className="card-warm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Booking Applications</CardTitle>
+            <CardTitle className="text-base font-heading">Utility Charges</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {pendingApplications.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No pending stall applications right now.</p>
+          <CardContent>
+            {utilityRows.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No open utility charges need follow-up.</p>
             ) : (
-              pendingApplications.slice(0, 5).map((booking) => (
-                <div key={booking.id} className="rounded-xl border bg-muted/20 p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-sm">{booking.vendorName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {booking.stallName} - {booking.stallZone}
-                      </p>
-                    </div>
-                    <StatusBadge status={booking.status} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatHumanDateRange(booking.startDate, booking.endDate)} - {formatCurrency(booking.amount)}
-                  </p>
-                  <Textarea
-                    rows={2}
-                    placeholder="Add an approval note or rejection reason"
-                    value={bookingReviewNotes[booking.id] || ""}
-                    onChange={(event) =>
-                      setBookingReviewNotes((current) => ({ ...current, [booking.id]: event.target.value }))
-                    }
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      onClick={() => reviewBookingApplication.mutate({ bookingId: booking.id, approved: true })}
-                      disabled={reviewBookingApplication.isPending}
-                    >
-                      Approve Application
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={() => reviewBookingApplication.mutate({ bookingId: booking.id, approved: false })}
-                      disabled={reviewBookingApplication.isPending}
-                    >
-                      Reject Application
-                    </Button>
-                  </div>
-                </div>
-              ))
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Utility</TableHead>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {utilityRows.map((charge) => (
+                    <TableRow key={charge.id}>
+                      <TableCell>
+                        <p className="font-medium">{charge.vendorName}</p>
+                        <p className="text-xs text-muted-foreground">{charge.stallName || "No stall linked"}</p>
+                      </TableCell>
+                      <TableCell>{utilityLabels[charge.utilityType]}</TableCell>
+                      <TableCell className="text-muted-foreground">{charge.billingPeriod}</TableCell>
+                      <TableCell>{formatCurrency(charge.amount)}</TableCell>
+                      <TableCell><StatusBadge status={charge.status} context="obligation" /></TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="outline">
+                          <Link to="/manager/billing">View</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Stall Lifecycle</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stallFlowData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {stallFlowData.map((entry, index) => (
-                    <Cell key={entry.name} fill={chartPalette[index % chartPalette.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Payment Outcomes</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={paymentStatusData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
-                  {paymentStatusData.map((entry, index) => (
-                    <Cell key={entry.name} fill={chartPalette[index % chartPalette.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
       <Card className="card-warm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Zone Capacity</CardTitle>
+          <CardTitle className="text-base font-heading">Complaints / Issues</CardTitle>
         </CardHeader>
-        <CardContent className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={zoneLoadData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="zone" tick={{ fontSize: 11 }} />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="occupied" stackId="a" fill="#2563eb" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="free" stackId="a" fill="#10b981" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="maintenance" stackId="a" fill="#6b7280" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent>
+          {complaintRows.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No open complaints need response.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead>Issue</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {complaintRows.map((ticket) => {
+                  const priority = getComplaintPriority(ticket);
+
+                  return (
+                    <TableRow key={ticket.id}>
+                      <TableCell className="font-medium">{ticket.vendorName}</TableCell>
+                      <TableCell>
+                        <p className="font-medium">{ticket.subject}</p>
+                        <p className="text-xs text-muted-foreground">{categoryLabels[ticket.category]} - {formatHumanDate(ticket.createdAt)}</p>
+                      </TableCell>
+                      <TableCell>
+                        <span className={priority === "High" ? "status-badge border-destructive/20 bg-destructive/15 text-destructive" : "status-badge border-border bg-muted text-muted-foreground"}>
+                          {priority}
+                        </span>
+                      </TableCell>
+                      <TableCell><StatusBadge status={ticket.status} context="ticket" /></TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant={priority === "High" ? "default" : "outline"}>
+                          <Link to="/manager/complaints">Respond</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
-
-      <div className="grid xl:grid-cols-[1.2fr_0.8fr] gap-4">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading flex items-center gap-2">
-              <MapPinned className="w-4 h-4" />
-              Interactive Market Map
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-              {mapTiles.map((stall) => (
-                <button
-                  key={stall.id}
-                  type="button"
-                  onClick={() => setSelectedStallId(stall.id)}
-                  className={`rounded-lg border p-4 text-left transition-colors hover:bg-muted/40 ${stall.className} ${selectedStallId === stall.id ? "ring-2 ring-foreground/20" : ""}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold font-heading">{stall.name}</span>
-                    <span className="text-[11px] uppercase tracking-wide">{stall.stateLabel}</span>
-                  </div>
-                  <p className="mt-2 text-xs opacity-80">{stall.zone}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-muted-foreground/35" /> Occupied</span>
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-success/70" /> Available</span>
-              <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-slate-400" /> Maintenance</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Selected Stall</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {selectedStall ? (
-              <>
-                <div>
-                  <p className="text-lg font-bold font-heading">{selectedStall.name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedStall.zone}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-xs text-muted-foreground">State</p>
-                    <p className="mt-1 font-medium">{selectedStall.stateLabel}</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-xs text-muted-foreground">Monthly Rent</p>
-                    <p className="mt-1 font-medium">{formatCurrency(selectedStall.pricePerMonth)}</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3 col-span-2">
-                    <p className="text-xs text-muted-foreground">Vendor</p>
-                    <p className="mt-1 font-medium">{selectedStall.vendorName || "Unassigned"}</p>
-                  </div>
-                </div>
-                {selectedStall.activeBooking && bookingById[selectedStall.activeBooking.id] && (
-                  <div className="rounded-xl border bg-muted/20 p-4">
-                    <p className="text-xs text-muted-foreground">Current booking</p>
-                    <p className="mt-1 text-sm font-medium">
-                      {formatHumanDateRange(bookingById[selectedStall.activeBooking.id].startDate, bookingById[selectedStall.activeBooking.id].endDate)}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Outstanding:{" "}
-                      {formatCurrency(Math.max(
-                        bookingById[selectedStall.activeBooking.id].amount -
-                          (paidByBooking[selectedStall.activeBooking.id] || 0),
-                        0,
-                      ))}
-                    </p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No stalls available to inspect.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid xl:grid-cols-[0.95fr_1.05fr] gap-4">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Submit Resource Request</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="request-category">Category</Label>
-              <Select value={requestForm.category} onValueChange={(value: "budget" | "structural") => setRequestForm((current) => ({ ...current, category: value }))}>
-                <SelectTrigger id="request-category">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="budget">Budget</SelectItem>
-                  <SelectItem value="structural">Structural</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="request-title">Title</Label>
-              <Input id="request-title" value={requestForm.title} onChange={(event) => setRequestForm((current) => ({ ...current, title: event.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="request-amount">Amount Requested</Label>
-              <Input
-                id="request-amount"
-                type="number"
-                value={requestForm.amountRequested}
-                onChange={(event) => setRequestForm((current) => ({ ...current, amountRequested: Number(event.target.value) }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="request-description">Description</Label>
-              <Textarea
-                id="request-description"
-                rows={5}
-                value={requestForm.description}
-                onChange={(event) => setRequestForm((current) => ({ ...current, description: event.target.value }))}
-              />
-            </div>
-            {requestError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{requestError}</div>}
-            <Button className="w-full" onClick={() => createResourceRequest.mutate()} disabled={createResourceRequest.isPending}>
-              Submit For Official Review
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">My Resource Requests</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {resourceRequests.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No resource requests submitted yet.</p>
-            ) : (
-              resourceRequests.slice(0, 5).map((request) => (
-                <div key={request.id} className="rounded-xl border bg-muted/20 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-sm">{request.title}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{request.category} request</p>
-                    </div>
-                    <StatusBadge status={request.status} />
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{request.description}</p>
-                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Asked: {formatCurrency(request.amountRequested)}</span>
-                    <span>
-                      {request.approvedAmount ? `Approved: ${formatCurrency(request.approvedAmount)}` : "Awaiting review"}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };
