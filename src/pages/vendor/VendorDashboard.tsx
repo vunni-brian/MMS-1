@@ -123,7 +123,7 @@ const VendorDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in-up rounded-3xl border border-border/80 bg-card/85 p-5 shadow-sm soft-glow lg:p-6">
+      <div className="animate-fade-in-up rounded-lg border border-border/80 bg-card p-5 shadow-sm lg:p-6">
         <p className="page-kicker">Vendor overview</p>
         <h1 className="mt-2 text-2xl font-bold font-heading lg:text-3xl">{getTimeAwareGreeting(firstName)}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -168,7 +168,7 @@ const VendorDashboard = () => {
                   <p className="mt-1 text-xs text-muted-foreground">{action.description}</p>
                 </div>
               </div>
-              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
             </Link>
           ))}
         </CardContent>

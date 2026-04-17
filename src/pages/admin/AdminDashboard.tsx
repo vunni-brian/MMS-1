@@ -158,7 +158,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="card-warm border-primary/20 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_45%),linear-gradient(135deg,rgba(15,23,42,0.02),rgba(37,99,235,0.02))]">
+      <Card className="card-warm border-primary/20">
         <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/70 px-3 py-1 text-xs font-medium text-primary">

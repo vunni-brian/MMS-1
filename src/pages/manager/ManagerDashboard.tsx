@@ -242,7 +242,7 @@ const ManagerDashboard = () => {
             <CardTitle className="text-base font-heading">Market Sentiment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className={`rounded-2xl border bg-card p-4 ring-4 ${sentiment.ring}`}>
+            <div className={`rounded-lg border bg-card p-4 ring-1 ${sentiment.ring}`}>
               <div className="flex items-center gap-3">
                 <div className={`h-4 w-4 rounded-full ${sentiment.color}`} />
                 <div>
@@ -433,7 +433,7 @@ const ManagerDashboard = () => {
                   key={stall.id}
                   type="button"
                   onClick={() => setSelectedStallId(stall.id)}
-                  className={`rounded-2xl border p-4 text-left transition-all hover:shadow-md ${stall.className} ${selectedStallId === stall.id ? "ring-2 ring-primary/40" : ""}`}
+                  className={`rounded-lg border p-4 text-left transition-colors hover:bg-muted/40 ${stall.className} ${selectedStallId === stall.id ? "ring-2 ring-primary/40" : ""}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold font-heading">{stall.name}</span>

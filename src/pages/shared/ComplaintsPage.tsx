@@ -104,7 +104,7 @@ const ComplaintsPage = () => {
 
       <div className="space-y-3">
         {tickets.map((ticket) => (
-          <Card key={ticket.id} className="card-warm cursor-pointer hover:shadow-md transition-shadow" onClick={() => {
+          <Card key={ticket.id} className="card-warm cursor-pointer" onClick={() => {
             setSelected(ticket);
             setManagerUpdate({
               status: ticket.status,

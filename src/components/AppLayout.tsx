@@ -82,14 +82,11 @@ const AppLayout = () => {
 
       {/* Sidebar */}
       <aside className={cn(
-        'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-200 shadow-2xl lg:shadow-none',
+        'fixed lg:static inset-y-0 left-0 z-50 w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-200 shadow-md lg:shadow-none',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      )}
-      style={{
-        backgroundImage: "linear-gradient(180deg, hsl(var(--sidebar-background)), hsl(20 22% 14%))",
-      }}>
+      )}>
         <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center shadow-lg shadow-black/20">
+          <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <Store className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
@@ -112,8 +109,8 @@ const AppLayout = () => {
               className={({ isActive }) => cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200',
                 isActive
-                  ? 'bg-sidebar-primary/15 text-sidebar-accent-foreground font-semibold shadow-[0_0_0_1px_hsl(var(--sidebar-primary)/0.22),0_12px_28px_hsl(var(--sidebar-primary)/0.12)]'
-                  : 'text-sidebar-foreground/70 hover:translate-x-1 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                  ? 'bg-sidebar-primary/10 text-sidebar-accent-foreground font-semibold'
+                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground'
               )}
             >
               <item.icon className="w-5 h-5 shrink-0" />
@@ -135,7 +132,7 @@ const AppLayout = () => {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b bg-card/80 backdrop-blur">
+        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b bg-card">
           <button className="lg:hidden text-foreground" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </button>
@@ -146,7 +143,7 @@ const AppLayout = () => {
               <button
                 type="button"
                 onClick={() => setProfileOpen((current) => !current)}
-                className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1.5 text-left shadow-sm transition-all duration-200 hover:border-primary/25 hover:bg-muted/50 hover:shadow-md"
+                className="flex items-center gap-2 rounded-full border border-border/70 bg-background px-2 py-1.5 text-left shadow-sm transition-colors duration-150 hover:border-primary/25 hover:bg-muted/50"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <UserCircle className="h-5 w-5" />
@@ -159,8 +156,8 @@ const AppLayout = () => {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-border/70 bg-card p-3 shadow-2xl soft-glow">
-                  <div className="flex items-start gap-3 rounded-xl bg-muted/30 p-3">
+                <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-lg border border-border/70 bg-card p-3 shadow-md">
+                  <div className="flex items-start gap-3 rounded-lg bg-muted/30 p-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <UserCircle className="h-7 w-7" />
                     </div>

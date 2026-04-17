@@ -165,7 +165,7 @@ const StallsPage = () => {
           <button
             key={stall.id}
             onClick={() => setSelectedStall(stall)}
-            className={`text-left p-4 rounded-xl border-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${statusColors[stall.status] || "border-border"}`}
+            className={`text-left p-4 rounded-lg border-2 transition-colors duration-150 hover:bg-muted/40 ${statusColors[stall.status] || "border-border"}`}
           >
             <div className="flex items-center justify-between mb-2 gap-2">
               <span className="font-heading font-bold text-lg">{stall.name}</span>
