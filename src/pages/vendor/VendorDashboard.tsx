@@ -7,7 +7,6 @@ import {
   Grid3X3,
   ReceiptText,
   Store,
-  ArrowRight,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,12 +40,18 @@ const parseDate = (value?: string | Date | null) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const formatDashboardDate = (value?: string | Date | null, fallback = "Not available") => {
+const formatDashboardDate = (
+  value?: string | Date | null,
+  fallback = "Not available",
+) => {
   const date = parseDate(value);
   return date ? dashboardDateFormatter.format(date) : fallback;
 };
 
-const formatDashboardDateRange = (start?: string | Date | null, end?: string | Date | null) => {
+const formatDashboardDateRange = (
+  start?: string | Date | null,
+  end?: string | Date | null,
+) => {
   const startDate = parseDate(start);
   const endDate = parseDate(end);
 
@@ -97,14 +102,28 @@ const VendorDashboard = () => {
   const myPayments = paymentsData?.payments || [];
   const myNotifications = notificationsData?.notifications || [];
 
-  const pendingApplications = myBookings.filter((booking) => booking.status === "pending");
-  const approvedAwaitingPayment = myBookings.filter((booking) => booking.status === "approved");
-  const pendingPayments = myPayments.filter((payment) => payment.status === "pending");
-  const completedPayments = myPayments.filter((payment) => payment.status === "completed");
+  const pendingApplications = myBookings.filter(
+    (booking) => booking.status === "pending",
+  );
+  const approvedAwaitingPayment = myBookings.filter(
+    (booking) => booking.status === "approved",
+  );
+  const pendingPayments = myPayments.filter(
+    (payment) => payment.status === "pending",
+  );
+  const completedPayments = myPayments.filter(
+    (payment) => payment.status === "completed",
+  );
   const unreadAlerts = myNotifications.filter((item) => !item.read);
 
-  const totalPaid = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const awaitingPaymentTotal = approvedAwaitingPayment.reduce((sum, booking) => sum + booking.amount, 0);
+  const totalPaid = completedPayments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0,
+  );
+  const awaitingPaymentTotal = approvedAwaitingPayment.reduce(
+    (sum, booking) => sum + booking.amount,
+    0,
+  );
   const firstName = user?.name?.split(" ")[0] || "there";
 
   const stats = [
@@ -121,13 +140,17 @@ const VendorDashboard = () => {
       label: "Pending Applications",
       value: pendingApplications.length,
       icon: ClipboardList,
-      detail: pendingApplications.length > 0 ? "Under review" : "No pending reviews",
+      detail:
+        pendingApplications.length > 0 ? "Under review" : "No pending reviews",
     },
     {
       label: "Awaiting Payment",
       value: approvedAwaitingPayment.length,
       icon: CreditCard,
-      detail: awaitingPaymentTotal > 0 ? `${formatCurrency(awaitingPaymentTotal)} due` : "Nothing due",
+      detail:
+        awaitingPaymentTotal > 0
+          ? `${formatCurrency(awaitingPaymentTotal)} due`
+          : "Nothing due",
     },
     {
       label: "Unread Alerts",
@@ -164,34 +187,44 @@ const VendorDashboard = () => {
   const getStallLeaseExpiry = (stallId: string) => {
     const booking =
       myBookings.find(
-        (item) => item.stallId === stallId && (item.status === "approved" || item.status === "paid"),
+        (item) =>
+          item.stallId === stallId &&
+          (item.status === "approved" || item.status === "paid"),
       ) || myBookings.find((item) => item.stallId === stallId);
 
     return formatDashboardDate(booking?.endDate);
   };
 
   return (
-    <div className="space-y-4 lg:space-y-5">
-      <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
-        <h1 className="text-2xl font-bold font-heading lg:text-3xl">
+    <div className="space-y-3 lg:space-y-4">
+      <div className="rounded-2xl border border-border/70 bg-card p-3 lg:p-4 shadow-sm">
+        <h1 className="text-2xl font-bold font-heading lg:text-[2rem] leading-tight">
           {getTimeAwareGreeting(firstName)} 👋
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Here&apos;s a quick overview of your stalls, applications, and payments.
+          Here&apos;s a quick overview of your stalls, applications, and
+          payments.
         </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label} className="border border-border/80 bg-card shadow-sm">
-            <CardContent className="p-3.5 lg:p-4">
+          <Card
+            key={stat.label}
+            className="border border-border/80 bg-card shadow-sm"
+          >
+            <CardContent className="p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="mt-1 text-lg font-bold font-heading lg:text-xl">{stat.value}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{stat.detail}</p>
+                  <p className="mt-1 text-lg lg:text-xl font-bold font-heading leading-none">
+                    {stat.value}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {stat.detail}
+                  </p>
                 </div>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                   <stat.icon className="h-4 w-4" />
                 </span>
               </div>
@@ -201,14 +234,14 @@ const VendorDashboard = () => {
       </div>
 
       <Card className="border border-border/80 bg-card shadow-sm">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-base font-heading">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
+        <CardContent className="grid gap-3 md:grid-cols-3 pt-0 px-4 pb-4">
           {quickActions.map((action) => (
             <div
               key={action.label}
-              className="rounded-xl border border-border/70 bg-background p-3.5 shadow-sm"
+              className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
             >
               <div className="flex items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -216,7 +249,9 @@ const VendorDashboard = () => {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{action.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{action.description}</p>
+                  <p className="mt-1 text-xs text-muted-foreground leading-5">
+                    {action.description}
+                  </p>
                 </div>
               </div>
               <Button asChild variant={action.variant} size="sm" className="mt-3 w-full">
@@ -228,16 +263,18 @@ const VendorDashboard = () => {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[360px] flex flex-col">
-          <CardHeader className="pb-3">
+        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+          <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-heading">My Active Stalls</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="px-0">
+              <CardTitle className="text-base font-heading">
+                My Active Stalls
+              </CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0 h-auto">
                 <Link to="/vendor/stalls">View all</Link>
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3">
+          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
             {myStalls.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No active stalls yet. Approved applications will appear here.
@@ -250,12 +287,14 @@ const VendorDashboard = () => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium">{stall.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{stall.zone}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="font-medium text-base">{stall.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {stall.zone}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {stall.size} • {formatCurrency(stall.pricePerMonth)}/mo
                       </p>
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Lease expiry: {getStallLeaseExpiry(stall.id)}
                       </p>
                     </div>
@@ -267,16 +306,18 @@ const VendorDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm h-[360px] flex flex-col">
-          <CardHeader className="pb-3">
+        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+          <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-heading">Booking Applications</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="px-0">
+              <CardTitle className="text-base font-heading">
+                Booking Applications
+              </CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0 h-auto">
                 <Link to="/vendor/stalls">View all</Link>
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3">
+          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
             {myBookings.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No applications submitted yet.
@@ -289,10 +330,15 @@ const VendorDashboard = () => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium">{booking.stallName}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{booking.stallZone}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatDashboardDateRange(booking.startDate, booking.endDate)}
+                      <p className="font-medium text-base">{booking.stallName}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {booking.stallZone}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {formatDashboardDateRange(
+                          booking.startDate,
+                          booking.endDate,
+                        )}
                       </p>
                     </div>
                     <StatusBadge status={booking.status} context="booking" />
@@ -304,7 +350,13 @@ const VendorDashboard = () => {
                       size="sm"
                       variant={booking.status === "approved" ? "default" : "outline"}
                     >
-                      <Link to={booking.status === "approved" ? "/vendor/payments" : "/vendor/stalls"}>
+                      <Link
+                        to={
+                          booking.status === "approved"
+                            ? "/vendor/payments"
+                            : "/vendor/stalls"
+                        }
+                      >
                         {booking.status === "approved" ? "Pay Now" : "View"}
                       </Link>
                     </Button>
@@ -316,51 +368,70 @@ const VendorDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="border border-border/80 bg-card shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Payments Overview</CardTitle>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border border-border/80 bg-card shadow-sm h-[280px]">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-base font-heading">
+              Payments Overview
+            </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 rounded-xl bg-muted/20 p-4 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Total paid</p>
-              <p className="mt-1 text-2xl font-bold font-heading">{formatCurrency(totalPaid)}</p>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Pending payments: <strong className="text-foreground">{pendingPayments.length}</strong>
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 lg:min-w-[220px]">
-              <div className="rounded-lg border border-border/70 bg-background px-3 py-2 text-sm">
-                <span className="text-muted-foreground">Awaiting payment:</span>{" "}
-                <strong>{formatCurrency(awaitingPaymentTotal)}</strong>
+          <CardContent className="px-4 pb-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border/70 bg-background p-3">
+                <p className="text-xs text-muted-foreground">Total paid</p>
+                <p className="mt-1 text-xl font-bold font-heading leading-tight">
+                  {formatCurrency(totalPaid)}
+                </p>
               </div>
-              <Button asChild size="sm">
-                <Link to="/vendor/payments">View Payment History</Link>
-              </Button>
+
+              <div className="rounded-xl border border-border/70 bg-background p-3">
+                <p className="text-xs text-muted-foreground">Awaiting payment</p>
+                <p className="mt-1 text-xl font-bold font-heading leading-tight">
+                  {formatCurrency(awaitingPaymentTotal)}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border/70 bg-background p-3">
+                <p className="text-xs text-muted-foreground">Pending payments</p>
+                <p className="mt-1 text-xl font-bold font-heading leading-tight">
+                  {pendingPayments.length}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border/70 bg-background p-3 flex items-end">
+                <Button asChild size="sm" className="w-full">
+                  <Link to="/vendor/payments">View Payment History</Link>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm">
-          <CardHeader className="pb-3">
+        <Card className="border border-border/80 bg-card shadow-sm h-[280px] flex flex-col">
+          <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-heading">Recent Alerts</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="px-0">
+              <CardTitle className="text-base font-heading">
+                Recent Alerts
+              </CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0 h-auto">
                 <Link to="/vendor/notifications">View all</Link>
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 overflow-y-auto px-4 pb-4">
             {myNotifications.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No recent alerts.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No recent alerts.
+              </p>
             ) : (
               myNotifications.slice(0, 3).map((notification) => (
                 <div
                   key={notification.id}
                   className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
                 >
-                  <p className="text-sm font-medium leading-5">{notification.message}</p>
+                  <p className="text-sm font-medium leading-5">
+                    {notification.message}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {formatAlertDate(notification.createdAt)}
                   </p>

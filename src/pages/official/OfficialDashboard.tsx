@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Landmark, ReceiptText, ShieldCheck, Users, Wallet } from "lucide-react";
+import {
+  AlertCircle,
+  Landmark,
+  ReceiptText,
+  ShieldCheck,
+  Users,
+  Wallet,
+} from "lucide-react";
 
 import { api } from "@/lib/api";
 import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
@@ -8,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type {
-  AuditEvent,
   Market,
   Payment,
   Penalty,
@@ -58,10 +64,55 @@ const regions: Array<{
 ];
 
 const regionKeywords: Record<RegionId, string[]> = {
-  central: ["kampala", "central", "wakiso", "mukono", "masaka", "mityana", "mpigi", "luwero", "kayunga", "mubende", "testbed", "demo"],
-  western: ["western", "mbarara", "fort portal", "hoima", "kabale", "kasese", "masindi", "bushenyi", "ntungamo", "ibanda"],
-  eastern: ["eastern", "jinja", "mbale", "tororo", "soroti", "iganga", "busia", "pallisa", "kapchorwa", "jin"],
-  northern: ["northern", "gulu", "lira", "arua", "kitgum", "moroto", "nebbi", "adjumani", "apac"],
+  central: [
+    "kampala",
+    "central",
+    "wakiso",
+    "mukono",
+    "masaka",
+    "mityana",
+    "mpigi",
+    "luwero",
+    "kayunga",
+    "mubende",
+    "testbed",
+    "demo",
+  ],
+  western: [
+    "western",
+    "mbarara",
+    "fort portal",
+    "hoima",
+    "kabale",
+    "kasese",
+    "masindi",
+    "bushenyi",
+    "ntungamo",
+    "ibanda",
+  ],
+  eastern: [
+    "eastern",
+    "jinja",
+    "mbale",
+    "tororo",
+    "soroti",
+    "iganga",
+    "busia",
+    "pallisa",
+    "kapchorwa",
+    "jin",
+  ],
+  northern: [
+    "northern",
+    "gulu",
+    "lira",
+    "arua",
+    "kitgum",
+    "moroto",
+    "nebbi",
+    "adjumani",
+    "apac",
+  ],
 };
 
 const utilityLabels: Record<UtilityType, string> = {
@@ -76,7 +127,9 @@ const riskStatuses = new Set(["unpaid", "pending", "pending_payment", "overdue"]
 
 const getMarketRegion = (market: Market): RegionId => {
   const value = `${market.name} ${market.code} ${market.location}`.toLowerCase();
-  const match = regions.find((region) => regionKeywords[region.id].some((keyword) => value.includes(keyword)));
+  const match = regions.find((region) =>
+    regionKeywords[region.id].some((keyword) => value.includes(keyword)),
+  );
   return match?.id || "central";
 };
 
@@ -91,21 +144,29 @@ const getMarketStatus = ({
   complaints: number;
   overdue: number;
 }): MarketStatus => {
-  if (overdue >= 3 || penalties >= 3 || complaints >= 5 || utilitiesDue >= 2_000_000) return "Critical";
-  if (overdue > 0 || penalties > 0 || complaints > 0 || utilitiesDue > 0) return "Warning";
+  if (overdue >= 3 || penalties >= 3 || complaints >= 5 || utilitiesDue >= 2_000_000) {
+    return "Critical";
+  }
+  if (overdue > 0 || penalties > 0 || complaints > 0 || utilitiesDue > 0) {
+    return "Warning";
+  }
   return "Healthy";
 };
 
 const statusClassName = (status: MarketStatus) => {
-  if (status === "Healthy") return "status-badge border-success/20 bg-success/15 text-success";
-  if (status === "Warning") return "status-badge border-warning/25 bg-warning/15 text-warning";
+  if (status === "Healthy") {
+    return "status-badge border-success/20 bg-success/15 text-success";
+  }
+  if (status === "Warning") {
+    return "status-badge border-warning/25 bg-warning/15 text-warning";
+  }
   return "status-badge border-destructive/20 bg-destructive/15 text-destructive";
 };
 
-const getPaymentReference = (payment: Payment) =>
-  payment.providerReference || payment.transactionId || payment.externalReference || "Awaiting reference";
-
-const formatAction = (action: string) => action.replaceAll("_", " ").toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase());
+const bookingEndDateById = (bookings: Array<{ id: string; endDate: string }>, rowId: string) => {
+  const bookingId = rowId.replace("booking-", "");
+  return bookings.find((booking) => booking.id === bookingId)?.endDate || "";
+};
 
 const OfficialDashboard = () => {
   const [selectedRegion, setSelectedRegion] = useState<RegionId>("central");
@@ -142,10 +203,6 @@ const OfficialDashboard = () => {
     queryKey: ["penalties", "official", "all"],
     queryFn: () => api.getPenalties(),
   });
-  const { data: auditData } = useQuery({
-    queryKey: ["audit", "official-dashboard", "all"],
-    queryFn: () => api.getAudit(),
-  });
 
   const markets = marketsData?.markets || [];
   const stalls = stallsData?.stalls || [];
@@ -155,12 +212,12 @@ const OfficialDashboard = () => {
   const bookings = bookingsData?.bookings || [];
   const utilityCharges = utilityChargesData?.utilityCharges || [];
   const penalties = penaltiesData?.penalties || [];
-  const auditEvents = auditData?.events || [];
 
   const selectedRegionInfo = regions.find((region) => region.id === selectedRegion)!;
   const regionMarkets = markets.filter((market) => getMarketRegion(market) === selectedRegion);
   const regionMarketIds = new Set(regionMarkets.map((market) => market.id));
-  const inRegion = (marketId: string | null | undefined) => Boolean(marketId && regionMarketIds.has(marketId));
+  const inRegion = (marketId: string | null | undefined) =>
+    Boolean(marketId && regionMarketIds.has(marketId));
 
   const regionVendors = vendors.filter((vendor) => inRegion(vendor.marketId));
   const regionStalls = stalls.filter((stall) => inRegion(stall.marketId));
@@ -169,7 +226,6 @@ const OfficialDashboard = () => {
   const regionBookings = bookings.filter((booking) => inRegion(booking.marketId));
   const regionUtilities = utilityCharges.filter((charge) => inRegion(charge.marketId));
   const regionPenalties = penalties.filter((penalty) => inRegion(penalty.marketId));
-  const regionAuditEvents = auditEvents.filter((event) => inRegion(event.marketId));
 
   const completedPayments = regionPayments.filter((payment) => payment.status === "completed");
   const regionalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -178,11 +234,15 @@ const OfficialDashboard = () => {
     .reduce((sum, charge) => sum + charge.amount, 0);
   const regionalOverdueCount =
     regionUtilities.filter((charge) => charge.status === "overdue").length +
-    regionPenalties.filter((penalty) => penalty.status === "unpaid" || penalty.status === "pending" || penalty.status === "pending_payment").length;
+    regionPenalties.filter((penalty) =>
+      ["unpaid", "pending", "pending_payment"].includes(penalty.status),
+    ).length;
   const regionalComplianceAlerts =
     regionTickets.filter((ticket) => ticket.status !== "resolved").length +
     regionUtilities.filter((charge) => charge.status === "overdue").length +
-    regionPenalties.filter((penalty) => penalty.status === "unpaid" || penalty.status === "pending" || penalty.status === "pending_payment").length;
+    regionPenalties.filter((penalty) =>
+      ["unpaid", "pending", "pending_payment"].includes(penalty.status),
+    ).length;
 
   const paidByBooking = regionPayments.reduce<Record<string, number>>((accumulator, payment) => {
     if (payment.status === "completed" && payment.bookingId) {
@@ -193,15 +253,26 @@ const OfficialDashboard = () => {
 
   const marketRows = regionMarkets.map((market) => {
     const marketVendors = vendors.filter((vendor) => vendor.marketId === market.id);
-    const marketPayments = payments.filter((payment) => payment.marketId === market.id && payment.status === "completed");
+    const marketPayments = payments.filter(
+      (payment) => payment.marketId === market.id && payment.status === "completed",
+    );
     const marketUtilities = utilityCharges.filter((charge) => charge.marketId === market.id);
     const marketPenalties = penalties.filter((penalty) => penalty.marketId === market.id);
-    const marketComplaints = tickets.filter((ticket) => ticket.marketId === market.id && ticket.status !== "resolved");
+    const marketComplaints = tickets.filter(
+      (ticket) => ticket.marketId === market.id && ticket.status !== "resolved",
+    );
+
     const utilitiesDue = marketUtilities
       .filter((charge) => riskStatuses.has(charge.status))
       .reduce((sum, charge) => sum + charge.amount, 0);
-    const openPenalties = marketPenalties.filter((penalty) => penalty.status === "unpaid" || penalty.status === "pending" || penalty.status === "pending_payment").length;
-    const overdue = marketUtilities.filter((charge) => charge.status === "overdue").length + openPenalties;
+
+    const openPenalties = marketPenalties.filter((penalty) =>
+      ["unpaid", "pending", "pending_payment"].includes(penalty.status),
+    ).length;
+
+    const overdue =
+      marketUtilities.filter((charge) => charge.status === "overdue").length + openPenalties;
+
     const revenue = marketPayments.reduce((sum, payment) => sum + payment.amount, 0);
 
     return {
@@ -212,7 +283,12 @@ const OfficialDashboard = () => {
       utilitiesDue,
       penalties: openPenalties,
       complaints: marketComplaints.length,
-      status: getMarketStatus({ utilitiesDue, penalties: openPenalties, complaints: marketComplaints.length, overdue }),
+      status: getMarketStatus({
+        utilitiesDue,
+        penalties: openPenalties,
+        complaints: marketComplaints.length,
+        overdue,
+      }),
     };
   });
 
@@ -235,8 +311,12 @@ const OfficialDashboard = () => {
         amount: Math.max(booking.amount - (paidByBooking[booking.id] || 0), 0),
         detail: `Stall ${booking.stallName}`,
       }))
-      .filter((row) => row.amount > 0 && new Date(bookingEndDateById(regionBookings, row.id)).getTime() < Date.now()),
-  ].slice(0, 6);
+      .filter(
+        (row) =>
+          row.amount > 0 &&
+          new Date(bookingEndDateById(regionBookings, row.id)).getTime() < Date.now(),
+      ),
+  ].slice(0, 5);
 
   const utilityRows = regionUtilities
     .filter((charge) => riskStatuses.has(charge.status))
@@ -251,48 +331,55 @@ const OfficialDashboard = () => {
       };
       return weight[left.status] - weight[right.status];
     })
-    .slice(0, 6);
-
-  const penaltyRows = regionPenalties
-    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 6);
-
-  const recentAuditRows = regionAuditEvents
-    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 8);
-
-  const paymentCompletionRate = regionPayments.length
-    ? Math.round((regionPayments.filter((payment) => payment.status === "completed").length / regionPayments.length) * 100)
-    : 0;
-  const occupancyRate = regionStalls.length
-    ? Math.round((regionStalls.filter((stall) => stall.status === "active").length / regionStalls.length) * 100)
-    : 0;
+    .slice(0, 5);
 
   const summaryCards = [
     { label: "Markets", value: regionMarkets.length.toLocaleString(), icon: Landmark },
     { label: "Vendors", value: regionVendors.length.toLocaleString(), icon: Users },
     { label: "Revenue", value: formatCurrency(regionalRevenue), icon: Wallet },
-    { label: "Unpaid Utilities", value: formatCurrency(regionalUtilityDue), icon: ReceiptText },
-    { label: "Overdue Payments", value: regionalOverdueCount.toLocaleString(), icon: AlertCircle },
-    { label: "Compliance Alerts", value: regionalComplianceAlerts.toLocaleString(), icon: ShieldCheck },
+    { label: "Utilities Due", value: formatCurrency(regionalUtilityDue), icon: ReceiptText },
+    { label: "Overdue", value: regionalOverdueCount.toLocaleString(), icon: AlertCircle },
+    { label: "Alerts", value: regionalComplianceAlerts.toLocaleString(), icon: ShieldCheck },
   ];
 
+  const occupancyRate = regionStalls.length
+    ? Math.round(
+        (regionStalls.filter((stall) => stall.status === "active").length / regionStalls.length) *
+          100,
+      )
+    : 0;
+
+  const paymentCompletionRate = regionPayments.length
+    ? Math.round(
+        (regionPayments.filter((payment) => payment.status === "completed").length /
+          regionPayments.length) *
+          100,
+      )
+    : 0;
+
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-border/80 bg-card p-5 shadow-sm lg:p-6">
-        <h1 className="text-2xl font-bold font-heading lg:text-3xl">National Market Oversight</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+    <div className="space-y-4 lg:space-y-5">
+      <section className="rounded-2xl border border-border/70 bg-card p-3 lg:p-4 shadow-sm">
+        <h1 className="text-2xl font-bold font-heading lg:text-[2rem] leading-tight">
+          National Market Oversight
+        </h1>
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Monitor market performance, compliance, and financial activity across regions.
         </p>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_1.05fr]">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
+      <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+        <Card className="border border-border/80 bg-card shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-base font-heading">Uganda Regional Map</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <svg viewBox="0 0 288 256" role="img" aria-label="Uganda region selection map" className="h-[320px] w-full">
+          <CardContent className="space-y-4 px-4 pb-4">
+            <svg
+              viewBox="0 0 288 256"
+              role="img"
+              aria-label="Uganda region selection map"
+              className="h-[300px] w-full"
+            >
               <path
                 d="M85 30 L170 24 L226 82 L258 126 L242 178 L178 180 L124 188 L89 226 L45 196 L30 142 L52 94 Z"
                 fill="hsl(var(--muted) / 0.28)"
@@ -318,8 +405,8 @@ const OfficialDashboard = () => {
                       fill={selected ? "hsl(var(--primary) / 0.22)" : "hsl(var(--muted) / 0.58)"}
                       stroke={selected ? "hsl(var(--primary))" : "hsl(var(--border))"}
                       strokeWidth={selected ? 2.4 : 1.4}
-                      opacity={selected ? 1 : 0.44}
-                      className="cursor-pointer transition-opacity hover:opacity-100 focus:outline-none"
+                      opacity={selected ? 1 : 0.5}
+                      className="cursor-pointer transition-opacity hover:opacity-100"
                     />
                     <text
                       x={region.label.x}
@@ -333,6 +420,7 @@ const OfficialDashboard = () => {
                 );
               })}
             </svg>
+
             <div className="flex flex-wrap gap-2">
               {regions.map((region) => (
                 <button
@@ -352,16 +440,23 @@ const OfficialDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
+        <Card className="border border-border/80 bg-card shadow-sm">
+          <CardHeader className="pb-2 pt-4 px-4">
             <div>
-              <CardTitle className="text-base font-heading">{selectedRegionInfo.name} Region</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">{selectedRegionInfo.description}</p>
+              <CardTitle className="text-base font-heading">
+                {selectedRegionInfo.name} Region
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {selectedRegionInfo.description}
+              </p>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2">
+          <CardContent className="grid gap-3 sm:grid-cols-2 px-4 pb-4">
             {summaryCards.map((item) => (
-              <div key={item.label} className="rounded-lg border border-border/70 bg-muted/20 p-3">
+              <div
+                key={item.label}
+                className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -375,13 +470,15 @@ const OfficialDashboard = () => {
         </Card>
       </section>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
+      <Card className="border border-border/80 bg-card shadow-sm h-[320px] flex flex-col">
+        <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-base font-heading">Markets in Selected Region</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto px-4 pb-4">
           {marketRows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No markets are registered in this region yet.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No markets are registered in this region yet.
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -401,10 +498,14 @@ const OfficialDashboard = () => {
                     <TableCell className="font-medium">{market.name}</TableCell>
                     <TableCell className="text-right">{market.vendors}</TableCell>
                     <TableCell className="text-right">{formatCurrency(market.revenue)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(market.utilitiesDue)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(market.utilitiesDue)}
+                    </TableCell>
                     <TableCell className="text-right">{market.penalties}</TableCell>
                     <TableCell className="text-right">{market.complaints}</TableCell>
-                    <TableCell><span className={statusClassName(market.status)}>{market.status}</span></TableCell>
+                    <TableCell>
+                      <span className={statusClassName(market.status)}>{market.status}</span>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -413,163 +514,92 @@ const OfficialDashboard = () => {
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Overdue Payments</CardTitle>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-base font-heading">Compliance Issues</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {overdueRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No overdue payment records in this region.</p>
-            ) : (
-              overdueRows.map((row) => (
-                <div key={row.id} className="rounded-lg border border-border/70 bg-muted/15 p-3 text-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{row.vendor}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{row.detail} - {row.market}</p>
-                    </div>
-                    <p className="font-semibold">{formatCurrency(row.amount)}</p>
+          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+            {[...overdueRows, ...utilityRows].slice(0, 5).map((item: any) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{item.vendor || item.vendorName}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {item.detail ||
+                        `${utilityLabels[item.utilityType as UtilityType]} • ${item.marketName || item.market}`}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {item.market || item.marketName || "Assigned market"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{formatCurrency(item.amount)}</p>
+                    {"status" in item ? (
+                      <div className="mt-2">
+                        <StatusBadge status={item.status} context="obligation" />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Unpaid Utilities</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {utilityRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No unpaid utility charges in this region.</p>
-            ) : (
-              utilityRows.map((charge) => (
-                <div key={charge.id} className="rounded-lg border border-border/70 bg-muted/15 p-3 text-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{utilityLabels[charge.utilityType]}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{charge.vendorName} - {charge.marketName || "Assigned market"}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(charge.amount)}</p>
-                      <StatusBadge status={charge.status} context="obligation" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Penalties Issued</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {penaltyRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No penalties are recorded in this region.</p>
-            ) : (
-              penaltyRows.map((penalty) => (
-                <div key={penalty.id} className="rounded-lg border border-border/70 bg-muted/15 p-3 text-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{penalty.vendorName}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{penalty.reason}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(penalty.amount)}</p>
-                      <StatusBadge status={penalty.status} context="obligation" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Recent Audit Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentAuditRows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No audit activity is available for this region yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead>Market</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentAuditRows.map((event: AuditEvent) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="text-muted-foreground">{formatHumanDateTime(event.createdAt)}</TableCell>
-                    <TableCell className="font-medium">{formatAction(event.action)}</TableCell>
-                    <TableCell>{event.actorName}</TableCell>
-                    <TableCell className="text-muted-foreground">{event.marketName || "Region scope"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Payment Completion Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Completed payments in selected region</p>
-                  <p className="mt-1 text-3xl font-bold font-heading">{paymentCompletionRate}%</p>
-                </div>
-                <p className="text-sm text-muted-foreground">{regionPayments.length} total payment records</p>
               </div>
-              <div className="mt-4 h-2 rounded-full bg-muted">
-                <div className="h-full rounded-full bg-success" style={{ width: `${paymentCompletionRate}%` }} />
-              </div>
+            ))}
+            {[...overdueRows, ...utilityRows].length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No compliance issues in this region.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/80 bg-card shadow-sm h-[300px]">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-base font-heading">Financial Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 px-4 pb-4">
+            <div className="rounded-xl border border-border/70 bg-background p-3 shadow-sm">
+              <p className="text-xs text-muted-foreground">Revenue</p>
+              <p className="mt-1 text-lg font-bold font-heading">
+                {formatCurrency(regionalRevenue)}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-background p-3 shadow-sm">
+              <p className="text-xs text-muted-foreground">Utilities Due</p>
+              <p className="mt-1 text-lg font-bold font-heading">
+                {formatCurrency(regionalUtilityDue)}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-background p-3 shadow-sm">
+              <p className="text-xs text-muted-foreground">Overdue</p>
+              <p className="mt-1 text-lg font-bold font-heading">{regionalOverdueCount}</p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-background p-3 shadow-sm">
+              <p className="text-xs text-muted-foreground">Alerts</p>
+              <p className="mt-1 text-lg font-bold font-heading">
+                {regionalComplianceAlerts}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-background p-3 shadow-sm col-span-1">
+              <p className="text-xs text-muted-foreground">Payment Completion</p>
+              <p className="mt-1 text-lg font-bold font-heading">{paymentCompletionRate}%</p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-background p-3 shadow-sm col-span-1">
+              <p className="text-xs text-muted-foreground">Occupancy</p>
+              <p className="mt-1 text-lg font-bold font-heading">{occupancyRate}%</p>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Regional Occupancy Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Active stalls in selected region</p>
-                  <p className="mt-1 text-3xl font-bold font-heading">{occupancyRate}%</p>
-                </div>
-                <p className="text-sm text-muted-foreground">{regionStalls.length} total stalls</p>
-              </div>
-              <div className="mt-4 h-2 rounded-full bg-muted">
-                <div className="h-full rounded-full bg-foreground" style={{ width: `${occupancyRate}%` }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+      </div>
     </div>
   );
-};
-
-const bookingEndDateById = (bookings: Array<{ id: string; endDate: string }>, rowId: string) => {
-  const bookingId = rowId.replace("booking-", "");
-  return bookings.find((booking) => booking.id === bookingId)?.endDate || "";
 };
 
 export default OfficialDashboard;
