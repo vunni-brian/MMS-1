@@ -220,7 +220,7 @@ const AdminDashboard = () => {
   const allUserRows = [...currentAdminRow, ...actorRows, ...managerRows, ...vendorRows].filter(
     (row, index, rows) => rows.findIndex((candidate) => candidate.id === row.id) === index,
   );
-  const userRows = allUserRows.slice(0, 10);
+  const userRows = allUserRows.slice(0, 5);
 
   const totalUserCount = new Set([...allUserRows.map((row) => row.id), ...vendors.map((vendor) => vendor.id)]).size;
 
@@ -296,7 +296,7 @@ const AdminDashboard = () => {
         action: "Review",
         path: "/admin/audit",
       })),
-  ].slice(0, 8);
+  ].slice(0, 5);
 
   const marketRows = markets.map((market) => {
     const marketPayments = payments.filter((payment) => payment.marketId === market.id);
@@ -325,11 +325,11 @@ const AdminDashboard = () => {
 
   const recentPayments = [...payments]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 6);
+    .slice(0, 3);
 
   const recentAuditRows = [...auditEvents]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 8);
+    .slice(0, 5);
 
   const kpis = [
     {
@@ -365,8 +365,8 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg border border-border/80 bg-card p-5 shadow-sm lg:p-6">
+    <div className="space-y-4 lg:space-y-5">
+      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
         <h1 className="text-2xl font-bold font-heading lg:text-3xl">System Administration</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
           Monitor users, markets, financial flows, and system activity.
@@ -376,11 +376,11 @@ const AdminDashboard = () => {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         {kpis.map((item) => (
           <Card key={item.label} className="stat-card">
-            <CardContent className="p-4">
+            <CardContent className="p-3.5 lg:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="mt-1 text-xl font-bold font-heading">{item.value}</p>
+                  <p className="mt-1 text-lg lg:text-xl font-bold font-heading">{item.value}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{item.detail}</p>
                 </div>
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -392,11 +392,11 @@ const AdminDashboard = () => {
         ))}
       </section>
 
-      <Card className="card-warm">
+      <Card className="card-warm h-[360px]">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">All Markets Overview</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-[290px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -409,7 +409,7 @@ const AdminDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {marketRows.map((market) => (
+              {marketRows.slice(0, 5).map((market) => (
                 <TableRow key={market.id}>
                   <TableCell className="font-medium">{market.market}</TableCell>
                   <TableCell className="text-muted-foreground">{market.region}</TableCell>
@@ -424,11 +424,11 @@ const AdminDashboard = () => {
         </CardContent>
       </Card>
 
-      <Card className="card-warm">
+      <Card className="card-warm h-[360px]">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">Users & Roles</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-[290px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -467,11 +467,11 @@ const AdminDashboard = () => {
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <Card className="card-warm">
+        <Card className="card-warm h-[360px]">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-heading">Recent Payments</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="max-h-[290px] overflow-y-auto">
             {recentPayments.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No payment records are available yet.</p>
             ) : (
@@ -501,7 +501,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="card-warm">
+        <Card className="card-warm h-[360px]">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-heading">Revenue Summary</CardTitle>
           </CardHeader>
@@ -526,73 +526,80 @@ const AdminDashboard = () => {
         </Card>
       </section>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">System Alerts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {alerts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No system alerts require attention.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Alert</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Severity</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {alerts.map((alert) => (
-                  <TableRow key={alert.id}>
-                    <TableCell className="font-medium">{alert.alert}</TableCell>
-                    <TableCell className="text-muted-foreground">{alert.type}</TableCell>
-                    <TableCell><span className={severityClassName(alert.severity)}>{alert.severity}</span></TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild size="sm" variant={alert.severity === "High" ? "default" : "outline"}>
-                        <Link to={alert.path}>{alert.action}</Link>
-                      </Button>
-                    </TableCell>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <Card className="card-warm h-[360px]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-heading">System Alerts</CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[290px] overflow-y-auto">
+            {alerts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No system alerts require attention.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Alert</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Severity</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {alerts.map((alert) => (
+                    <TableRow key={alert.id}>
+                      <TableCell className="font-medium">{alert.alert}</TableCell>
+                      <TableCell className="text-muted-foreground">{alert.type}</TableCell>
+                      <TableCell><span className={severityClassName(alert.severity)}>{alert.severity}</span></TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant={alert.severity === "High" ? "default" : "outline"}>
+                          <Link to={alert.path}>{alert.action}</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">System Activity Logs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentAuditRows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No system activity is available yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead>Scope</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentAuditRows.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="text-muted-foreground">{formatHumanDateTime(event.createdAt)}</TableCell>
-                    <TableCell className="font-medium">{formatAction(event.action)}</TableCell>
-                    <TableCell>{event.actorName}</TableCell>
-                    <TableCell className="text-muted-foreground">{event.marketName || "System"}</TableCell>
+        <Card className="card-warm h-[360px]">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base font-heading">System Activity Logs</CardTitle>
+              <Button asChild variant="ghost" size="sm" className="px-0 h-auto">
+                <Link to="/admin/audit">View all</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="max-h-[290px] overflow-y-auto">
+            {recentAuditRows.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No system activity is available yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Actor</TableHead>
+                    <TableHead>Scope</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {recentAuditRows.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="text-muted-foreground">{formatHumanDateTime(event.createdAt)}</TableCell>
+                      <TableCell className="font-medium">{formatAction(event.action)}</TableCell>
+                      <TableCell>{event.actorName}</TableCell>
+                      <TableCell className="text-muted-foreground">{event.marketName || "System"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       <DetailSheet
         open={Boolean(selectedUser)}

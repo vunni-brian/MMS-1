@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
+  ArrowRight,
   Bell,
   ClipboardList,
   CreditCard,
@@ -166,21 +167,18 @@ const VendorDashboard = () => {
       path: "/vendor/stalls",
       icon: Grid3X3,
       description: "Check current allocations and lease details.",
-      variant: "outline" as const,
     },
     {
       label: "Pay Pending Bills",
       path: "/vendor/payments",
       icon: ReceiptText,
       description: "Settle booking, utility, and penalty payments.",
-      variant: "default" as const,
     },
     {
       label: "Apply for Stall",
       path: "/vendor/stalls",
       icon: Store,
       description: "Browse available stalls and submit applications.",
-      variant: "outline" as const,
     },
   ];
 
@@ -196,8 +194,8 @@ const VendorDashboard = () => {
   };
 
   return (
-    <div className="space-y-3 lg:space-y-4">
-      <div className="rounded-2xl border border-border/70 bg-card p-3 lg:p-4 shadow-sm">
+    <div className="space-y-4 lg:space-y-5">
+      <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
         <h1 className="text-2xl font-bold font-heading lg:text-[2rem] leading-tight">
           {getTimeAwareGreeting(firstName)} 👋
         </h1>
@@ -207,17 +205,17 @@ const VendorDashboard = () => {
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card
             key={stat.label}
             className="border border-border/80 bg-card shadow-sm"
           >
-            <CardContent className="p-3">
+            <CardContent className="p-3.5 lg:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="mt-1 text-lg lg:text-xl font-bold font-heading leading-none">
+                  <p className="mt-1 text-lg lg:text-xl font-bold font-heading">
                     {stat.value}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -233,48 +231,42 @@ const VendorDashboard = () => {
         ))}
       </div>
 
-      <Card className="border border-border/80 bg-card shadow-sm">
+      <Card className="card-warm">
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-base font-heading">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3 pt-0 px-4 pb-4">
           {quickActions.map((action) => (
-            <div
+            <Link
               key={action.label}
-              className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+              to={action.path}
+              className="interactive-row group flex items-center justify-between gap-3 p-3.5"
             >
-              <div className="flex items-start gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                   <action.icon className="h-4 w-4" />
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold">{action.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground leading-5">
+                  <p className="text-xs text-muted-foreground leading-5">
                     {action.description}
                   </p>
                 </div>
               </div>
-              <Button asChild variant={action.variant} size="sm" className="mt-3 w-full">
-                <Link to={action.path}>{action.label}</Link>
-              </Button>
-            </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Link>
           ))}
         </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+        <Card className="card-warm h-[360px]">
           <CardHeader className="pb-2 pt-4 px-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-heading">
-                My Active Stalls
-              </CardTitle>
-              <Button asChild variant="ghost" size="sm" className="px-0 h-auto">
-                <Link to="/vendor/stalls">View all</Link>
-              </Button>
-            </div>
+            <CardTitle className="text-base font-heading">
+              My Active Stalls
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+          <CardContent className="space-y-2 overflow-y-auto max-h-[290px] px-4 pb-4">
             {myStalls.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No active stalls yet. Approved applications will appear here.
@@ -303,21 +295,21 @@ const VendorDashboard = () => {
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-heading">
-                Booking Applications
-              </CardTitle>
-              <Button asChild variant="ghost" size="sm" className="px-0 h-auto">
+            <div className="pt-2">
+              <Button asChild variant="ghost" size="sm" className="px-0">
                 <Link to="/vendor/stalls">View all</Link>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-warm h-[360px]">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-base font-heading">
+              Booking Applications
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+          <CardContent className="space-y-2 overflow-y-auto max-h-[290px] px-4 pb-4">
             {myBookings.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No applications submitted yet.
@@ -364,12 +356,17 @@ const VendorDashboard = () => {
                 </div>
               ))
             )}
+            <div className="pt-2">
+              <Button asChild variant="ghost" size="sm" className="px-0">
+                <Link to="/vendor/payments">View all applications</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[280px]">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card className="card-warm">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-base font-heading">
               Payments Overview
@@ -407,7 +404,7 @@ const VendorDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm h-[280px] flex flex-col">
+        <Card className="card-warm">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base font-heading">
@@ -418,7 +415,7 @@ const VendorDashboard = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3 overflow-y-auto px-4 pb-4">
+          <CardContent className="space-y-2 px-4 pb-4">
             {myNotifications.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No recent alerts.
@@ -427,9 +424,9 @@ const VendorDashboard = () => {
               myNotifications.slice(0, 3).map((notification) => (
                 <div
                   key={notification.id}
-                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                  className="interactive-row p-3"
                 >
-                  <p className="text-sm font-medium leading-5">
+                  <p className="text-sm font-medium leading-5 line-clamp-2">
                     {notification.message}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">

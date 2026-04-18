@@ -10,7 +10,7 @@ import { config } from "../config.ts";
 import { rolePermissions } from "./permissions.ts";
 import { hashPassword, nowIso } from "./security.ts";
 import { syncSeedUserToSupabase } from "./supabase.ts";
-import type { AuthUser, NotificationType, Role } from "../types.ts";
+import type { AuthUser, LocationType, NotificationType, Role } from "../types.ts";
 
 const { Pool, types } = pg;
 
@@ -216,6 +216,15 @@ export const mapMarket = (row: {
   name: string;
   code: string;
   location: string;
+  location_id: string | null;
+  location_name: string | null;
+  location_type: LocationType | null;
+  sub_area_id: string | null;
+  sub_area_name: string | null;
+  area_id: string | null;
+  area_name: string | null;
+  region_id: string | null;
+  region_name: string | null;
   manager_user_id: string | null;
   manager_name: string | null;
   vendor_count: number;
@@ -228,6 +237,15 @@ export const mapMarket = (row: {
   name: row.name,
   code: row.code,
   location: row.location,
+  locationId: row.location_id,
+  locationName: row.location_name,
+  locationType: row.location_type,
+  subAreaId: row.sub_area_id,
+  subAreaName: row.sub_area_name,
+  areaId: row.area_id,
+  areaName: row.area_name,
+  regionId: row.region_id,
+  regionName: row.region_name,
   managerUserId: row.manager_user_id,
   managerName: row.manager_name,
   vendorCount: row.vendor_count,
@@ -244,6 +262,15 @@ export const listMarkets = async () =>
       name: string;
       code: string;
       location: string;
+      location_id: string | null;
+      location_name: string | null;
+      location_type: LocationType | null;
+      sub_area_id: string | null;
+      sub_area_name: string | null;
+      area_id: string | null;
+      area_name: string | null;
+      region_id: string | null;
+      region_name: string | null;
       manager_user_id: string | null;
       manager_name: string | null;
       vendor_count: number;
@@ -256,6 +283,15 @@ export const listMarkets = async () =>
               markets.name,
               markets.code,
               markets.location,
+              market_location.id AS location_id,
+              market_location.name AS location_name,
+              market_location.type AS location_type,
+              sub_area.id AS sub_area_id,
+              sub_area.name AS sub_area_name,
+              area.id AS area_id,
+              area.name AS area_name,
+              region.id AS region_id,
+              region.name AS region_name,
               managers.id AS manager_user_id,
               managers.name AS manager_name,
               COUNT(DISTINCT CASE WHEN vendors.role = 'vendor' THEN vendors.id END)::INT AS vendor_count,
@@ -264,10 +300,25 @@ export const listMarkets = async () =>
               COUNT(DISTINCT CASE WHEN stalls.status = 'inactive' THEN stalls.id END)::INT AS inactive_stall_count,
               COUNT(DISTINCT CASE WHEN stalls.status = 'maintenance' THEN stalls.id END)::INT AS maintenance_stall_count
        FROM markets
+       LEFT JOIN locations AS market_location ON market_location.id = markets.location_id
+       LEFT JOIN locations AS sub_area ON sub_area.id = market_location.parent_id
+       LEFT JOIN locations AS area ON area.id = sub_area.parent_id
+       LEFT JOIN locations AS region ON region.id = area.parent_id
        LEFT JOIN users AS managers ON managers.market_id = markets.id AND managers.role = 'manager'
        LEFT JOIN users AS vendors ON vendors.market_id = markets.id AND vendors.role = 'vendor'
        LEFT JOIN stalls ON stalls.market_id = markets.id
-       GROUP BY markets.id, managers.id, managers.name
+       GROUP BY markets.id,
+                market_location.id,
+                market_location.name,
+                market_location.type,
+                sub_area.id,
+                sub_area.name,
+                area.id,
+                area.name,
+                region.id,
+                region.name,
+                managers.id,
+                managers.name
        ORDER BY markets.name ASC`,
     )
   ).map(mapMarket);
@@ -445,24 +496,51 @@ export const queueNotification = async ({
 
 export const seedDatabase = async () => {
   const createdAt = nowIso();
+  const locations = [
+    { id: "loc_region_central", name: "Central", type: "region", parentId: null },
+    { id: "loc_region_eastern", name: "Eastern", type: "region", parentId: null },
+    { id: "loc_region_western", name: "Western", type: "region", parentId: null },
+    { id: "loc_region_northern", name: "Northern", type: "region", parentId: null },
+    { id: "loc_area_kampala", name: "Kampala", type: "city", parentId: "loc_region_central" },
+    { id: "loc_area_wakiso", name: "Wakiso", type: "district", parentId: "loc_region_central" },
+    { id: "loc_area_mukono", name: "Mukono", type: "district", parentId: "loc_region_central" },
+    { id: "loc_area_jinja", name: "Jinja", type: "city", parentId: "loc_region_eastern" },
+    { id: "loc_area_mbale", name: "Mbale", type: "city", parentId: "loc_region_eastern" },
+    { id: "loc_area_gulu", name: "Gulu", type: "city", parentId: "loc_region_northern" },
+    { id: "loc_area_mbarara", name: "Mbarara", type: "city", parentId: "loc_region_western" },
+    { id: "loc_subarea_kampala_central", name: "Central Division", type: "division", parentId: "loc_area_kampala" },
+    { id: "loc_subarea_kampala_kawempe", name: "Kawempe Division", type: "division", parentId: "loc_area_kampala" },
+    { id: "loc_subarea_kampala_nakawa", name: "Nakawa Division", type: "division", parentId: "loc_area_kampala" },
+    { id: "loc_subarea_kampala_rubaga", name: "Rubaga Division", type: "division", parentId: "loc_area_kampala" },
+    { id: "loc_subarea_kampala_makindye", name: "Makindye Division", type: "division", parentId: "loc_area_kampala" },
+    { id: "loc_subarea_jinja_municipality", name: "Jinja Municipality", type: "municipality", parentId: "loc_area_jinja" },
+    { id: "loc_subarea_testbed", name: "MMS Testbed", type: "subcounty", parentId: "loc_area_kampala" },
+    { id: "loc_market_kampala_central", name: "Kampala Central Market", type: "market", parentId: "loc_subarea_kampala_central" },
+    { id: "loc_market_jinja_main", name: "Jinja Main Market", type: "market", parentId: "loc_subarea_jinja_municipality" },
+    { id: "loc_market_demo_test", name: "MMS Demo Test Market", type: "market", parentId: "loc_subarea_testbed" },
+  ] as const;
+
   const markets = [
     {
       id: "market_kampala",
       name: "Kampala Central Market",
       code: "KLA-CENTRAL",
       location: "Kampala",
+      locationId: "loc_market_kampala_central",
     },
     {
       id: "market_jinja",
       name: "Jinja Main Market",
       code: "JIN-MAIN",
       location: "Jinja",
+      locationId: "loc_market_jinja_main",
     },
     {
       id: "market_demo_test",
       name: "MMS Demo Test Market",
       code: "MMS-DEMO",
       location: "Local Testbed",
+      locationId: "loc_market_demo_test",
     },
   ] as const;
 
@@ -638,11 +716,19 @@ export const seedDatabase = async () => {
   ] as const;
 
   await transaction(async () => {
+    locations.forEach((location) => {
+      run(
+        `INSERT OR IGNORE INTO locations (id, name, type, parent_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [location.id, location.name, location.type, location.parentId, createdAt, createdAt],
+      );
+    });
+
     markets.forEach((market) => {
     run(
-      `INSERT OR IGNORE INTO markets (id, name, code, location, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [market.id, market.name, market.code, market.location, createdAt],
+      `INSERT OR IGNORE INTO markets (id, name, code, location, location_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [market.id, market.name, market.code, market.location, market.locationId, createdAt],
     );
   });
 

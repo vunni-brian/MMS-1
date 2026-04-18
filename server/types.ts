@@ -50,12 +50,22 @@ export type NotificationChannel = "system" | "sms" | "email";
 export type OtpPurpose = "registration" | "manager_mfa";
 export type ResourceRequestCategory = "budget" | "structural";
 export type ResourceRequestStatus = "pending" | "approved" | "rejected";
+export type LocationType = "region" | "city" | "district" | "division" | "municipality" | "subcounty" | "market";
 
 export interface Market {
   id: string;
   name: string;
   code: string;
   location: string;
+  locationId: string | null;
+  locationName: string | null;
+  locationType: LocationType | null;
+  subAreaId: string | null;
+  subAreaName: string | null;
+  areaId: string | null;
+  areaName: string | null;
+  regionId: string | null;
+  regionName: string | null;
   managerUserId: string | null;
   managerName: string | null;
   vendorCount: number;

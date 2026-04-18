@@ -144,3 +144,26 @@
     box-shadow: 0 8px 20px -18px hsl(var(--foreground) / 0.24);
   }
 }
+
+@layer components {
+  .dashboard-shell {
+  @apply h-full min-h-0 grid gap-4 lg:gap-4;
+  grid-template-rows: auto auto auto 1fr;
+}
+
+.dashboard-grid-2 {
+  @apply grid gap-4 lg:grid-cols-2 min-h-0;
+}
+
+.dashboard-box {
+  @apply min-h-0 rounded-xl border border-border/80 bg-card shadow-sm;
+}
+
+.dashboard-box-body {
+  @apply min-h-0 overflow-y-auto p-4;
+}
+
+.dashboard-kpi-grid {
+  @apply grid gap-3 md:grid-cols-2 xl:grid-cols-4;
+}
+}

@@ -26,6 +26,22 @@ import type {
 type RegionId = "central" | "western" | "eastern" | "northern";
 type MarketStatus = "Healthy" | "Warning" | "Critical";
 
+interface SubAreaOption {
+  id: string;
+  name: string;
+  type: string;
+  keywords: string[];
+}
+
+interface AreaOption {
+  id: string;
+  regionId: RegionId;
+  name: string;
+  type: string;
+  keywords: string[];
+  subAreas: SubAreaOption[];
+}
+
 const regions: Array<{
   id: RegionId;
   name: string;
@@ -115,6 +131,74 @@ const regionKeywords: Record<RegionId, string[]> = {
   ],
 };
 
+const locationAreas: AreaOption[] = [
+  {
+    id: "loc_area_kampala",
+    regionId: "central",
+    name: "Kampala",
+    type: "City",
+    keywords: ["kampala", "testbed", "demo"],
+    subAreas: [
+      { id: "loc_subarea_kampala_central", name: "Central Division", type: "Division", keywords: ["central", "kla-central"] },
+      { id: "loc_subarea_kampala_kawempe", name: "Kawempe Division", type: "Division", keywords: ["kawempe"] },
+      { id: "loc_subarea_kampala_nakawa", name: "Nakawa Division", type: "Division", keywords: ["nakawa"] },
+      { id: "loc_subarea_kampala_rubaga", name: "Rubaga Division", type: "Division", keywords: ["rubaga"] },
+      { id: "loc_subarea_kampala_makindye", name: "Makindye Division", type: "Division", keywords: ["makindye"] },
+      { id: "loc_subarea_testbed", name: "MMS Testbed", type: "Subcounty", keywords: ["testbed", "demo"] },
+    ],
+  },
+  {
+    id: "loc_area_wakiso",
+    regionId: "central",
+    name: "Wakiso",
+    type: "District",
+    keywords: ["wakiso"],
+    subAreas: [],
+  },
+  {
+    id: "loc_area_mukono",
+    regionId: "central",
+    name: "Mukono",
+    type: "District",
+    keywords: ["mukono"],
+    subAreas: [],
+  },
+  {
+    id: "loc_area_jinja",
+    regionId: "eastern",
+    name: "Jinja",
+    type: "City",
+    keywords: ["jinja", "jin-main"],
+    subAreas: [
+      { id: "loc_subarea_jinja_municipality", name: "Jinja Municipality", type: "Municipality", keywords: ["jinja", "jin-main"] },
+    ],
+  },
+  {
+    id: "loc_area_mbale",
+    regionId: "eastern",
+    name: "Mbale",
+    type: "City",
+    keywords: ["mbale"],
+    subAreas: [],
+  },
+  {
+    id: "loc_area_gulu",
+    regionId: "northern",
+    name: "Gulu",
+    type: "City",
+    keywords: ["gulu"],
+    subAreas: [],
+  },
+  {
+    id: "loc_area_mbarara",
+    regionId: "western",
+    name: "Mbarara",
+    type: "City",
+    keywords: ["mbarara"],
+    subAreas: [],
+  },
+];
+
 const utilityLabels: Record<UtilityType, string> = {
   electricity: "Electricity",
   water: "Water",
@@ -125,12 +209,38 @@ const utilityLabels: Record<UtilityType, string> = {
 
 const riskStatuses = new Set(["unpaid", "pending", "pending_payment", "overdue"]);
 
+const getMarketSearchText = (market: Market) =>
+  `${market.name} ${market.code} ${market.location} ${market.locationName || ""} ${market.subAreaName || ""} ${market.areaName || ""} ${market.regionName || ""}`.toLowerCase();
+
 const getMarketRegion = (market: Market): RegionId => {
-  const value = `${market.name} ${market.code} ${market.location}`.toLowerCase();
+  const regionFromLocation = regions.find((region) => region.name === market.regionName);
+  if (regionFromLocation) return regionFromLocation.id;
+
+  const value = getMarketSearchText(market);
   const match = regions.find((region) =>
     regionKeywords[region.id].some((keyword) => value.includes(keyword)),
   );
   return match?.id || "central";
+};
+
+const getMarketAreaId = (market: Market) => {
+  if (market.areaId) return market.areaId;
+
+  const value = getMarketSearchText(market);
+  const regionId = getMarketRegion(market);
+  return (
+    locationAreas
+      .filter((area) => area.regionId === regionId)
+      .find((area) => area.keywords.some((keyword) => value.includes(keyword)))?.id || null
+  );
+};
+
+const getMarketSubAreaId = (market: Market) => {
+  if (market.subAreaId) return market.subAreaId;
+
+  const value = getMarketSearchText(market);
+  const area = locationAreas.find((item) => item.id === getMarketAreaId(market));
+  return area?.subAreas.find((subArea) => subArea.keywords.some((keyword) => value.includes(keyword)))?.id || null;
 };
 
 const getMarketStatus = ({
@@ -170,6 +280,8 @@ const bookingEndDateById = (bookings: Array<{ id: string; endDate: string }>, ro
 
 const OfficialDashboard = () => {
   const [selectedRegion, setSelectedRegion] = useState<RegionId>("central");
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  const [selectedSubAreaId, setSelectedSubAreaId] = useState<string | null>(null);
 
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "official"],
@@ -214,10 +326,25 @@ const OfficialDashboard = () => {
   const penalties = penaltiesData?.penalties || [];
 
   const selectedRegionInfo = regions.find((region) => region.id === selectedRegion)!;
+  const selectedAreas = locationAreas.filter((area) => area.regionId === selectedRegion);
+  const selectedArea = selectedAreas.find((area) => area.id === selectedAreaId) || null;
+  const selectedSubAreas = selectedArea?.subAreas || [];
+  const selectedSubArea = selectedSubAreas.find((subArea) => subArea.id === selectedSubAreaId) || null;
   const regionMarkets = markets.filter((market) => getMarketRegion(market) === selectedRegion);
-  const regionMarketIds = new Set(regionMarkets.map((market) => market.id));
+  const scopedMarkets = regionMarkets.filter((market) => {
+    if (selectedAreaId && getMarketAreaId(market) !== selectedAreaId) return false;
+    if (selectedSubAreaId && getMarketSubAreaId(market) !== selectedSubAreaId) return false;
+    return true;
+  });
+  const regionMarketIds = new Set(scopedMarkets.map((market) => market.id));
   const inRegion = (marketId: string | null | undefined) =>
     Boolean(marketId && regionMarketIds.has(marketId));
+  const selectedScopeLabel = selectedSubArea?.name || selectedArea?.name || `${selectedRegionInfo.name} Region`;
+  const selectRegion = (regionId: RegionId) => {
+    setSelectedRegion(regionId);
+    setSelectedAreaId(null);
+    setSelectedSubAreaId(null);
+  };
 
   const regionVendors = vendors.filter((vendor) => inRegion(vendor.marketId));
   const regionStalls = stalls.filter((stall) => inRegion(stall.marketId));
@@ -251,7 +378,7 @@ const OfficialDashboard = () => {
     return accumulator;
   }, {});
 
-  const marketRows = regionMarkets.map((market) => {
+  const marketRows = scopedMarkets.map((market) => {
     const marketVendors = vendors.filter((vendor) => vendor.marketId === market.id);
     const marketPayments = payments.filter(
       (payment) => payment.marketId === market.id && payment.status === "completed",
@@ -334,7 +461,7 @@ const OfficialDashboard = () => {
     .slice(0, 5);
 
   const summaryCards = [
-    { label: "Markets", value: regionMarkets.length.toLocaleString(), icon: Landmark },
+    { label: "Markets", value: scopedMarkets.length.toLocaleString(), icon: Landmark },
     { label: "Vendors", value: regionVendors.length.toLocaleString(), icon: Users },
     { label: "Revenue", value: formatCurrency(regionalRevenue), icon: Wallet },
     { label: "Utilities Due", value: formatCurrency(regionalUtilityDue), icon: ReceiptText },
@@ -359,7 +486,7 @@ const OfficialDashboard = () => {
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      <section className="rounded-2xl border border-border/70 bg-card p-3 lg:p-4 shadow-sm">
+      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
         <h1 className="text-2xl font-bold font-heading lg:text-[2rem] leading-tight">
           National Market Oversight
         </h1>
@@ -368,8 +495,8 @@ const OfficialDashboard = () => {
         </p>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="border border-border/80 bg-card shadow-sm">
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="card-warm">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-base font-heading">Uganda Regional Map</CardTitle>
           </CardHeader>
@@ -395,11 +522,11 @@ const OfficialDashboard = () => {
                       role="button"
                       tabIndex={0}
                       aria-label={`Filter dashboard to ${region.name} region`}
-                      onClick={() => setSelectedRegion(region.id)}
+                      onClick={() => selectRegion(region.id)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          setSelectedRegion(region.id);
+                          selectRegion(region.id);
                         }
                       }}
                       fill={selected ? "hsl(var(--primary) / 0.22)" : "hsl(var(--muted) / 0.58)"}
@@ -426,7 +553,7 @@ const OfficialDashboard = () => {
                 <button
                   key={region.id}
                   type="button"
-                  onClick={() => setSelectedRegion(region.id)}
+                  onClick={() => selectRegion(region.id)}
                   className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
                     selectedRegion === region.id
                       ? "border-foreground/25 bg-foreground text-background"
@@ -440,44 +567,154 @@ const OfficialDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm">
+        <Card className="card-warm">
           <CardHeader className="pb-2 pt-4 px-4">
             <div>
               <CardTitle className="text-base font-heading">
-                {selectedRegionInfo.name} Region
+                {selectedScopeLabel}
               </CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
                 {selectedRegionInfo.description}
               </p>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 px-4 pb-4">
-            {summaryCards.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                    <p className="mt-1 text-lg font-bold font-heading">{item.value}</p>
-                  </div>
-                  <item.icon className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="space-y-4 px-4 pb-4">
+            <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+              <span>Uganda</span>
+              <span>&gt;</span>
+              <button type="button" className="font-medium text-foreground" onClick={() => selectRegion(selectedRegion)}>
+                {selectedRegionInfo.name}
+              </button>
+              {selectedArea ? (
+                <>
+                  <span>&gt;</span>
+                  <button
+                    type="button"
+                    className="font-medium text-foreground"
+                    onClick={() => setSelectedSubAreaId(null)}
+                  >
+                    {selectedArea.name}
+                  </button>
+                </>
+              ) : null}
+              {selectedSubArea ? (
+                <>
+                  <span>&gt;</span>
+                  <span className="font-medium text-foreground">{selectedSubArea.name}</span>
+                </>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-muted-foreground">{selectedRegionInfo.name} areas</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAreaId(null);
+                    setSelectedSubAreaId(null);
+                  }}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+                    selectedAreaId === null
+                      ? "border-foreground/25 bg-foreground text-background"
+                      : "border-border bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  All
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {selectedAreas.map((area) => {
+                  const count = regionMarkets.filter((market) => getMarketAreaId(market) === area.id).length;
+                  return (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAreaId(area.id);
+                        setSelectedSubAreaId(null);
+                      }}
+                      className={`rounded-lg border p-3 text-left transition-colors ${
+                        selectedAreaId === area.id
+                          ? "border-foreground/25 bg-muted text-foreground"
+                          : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span className="block text-sm font-medium">{area.name}</span>
+                      <span className="mt-1 block text-xs">{area.type} - {count} markets</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {selectedArea && selectedSubAreas.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-muted-foreground">{selectedArea.name} sub-areas</p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubAreaId(null)}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+                      selectedSubAreaId === null
+                        ? "border-foreground/25 bg-foreground text-background"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All
+                  </button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {selectedSubAreas.map((subArea) => {
+                    const count = regionMarkets.filter((market) => getMarketSubAreaId(market) === subArea.id).length;
+                    return (
+                      <button
+                        key={subArea.id}
+                        type="button"
+                        onClick={() => setSelectedSubAreaId(subArea.id)}
+                        className={`rounded-lg border p-3 text-left transition-colors ${
+                          selectedSubAreaId === subArea.id
+                            ? "border-foreground/25 bg-muted text-foreground"
+                            : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <span className="block text-sm font-medium">{subArea.name}</span>
+                        <span className="mt-1 block text-xs">{subArea.type} - {count} markets</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {summaryCards.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="mt-1 text-lg font-bold font-heading">{item.value}</p>
+                    </div>
+                    <item.icon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </section>
 
-      <Card className="border border-border/80 bg-card shadow-sm h-[320px] flex flex-col">
+      <Card className="card-warm h-[320px] flex flex-col">
         <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-base font-heading">Markets in Selected Region</CardTitle>
+          <CardTitle className="text-base font-heading">Markets in Selected Area</CardTitle>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto px-4 pb-4">
           {marketRows.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              No markets are registered in this region yet.
+              No markets are registered in this selected area yet.
             </p>
           ) : (
             <Table>
@@ -515,7 +752,7 @@ const OfficialDashboard = () => {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+        <Card className="card-warm h-[300px] flex flex-col">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-base font-heading">Compliance Issues</CardTitle>
           </CardHeader>
@@ -555,7 +792,7 @@ const OfficialDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm h-[300px]">
+        <Card className="card-warm h-[300px]">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-base font-heading">Financial Overview</CardTitle>
           </CardHeader>

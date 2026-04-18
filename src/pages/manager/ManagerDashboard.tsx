@@ -239,22 +239,10 @@ const ManagerDashboard = () => {
       new Date(right.appliedAt).getTime() - new Date(left.appliedAt).getTime(),
   );
 
-  const stallRows = [...stalls]
-    .sort((left, right) => {
-      const weight = { inactive: 0, maintenance: 1, active: 2 };
-      return (
-        weight[left.status] -
-          weight[right.status] ||
-        left.zone.localeCompare(right.zone) ||
-        left.name.localeCompare(right.name)
-      );
-    })
-    .slice(0, 4);
-
   const utilityRows = utilityCharges
     .filter((charge) => charge.status !== "paid" && charge.status !== "cancelled")
     .sort((left, right) => utilityStatusWeight[left.status] - utilityStatusWeight[right.status])
-    .slice(0, 4);
+    .slice(0, 3);
 
   const complaintRows = [...openComplaints]
     .sort((left, right) => {
@@ -267,24 +255,7 @@ const ManagerDashboard = () => {
         new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
       );
     })
-    .slice(0, 4);
-
-  const recentActivity = [
-    ...payments.slice(0, 2).map((payment) => ({
-      id: `payment-${payment.id}`,
-      title: `Payment ${payment.status}`,
-      detail: `${payment.vendorName} • ${formatCurrency(payment.amount)}`,
-      date: payment.completedAt || payment.updatedAt || payment.createdAt,
-    })),
-    ...bookings.slice(0, 2).map((booking) => ({
-      id: `booking-${booking.id}`,
-      title: `Booking ${booking.status}`,
-      detail: `${booking.vendorName} • ${booking.stallName}`,
-      date: booking.updatedAt || booking.createdAt,
-    })),
-  ]
-    .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
-    .slice(0, 4);
+    .slice(0, 3);
 
   const actionDisabled =
     approveVendor.isPending || rejectVendor.isPending || reviewBookingApplication.isPending;
@@ -368,7 +339,7 @@ const ManagerDashboard = () => {
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      <section className="rounded-2xl border border-border/70 bg-card p-3 lg:p-4 shadow-sm">
+      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
         <h1 className="text-2xl font-bold font-heading lg:text-[2rem] leading-tight">
           {getTimeAwareGreeting(firstName)} 👋
         </h1>
@@ -382,8 +353,8 @@ const ManagerDashboard = () => {
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((item) => (
-          <Card key={item.label} className="border border-border/80 bg-card shadow-sm">
-            <CardContent className="p-3">
+          <Card key={item.label} className="stat-card">
+            <CardContent className="p-3.5 lg:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -401,7 +372,7 @@ const ManagerDashboard = () => {
         ))}
       </section>
 
-      <Card className="border border-border/80 bg-card shadow-sm">
+      <Card className="card-warm">
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-base font-heading">Quick Actions</CardTitle>
         </CardHeader>
@@ -423,7 +394,7 @@ const ManagerDashboard = () => {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+        <Card className="card-warm h-[360px]">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base font-heading">Vendor Approvals</CardTitle>
@@ -432,13 +403,13 @@ const ManagerDashboard = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+          <CardContent className="space-y-2 overflow-y-auto max-h-[290px] px-4 pb-4">
             {approvalRows.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No vendor or stall applications need review right now.
               </p>
             ) : (
-              approvalRows.slice(0, 4).map((row) => (
+              approvalRows.slice(0, 3).map((row) => (
                 <div
                   key={row.id}
                   className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
@@ -481,7 +452,7 @@ const ManagerDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm h-[300px] flex flex-col">
+        <Card className="card-warm h-[360px]">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base font-heading">
@@ -492,13 +463,13 @@ const ManagerDashboard = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+          <CardContent className="space-y-2 overflow-y-auto max-h-[290px] px-4 pb-4">
             {pendingPayments.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No vendor payments are awaiting confirmation.
               </p>
             ) : (
-              pendingPayments.slice(0, 4).map((payment) => (
+              pendingPayments.slice(0, 3).map((payment) => (
                 <div
                   key={payment.id}
                   className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
@@ -533,8 +504,8 @@ const ManagerDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[280px]">
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card className="card-warm h-[300px]">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-base font-heading">Stall Overview</CardTitle>
           </CardHeader>
@@ -557,7 +528,7 @@ const ManagerDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 bg-card shadow-sm h-[280px] flex flex-col">
+        <Card className="card-warm h-[300px]">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base font-heading">Utility Charges</CardTitle>
@@ -566,7 +537,7 @@ const ManagerDashboard = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+          <CardContent className="space-y-2 overflow-y-auto max-h-[230px] px-4 pb-4">
             {utilityRows.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No open utility charges need follow-up.
@@ -605,10 +576,8 @@ const ManagerDashboard = () => {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="border border-border/80 bg-card shadow-sm h-[280px] flex flex-col">
+        <Card className="card-warm h-[300px]">
           <CardHeader className="pb-2 pt-4 px-4">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base font-heading">Complaints / Issues</CardTitle>
@@ -617,7 +586,7 @@ const ManagerDashboard = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
+          <CardContent className="space-y-2 overflow-y-auto max-h-[230px] px-4 pb-4">
             {complaintRows.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No open complaints need response.
@@ -661,32 +630,6 @@ const ManagerDashboard = () => {
                   </div>
                 );
               })
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/80 bg-card shadow-sm h-[280px] flex flex-col">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-base font-heading">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
-            {recentActivity.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No recent activity yet.
-              </p>
-            ) : (
-              recentActivity.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-                >
-                  <p className="font-medium">{item.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatHumanDate(item.date)}
-                  </p>
-                </div>
-              ))
             )}
           </CardContent>
         </Card>
