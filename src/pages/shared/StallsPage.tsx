@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Grid3X3, Store, Wrench } from "lucide-react";
+import { CheckCircle2, Grid3X3, Store, Wrench, AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/components/ui/sonner";
 import type { Stall } from "@/types";
 
@@ -35,7 +37,7 @@ const StallsPage = () => {
   });
   const [error, setError] = useState<string | null>(null);
 
-  const { data } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["stalls"],
     queryFn: () => api.getStalls(),
     refetchInterval: 10_000,
@@ -154,31 +156,58 @@ const StallsPage = () => {
 
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
-      <KpiStrip items={stallKpis} />
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {filtered.length === 0 ? (
-          <div className="col-span-full">
-            <EmptyState title="No stalls match this view" description={role === "vendor" ? "Try another zone or check back after the manager publishes more stalls." : "Adjust the zone filter or create a new stall for this market."} />
+      {isError ? (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading stalls</AlertTitle>
+          <AlertDescription>There was a problem reaching the server. Please check your connection.</AlertDescription>
+        </Alert>
+      ) : isPending ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
           </div>
-        ) : filtered.map((stall) => (
-          <button
-            key={stall.id}
-            onClick={() => setSelectedStall(stall)}
-            className={`text-left p-4 rounded-lg border transition-colors duration-150 hover:bg-muted/40 ${statusColors[stall.status] || "border-border"}`}
-          >
-            <div className="flex items-center justify-between mb-2 gap-2">
-              <span className="font-heading font-bold text-lg">{stall.name}</span>
-              <StatusBadge status={stall.status} />
-            </div>
-            <p className="text-xs text-muted-foreground">{stall.zone}</p>
-            {stall.marketName && <p className="text-xs text-muted-foreground">{stall.marketName}</p>}
-            <p className="text-xs text-muted-foreground">{stall.size}</p>
-            <p className="font-medium text-sm mt-2">{formatCurrency(stall.pricePerMonth)}/mo</p>
-            {stall.vendorName && <p className="text-xs text-muted-foreground mt-1">{stall.vendorName}</p>}
-          </button>
-        ))}
-      </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
+      ) : (
+        <>
+          <KpiStrip items={stallKpis} />
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {filtered.length === 0 ? (
+              <div className="col-span-full">
+                <EmptyState title="No stalls match this view" description={role === "vendor" ? "Try another zone or check back after the manager publishes more stalls." : "Adjust the zone filter or create a new stall for this market."} />
+              </div>
+            ) : filtered.map((stall) => (
+              <button
+                key={stall.id}
+                onClick={() => setSelectedStall(stall)}
+                className={`text-left p-4 rounded-lg border transition-colors duration-150 hover:bg-muted/40 ${statusColors[stall.status] || "border-border"}`}
+              >
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <span className="font-heading font-bold text-lg">{stall.name}</span>
+                  <StatusBadge status={stall.status} />
+                </div>
+                <p className="text-xs text-muted-foreground">{stall.zone}</p>
+                {stall.marketName && <p className="text-xs text-muted-foreground">{stall.marketName}</p>}
+                <p className="text-xs text-muted-foreground">{stall.size}</p>
+                <p className="font-medium text-sm mt-2">{formatCurrency(stall.pricePerMonth)}/mo</p>
+                {stall.vendorName && <p className="text-xs text-muted-foreground mt-1">{stall.vendorName}</p>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <DetailSheet
         open={Boolean(selectedStall)}

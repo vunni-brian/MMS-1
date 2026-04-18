@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, FileText, KeyRound, Mail, MapPinned, Phone, User } from "lucide-react";
+import { Calendar, FileText, KeyRound, Mail, MapPinned, Phone, User, AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ProfilePage = () => {
   const { user, refreshUser } = useAuth();
@@ -30,15 +32,17 @@ const ProfilePage = () => {
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const { data } = useQuery({
+  const { data, isPending: isVendorPending, isError: isVendorError } = useQuery({
     queryKey: ["vendor-profile", user?.id],
     queryFn: () => api.getVendor(user!.id),
     enabled: Boolean(user?.id),
   });
-  const { data: marketsData } = useQuery({
+  const { data: marketsData, isPending: isMarketsPending, isError: isMarketsError } = useQuery({
     queryKey: ["markets", "profile"],
     queryFn: () => api.getMarkets(),
   });
+  const isPending = isVendorPending || isMarketsPending;
+  const isError = isVendorError || isMarketsError;
 
   useEffect(() => {
     if (!user) {
@@ -104,7 +108,21 @@ const ProfilePage = () => {
         </p>
       </div>
 
-      <Card className="card-warm">
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading profile</AlertTitle>
+          <AlertDescription>We couldn't reach the server. Please check your connection.</AlertDescription>
+        </Alert>
+      ) : isPending ? (
+        <div className="space-y-6">
+          <Skeleton className="h-[200px] w-full rounded-xl" />
+          <Skeleton className="h-[430px] w-full rounded-xl" />
+          <Skeleton className="h-[300px] w-full rounded-xl" />
+        </div>
+      ) : (
+        <>
+          <Card className="card-warm">
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
@@ -297,8 +315,13 @@ const ProfilePage = () => {
           </Button>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 };
 
 export default ProfilePage;
+
+
+

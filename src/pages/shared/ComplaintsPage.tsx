@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
+import { formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import type { Ticket, TicketCategory, TicketStatus } from "@/types";
 
@@ -48,7 +51,7 @@ const ComplaintsPage = () => {
     note: "",
   });
 
-  const { data } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["tickets"],
     queryFn: () => api.getTickets(),
   });
@@ -102,41 +105,59 @@ const ComplaintsPage = () => {
 
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
-      <div className="space-y-3">
-        {tickets.map((ticket) => (
-          <Card key={ticket.id} className="card-warm cursor-pointer" onClick={() => {
-            setSelected(ticket);
-            setManagerUpdate({
-              status: ticket.status,
-              resolutionNote: ticket.resolution || "",
-              note: "",
-            });
-          }}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded">{categoryLabels[ticket.category]}</span>
-                    <span className="text-xs text-muted-foreground">#{ticket.id}</span>
+      {isError ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading complaints</AlertTitle>
+          <AlertDescription>We couldn't reach the server. Please check your connection.</AlertDescription>
+        </Alert>
+      ) : isPending ? (
+        <div className="space-y-3">
+          <Skeleton className="h-[104px] w-full rounded-xl" />
+          <Skeleton className="h-[104px] w-full rounded-xl" />
+          <Skeleton className="h-[104px] w-full rounded-xl" />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tickets.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8 text-sm">No complaints found.</p>
+          ) : (
+            tickets.map((ticket) => (
+              <Card key={ticket.id} className="card-warm cursor-pointer" onClick={() => {
+                setSelected(ticket);
+                setManagerUpdate({
+                  status: ticket.status,
+                  resolutionNote: ticket.resolution || "",
+                  note: "",
+                });
+              }}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded">{categoryLabels[ticket.category]}</span>
+                        <span className="text-xs text-muted-foreground">#{ticket.id}</span>
+                      </div>
+                      <p className="font-medium text-sm">{ticket.subject}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {role !== "vendor" ? `${ticket.vendorName} · ` : ""}
+                        {formatHumanDateTime(ticket.createdAt)}
+                      </p>
+                    </div>
+                    <StatusBadge status={ticket.status} />
                   </div>
-                  <p className="font-medium text-sm">{ticket.subject}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {role !== "vendor" ? `${ticket.vendorName} · ` : ""}
-                    {ticket.createdAt}
-                  </p>
-                </div>
-                <StatusBadge status={ticket.status} />
-              </div>
-              {ticket.resolution && (
-                <div className="mt-3 p-2.5 rounded-lg bg-success/5 border border-success/20">
-                  <p className="text-xs font-medium text-success">Resolution</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{ticket.resolution}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  {ticket.resolution && (
+                    <div className="mt-3 p-2.5 rounded-lg bg-success/5 border border-success/20">
+                      <p className="text-xs font-medium text-success">Resolution</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{ticket.resolution}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent>

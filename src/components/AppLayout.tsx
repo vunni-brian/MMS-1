@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { NavLink, useNavigate, Outlet } from "react-router-dom";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +43,15 @@ const AppLayout = () => {
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading workspace...</div>;
   }
+
+  const { data: notificationsData } = useQuery({
+    queryKey: ["notifications", "app-layout-badge"],
+    queryFn: () => api.getNotifications(5),
+    enabled: user.role === "vendor",
+    refetchInterval: 30000,
+  });
+
+  const hasUnread = notificationsData?.notifications?.some(n => !n.read) || false;
 
   const filtered = navItems.filter(n => n.roles.includes(user.role));
   const basePath = `/${user.role}`;
@@ -86,13 +97,11 @@ const AppLayout = () => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}>
         <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-lg border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center shrink-0">
             <Store className="w-5 h-5 text-sidebar-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">{workspaceTitle}</p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{user.name}</p>
-            <p className="text-[11px] text-sidebar-foreground/50 truncate mt-0.5">{workspaceScope}</p>
           </div>
           <button className="lg:hidden text-sidebar-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="w-5 h-5" />
@@ -132,13 +141,26 @@ const AppLayout = () => {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center gap-3 px-3 lg:px-4 py-2.5 border-b bg-card">
+        <header className="relative flex items-center gap-3 px-3 lg:px-4 py-2.5 border-b bg-card">
           <button className="lg:hidden text-foreground" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </button>
+          {/* Centered market badge */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-xs font-medium bg-muted text-muted-foreground px-3 py-1 rounded-full">{headerScope}</span>
+          </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium bg-muted text-muted-foreground px-2.5 py-1 rounded-full">{headerScope}</span>
+            <NavLink
+              to={`${basePath}/notifications`}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <Bell className="h-4 w-4" />
+              {/* Unread dot — only for vendors with unread messages */}
+              {user.role === 'vendor' && hasUnread && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-accent border-2 border-background" />
+              )}
+            </NavLink>
             <div className="relative">
               <button
                 type="button"
@@ -210,8 +232,13 @@ const AppLayout = () => {
             </div>
           </div>
         </header>
-        <div className="flex-1 overflow-hidden p-3 lg:p-4">
-          <Outlet />
+        <div className="flex-1 flex flex-col overflow-y-auto p-3 lg:p-4">
+          <div className="flex-1 flex flex-col">
+            <Outlet />
+          </div>
+          <footer className="mt-4 pt-4 pb-1 text-center text-[11px] text-muted-foreground border-t border-border/40 shrink-0">
+            &copy; {new Date().getFullYear()} Market Management System. All rights reserved.
+          </footer>
         </div>
       </main>
     </div>

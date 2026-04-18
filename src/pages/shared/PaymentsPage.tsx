@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowUpRight, CalendarRange, CheckCircle2, Clock3, ExternalLink, ReceiptText, ShieldCheck, Wallet, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CalendarRange, CheckCircle2, Clock3, ExternalLink, ReceiptText, ShieldCheck, Wallet, XCircle, AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentMethod, Penalty, UtilityCharge, UtilityType } from "@/types";
@@ -88,20 +90,28 @@ const PaymentsPage = () => {
   const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const { data: bookingsData } = useQuery({ queryKey: ["bookings"], queryFn: () => api.getBookings() });
-  const { data: paymentsData } = useQuery({ queryKey: ["payments"], queryFn: () => api.getPayments(), refetchInterval: 8_000 });
-  const { data: utilityChargesData } = useQuery({
+  const bookingsQuery = useQuery({ queryKey: ["bookings"], queryFn: () => api.getBookings() });
+  const paymentsQuery = useQuery({ queryKey: ["payments"], queryFn: () => api.getPayments(), refetchInterval: 8_000 });
+  const utilityChargesQuery = useQuery({
     queryKey: ["utility-charges", role, user?.marketId || "all"],
     queryFn: () => api.getUtilityCharges(),
     enabled: role === "vendor",
     refetchInterval: 8_000,
   });
-  const { data: penaltiesData } = useQuery({
+  const penaltiesQuery = useQuery({
     queryKey: ["penalties", role, user?.marketId || "all"],
     queryFn: () => api.getPenalties(),
     enabled: role === "vendor",
     refetchInterval: 8_000,
   });
+  
+  const isPending = bookingsQuery.isPending || paymentsQuery.isPending || (role === "vendor" && (utilityChargesQuery.isPending || penaltiesQuery.isPending));
+  const isError = bookingsQuery.isError || paymentsQuery.isError || (role === "vendor" && (utilityChargesQuery.isError || penaltiesQuery.isError));
+  
+  const bookingsData = bookingsQuery.data;
+  const paymentsData = paymentsQuery.data;
+  const utilityChargesData = utilityChargesQuery.data;
+  const penaltiesData = penaltiesQuery.data;
   const receiptQuery = useQuery({
     queryKey: ["receipt", selectedReceiptPaymentId],
     queryFn: () => api.getReceipt(selectedReceiptPaymentId!),
@@ -305,9 +315,33 @@ const PaymentsPage = () => {
         </ScopeBar>
       )}
 
-      <KpiStrip items={pageKpis} />
+      {isError ? (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error loading payments</AlertTitle>
+          <AlertDescription>We couldn't reach the server to load the payment data. Please check your connection.</AlertDescription>
+        </Alert>
+      ) : isPending ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+          {role === "vendor" && (
+             <div className="grid gap-3">
+               <Skeleton className="h-40 w-full rounded-xl" />
+               <Skeleton className="h-40 w-full rounded-xl" />
+             </div>
+          )}
+          <Skeleton className="h-64 w-full rounded-xl mt-4" />
+        </div>
+      ) : (
+        <>
+          <KpiStrip items={pageKpis} />
 
-      {role === "vendor" && (
+          {role === "vendor" && (
         <>
           <Card className="card-warm">
             <CardHeader className="pb-3"><CardTitle className="text-base font-heading">Approved Booking Payments</CardTitle></CardHeader>
@@ -447,6 +481,8 @@ const PaymentsPage = () => {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
 
       <Dialog open={Boolean(paymentIntent)} onOpenChange={(open) => !open && setPaymentIntent(null)}>
         <DialogContent>

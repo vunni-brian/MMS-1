@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CreditCard, Grid3X3, MessageSquare, Settings } from "lucide-react";
+import { Bell, CreditCard, Grid3X3, MessageSquare, Settings, AlertCircle } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { formatHumanDateTime } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const iconMap = {
   otp: Settings,
@@ -23,7 +25,7 @@ const typeLabels = {
 
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
-  const { data } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => api.getNotifications(),
   });
@@ -45,7 +47,20 @@ const NotificationsPage = () => {
       </div>
 
       <div className="space-y-2">
-        {notifications.length === 0 ? (
+        {isError ? (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error loading notifications</AlertTitle>
+            <AlertDescription>We couldn't reach the server. Please check your connection.</AlertDescription>
+          </Alert>
+        ) : isPending ? (
+          <div className="space-y-2">
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+          </div>
+        ) : notifications.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">No notifications</p>
         ) : (
           notifications.map((notification) => {
