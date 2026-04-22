@@ -1,9 +1,11 @@
+import fs from "node:fs";
+
 import { all, get, getManagerForMarket, getUserRecordById, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { applyUserPassword, buildVendorPasswordResetMessage, revokeUserSessions } from "../lib/passwords.ts";
 import { assertMarketAccess, requireAuth, requirePermission, resolveScopedMarket } from "../lib/session.ts";
 import { createTemporaryPassword, normalizePhoneNumber, nowIso } from "../lib/security.ts";
-import { findSupabaseAuthUser, updateSupabaseAuthUser } from "../lib/supabase.ts";
+import { downloadSupabaseStorageObject, findSupabaseAuthUser, updateSupabaseAuthUser } from "../lib/supabase.ts";
 
 const vendorSelect = `
   SELECT users.id,
@@ -18,12 +20,6 @@ const vendorSelect = `
          vendor_profiles.approval_reason,
          vendor_profiles.national_id_number,
          vendor_profiles.district,
-         vendor_profiles.id_ocr_full_name,
-         vendor_profiles.id_ocr_nin,
-         vendor_profiles.id_ocr_date_of_birth,
-         vendor_profiles.id_ocr_gender,
-         vendor_profiles.id_ocr_nationality,
-         vendor_profiles.id_ocr_district,
          vendor_profiles.id_document_name,
          vendor_profiles.id_document_path,
          vendor_profiles.id_document_mime_type,
@@ -36,15 +32,6 @@ const vendorSelect = `
   INNER JOIN vendor_profiles ON vendor_profiles.user_id = users.id
   LEFT JOIN markets ON markets.id = users.market_id
 `;
-
-const normalizeComparableText = (value: string | null | undefined) => value?.trim().toLowerCase().replace(/\s+/g, " ") || "";
-
-const valuesMatch = (left: string | null | undefined, right: string | null | undefined) => {
-  if (!left || !right) {
-    return null;
-  }
-  return normalizeComparableText(left) === normalizeComparableText(right);
-};
 
 const mapVendor = (row: {
   id: string;
@@ -59,12 +46,6 @@ const mapVendor = (row: {
   approval_reason: string | null;
   national_id_number: string | null;
   district: string | null;
-  id_ocr_full_name: string | null;
-  id_ocr_nin: string | null;
-  id_ocr_date_of_birth: string | null;
-  id_ocr_gender: string | null;
-  id_ocr_nationality: string | null;
-  id_ocr_district: string | null;
   id_document_name: string | null;
   id_document_path: string | null;
   id_document_mime_type: string | null;
@@ -103,20 +84,9 @@ const mapVendor = (row: {
         size: row.lc_letter_size,
       }
     : null,
-  idOcr: {
-    fullName: row.id_ocr_full_name,
-    nin: row.id_ocr_nin,
-    dateOfBirth: row.id_ocr_date_of_birth,
-    gender: row.id_ocr_gender,
-    nationality: row.id_ocr_nationality,
-    district: row.id_ocr_district,
-  },
   documentValidation: {
-    ninMatch: valuesMatch(row.national_id_number, row.id_ocr_nin),
-    nameMatch: valuesMatch(row.name, row.id_ocr_full_name),
-    districtMatch: valuesMatch(row.district, row.id_ocr_district),
+    nationalIdPresent: Boolean(row.id_document_name),
     lcLetterPresent: Boolean(row.lc_letter_name),
-    selectedDistrictMatch: valuesMatch(row.district, row.market_location),
   },
 });
 
@@ -134,12 +104,6 @@ const getVendorById = async (vendorId: string) => {
     approval_reason: string | null;
     national_id_number: string | null;
     district: string | null;
-    id_ocr_full_name: string | null;
-    id_ocr_nin: string | null;
-    id_ocr_date_of_birth: string | null;
-    id_ocr_gender: string | null;
-    id_ocr_nationality: string | null;
-    id_ocr_district: string | null;
     id_document_name: string | null;
     id_document_path: string | null;
     id_document_mime_type: string | null;
@@ -173,12 +137,6 @@ export const vendorRoutes: RouteDefinition[] = [
         approval_reason: string | null;
         national_id_number: string | null;
         district: string | null;
-        id_ocr_full_name: string | null;
-        id_ocr_nin: string | null;
-        id_ocr_date_of_birth: string | null;
-        id_ocr_gender: string | null;
-        id_ocr_nationality: string | null;
-        id_ocr_district: string | null;
         id_document_name: string | null;
         id_document_path: string | null;
         id_document_mime_type: string | null;
@@ -206,6 +164,48 @@ export const vendorRoutes: RouteDefinition[] = [
       }
       assertMarketAccess(session, vendor.marketId);
       sendJson(res, 200, { vendor });
+    },
+  },
+  {
+    method: "GET",
+    path: "/vendors/:id/documents/:type",
+    handler: async ({ res, auth, params }) => {
+      const session = requireAuth(auth);
+      const vendor = await getVendorById(params.id);
+      if (!vendor) {
+        throw new HttpError(404, "Vendor not found.");
+      }
+      if (session.user.role === "vendor" && session.user.id !== params.id) {
+        throw new HttpError(403, "You may only view your own vendor documents.");
+      }
+      assertMarketAccess(session, vendor.marketId);
+
+      const attachment =
+        params.type === "national-id" ? vendor.idDocument : params.type === "lc-letter" ? vendor.lcLetter : null;
+      if (!attachment?.storagePath) {
+        throw new HttpError(404, "Document not found.");
+      }
+
+      res.setHeader("Content-Type", attachment.mimeType || "application/octet-stream");
+      res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(attachment.name)}"`);
+      res.setHeader("Cache-Control", "private, max-age=60");
+
+      if (attachment.storagePath.startsWith("supabase://")) {
+        const buffer = await downloadSupabaseStorageObject(attachment.storagePath);
+        if (!buffer) {
+          throw new HttpError(404, "Document not found.");
+        }
+        res.writeHead(200);
+        res.end(buffer);
+        return;
+      }
+
+      if (!fs.existsSync(attachment.storagePath)) {
+        throw new HttpError(404, "Document file is missing from storage.");
+      }
+
+      res.writeHead(200);
+      fs.createReadStream(attachment.storagePath).pipe(res);
     },
   },
   {

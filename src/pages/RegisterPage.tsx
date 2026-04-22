@@ -10,10 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { NationalIdOcrFields } from "@/types";
 
 type RegistrationStep = "form" | "otp" | "done";
-type OcrStatus = "idle" | "reading" | "applied" | "unavailable" | "not_extracted" | "failed";
 
 const formatFileLabel = (file: File | null) => {
   if (!file) {
@@ -34,13 +32,6 @@ const DocumentPreview = ({ file, label }: { file: File | null; label: string }) 
   </div>
 );
 
-const getOcrStatusLabel = (status: OcrStatus) => {
-  if (status === "reading") return "Reading National ID...";
-  if (status === "applied") return "ID details applied";
-  if (status === "failed") return "Unable to read ID details";
-  return null;
-};
-
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<RegistrationStep>("form");
@@ -58,8 +49,6 @@ const RegisterPage = () => {
     idFile: null as File | null,
     lcLetterFile: null as File | null,
   });
-  const [idOcr, setIdOcr] = useState<NationalIdOcrFields | null>(null);
-  const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [otp, setOtp] = useState("");
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "public-registration"],
@@ -83,38 +72,6 @@ const RegisterPage = () => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const applyIdFields = (fields: NationalIdOcrFields) => {
-    setForm((current) => ({
-      ...current,
-      name: fields.fullName || current.name,
-      nationalIdNumber: fields.nin || current.nationalIdNumber,
-      district: fields.district || current.district,
-    }));
-  };
-
-  const handleNationalIdFile = async (file: File | null) => {
-    setForm((current) => ({ ...current, idFile: file }));
-    setIdOcr(null);
-    setOcrStatus(file ? "reading" : "idle");
-
-    if (!file) {
-      return;
-    }
-
-    try {
-      const response = await api.extractNationalId({ idDocument: file });
-      if (response.status === "extracted") {
-        setIdOcr(response.fields);
-        applyIdFields(response.fields);
-        setOcrStatus("applied");
-        return;
-      }
-      setOcrStatus(response.status);
-    } catch {
-      setOcrStatus("failed");
-    }
-  };
-
   const handlePrimaryAction = async () => {
     setError(null);
     setIsSubmitting(true);
@@ -136,7 +93,6 @@ const RegisterPage = () => {
           district: form.district,
           idDocument: form.idFile,
           lcLetter: form.lcLetterFile,
-          idOcr,
         });
         setChallengeId(response.challengeId);
         setStep("otp");
@@ -173,7 +129,7 @@ const RegisterPage = () => {
             form.district.trim() &&
             form.idFile &&
             form.lcLetterFile,
-        ) && ocrStatus !== "reading"
+        )
       : otp.length === 6 && Boolean(challengeId);
 
   if (step === "done") {
@@ -206,7 +162,7 @@ const RegisterPage = () => {
           </div>
           <h1 className="text-2xl font-bold font-heading">Vendor Registration</h1>
           <p className="text-muted-foreground text-sm">
-            {step === "form" ? "Create your vendor profile and submit your ID document" : "Verify the OTP sent to your phone"}
+            {step === "form" ? "Create your vendor profile and submit your documents" : "Verify the OTP sent to your phone"}
           </p>
         </div>
 
@@ -235,7 +191,7 @@ const RegisterPage = () => {
                               type="file"
                               accept=".pdf,.jpg,.jpeg,.png"
                               className="hidden"
-                              onChange={(event) => void handleNationalIdFile(event.target.files?.[0] || null)}
+                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
                             />
                           </label>
                           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
@@ -246,14 +202,11 @@ const RegisterPage = () => {
                               accept="image/*"
                               capture="environment"
                               className="hidden"
-                              onChange={(event) => void handleNationalIdFile(event.target.files?.[0] || null)}
+                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
                             />
                           </label>
                         </div>
                         <DocumentPreview file={form.idFile} label="National ID preview" />
-                        {getOcrStatusLabel(ocrStatus) && (
-                          <p className="text-xs font-medium text-muted-foreground">{getOcrStatusLabel(ocrStatus)}</p>
-                        )}
                       </div>
 
                       <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
@@ -286,7 +239,6 @@ const RegisterPage = () => {
                           id="name"
                           value={form.name}
                           onChange={(event) => updateField("name", event.target.value)}
-                          readOnly={Boolean(idOcr?.fullName)}
                           required
                         />
                       </div>
@@ -296,7 +248,6 @@ const RegisterPage = () => {
                           id="national-id-number"
                           value={form.nationalIdNumber}
                           onChange={(event) => updateField("nationalIdNumber", event.target.value)}
-                          readOnly={Boolean(idOcr?.nin)}
                           required
                         />
                       </div>
@@ -306,7 +257,6 @@ const RegisterPage = () => {
                           id="district"
                           value={form.district}
                           onChange={(event) => updateField("district", event.target.value)}
-                          readOnly={Boolean(idOcr?.district)}
                           required
                         />
                       </div>

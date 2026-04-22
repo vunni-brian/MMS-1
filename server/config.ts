@@ -92,8 +92,6 @@ const pesapalIpnUrl = process.env.PESAPAL_IPN_URL?.trim() || "";
 const pesapalIpnId = process.env.PESAPAL_IPN_ID?.trim() || "";
 const pesapalUseIframe = process.env.PESAPAL_USE_IFRAME === "true";
 const paymentsEnabled = process.env.PAYMENTS_ENABLED !== "false";
-const ocrServiceUrl = process.env.OCR_SERVICE_URL?.trim() || null;
-const ocrServiceApiKey = process.env.OCR_SERVICE_API_KEY?.trim() || null;
 
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
@@ -139,7 +137,5 @@ export const config: AppConfig = {
   pesapalIpnId,
   pesapalUseIframe,
   paymentsEnabled,
-  ocrServiceUrl,
-  ocrServiceApiKey,
   devMode,
 };

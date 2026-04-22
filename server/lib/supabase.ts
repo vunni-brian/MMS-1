@@ -282,6 +282,24 @@ export const deleteSupabaseStorageObject = async (storagePath: string) => {
   }
 };
 
+export const downloadSupabaseStorageObject = async (storagePath: string) => {
+  if (!adminClient) {
+    return null;
+  }
+
+  const parsed = parseSupabaseStoragePath(storagePath);
+  if (!parsed) {
+    return null;
+  }
+
+  const { data, error } = await adminClient.storage.from(parsed.bucket).download(parsed.objectPath);
+  if (error || !data) {
+    throw new Error(`Unable to download Supabase Storage object ${storagePath}: ${error?.message || "No data returned"}`);
+  }
+
+  return Buffer.from(await data.arrayBuffer());
+};
+
 export const syncSeedUserToSupabase = async ({
   email,
   phone,

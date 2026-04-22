@@ -18,49 +18,99 @@ import { toast } from "@/components/ui/sonner";
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 type OperationalVendorStatus = "active" | "late_payment" | "suspended";
 
-const getValidationLabel = (value: boolean | null, trueLabel: string, falseLabel: string) => {
-  if (value === null) {
-    return "Needs Review";
-  }
-  return value ? trueLabel : falseLabel;
-};
-
-const getValidationClassName = (value: boolean | null) => {
-  if (value === null) {
-    return "border-warning/25 bg-warning/15 text-warning";
-  }
-  return value ? "border-success/20 bg-success/15 text-success" : "border-destructive/20 bg-destructive/15 text-destructive";
-};
-
-const ValidationItem = ({
-  label,
-  value,
-  trueLabel = "Match",
-  falseLabel = "Mismatch",
+const DocumentPreview = ({
+  title,
+  vendorId,
+  documentType,
+  attachment,
 }: {
-  label: string;
-  value: boolean | null;
-  trueLabel?: string;
-  falseLabel?: string;
-}) => (
-  <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
-    <span className="text-muted-foreground">{label}</span>
-    <span className={`status-badge ${getValidationClassName(value)}`}>
-      {value === true ? <Check className="mr-1 h-3.5 w-3.5" /> : value === false ? <X className="mr-1 h-3.5 w-3.5" /> : null}
-      {getValidationLabel(value, trueLabel, falseLabel)}
-    </span>
-  </div>
-);
+  title: string;
+  vendorId: string;
+  documentType: "national-id" | "lc-letter";
+  attachment: Parameters<typeof formatAttachmentLabel>[0];
+}) => {
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-const DocumentPreview = ({ title, attachment }: { title: string; attachment: Parameters<typeof formatAttachmentLabel>[0] }) => (
-  <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-    <div className="mb-3 flex h-24 items-center justify-center rounded-md bg-background">
-      <FileText className="h-8 w-8 text-muted-foreground" />
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+    setDocumentUrl(null);
+    setLoadError(null);
+    setIsLoading(false);
+
+    if (!attachment) {
+      return;
+    }
+
+    setIsLoading(true);
+    api
+      .getVendorDocumentUrl(vendorId, documentType)
+      .then((url) => {
+        objectUrl = url;
+        if (isActive) {
+          setDocumentUrl(url);
+        } else {
+          URL.revokeObjectURL(url);
+        }
+      })
+      .catch((error) => {
+        if (isActive) {
+          setLoadError(error instanceof Error ? error.message : "Unable to load document.");
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [attachment, documentType, vendorId]);
+
+  const isImage = attachment?.mimeType?.startsWith("image/");
+  const isPdf = attachment?.mimeType === "application/pdf";
+
+  return (
+    <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold font-heading">{title}</p>
+          <p className="mt-1 break-words text-xs text-muted-foreground">{formatAttachmentLabel(attachment)}</p>
+        </div>
+        <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+      </div>
+      <div className="min-h-[360px] overflow-hidden rounded-md border border-border/70 bg-background">
+        {!attachment ? (
+          <div className="flex h-[360px] items-center justify-center p-4 text-sm text-muted-foreground">No document uploaded</div>
+        ) : isLoading ? (
+          <div className="flex h-[360px] items-center justify-center p-4 text-sm text-muted-foreground">Loading document...</div>
+        ) : loadError ? (
+          <div className="flex h-[360px] items-center justify-center p-4 text-center text-sm text-destructive">{loadError}</div>
+        ) : documentUrl && isImage ? (
+          <img src={documentUrl} alt={title} className="h-[360px] w-full object-contain" />
+        ) : documentUrl && isPdf ? (
+          <iframe title={title} src={documentUrl} className="h-[520px] w-full border-0 bg-white" />
+        ) : documentUrl ? (
+          <div className="flex h-[360px] items-center justify-center p-4 text-sm text-muted-foreground">Preview unavailable for this file type.</div>
+        ) : (
+          <div className="flex h-[360px] items-center justify-center p-4 text-sm text-muted-foreground">Document not loaded</div>
+        )}
+      </div>
+      {documentUrl && (
+        <a href={documentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-medium underline-offset-4 hover:underline">
+          Open full document
+        </a>
+      )}
     </div>
-    <p className="text-xs text-muted-foreground">{title}</p>
-    <p className="mt-1 break-words text-sm font-medium">{formatAttachmentLabel(attachment)}</p>
-  </div>
-);
+  );
+};
 
 const VendorsPage = () => {
   const { user } = useAuth();
@@ -315,12 +365,12 @@ const VendorsPage = () => {
         open={Boolean(selectedVendorId)}
         onOpenChange={(open) => !open && setSelectedVendorId(null)}
         title="Vendor Application Review"
-        description="Compare applicant input, National ID OCR data, and uploaded residence evidence before deciding."
+        description="Review applicant details and the submitted National ID and LC Letter before deciding."
         className="lg:max-w-5xl"
       >
           {selectedRow && (
             <div className="space-y-4 text-sm">
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="grid gap-4 lg:grid-cols-[0.8fr_1.6fr]">
                 <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
                   <p className="font-semibold font-heading">User Input</p>
                   <EvidenceField label="Full Name" value={selectedRow.vendor.name} />
@@ -331,48 +381,21 @@ const VendorsPage = () => {
                 </div>
 
                 <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                  <p className="font-semibold font-heading">OCR Data From ID</p>
-                  <EvidenceField label="Full Name (OCR)" value={selectedRow.vendor.idOcr.fullName || "Not extracted"} />
-                  <EvidenceField label="NIN (OCR)" value={selectedRow.vendor.idOcr.nin || "Not extracted"} mono={Boolean(selectedRow.vendor.idOcr.nin)} />
-                  <EvidenceField label="Date of Birth" value={selectedRow.vendor.idOcr.dateOfBirth || "Not extracted"} />
-                  <EvidenceField label="Gender" value={selectedRow.vendor.idOcr.gender || "Not extracted"} />
-                  <EvidenceField label="Nationality" value={selectedRow.vendor.idOcr.nationality || "Not extracted"} />
-                  <EvidenceField label="District" value={selectedRow.vendor.idOcr.district || "Not extracted"} />
-                </div>
-
-                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                  <p className="font-semibold font-heading">Documents</p>
-                  <DocumentPreview title="National ID Preview" attachment={selectedRow.vendor.idDocument} />
-                  <DocumentPreview title="LC Letter Preview" attachment={selectedRow.vendor.lcLetter} />
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="font-semibold font-heading">Validation Panel</p>
-                  {Object.values(selectedRow.vendor.documentValidation).some((value) => value === false) && (
-                    <span className="inline-flex items-center gap-1 rounded-md border border-warning/25 bg-warning/15 px-2.5 py-1 text-xs font-semibold text-warning">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      Data inconsistency detected
-                    </span>
-                  )}
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <ValidationItem label="NIN Match" value={selectedRow.vendor.documentValidation.ninMatch} />
-                  <ValidationItem label="Name Match" value={selectedRow.vendor.documentValidation.nameMatch} />
-                  <ValidationItem label="District Match" value={selectedRow.vendor.documentValidation.districtMatch} />
-                  <ValidationItem
-                    label="LC Letter Uploaded"
-                    value={selectedRow.vendor.documentValidation.lcLetterPresent}
-                    trueLabel="Uploaded"
-                    falseLabel="Missing"
-                  />
-                  <ValidationItem
-                    label="District Matches Selected Market"
-                    value={selectedRow.vendor.documentValidation.selectedDistrictMatch}
-                    trueLabel="Aligned"
-                    falseLabel="Mismatch"
-                  />
+                  <p className="font-semibold font-heading">Submitted Documents</p>
+                  <div className="grid gap-3 xl:grid-cols-2">
+                    <DocumentPreview
+                      title="National ID"
+                      vendorId={selectedRow.vendor.id}
+                      documentType="national-id"
+                      attachment={selectedRow.vendor.idDocument}
+                    />
+                    <DocumentPreview
+                      title="LC Letter"
+                      vendorId={selectedRow.vendor.id}
+                      documentType="lc-letter"
+                      attachment={selectedRow.vendor.lcLetter}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-3">

@@ -23,8 +23,8 @@ import ReportsPage from "./pages/shared/ReportsPage";
 import AuditPage from "./pages/shared/AuditPage";
 import BillingPage from "./pages/shared/BillingPage";
 import CoordinationPage from "./pages/shared/CoordinationPage";
+import ProfileSettingsPage from "./pages/shared/ProfileSettingsPage";
 import NotificationsPage from "./pages/vendor/NotificationsPage";
-import ProfilePage from "./pages/vendor/ProfilePage";
 import VendorsPage from "./pages/manager/VendorsPage";
 import NotFound from "./pages/NotFound";
 
@@ -58,7 +58,7 @@ const App = () => (
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="complaints" element={<ComplaintsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
+              <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
             {/* Manager routes */}
@@ -79,6 +79,7 @@ const App = () => (
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
+              <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
             {/* Official routes */}
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
+              <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
             <Route
@@ -110,6 +112,7 @@ const App = () => (
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
+              <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

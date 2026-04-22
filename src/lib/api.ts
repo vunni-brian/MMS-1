@@ -9,7 +9,6 @@ import type {
   DuesReportRow,
   FinancialAuditRow,
   Market,
-  NationalIdOcrFields,
   Penalty,
   Payment,
   PaymentMethod,
@@ -117,7 +116,6 @@ export const api = {
     district: string;
     idDocument: File;
     lcLetter: File;
-    idOcr?: NationalIdOcrFields | null;
   }) {
     const { idDocument, lcLetter, ...payload } = input;
     return apiRequest<{
@@ -130,19 +128,6 @@ export const api = {
         ...payload,
         idDocument: await toFilePayload(idDocument),
         lcLetter: await toFilePayload(lcLetter),
-      }),
-    });
-  },
-
-  async extractNationalId(input: { idDocument: File }) {
-    return apiRequest<{
-      status: "extracted" | "not_extracted" | "unavailable";
-      fields: NationalIdOcrFields;
-      message?: string;
-    }>("/documents/national-id/ocr", {
-      method: "POST",
-      body: JSON.stringify({
-        idDocument: await toFilePayload(input.idDocument),
       }),
     });
   },
@@ -184,6 +169,11 @@ export const api = {
     apiRequest<{ message: string }>("/auth/change-password", {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+  updateMyProfile: (input: { name: string; email: string; phone: string }) =>
+    apiRequest<{ user: AuthUser; message: string }>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(input),
     }),
 
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
@@ -227,6 +217,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+  getVendorDocumentUrl: async (vendorId: string, documentType: "national-id" | "lc-letter") => {
+    const response = await fetch(`${API_BASE_URL}/vendors/${vendorId}/documents/${documentType}`, {
+      headers: createHeaders(undefined, false),
+    });
+    if (!response.ok) {
+      const isJson = response.headers.get("content-type")?.includes("application/json");
+      const payload = isJson ? await response.json() : null;
+      throw new ApiError(payload?.error || "Unable to load document.", response.status, payload?.details);
+    }
+    return URL.createObjectURL(await response.blob());
+  },
 
   getStalls: (options?: { zone?: string; marketId?: string; scope?: "mine" }) =>
     apiRequest<{ stalls: Stall[] }>(`/stalls${buildQuery({ zone: options?.zone, marketId: options?.marketId, scope: options?.scope })}`),

@@ -120,22 +120,11 @@ export const authRoutes: RouteDefinition[] = [
         district: string;
         idDocument: FilePayload | null;
         lcLetter: FilePayload | null;
-        idOcr?: {
-          fullName?: string | null;
-          nin?: string | null;
-          dateOfBirth?: string | null;
-          gender?: string | null;
-          nationality?: string | null;
-          district?: string | null;
-        } | null;
       }>(req);
 
-      const ocrFullName = body.idOcr?.fullName?.trim() || null;
-      const ocrNin = body.idOcr?.nin?.trim().toUpperCase() || null;
-      const ocrDistrict = body.idOcr?.district?.trim() || null;
-      const name = ocrFullName || body.name?.trim();
-      const nationalIdNumber = ocrNin || body.nationalIdNumber?.trim().toUpperCase();
-      const district = ocrDistrict || body.district?.trim();
+      const name = body.name?.trim();
+      const nationalIdNumber = body.nationalIdNumber?.trim().toUpperCase();
+      const district = body.district?.trim();
 
       if (!name || !body.email || !body.phone || !body.password || !body.marketId || !nationalIdNumber || !district) {
         throw new HttpError(400, "Name, email, phone, password, market, NIN, and district are required.");
@@ -223,12 +212,6 @@ export const authRoutes: RouteDefinition[] = [
                approval_reason,
                national_id_number,
                district,
-               id_ocr_full_name,
-               id_ocr_nin,
-               id_ocr_date_of_birth,
-               id_ocr_gender,
-               id_ocr_nationality,
-               id_ocr_district,
                id_document_name,
                id_document_path,
                id_document_mime_type,
@@ -242,17 +225,11 @@ export const authRoutes: RouteDefinition[] = [
                rejected_by,
                rejected_at
              )
-             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
+             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
             [
               userId,
               nationalIdNumber,
               district,
-              ocrFullName,
-              ocrNin,
-              body.idOcr?.dateOfBirth?.trim() || null,
-              body.idOcr?.gender?.trim() || null,
-              body.idOcr?.nationality?.trim() || null,
-              ocrDistrict,
               file.name,
               file.storagePath,
               file.mimeType,
@@ -672,6 +649,94 @@ export const authRoutes: RouteDefinition[] = [
       const session = requireAuth(auth);
       await destroySession(session.token);
       sendEmpty(res);
+    },
+  },
+  {
+    method: "PATCH",
+    path: "/auth/me",
+    handler: async ({ req, res, auth, config }) => {
+      const session = requireAuth(auth);
+      const body = await readJsonBody<{ name?: string; email?: string; phone?: string }>(req);
+      const name = body.name?.trim();
+      const email = body.email?.trim().toLowerCase();
+      const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
+
+      if (!name || !email || !phone) {
+        throw new HttpError(400, "Name, email, and phone are required.");
+      }
+
+      const user = await getUserRecordById(session.user.id);
+      if (!user) {
+        throw new HttpError(404, "User not found.");
+      }
+
+      const duplicatePhone = await get<{ id: string }>(
+        `SELECT id FROM users WHERE phone = ? AND id != ? LIMIT 1`,
+        [phone, user.id],
+      );
+      if (duplicatePhone) {
+        throw new HttpError(409, "A user with that phone number already exists.");
+      }
+
+      const duplicateEmail = await get<{ id: string }>(
+        `SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1`,
+        [email, user.id],
+      );
+      if (duplicateEmail) {
+        throw new HttpError(409, "A user with that email address already exists.");
+      }
+
+      if (config.supabaseAuthEnabled && user.auth_user_id) {
+        const matchingSupabaseUser = await findSupabaseAuthUser({ phone, email });
+        if (matchingSupabaseUser && matchingSupabaseUser.id !== user.auth_user_id) {
+          throw new HttpError(409, "A Supabase Auth user with that phone or email already exists.");
+        }
+
+        await updateSupabaseAuthUser(user.auth_user_id, {
+          email,
+          phone,
+          localUserId: user.id,
+          name,
+          role: user.role,
+          marketId: user.market_id,
+        });
+      }
+
+      const timestamp = nowIso();
+      await run(
+        `UPDATE users
+         SET name = ?,
+             email = ?,
+             phone = ?,
+             phone_verified_at = ?,
+             updated_at = ?
+         WHERE id = ?`,
+        [name, email, phone, phone !== user.phone ? timestamp : user.phone_verified_at, timestamp, user.id],
+      );
+
+      await logAuditEvent({
+        actorUserId: user.id,
+        actorName: name,
+        actorRole: user.role,
+        marketId: user.market_id,
+        action: "UPDATE_OWN_PROFILE",
+        entityType: "user",
+        entityId: user.id,
+        details: {
+          phoneChanged: phone !== user.phone,
+          emailChanged: email !== user.email,
+        },
+      });
+
+      const updatedUser = await getUserRecordById(user.id);
+      if (!updatedUser) {
+        throw new HttpError(404, "User not found.");
+      }
+
+      sendJson(res, 200, {
+        user: serializeAuthUser(updatedUser),
+        message: "Profile updated.",
+      });
     },
   },
   {
