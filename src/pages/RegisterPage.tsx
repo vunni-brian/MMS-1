@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, CheckCircle, FileText, Store, Upload, XCircle } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle, FileText, Store, Upload } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
@@ -29,23 +29,6 @@ const DocumentPreview = ({ file, label }: { file: File | null; label: string }) 
         <p className="truncate font-medium">{formatFileLabel(file)}</p>
       </div>
     </div>
-  </div>
-);
-
-const ValidationLine = ({ label, passed }: { label: string; passed: boolean }) => (
-  <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
-    <span className="text-muted-foreground">{label}</span>
-    {passed ? (
-      <span className="inline-flex items-center gap-1 font-medium text-success">
-        <CheckCircle className="h-4 w-4" />
-        Ready
-      </span>
-    ) : (
-      <span className="inline-flex items-center gap-1 font-medium text-destructive">
-        <XCircle className="h-4 w-4" />
-        Missing
-      </span>
-    )}
   </div>
 );
 
@@ -322,34 +305,6 @@ const RegisterPage = () => {
                         <DocumentPreview file={form.lcLetterFile} label="LC Letter preview" />
                         <p className="text-xs text-muted-foreground">LC Letter should confirm your residence in the selected district.</p>
                       </div>
-                    </div>
-                  </section>
-
-                  <section className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                      <h2 className="text-sm font-semibold font-heading">OCR Extraction</h2>
-                      <div className="grid gap-2 text-sm">
-                        {[
-                          ["Full Name", "Pending ID scan"],
-                          ["NIN", "Pending ID scan"],
-                          ["Date of Birth", "Pending ID scan"],
-                          ["Gender", "Pending ID scan"],
-                          ["Nationality", "Pending ID scan"],
-                          ["District", "Pending ID scan"],
-                        ].map(([label, value]) => (
-                          <div key={label} className="flex justify-between gap-3 rounded-md bg-background px-3 py-2">
-                            <span className="text-muted-foreground">{label}</span>
-                            <span className="font-medium">{form.idFile ? value : "Upload National ID"}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                      <h2 className="text-sm font-semibold font-heading">Validation Check</h2>
-                      <ValidationLine label="NIN match" passed={Boolean(form.nationalIdNumber.trim() && form.idFile)} />
-                      <ValidationLine label="Name match" passed={Boolean(form.name.trim() && form.idFile)} />
-                      <ValidationLine label="District match" passed={Boolean(form.district.trim() && form.idFile)} />
-                      <ValidationLine label="LC Letter present" passed={Boolean(form.lcLetterFile)} />
                     </div>
                   </section>
                 </>
