@@ -142,6 +142,8 @@ export interface AppConfig {
   pesapalIpnId: string;
   pesapalUseIframe: boolean;
   paymentsEnabled: boolean;
+  ocrServiceUrl: string | null;
+  ocrServiceApiKey: string | null;
   devMode: boolean;
 }
 

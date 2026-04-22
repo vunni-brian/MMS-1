@@ -120,9 +120,24 @@ export const authRoutes: RouteDefinition[] = [
         district: string;
         idDocument: FilePayload | null;
         lcLetter: FilePayload | null;
+        idOcr?: {
+          fullName?: string | null;
+          nin?: string | null;
+          dateOfBirth?: string | null;
+          gender?: string | null;
+          nationality?: string | null;
+          district?: string | null;
+        } | null;
       }>(req);
 
-      if (!body.name || !body.email || !body.phone || !body.password || !body.marketId || !body.nationalIdNumber || !body.district) {
+      const ocrFullName = body.idOcr?.fullName?.trim() || null;
+      const ocrNin = body.idOcr?.nin?.trim().toUpperCase() || null;
+      const ocrDistrict = body.idOcr?.district?.trim() || null;
+      const name = ocrFullName || body.name?.trim();
+      const nationalIdNumber = ocrNin || body.nationalIdNumber?.trim().toUpperCase();
+      const district = ocrDistrict || body.district?.trim();
+
+      if (!name || !body.email || !body.phone || !body.password || !body.marketId || !nationalIdNumber || !district) {
         throw new HttpError(400, "Name, email, phone, password, market, NIN, and district are required.");
       }
 
@@ -135,8 +150,6 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const normalizedPhone = normalizePhoneNumber(body.phone);
-      const nationalIdNumber = body.nationalIdNumber.trim().toUpperCase();
-      const district = body.district.trim();
 
       const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [normalizedPhone]);
       const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE email = ?`, [body.email]);
@@ -175,7 +188,7 @@ export const authRoutes: RouteDefinition[] = [
             phone: normalizedPhone,
             password: body.password,
             localUserId: userId,
-            name: body.name.trim(),
+            name,
             role: "vendor",
             marketId: market.id,
           });
@@ -194,7 +207,7 @@ export const authRoutes: RouteDefinition[] = [
             [
               userId,
               authUserId,
-              body.name.trim(),
+              name,
               body.email.trim().toLowerCase(),
               normalizedPhone,
               hashPassword(body.password),
@@ -210,6 +223,12 @@ export const authRoutes: RouteDefinition[] = [
                approval_reason,
                national_id_number,
                district,
+               id_ocr_full_name,
+               id_ocr_nin,
+               id_ocr_date_of_birth,
+               id_ocr_gender,
+               id_ocr_nationality,
+               id_ocr_district,
                id_document_name,
                id_document_path,
                id_document_mime_type,
@@ -223,11 +242,17 @@ export const authRoutes: RouteDefinition[] = [
                rejected_by,
                rejected_at
              )
-             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
+             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
             [
               userId,
               nationalIdNumber,
               district,
+              ocrFullName,
+              ocrNin,
+              body.idOcr?.dateOfBirth?.trim() || null,
+              body.idOcr?.gender?.trim() || null,
+              body.idOcr?.nationality?.trim() || null,
+              ocrDistrict,
               file.name,
               file.storagePath,
               file.mimeType,
@@ -268,7 +293,7 @@ export const authRoutes: RouteDefinition[] = [
         await queueNotification({
           userId: marketManager.id,
           type: "system",
-          message: `New vendor registration for ${market.name}: ${body.name.trim()} is awaiting approval.`,
+          message: `New vendor registration for ${market.name}: ${name} is awaiting approval.`,
           channels: ["system", "sms"],
           destinationPhone: marketManager.phone,
         });

@@ -9,6 +9,7 @@ import type {
   DuesReportRow,
   FinancialAuditRow,
   Market,
+  NationalIdOcrFields,
   Penalty,
   Payment,
   PaymentMethod,
@@ -116,6 +117,7 @@ export const api = {
     district: string;
     idDocument: File;
     lcLetter: File;
+    idOcr?: NationalIdOcrFields | null;
   }) {
     const { idDocument, lcLetter, ...payload } = input;
     return apiRequest<{
@@ -128,6 +130,19 @@ export const api = {
         ...payload,
         idDocument: await toFilePayload(idDocument),
         lcLetter: await toFilePayload(lcLetter),
+      }),
+    });
+  },
+
+  async extractNationalId(input: { idDocument: File }) {
+    return apiRequest<{
+      status: "extracted" | "not_extracted" | "unavailable";
+      fields: NationalIdOcrFields;
+      message?: string;
+    }>("/documents/national-id/ocr", {
+      method: "POST",
+      body: JSON.stringify({
+        idDocument: await toFilePayload(input.idDocument),
       }),
     });
   },

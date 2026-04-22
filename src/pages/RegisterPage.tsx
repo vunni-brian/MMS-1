@@ -10,8 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { NationalIdOcrFields } from "@/types";
 
 type RegistrationStep = "form" | "otp" | "done";
+type OcrStatus = "idle" | "reading" | "applied" | "unavailable" | "not_extracted" | "failed";
 
 const formatFileLabel = (file: File | null) => {
   if (!file) {
@@ -32,6 +34,13 @@ const DocumentPreview = ({ file, label }: { file: File | null; label: string }) 
   </div>
 );
 
+const getOcrStatusLabel = (status: OcrStatus) => {
+  if (status === "reading") return "Reading National ID...";
+  if (status === "applied") return "ID details applied";
+  if (status === "failed") return "Unable to read ID details";
+  return null;
+};
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<RegistrationStep>("form");
@@ -49,6 +58,8 @@ const RegisterPage = () => {
     idFile: null as File | null,
     lcLetterFile: null as File | null,
   });
+  const [idOcr, setIdOcr] = useState<NationalIdOcrFields | null>(null);
+  const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [otp, setOtp] = useState("");
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "public-registration"],
@@ -72,6 +83,38 @@ const RegisterPage = () => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const applyIdFields = (fields: NationalIdOcrFields) => {
+    setForm((current) => ({
+      ...current,
+      name: fields.fullName || current.name,
+      nationalIdNumber: fields.nin || current.nationalIdNumber,
+      district: fields.district || current.district,
+    }));
+  };
+
+  const handleNationalIdFile = async (file: File | null) => {
+    setForm((current) => ({ ...current, idFile: file }));
+    setIdOcr(null);
+    setOcrStatus(file ? "reading" : "idle");
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const response = await api.extractNationalId({ idDocument: file });
+      if (response.status === "extracted") {
+        setIdOcr(response.fields);
+        applyIdFields(response.fields);
+        setOcrStatus("applied");
+        return;
+      }
+      setOcrStatus(response.status);
+    } catch {
+      setOcrStatus("failed");
+    }
+  };
+
   const handlePrimaryAction = async () => {
     setError(null);
     setIsSubmitting(true);
@@ -93,6 +136,7 @@ const RegisterPage = () => {
           district: form.district,
           idDocument: form.idFile,
           lcLetter: form.lcLetterFile,
+          idOcr,
         });
         setChallengeId(response.challengeId);
         setStep("otp");
@@ -129,7 +173,7 @@ const RegisterPage = () => {
             form.district.trim() &&
             form.idFile &&
             form.lcLetterFile,
-        )
+        ) && ocrStatus !== "reading"
       : otp.length === 6 && Boolean(challengeId);
 
   if (step === "done") {
@@ -176,13 +220,110 @@ const RegisterPage = () => {
               {step === "form" ? (
                 <>
                   <section className="space-y-3">
-                    <div>
-                      <h2 className="text-sm font-semibold font-heading">User Input</h2>
+                    <h2 className="text-sm font-semibold font-heading">Document Upload</h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                        <div>
+                          <p className="text-sm font-medium">National ID</p>
+                          <p className="text-xs text-muted-foreground">Primary identity document</p>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                            <Upload className="h-4 w-4" />
+                            Upload File
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              className="hidden"
+                              onChange={(event) => void handleNationalIdFile(event.target.files?.[0] || null)}
+                            />
+                          </label>
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                            <Camera className="h-4 w-4" />
+                            Take Photo
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              className="hidden"
+                              onChange={(event) => void handleNationalIdFile(event.target.files?.[0] || null)}
+                            />
+                          </label>
+                        </div>
+                        <DocumentPreview file={form.idFile} label="National ID preview" />
+                        {getOcrStatusLabel(ocrStatus) && (
+                          <p className="text-xs font-medium text-muted-foreground">{getOcrStatusLabel(ocrStatus)}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                        <div>
+                          <p className="text-sm font-medium">LC Letter</p>
+                          <p className="text-xs text-muted-foreground">Proof of residence</p>
+                        </div>
+                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                          <Upload className="h-4 w-4" />
+                          Upload File
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={(event) => updateField("lcLetterFile", event.target.files?.[0] || null)}
+                          />
+                        </label>
+                        <DocumentPreview file={form.lcLetterFile} label="LC Letter preview" />
+                        <p className="text-xs text-muted-foreground">LC Letter should confirm your residence in the selected district.</p>
+                      </div>
                     </div>
+                  </section>
+
+                  <section className="space-y-3">
+                    <h2 className="text-sm font-semibold font-heading">Vendor Details</h2>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} required />
+                        <Input
+                          id="name"
+                          value={form.name}
+                          onChange={(event) => updateField("name", event.target.value)}
+                          readOnly={Boolean(idOcr?.fullName)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="national-id-number">NIN / ID Number</Label>
+                        <Input
+                          id="national-id-number"
+                          value={form.nationalIdNumber}
+                          onChange={(event) => updateField("nationalIdNumber", event.target.value)}
+                          readOnly={Boolean(idOcr?.nin)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="district">District</Label>
+                        <Input
+                          id="district"
+                          value={form.district}
+                          onChange={(event) => updateField("district", event.target.value)}
+                          readOnly={Boolean(idOcr?.district)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="market">Market</Label>
+                        <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
+                          <SelectTrigger id="market">
+                            <SelectValue placeholder="Select your market" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(marketsData?.markets || []).map((market) => (
+                              <SelectItem key={market.id} value={market.id}>
+                                {market.name} ({market.location})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="phone">Phone Number</Label>
@@ -206,39 +347,6 @@ const RegisterPage = () => {
                           required
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="national-id-number">NIN / ID Number</Label>
-                        <Input
-                          id="national-id-number"
-                          value={form.nationalIdNumber}
-                          onChange={(event) => updateField("nationalIdNumber", event.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="district">District</Label>
-                        <Input
-                          id="district"
-                          value={form.district}
-                          onChange={(event) => updateField("district", event.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="market">Market</Label>
-                        <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
-                          <SelectTrigger id="market">
-                            <SelectValue placeholder="Select your market" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(marketsData?.markets || []).map((market) => (
-                              <SelectItem key={market.id} value={market.id}>
-                                {market.name} ({market.location})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                       <div className="space-y-1.5 md:col-span-2">
                         <Label htmlFor="password">Password</Label>
                         <Input
@@ -249,61 +357,6 @@ const RegisterPage = () => {
                           autoComplete="new-password"
                           required
                         />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="space-y-3">
-                    <h2 className="text-sm font-semibold font-heading">Document Upload</h2>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                        <div>
-                          <p className="text-sm font-medium">National ID</p>
-                          <p className="text-xs text-muted-foreground">Required primary identity document</p>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                            <Upload className="h-4 w-4" />
-                            Upload File
-                            <input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              className="hidden"
-                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
-                            />
-                          </label>
-                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                            <Camera className="h-4 w-4" />
-                            Take Photo
-                            <input
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              className="hidden"
-                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
-                            />
-                          </label>
-                        </div>
-                        <DocumentPreview file={form.idFile} label="National ID preview" />
-                      </div>
-
-                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                        <div>
-                          <p className="text-sm font-medium">LC Letter</p>
-                          <p className="text-xs text-muted-foreground">Required proof of residence</p>
-                        </div>
-                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                          <Upload className="h-4 w-4" />
-                          Upload File
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={(event) => updateField("lcLetterFile", event.target.files?.[0] || null)}
-                          />
-                        </label>
-                        <DocumentPreview file={form.lcLetterFile} label="LC Letter preview" />
-                        <p className="text-xs text-muted-foreground">LC Letter should confirm your residence in the selected district.</p>
                       </div>
                     </div>
                   </section>

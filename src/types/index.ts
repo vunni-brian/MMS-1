@@ -126,6 +126,15 @@ export interface VendorProfile {
   };
 }
 
+export interface NationalIdOcrFields {
+  fullName: string | null;
+  nin: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  nationality: string | null;
+  district: string | null;
+}
+
 export interface ActiveBookingSummary {
   id: string;
   status: BookingStatus;
