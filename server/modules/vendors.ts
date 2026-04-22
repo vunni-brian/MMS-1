@@ -13,16 +13,38 @@ const vendorSelect = `
          users.created_at,
          users.market_id,
          markets.name AS market_name,
+         markets.location AS market_location,
          vendor_profiles.approval_status,
          vendor_profiles.approval_reason,
+         vendor_profiles.national_id_number,
+         vendor_profiles.district,
+         vendor_profiles.id_ocr_full_name,
+         vendor_profiles.id_ocr_nin,
+         vendor_profiles.id_ocr_date_of_birth,
+         vendor_profiles.id_ocr_gender,
+         vendor_profiles.id_ocr_nationality,
+         vendor_profiles.id_ocr_district,
          vendor_profiles.id_document_name,
          vendor_profiles.id_document_path,
          vendor_profiles.id_document_mime_type,
-         vendor_profiles.id_document_size
+         vendor_profiles.id_document_size,
+         vendor_profiles.lc_letter_name,
+         vendor_profiles.lc_letter_path,
+         vendor_profiles.lc_letter_mime_type,
+         vendor_profiles.lc_letter_size
   FROM users
   INNER JOIN vendor_profiles ON vendor_profiles.user_id = users.id
   LEFT JOIN markets ON markets.id = users.market_id
 `;
+
+const normalizeComparableText = (value: string | null | undefined) => value?.trim().toLowerCase().replace(/\s+/g, " ") || "";
+
+const valuesMatch = (left: string | null | undefined, right: string | null | undefined) => {
+  if (!left || !right) {
+    return null;
+  }
+  return normalizeComparableText(left) === normalizeComparableText(right);
+};
 
 const mapVendor = (row: {
   id: string;
@@ -32,12 +54,25 @@ const mapVendor = (row: {
   created_at: string;
   market_id: string | null;
   market_name: string | null;
+  market_location: string | null;
   approval_status: string;
   approval_reason: string | null;
+  national_id_number: string | null;
+  district: string | null;
+  id_ocr_full_name: string | null;
+  id_ocr_nin: string | null;
+  id_ocr_date_of_birth: string | null;
+  id_ocr_gender: string | null;
+  id_ocr_nationality: string | null;
+  id_ocr_district: string | null;
   id_document_name: string | null;
   id_document_path: string | null;
   id_document_mime_type: string | null;
   id_document_size: number | null;
+  lc_letter_name: string | null;
+  lc_letter_path: string | null;
+  lc_letter_mime_type: string | null;
+  lc_letter_size: number | null;
 }) => ({
   id: row.id,
   name: row.name,
@@ -46,16 +81,43 @@ const mapVendor = (row: {
   createdAt: row.created_at,
   marketId: row.market_id,
   marketName: row.market_name,
+  nationalIdNumber: row.national_id_number,
+  district: row.district,
   status: row.approval_status,
   approvalReason: row.approval_reason,
   idDocument: row.id_document_name
     ? {
+        id: `${row.id}:national-id`,
         name: row.id_document_name,
         storagePath: row.id_document_path,
         mimeType: row.id_document_mime_type,
         size: row.id_document_size,
       }
     : null,
+  lcLetter: row.lc_letter_name
+    ? {
+        id: `${row.id}:lc-letter`,
+        name: row.lc_letter_name,
+        storagePath: row.lc_letter_path,
+        mimeType: row.lc_letter_mime_type,
+        size: row.lc_letter_size,
+      }
+    : null,
+  idOcr: {
+    fullName: row.id_ocr_full_name,
+    nin: row.id_ocr_nin,
+    dateOfBirth: row.id_ocr_date_of_birth,
+    gender: row.id_ocr_gender,
+    nationality: row.id_ocr_nationality,
+    district: row.id_ocr_district,
+  },
+  documentValidation: {
+    ninMatch: valuesMatch(row.national_id_number, row.id_ocr_nin),
+    nameMatch: valuesMatch(row.name, row.id_ocr_full_name),
+    districtMatch: valuesMatch(row.district, row.id_ocr_district),
+    lcLetterPresent: Boolean(row.lc_letter_name),
+    selectedDistrictMatch: valuesMatch(row.district, row.market_location),
+  },
 });
 
 const getVendorById = async (vendorId: string) => {
@@ -67,12 +129,25 @@ const getVendorById = async (vendorId: string) => {
     created_at: string;
     market_id: string | null;
     market_name: string | null;
+    market_location: string | null;
     approval_status: string;
     approval_reason: string | null;
+    national_id_number: string | null;
+    district: string | null;
+    id_ocr_full_name: string | null;
+    id_ocr_nin: string | null;
+    id_ocr_date_of_birth: string | null;
+    id_ocr_gender: string | null;
+    id_ocr_nationality: string | null;
+    id_ocr_district: string | null;
     id_document_name: string | null;
     id_document_path: string | null;
     id_document_mime_type: string | null;
     id_document_size: number | null;
+    lc_letter_name: string | null;
+    lc_letter_path: string | null;
+    lc_letter_mime_type: string | null;
+    lc_letter_size: number | null;
   }>(`${vendorSelect} WHERE users.id = ?`, [vendorId]);
 
   return vendor ? mapVendor(vendor) : null;
@@ -93,12 +168,25 @@ export const vendorRoutes: RouteDefinition[] = [
         created_at: string;
         market_id: string | null;
         market_name: string | null;
+        market_location: string | null;
         approval_status: string;
         approval_reason: string | null;
+        national_id_number: string | null;
+        district: string | null;
+        id_ocr_full_name: string | null;
+        id_ocr_nin: string | null;
+        id_ocr_date_of_birth: string | null;
+        id_ocr_gender: string | null;
+        id_ocr_nationality: string | null;
+        id_ocr_district: string | null;
         id_document_name: string | null;
         id_document_path: string | null;
         id_document_mime_type: string | null;
         id_document_size: number | null;
+        lc_letter_name: string | null;
+        lc_letter_path: string | null;
+        lc_letter_mime_type: string | null;
+        lc_letter_size: number | null;
       }>(`${vendorSelect} ${marketId ? "WHERE users.market_id = ?" : ""} ORDER BY users.created_at DESC`, params);
 
       sendJson(res, 200, { vendors: vendors.map(mapVendor) });
@@ -356,6 +444,12 @@ export const vendorRoutes: RouteDefinition[] = [
         throw new HttpError(404, "Vendor not found.");
       }
       assertMarketAccess(session, vendor.marketId);
+      if (!vendor.idDocument || !vendor.lcLetter || !vendor.nationalIdNumber || !vendor.district) {
+        throw new HttpError(409, "National ID, NIN, district, and LC Letter are required before approval.");
+      }
+
+      const body = await readJsonBody<{ notes?: string }>(req);
+      const notes = body.notes?.trim() || null;
 
       const timestamp = nowIso();
       await run(
@@ -386,10 +480,9 @@ export const vendorRoutes: RouteDefinition[] = [
         action: "APPROVE_VENDOR",
         entityType: "vendor",
         entityId: params.id,
-        details: { vendorName: vendor.name },
+        details: { vendorName: vendor.name, notes },
       });
 
-      await readJsonBody<Record<string, never>>(req);
       sendJson(res, 200, { vendor: await getVendorById(params.id) });
     },
   },

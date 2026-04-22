@@ -116,14 +116,18 @@ export const authRoutes: RouteDefinition[] = [
         phone: string;
         password: string;
         marketId: string;
+        nationalIdNumber: string;
+        district: string;
         idDocument: FilePayload | null;
+        lcLetter: FilePayload | null;
       }>(req);
 
-      if (!body.name || !body.email || !body.phone || !body.password || !body.marketId) {
-        throw new HttpError(400, "Name, email, phone, password, and market are required.");
+      if (!body.name || !body.email || !body.phone || !body.password || !body.marketId || !body.nationalIdNumber || !body.district) {
+        throw new HttpError(400, "Name, email, phone, password, market, NIN, and district are required.");
       }
 
       validateFilePayload(body.idDocument, ["application/pdf", "image/jpeg", "image/png"], true);
+      validateFilePayload(body.lcLetter, ["application/pdf", "image/jpeg", "image/png"], true);
 
       const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [body.marketId]);
       if (!market) {
@@ -131,11 +135,20 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const normalizedPhone = normalizePhoneNumber(body.phone);
+      const nationalIdNumber = body.nationalIdNumber.trim().toUpperCase();
+      const district = body.district.trim();
 
       const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [normalizedPhone]);
       const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE email = ?`, [body.email]);
       if (existingPhone || existingEmail) {
         throw new HttpError(409, "A user with that phone or email already exists.");
+      }
+      const existingNationalId = await get<{ user_id: string }>(
+        `SELECT user_id FROM vendor_profiles WHERE national_id_number = ? LIMIT 1`,
+        [nationalIdNumber],
+      );
+      if (existingNationalId) {
+        throw new HttpError(409, "A vendor with that NIN already exists.");
       }
 
       const userId = createId("user");
@@ -145,6 +158,7 @@ export const authRoutes: RouteDefinition[] = [
       const expiresAt = addMinutes(config.otpTtlMinutes);
       let authUserId: string | null = null;
       let storedDocumentPath: string | null = null;
+      let storedLcLetterPath: string | null = null;
 
       try {
         if (config.supabaseAuthEnabled) {
@@ -170,6 +184,8 @@ export const authRoutes: RouteDefinition[] = [
 
         const file = await persistFilePayload("vendor-documents", userId, body.idDocument!);
         storedDocumentPath = file.storagePath;
+        const lcLetter = await persistFilePayload("vendor-documents", userId, body.lcLetter!);
+        storedLcLetterPath = lcLetter.storagePath;
 
         await transaction(async () => {
           await run(
@@ -188,9 +204,39 @@ export const authRoutes: RouteDefinition[] = [
             ],
           );
           await run(
-            `INSERT INTO vendor_profiles (user_id, approval_status, approval_reason, id_document_name, id_document_path, id_document_mime_type, id_document_size, approved_by, approved_at, rejected_by, rejected_at)
-             VALUES (?, 'pending', NULL, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
-            [userId, file.name, file.storagePath, file.mimeType, file.size],
+            `INSERT INTO vendor_profiles (
+               user_id,
+               approval_status,
+               approval_reason,
+               national_id_number,
+               district,
+               id_document_name,
+               id_document_path,
+               id_document_mime_type,
+               id_document_size,
+               lc_letter_name,
+               lc_letter_path,
+               lc_letter_mime_type,
+               lc_letter_size,
+               approved_by,
+               approved_at,
+               rejected_by,
+               rejected_at
+             )
+             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
+            [
+              userId,
+              nationalIdNumber,
+              district,
+              file.name,
+              file.storagePath,
+              file.mimeType,
+              file.size,
+              lcLetter.name,
+              lcLetter.storagePath,
+              lcLetter.mimeType,
+              lcLetter.size,
+            ],
           );
           await run(
             `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
@@ -200,6 +246,7 @@ export const authRoutes: RouteDefinition[] = [
         });
       } catch (error) {
         await removeStoredFile(storedDocumentPath);
+        await removeStoredFile(storedLcLetterPath);
         if (authUserId) {
           await deleteSupabaseAuthUser(authUserId);
         }

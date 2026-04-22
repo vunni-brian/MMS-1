@@ -149,12 +149,35 @@ const ProfilePage = () => {
                 <p className="font-medium">{user.marketName || "Not assigned"}</p>
               </div>
             </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <span className="text-muted-foreground">NIN / ID Number</span>
+                <p className="font-medium">{vendor?.nationalIdNumber || "Not recorded"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <MapPinned className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <span className="text-muted-foreground">Residence District</span>
+                <p className="font-medium">{vendor?.district || "Not recorded"}</p>
+              </div>
+            </div>
             {vendor?.idDocument && (
-              <div className="md:col-span-2 flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <FileText className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <span className="text-muted-foreground">ID Document</span>
+                  <span className="text-muted-foreground">National ID</span>
                   <p className="font-medium">{formatAttachmentLabel(vendor.idDocument)}</p>
+                </div>
+              </div>
+            )}
+            {vendor?.lcLetter && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <span className="text-muted-foreground">LC Letter</span>
+                  <p className="font-medium">{formatAttachmentLabel(vendor.lcLetter)}</p>
                 </div>
               </div>
             )}

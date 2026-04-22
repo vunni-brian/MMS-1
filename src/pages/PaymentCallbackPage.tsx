@@ -49,7 +49,7 @@ const PaymentCallbackPage = () => {
     <div className="min-h-screen bg-muted/30 px-4 py-10">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <h1 className="text-2xl font-bold font-heading">Pesapal Payment Status</h1>
+          <h1 className="text-2xl font-bold font-heading">Payment Result</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             This page confirms the latest payment state after Pesapal redirects the customer back to the app.
           </p>
@@ -84,7 +84,7 @@ const PaymentCallbackPage = () => {
                 ) : (
                   <Clock3 className="h-5 w-5 text-warning" />
                 )}
-                Payment Update
+                Payment Result
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
@@ -125,7 +125,7 @@ const PaymentCallbackPage = () => {
               )}
 
               <Button asChild className="w-full">
-                <Link to={returnPath}>Return to App</Link>
+                <Link to={returnPath}>Return to Payments</Link>
               </Button>
             </CardContent>
           </Card>

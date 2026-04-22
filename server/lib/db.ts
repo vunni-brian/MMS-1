@@ -784,16 +784,50 @@ export const seedDatabase = async () => {
     );
   });
 
-  users.filter((user) => user.role === "vendor").forEach((user) => {
+  users.filter((user) => user.role === "vendor").forEach((user, index) => {
     const managerUserId = user.marketId ? managerByMarket[user.marketId] : null;
+    const seedNationalIdNumber = `CM${String(index + 1).padStart(8, "0")}`;
+    const seedDistrict =
+      user.marketId === "market_jinja" ? "Jinja" : user.marketId === "market_demo_test" ? "Kampala" : "Kampala";
+    const documentBaseName = user.name.replace(/\s+/g, "_").toLowerCase();
     run(
-      `INSERT OR IGNORE INTO vendor_profiles (user_id, approval_status, approval_reason, id_document_name, id_document_path, id_document_mime_type, id_document_size, approved_by, approved_at, rejected_by, rejected_at)
-       VALUES (?, ?, NULL, ?, ?, 'application/pdf', ?, ?, ?, ?, ?)`,
+      `INSERT OR IGNORE INTO vendor_profiles (
+         user_id,
+         approval_status,
+         approval_reason,
+         national_id_number,
+         district,
+         id_ocr_full_name,
+         id_ocr_nin,
+         id_ocr_nationality,
+         id_ocr_district,
+         id_document_name,
+         id_document_path,
+         id_document_mime_type,
+         id_document_size,
+         lc_letter_name,
+         lc_letter_path,
+         lc_letter_mime_type,
+         lc_letter_size,
+         approved_by,
+         approved_at,
+         rejected_by,
+         rejected_at
+       )
+       VALUES (?, ?, NULL, ?, ?, ?, ?, 'Ugandan', ?, ?, ?, 'application/pdf', ?, ?, ?, 'application/pdf', ?, ?, ?, ?, ?)`,
       [
         user.id,
         user.vendorStatus,
-        `${user.name.replace(/\s+/g, "_").toLowerCase()}_id.pdf`,
+        seedNationalIdNumber,
+        seedDistrict,
+        user.name,
+        seedNationalIdNumber,
+        seedDistrict,
+        `${documentBaseName}_national_id.pdf`,
         path.join(config.uploadsDir, "seed", `${user.id}.pdf`),
+        1024,
+        `${documentBaseName}_lc_letter.pdf`,
+        path.join(config.uploadsDir, "seed", `${user.id}_lc_letter.pdf`),
         1024,
         user.vendorStatus === "approved" ? managerUserId : null,
         user.vendorStatus === "approved" ? createdAt : null,
@@ -805,10 +839,20 @@ export const seedDatabase = async () => {
       `UPDATE vendor_profiles
        SET approval_status = ?,
            approval_reason = NULL,
+           national_id_number = ?,
+           district = ?,
+           id_ocr_full_name = ?,
+           id_ocr_nin = ?,
+           id_ocr_nationality = 'Ugandan',
+           id_ocr_district = ?,
            id_document_name = ?,
            id_document_path = ?,
            id_document_mime_type = 'application/pdf',
            id_document_size = ?,
+           lc_letter_name = ?,
+           lc_letter_path = ?,
+           lc_letter_mime_type = 'application/pdf',
+           lc_letter_size = ?,
            approved_by = ?,
            approved_at = ?,
            rejected_by = ?,
@@ -816,8 +860,16 @@ export const seedDatabase = async () => {
        WHERE user_id = ?`,
       [
         user.vendorStatus,
-        `${user.name.replace(/\s+/g, "_").toLowerCase()}_id.pdf`,
+        seedNationalIdNumber,
+        seedDistrict,
+        user.name,
+        seedNationalIdNumber,
+        seedDistrict,
+        `${documentBaseName}_national_id.pdf`,
         path.join(config.uploadsDir, "seed", `${user.id}.pdf`),
+        1024,
+        `${documentBaseName}_lc_letter.pdf`,
+        path.join(config.uploadsDir, "seed", `${user.id}_lc_letter.pdf`),
         1024,
         user.vendorStatus === "approved" ? managerUserId : null,
         user.vendorStatus === "approved" ? createdAt : null,

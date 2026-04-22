@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Store, Upload } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle, FileText, Store, Upload, XCircle } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
@@ -12,6 +12,42 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type RegistrationStep = "form" | "otp" | "done";
+
+const formatFileLabel = (file: File | null) => {
+  if (!file) {
+    return "No file selected";
+  }
+  return `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+};
+
+const DocumentPreview = ({ file, label }: { file: File | null; label: string }) => (
+  <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm">
+    <div className="flex items-center gap-2">
+      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="truncate font-medium">{formatFileLabel(file)}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const ValidationLine = ({ label, passed }: { label: string; passed: boolean }) => (
+  <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
+    <span className="text-muted-foreground">{label}</span>
+    {passed ? (
+      <span className="inline-flex items-center gap-1 font-medium text-success">
+        <CheckCircle className="h-4 w-4" />
+        Ready
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 font-medium text-destructive">
+        <XCircle className="h-4 w-4" />
+        Missing
+      </span>
+    )}
+  </div>
+);
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -25,7 +61,10 @@ const RegisterPage = () => {
     phone: "",
     password: "",
     marketId: "",
+    nationalIdNumber: "",
+    district: "",
     idFile: null as File | null,
+    lcLetterFile: null as File | null,
   });
   const [otp, setOtp] = useState("");
   const { data: marketsData } = useQuery({
@@ -39,6 +78,13 @@ const RegisterPage = () => {
     }
   }, [form.marketId, marketsData?.markets]);
 
+  useEffect(() => {
+    const selectedMarket = marketsData?.markets.find((market) => market.id === form.marketId);
+    if (selectedMarket && !form.district.trim()) {
+      setForm((current) => ({ ...current, district: selectedMarket.location }));
+    }
+  }, [form.district, form.marketId, marketsData?.markets]);
+
   const updateField = <Key extends keyof typeof form>(field: Key, value: (typeof form)[Key]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
@@ -49,7 +95,10 @@ const RegisterPage = () => {
     try {
       if (step === "form") {
         if (!form.idFile) {
-          throw new Error("An ID document is required.");
+          throw new Error("A National ID document is required.");
+        }
+        if (!form.lcLetterFile) {
+          throw new Error("An LC Letter is required.");
         }
         const response = await api.registerVendor({
           name: form.name,
@@ -57,7 +106,10 @@ const RegisterPage = () => {
           phone: form.phone,
           password: form.password,
           marketId: form.marketId,
+          nationalIdNumber: form.nationalIdNumber,
+          district: form.district,
           idDocument: form.idFile,
+          lcLetter: form.lcLetterFile,
         });
         setChallengeId(response.challengeId);
         setStep("otp");
@@ -84,7 +136,17 @@ const RegisterPage = () => {
 
   const canSubmit =
     step === "form"
-      ? Boolean(form.name.trim() && form.email.trim() && form.phone.trim() && form.password && form.marketId && form.idFile)
+      ? Boolean(
+          form.name.trim() &&
+            form.email.trim() &&
+            form.phone.trim() &&
+            form.password &&
+            form.marketId &&
+            form.nationalIdNumber.trim() &&
+            form.district.trim() &&
+            form.idFile &&
+            form.lcLetterFile,
+        )
       : otp.length === 6 && Boolean(challengeId);
 
   if (step === "done") {
@@ -110,7 +172,7 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
+      <div className="w-full max-w-3xl space-y-6">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-muted mb-2">
             <Store className="w-7 h-7 text-muted-foreground" />
@@ -127,76 +189,169 @@ const RegisterPage = () => {
             <CardDescription>Step {step === "form" ? "1" : "2"} of 2</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               {step === "form" ? (
                 <>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} required />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={form.email}
-                      onChange={(event) => updateField("email", event.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      placeholder="+256 7XX XXX XXX"
-                      value={form.phone}
-                      onChange={(event) => updateField("phone", event.target.value)}
-                      autoComplete="tel"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="market">Market</Label>
-                    <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
-                      <SelectTrigger id="market">
-                        <SelectValue placeholder="Select your market" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(marketsData?.markets || []).map((market) => (
-                          <SelectItem key={market.id} value={market.id}>
-                            {market.name} ({market.location})
-                          </SelectItem>
+                  <section className="space-y-3">
+                    <div>
+                      <h2 className="text-sm font-semibold font-heading">User Input</h2>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input id="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} required />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          placeholder="+256 7XX XXX XXX"
+                          value={form.phone}
+                          onChange={(event) => updateField("phone", event.target.value)}
+                          autoComplete="tel"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={form.email}
+                          onChange={(event) => updateField("email", event.target.value)}
+                          autoComplete="email"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="national-id-number">NIN / ID Number</Label>
+                        <Input
+                          id="national-id-number"
+                          value={form.nationalIdNumber}
+                          onChange={(event) => updateField("nationalIdNumber", event.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="district">District</Label>
+                        <Input
+                          id="district"
+                          value={form.district}
+                          onChange={(event) => updateField("district", event.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="market">Market</Label>
+                        <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
+                          <SelectTrigger id="market">
+                            <SelectValue placeholder="Select your market" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(marketsData?.markets || []).map((market) => (
+                              <SelectItem key={market.id} value={market.id}>
+                                {market.name} ({market.location})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={form.password}
+                          onChange={(event) => updateField("password", event.target.value)}
+                          autoComplete="new-password"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="space-y-3">
+                    <h2 className="text-sm font-semibold font-heading">Document Upload</h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                        <div>
+                          <p className="text-sm font-medium">National ID</p>
+                          <p className="text-xs text-muted-foreground">Required primary identity document</p>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                            <Upload className="h-4 w-4" />
+                            Upload File
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              className="hidden"
+                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
+                            />
+                          </label>
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                            <Camera className="h-4 w-4" />
+                            Take Photo
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              className="hidden"
+                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
+                            />
+                          </label>
+                        </div>
+                        <DocumentPreview file={form.idFile} label="National ID preview" />
+                      </div>
+
+                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                        <div>
+                          <p className="text-sm font-medium">LC Letter</p>
+                          <p className="text-xs text-muted-foreground">Required proof of residence</p>
+                        </div>
+                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                          <Upload className="h-4 w-4" />
+                          Upload File
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={(event) => updateField("lcLetterFile", event.target.files?.[0] || null)}
+                          />
+                        </label>
+                        <DocumentPreview file={form.lcLetterFile} label="LC Letter preview" />
+                        <p className="text-xs text-muted-foreground">LC Letter should confirm your residence in the selected district.</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                      <h2 className="text-sm font-semibold font-heading">OCR Extraction</h2>
+                      <div className="grid gap-2 text-sm">
+                        {[
+                          ["Full Name", "Pending ID scan"],
+                          ["NIN", "Pending ID scan"],
+                          ["Date of Birth", "Pending ID scan"],
+                          ["Gender", "Pending ID scan"],
+                          ["Nationality", "Pending ID scan"],
+                          ["District", "Pending ID scan"],
+                        ].map(([label, value]) => (
+                          <div key={label} className="flex justify-between gap-3 rounded-md bg-background px-3 py-2">
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="font-medium">{form.idFile ? value : "Upload National ID"}</span>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={form.password}
-                      onChange={(event) => updateField("password", event.target.value)}
-                      autoComplete="new-password"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>ID Document (PDF/JPG/PNG, max 5MB)</Label>
-                    <label className="block border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-foreground/25 transition-colors cursor-pointer">
-                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        {form.idFile ? form.idFile.name : "Click to choose an ID document"}
-                      </p>
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="hidden"
-                        onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
-                      />
-                    </label>
-                  </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                      <h2 className="text-sm font-semibold font-heading">Validation Check</h2>
+                      <ValidationLine label="NIN match" passed={Boolean(form.nationalIdNumber.trim() && form.idFile)} />
+                      <ValidationLine label="Name match" passed={Boolean(form.name.trim() && form.idFile)} />
+                      <ValidationLine label="District match" passed={Boolean(form.district.trim() && form.idFile)} />
+                      <ValidationLine label="LC Letter present" passed={Boolean(form.lcLetterFile)} />
+                    </div>
+                  </section>
                 </>
               ) : (
                 <div className="space-y-3">

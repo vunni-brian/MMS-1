@@ -103,9 +103,27 @@ export interface VendorProfile {
   createdAt: string;
   marketId: string | null;
   marketName: string | null;
+  nationalIdNumber: string | null;
+  district: string | null;
   status: VendorApprovalStatus;
   approvalReason: string | null;
   idDocument: Attachment | null;
+  lcLetter: Attachment | null;
+  idOcr: {
+    fullName: string | null;
+    nin: string | null;
+    dateOfBirth: string | null;
+    gender: string | null;
+    nationality: string | null;
+    district: string | null;
+  };
+  documentValidation: {
+    ninMatch: boolean | null;
+    nameMatch: boolean | null;
+    districtMatch: boolean | null;
+    lcLetterPresent: boolean;
+    selectedDistrictMatch: boolean | null;
+  };
 }
 
 export interface ActiveBookingSummary {

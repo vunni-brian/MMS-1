@@ -356,7 +356,7 @@ const PaymentsPage = () => {
                         {pendingPayment && <StatusBadge status="pending" context="payment" />}
                         <Button onClick={() => { setPaymentIntent({ title: booking.stallName, subtitle: formatHumanDateRange(booking.startDate, booking.endDate), amount: booking.amount, payload: { bookingId: booking.id } }); setError(null); }} disabled={Boolean(pendingPayment)}>
                           <Wallet className="mr-1 h-4 w-4" />
-                          {pendingPayment ? "Awaiting Confirmation" : "Pay Now"}
+                          {pendingPayment ? "Awaiting Confirmation" : "Proceed to Payment"}
                         </Button>
                       </div>
                     </div>
@@ -373,7 +373,7 @@ const PaymentsPage = () => {
                 const pendingPayment = pendingPaymentByUtilityCharge[charge.id];
                 const canPay = charge.status === "unpaid" || charge.status === "overdue";
                 const canViewReceipt = charge.status === "paid" && Boolean(charge.latestPaymentId);
-                const actionLabel = pendingPayment || charge.status === "pending" ? "Awaiting Confirmation" : charge.paymentCount > 0 ? "Retry Payment" : "Pay Utility";
+                const actionLabel = pendingPayment || charge.status === "pending" ? "Awaiting Confirmation" : "Proceed to Payment";
                 return (
                   <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -404,7 +404,7 @@ const PaymentsPage = () => {
                 const pendingPayment = pendingPaymentByPenalty[penalty.id];
                 const canPay = penalty.status === "unpaid";
                 const canViewReceipt = penalty.status === "paid" && Boolean(penalty.latestPaymentId);
-                const actionLabel = pendingPayment || penalty.status === "pending" ? "Awaiting Confirmation" : penalty.paymentCount > 0 ? "Retry Payment" : "Pay Now";
+                const actionLabel = pendingPayment || penalty.status === "pending" ? "Awaiting Confirmation" : "Proceed to Payment";
                 return (
                   <div key={penalty.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -486,12 +486,12 @@ const PaymentsPage = () => {
 
       <Dialog open={Boolean(paymentIntent)} onOpenChange={(open) => !open && setPaymentIntent(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="font-heading">Secure Checkout</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-heading">Payment Summary</DialogTitle></DialogHeader>
           {paymentIntent && (
             <div className="space-y-4">
               <div className="rounded-xl bg-muted/40 p-4 text-sm"><p className="font-medium">{paymentIntent.title}</p><p className="mt-1 text-muted-foreground">{paymentIntent.subtitle}</p><p className="mt-2 text-lg font-bold font-heading">{formatCurrency(paymentIntent.amount)}</p></div>
               <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-4 w-4 text-muted-foreground" /><div className="space-y-2"><p>Pesapal will open a secure checkout where the customer can complete payment.</p><p>{user?.email ? `The current checkout will use ${user.email} and ${user.phone}.` : "The current checkout will use the phone number attached to the signed-in vendor account."}</p></div></div></div>
-              <Button className="w-full" onClick={() => initiatePayment.mutate(paymentIntent.payload)} disabled={initiatePayment.isPending}><ArrowUpRight className="mr-2 h-4 w-4" />{initiatePayment.isPending ? "Opening Checkout..." : "Continue to Pesapal"}</Button>
+              <Button className="w-full" onClick={() => initiatePayment.mutate(paymentIntent.payload)} disabled={initiatePayment.isPending}><ArrowUpRight className="mr-2 h-4 w-4" />{initiatePayment.isPending ? "Opening Pesapal..." : "Proceed to Payment"}</Button>
             </div>
           )}
         </DialogContent>

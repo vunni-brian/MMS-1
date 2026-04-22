@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, CheckCircle2, Eye, KeyRound, Search, UserX, Users, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Eye, FileText, KeyRound, Search, UserX, Users, X } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
@@ -18,11 +18,56 @@ import { toast } from "@/components/ui/sonner";
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 type OperationalVendorStatus = "active" | "late_payment" | "suspended";
 
+const getValidationLabel = (value: boolean | null, trueLabel: string, falseLabel: string) => {
+  if (value === null) {
+    return "Needs Review";
+  }
+  return value ? trueLabel : falseLabel;
+};
+
+const getValidationClassName = (value: boolean | null) => {
+  if (value === null) {
+    return "border-warning/25 bg-warning/15 text-warning";
+  }
+  return value ? "border-success/20 bg-success/15 text-success" : "border-destructive/20 bg-destructive/15 text-destructive";
+};
+
+const ValidationItem = ({
+  label,
+  value,
+  trueLabel = "Match",
+  falseLabel = "Mismatch",
+}: {
+  label: string;
+  value: boolean | null;
+  trueLabel?: string;
+  falseLabel?: string;
+}) => (
+  <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/20 p-3">
+    <span className="text-muted-foreground">{label}</span>
+    <span className={`status-badge ${getValidationClassName(value)}`}>
+      {value === true ? <Check className="mr-1 h-3.5 w-3.5" /> : value === false ? <X className="mr-1 h-3.5 w-3.5" /> : null}
+      {getValidationLabel(value, trueLabel, falseLabel)}
+    </span>
+  </div>
+);
+
+const DocumentPreview = ({ title, attachment }: { title: string; attachment: Parameters<typeof formatAttachmentLabel>[0] }) => (
+  <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
+    <div className="mb-3 flex h-24 items-center justify-center rounded-md bg-background">
+      <FileText className="h-8 w-8 text-muted-foreground" />
+    </div>
+    <p className="text-xs text-muted-foreground">{title}</p>
+    <p className="mt-1 break-words text-sm font-medium">{formatAttachmentLabel(attachment)}</p>
+  </div>
+);
+
 const VendorsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [managerNotes, setManagerNotes] = useState("");
   const [resetReason, setResetReason] = useState("");
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -43,7 +88,7 @@ const VendorsPage = () => {
   });
 
   const approveVendor = useMutation({
-    mutationFn: (vendorId: string) => api.approveVendor(vendorId),
+    mutationFn: ({ vendorId, notes }: { vendorId: string; notes?: string }) => api.approveVendor(vendorId, notes),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["vendors"] });
       setSelectedVendorId(null);
@@ -91,6 +136,7 @@ const VendorsPage = () => {
 
   useEffect(() => {
     setRejectionReason("");
+    setManagerNotes("");
     setResetReason("");
     setResetMessage(null);
     setError(null);
@@ -247,7 +293,7 @@ const VendorsPage = () => {
                         </Button>
                         {row.vendor.status === "pending" && (
                           <>
-                            <Button size="icon" variant="ghost" className="text-success hover:text-success" onClick={() => approveVendor.mutate(row.vendor.id)}>
+                            <Button size="icon" variant="ghost" className="text-success hover:text-success" onClick={() => approveVendor.mutate({ vendorId: row.vendor.id })}>
                               <Check className="w-4 h-4" />
                             </Button>
                             <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setSelectedVendorId(row.vendor.id)}>
@@ -268,30 +314,77 @@ const VendorsPage = () => {
       <DetailSheet
         open={Boolean(selectedVendorId)}
         onOpenChange={(open) => !open && setSelectedVendorId(null)}
-        title="Vendor Details"
-        description="Approval, permit, payment risk, and account evidence."
+        title="Vendor Application Review"
+        description="Compare applicant input, National ID OCR data, and uploaded residence evidence before deciding."
+        className="lg:max-w-5xl"
       >
           {selectedRow && (
             <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <EvidenceField label="Name" value={selectedRow.vendor.name} />
-                <EvidenceField label="Market" value={selectedRow.vendor.marketName || user?.marketName || "Assigned market"} />
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                  <p className="font-semibold font-heading">User Input</p>
+                  <EvidenceField label="Full Name" value={selectedRow.vendor.name} />
+                  <EvidenceField label="Phone" value={selectedRow.vendor.phone} />
+                  <EvidenceField label="Email" value={selectedRow.vendor.email} />
+                  <EvidenceField label="NIN" value={selectedRow.vendor.nationalIdNumber || "Not recorded"} mono={Boolean(selectedRow.vendor.nationalIdNumber)} />
+                  <EvidenceField label="District" value={selectedRow.vendor.district || "Not recorded"} />
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                  <p className="font-semibold font-heading">OCR Data From ID</p>
+                  <EvidenceField label="Full Name (OCR)" value={selectedRow.vendor.idOcr.fullName || "Not extracted"} />
+                  <EvidenceField label="NIN (OCR)" value={selectedRow.vendor.idOcr.nin || "Not extracted"} mono={Boolean(selectedRow.vendor.idOcr.nin)} />
+                  <EvidenceField label="Date of Birth" value={selectedRow.vendor.idOcr.dateOfBirth || "Not extracted"} />
+                  <EvidenceField label="Gender" value={selectedRow.vendor.idOcr.gender || "Not extracted"} />
+                  <EvidenceField label="Nationality" value={selectedRow.vendor.idOcr.nationality || "Not extracted"} />
+                  <EvidenceField label="District" value={selectedRow.vendor.idOcr.district || "Not extracted"} />
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                  <p className="font-semibold font-heading">Documents</p>
+                  <DocumentPreview title="National ID Preview" attachment={selectedRow.vendor.idDocument} />
+                  <DocumentPreview title="LC Letter Preview" attachment={selectedRow.vendor.lcLetter} />
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="font-semibold font-heading">Validation Panel</p>
+                  {Object.values(selectedRow.vendor.documentValidation).some((value) => value === false) && (
+                    <span className="inline-flex items-center gap-1 rounded-md border border-warning/25 bg-warning/15 px-2.5 py-1 text-xs font-semibold text-warning">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Data inconsistency detected
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <ValidationItem label="NIN Match" value={selectedRow.vendor.documentValidation.ninMatch} />
+                  <ValidationItem label="Name Match" value={selectedRow.vendor.documentValidation.nameMatch} />
+                  <ValidationItem label="District Match" value={selectedRow.vendor.documentValidation.districtMatch} />
+                  <ValidationItem
+                    label="LC Letter Uploaded"
+                    value={selectedRow.vendor.documentValidation.lcLetterPresent}
+                    trueLabel="Uploaded"
+                    falseLabel="Missing"
+                  />
+                  <ValidationItem
+                    label="District Matches Selected Market"
+                    value={selectedRow.vendor.documentValidation.selectedDistrictMatch}
+                    trueLabel="Aligned"
+                    falseLabel="Mismatch"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
                 <EvidenceField label="Approval" value={<StatusBadge status={selectedRow.vendor.status} />} />
                 <EvidenceField label="Operational Status" value={<StatusBadge status={selectedRow.operationalStatus} />} />
                 <EvidenceField label="Outstanding" value={formatCurrency(selectedRow.totalOutstanding)} />
-                <EvidenceField label="Phone" value={selectedRow.vendor.phone} />
-                <EvidenceField label="Email" value={selectedRow.vendor.email} className="col-span-2" />
+                <EvidenceField
+                  label="Next Permit Expiry"
+                  value={selectedRow.nextPermitExpiry ? formatHumanDate(selectedRow.nextPermitExpiry.endDate) : "No active permit on record"}
+                  className="md:col-span-3"
+                />
               </div>
-              <div className="rounded-lg bg-muted/40 p-3">
-                <span className="text-muted-foreground">Next Permit Expiry</span>
-                <p className="font-medium mt-1">{selectedRow.nextPermitExpiry ? formatHumanDate(selectedRow.nextPermitExpiry.endDate) : "No active permit on record"}</p>
-              </div>
-              {selectedRow.vendor.idDocument && (
-                <div className="rounded-lg bg-muted/40 p-3">
-                  <span className="text-muted-foreground">ID Document</span>
-                  <p className="font-medium mt-1">{formatAttachmentLabel(selectedRow.vendor.idDocument)}</p>
-                </div>
-              )}
               {selectedRow.vendor.status === "approved" && (
                 <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
                   <div>
@@ -325,23 +418,33 @@ const VendorsPage = () => {
                 </div>
               )}
               {selectedRow.vendor.status === "pending" && (
-                <div className="space-y-3 pt-2">
+                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
+                  <p className="font-semibold font-heading">Decision Panel</p>
                   <div className="space-y-1.5">
-                    <Label>Rejection Reason (if rejecting)</Label>
+                    <Label>Manager Notes</Label>
+                    <Textarea value={managerNotes} onChange={(event) => setManagerNotes(event.target.value)} rows={2} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Reject Reason</Label>
                     <Textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} rows={2} />
                   </div>
                   <div className="flex gap-2">
-                    <Button className="flex-1 bg-success hover:bg-success/90" onClick={() => approveVendor.mutate(selectedRow.vendor.id)}>
+                    <Button
+                      className="flex-1 bg-success hover:bg-success/90"
+                      onClick={() => approveVendor.mutate({ vendorId: selectedRow.vendor.id, notes: managerNotes })}
+                      disabled={approveVendor.isPending}
+                    >
                       <Check className="w-4 h-4 mr-1" />
-                      Approve
+                      Approve Vendor
                     </Button>
                     <Button
                       variant="destructive"
                       className="flex-1"
                       onClick={() => rejectVendor.mutate({ vendorId: selectedRow.vendor.id, reason: rejectionReason })}
+                      disabled={rejectVendor.isPending || !rejectionReason.trim()}
                     >
                       <X className="w-4 h-4 mr-1" />
-                      Reject
+                      Reject Vendor
                     </Button>
                   </div>
                 </div>

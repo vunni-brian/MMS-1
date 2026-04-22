@@ -112,8 +112,12 @@ export const api = {
     phone: string;
     password: string;
     marketId: string;
+    nationalIdNumber: string;
+    district: string;
     idDocument: File;
+    lcLetter: File;
   }) {
+    const { idDocument, lcLetter, ...payload } = input;
     return apiRequest<{
       challengeId: string;
       expiresAt: string;
@@ -121,8 +125,9 @@ export const api = {
     }>("/auth/register-vendor", {
       method: "POST",
       body: JSON.stringify({
-        ...input,
-        idDocument: await toFilePayload(input.idDocument),
+        ...payload,
+        idDocument: await toFilePayload(idDocument),
+        lcLetter: await toFilePayload(lcLetter),
       }),
     });
   },
@@ -192,8 +197,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(input),
     }),
-  approveVendor: (vendorId: string) =>
-    apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}/approve`, { method: "POST" }),
+  approveVendor: (vendorId: string, notes?: string) =>
+    apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ notes }),
+    }),
   rejectVendor: (vendorId: string, reason: string) =>
     apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}/reject`, {
       method: "POST",

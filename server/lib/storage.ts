@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { config } from "../config.ts";
+import { HttpError } from "./http.ts";
 import { deleteSupabaseStorageObject, uploadSupabaseStorageObject } from "./supabase.ts";
 import type { FilePayload } from "../types.ts";
 
@@ -16,17 +17,17 @@ export const validateFilePayload = (
 ) => {
   if (!file) {
     if (required) {
-      throw new Error("File is required.");
+      throw new HttpError(400, "File is required.");
     }
     return;
   }
 
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error("File must be 5MB or smaller.");
+    throw new HttpError(400, "File must be 5MB or smaller.");
   }
 
   if (!allowedMimeTypes.includes(file.mimeType)) {
-    throw new Error("Unsupported file type.");
+    throw new HttpError(400, "Unsupported file type.");
   }
 };
 

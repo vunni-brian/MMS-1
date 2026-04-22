@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Upload, AlertCircle } from "lucide-react";
+import { CheckCircle2, Plus, Upload, AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import type { Ticket, TicketCategory, TicketStatus } from "@/types";
 
@@ -22,6 +23,36 @@ const categoryLabels: Record<TicketCategory, string> = {
   maintenance: "Maintenance",
   dispute: "Dispute",
   other: "Other",
+};
+
+const complaintSteps = ["Submitted", "Pending", "In Progress", "Resolved"];
+
+const getComplaintStepIndex = (status: TicketStatus) => {
+  if (status === "resolved") return 3;
+  if (status === "in_progress") return 2;
+  return 1;
+};
+
+const getComplaintStatusLabel = (status: TicketStatus) => (status === "open" ? "Pending" : undefined);
+
+const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
+  const activeIndex = getComplaintStepIndex(status);
+
+  return (
+    <div className="space-y-2">
+      <Progress value={(activeIndex / (complaintSteps.length - 1)) * 100} className="h-2" />
+      <div className="grid grid-cols-4 gap-2 text-[11px] font-medium">
+        {complaintSteps.map((step, index) => (
+          <div key={step} className={index <= activeIndex ? "text-foreground" : "text-muted-foreground"}>
+            <span className="inline-flex items-center gap-1">
+              {index <= activeIndex && <CheckCircle2 className="h-3 w-3 text-success" />}
+              {step}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 const ComplaintsPage = () => {
@@ -140,11 +171,14 @@ const ComplaintsPage = () => {
                       </div>
                       <p className="font-medium text-sm">{ticket.subject}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {role !== "vendor" ? `${ticket.vendorName} · ` : ""}
+                        {role !== "vendor" ? `${ticket.vendorName} - ` : ""}
                         {formatHumanDateTime(ticket.createdAt)}
                       </p>
                     </div>
-                    <StatusBadge status={ticket.status} />
+                    <StatusBadge status={ticket.status} label={getComplaintStatusLabel(ticket.status)} />
+                  </div>
+                  <div className="mt-4">
+                    <ComplaintProgress status={ticket.status} />
                   </div>
                   {ticket.resolution && (
                     <div className="mt-3 p-2.5 rounded-lg bg-success/5 border border-success/20">
@@ -226,9 +260,10 @@ const ComplaintsPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Status</span>
-                  <StatusBadge status={selected.status} />
+                  <StatusBadge status={selected.status} label={getComplaintStatusLabel(selected.status)} />
                 </div>
               </div>
+              <ComplaintProgress status={selected.status} />
               <div className="p-3 rounded-lg bg-muted/50">
                 <p className="text-sm">{selected.description}</p>
               </div>
@@ -263,7 +298,7 @@ const ComplaintsPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="open">Pending</SelectItem>
                         <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="resolved">Resolved</SelectItem>
                       </SelectContent>
