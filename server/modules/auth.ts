@@ -61,6 +61,32 @@ const requiresPrivilegedMfa = (user: {
   mfa_enabled: number;
 }) => user.role === "official" || user.role === "admin" || (user.role === "manager" && Boolean(user.mfa_enabled));
 
+const logLoginSuccess = async (
+  user: {
+    id: string;
+    name: string;
+    phone: string;
+    role: "vendor" | "manager" | "official" | "admin";
+    market_id: string | null;
+  },
+  mfa: boolean,
+) => {
+  await logAuditEvent({
+    actorUserId: user.id,
+    actorName: user.name,
+    actorRole: user.role,
+    marketId: user.market_id,
+    action: "LOGIN_SUCCESS",
+    entityType: "user",
+    entityId: user.id,
+    details: {
+      phone: user.phone,
+      method: mfa ? "password_otp" : "password",
+      mfa,
+    },
+  });
+};
+
 const issueRegistrationChallenge = async ({
   userId,
   phone,
@@ -541,6 +567,7 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const token = await createSessionForUser(user.id);
+      await logLoginSuccess(user, false);
       sendJson(res, 200, {
         token,
         user: serializeAuthUser(user),
@@ -567,6 +594,7 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const token = await createSessionForUser(user.id);
+      await logLoginSuccess(user, true);
       sendJson(res, 200, {
         token,
         user: serializeAuthUser(user),
@@ -593,6 +621,7 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const token = await createSessionForUser(user.id);
+      await logLoginSuccess(user, true);
       sendJson(res, 200, {
         token,
         user: serializeAuthUser(user),

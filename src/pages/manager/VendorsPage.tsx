@@ -1,19 +1,33 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, CheckCircle2, Eye, FileText, KeyRound, Search, UserX, Users, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  CreditCard,
+  FileText,
+  KeyRound,
+  Mail,
+  MapPin,
+  Phone,
+  Search,
+  Store,
+  UserX,
+  Users,
+  X,
+} from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
 import { formatCurrency, formatHumanDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ConsolePage, DetailSheet, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
+import type { VendorProfile } from "@/types";
 
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 type OperationalVendorStatus = "active" | "late_payment" | "suspended";
@@ -109,6 +123,126 @@ const DocumentPreview = ({
         </a>
       )}
     </div>
+  );
+};
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "V";
+
+const VendorProfileCard = ({
+  row,
+  onOpen,
+}: {
+  row: {
+    vendor: VendorProfile;
+    totalOutstanding: number;
+    nextPermitExpiry: { endDate: string } | null;
+    operationalStatus: OperationalVendorStatus;
+  };
+  onOpen: () => void;
+}) => {
+  const vendor = row.vendor;
+  const initials = getInitials(vendor.name);
+  const marketName = vendor.marketName || "Assigned market";
+  const statusLabel =
+    vendor.status === "approved"
+      ? row.operationalStatus === "late_payment"
+        ? "Payment follow-up"
+        : "Approved vendor"
+      : vendor.status === "pending"
+        ? "Pending application"
+        : "Rejected application";
+
+  return (
+    <article className="rounded-xl border border-[#2b3546] bg-[#1f2937] p-5 text-slate-100 shadow-sm">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex h-28 w-28 items-center justify-center rounded-full border border-white/10 bg-slate-100 text-3xl font-bold text-slate-800 shadow-sm">
+          {initials}
+        </div>
+        <h2 className="mt-5 max-w-full truncate text-xl font-bold font-heading tracking-wide text-slate-100">{vendor.name}</h2>
+        <p className="mt-1 max-w-full truncate text-sm font-semibold text-slate-200">{marketName}</p>
+        <p className="mt-2 max-w-full truncate text-sm text-slate-400">{statusLabel}</p>
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <StatusBadge status={vendor.status} context="vendor" />
+          <StatusBadge status={row.operationalStatus} />
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-center gap-3">
+        <a
+          href={`tel:${vendor.phone}`}
+          title={`Call ${vendor.name}`}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white transition-colors hover:bg-[#33446b]"
+        >
+          <Phone className="h-4 w-4" />
+        </a>
+        <a
+          href={`mailto:${vendor.email}`}
+          title={`Email ${vendor.name}`}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white transition-colors hover:bg-[#33446b]"
+        >
+          <Mail className="h-4 w-4" />
+        </a>
+        <button
+          type="button"
+          onClick={onOpen}
+          title="View submitted documents"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white transition-colors hover:bg-[#33446b]"
+        >
+          <FileText className="h-4 w-4" />
+        </button>
+        <span
+          title={`Outstanding: ${formatCurrency(row.totalOutstanding)}`}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white"
+        >
+          <CreditCard className="h-4 w-4" />
+        </span>
+        <span title={marketName} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white">
+          <MapPin className="h-4 w-4" />
+        </span>
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <a
+          href={`tel:${vendor.phone}`}
+          className="inline-flex h-11 items-center justify-center rounded-md border border-slate-600 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+        >
+          Call
+        </a>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex h-11 items-center justify-center rounded-md border border-primary text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex h-11 items-center justify-center rounded-md border border-slate-600 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+        >
+          View
+        </button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs text-slate-400">
+        <div>
+          <p>Outstanding</p>
+          <p className="mt-1 font-semibold text-slate-100">{formatCurrency(row.totalOutstanding)}</p>
+        </div>
+        <div className="text-right">
+          <p>Permit Expiry</p>
+          <p className="mt-1 font-semibold text-slate-100">
+            {row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No permit"}
+          </p>
+        </div>
+      </div>
+    </article>
   );
 };
 
@@ -301,65 +435,19 @@ const VendorsPage = () => {
 
       <KpiStrip items={vendorKpis} />
 
-      <Card className="card-warm">
-        <CardContent className="pt-4">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Market</TableHead>
-                    <TableHead>Approval</TableHead>
-                    <TableHead>Operational</TableHead>
-                    <TableHead>Outstanding</TableHead>
-                  <TableHead>Permit Expiry</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendorRows.map((row) => (
-                  <TableRow key={row.vendor.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{row.vendor.name}</p>
-                        <p className="text-xs text-muted-foreground">{row.vendor.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{row.vendor.phone}</TableCell>
-                    <TableCell className="text-muted-foreground">{row.vendor.marketName || user?.marketName || "Assigned market"}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={row.vendor.status} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={row.operationalStatus} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{formatCurrency(row.totalOutstanding)}</TableCell>
-                    <TableCell className="text-muted-foreground">{row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No active permit"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setSelectedVendorId(row.vendor.id)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        {row.vendor.status === "pending" && (
-                          <>
-                            <Button size="icon" variant="ghost" className="text-success hover:text-success" onClick={() => approveVendor.mutate({ vendorId: row.vendor.id })}>
-                              <Check className="w-4 h-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setSelectedVendorId(row.vendor.id)}>
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {vendorRows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/70 bg-card px-4 py-12 text-center">
+          <Store className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-3 text-sm font-semibold">No vendors found</p>
+          <p className="mt-1 text-sm text-muted-foreground">Try another name, phone number, or email address.</p>
+        </div>
+      ) : (
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {vendorRows.map((row) => (
+            <VendorProfileCard key={row.vendor.id} row={row} onOpen={() => setSelectedVendorId(row.vendor.id)} />
+          ))}
+        </section>
+      )}
 
       <DetailSheet
         open={Boolean(selectedVendorId)}
