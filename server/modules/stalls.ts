@@ -60,11 +60,22 @@ const stallsSelect = `
          users.name AS vendor_name,
          bookings.id AS active_booking_id,
          bookings.status AS active_booking_status,
-         bookings.amount AS active_booking_amount
+         CASE
+           WHEN COALESCE(active_booking_market_charge.is_enabled, active_booking_global_charge.is_enabled, 1) = 1
+           THEN bookings.amount
+           ELSE 0
+         END AS active_booking_amount
   FROM stalls
   LEFT JOIN markets ON markets.id = stalls.market_id
   LEFT JOIN users ON users.id = stalls.assigned_vendor_id
   LEFT JOIN bookings ON bookings.stall_id = stalls.id AND bookings.status IN ('approved', 'paid')
+  LEFT JOIN charge_types AS active_booking_market_charge
+    ON active_booking_market_charge.name = 'booking_fee'
+   AND active_booking_market_charge.scope = 'market'
+   AND active_booking_market_charge.market_id = bookings.market_id
+  LEFT JOIN charge_types AS active_booking_global_charge
+    ON active_booking_global_charge.name = 'booking_fee'
+   AND active_booking_global_charge.scope = 'global'
 `;
 
 const bookingSelect = `
@@ -76,7 +87,11 @@ const bookingSelect = `
          bookings.status,
          bookings.start_date,
          bookings.end_date,
-         bookings.amount,
+         CASE
+           WHEN COALESCE(booking_market_charge.is_enabled, booking_global_charge.is_enabled, 1) = 1
+           THEN bookings.amount
+           ELSE 0
+         END AS amount,
          bookings.reserved_until,
          bookings.created_at,
          bookings.updated_at,
@@ -92,6 +107,13 @@ const bookingSelect = `
   INNER JOIN users ON users.id = bookings.vendor_id
   LEFT JOIN users AS reviewers ON reviewers.id = bookings.reviewed_by_user_id
   LEFT JOIN markets ON markets.id = bookings.market_id
+  LEFT JOIN charge_types AS booking_market_charge
+    ON booking_market_charge.name = 'booking_fee'
+   AND booking_market_charge.scope = 'market'
+   AND booking_market_charge.market_id = bookings.market_id
+  LEFT JOIN charge_types AS booking_global_charge
+    ON booking_global_charge.name = 'booking_fee'
+   AND booking_global_charge.scope = 'global'
 `;
 
 const mapBooking = (row: {

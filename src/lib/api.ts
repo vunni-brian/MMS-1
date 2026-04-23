@@ -9,6 +9,7 @@ import type {
   DuesReportRow,
   FinancialAuditRow,
   Market,
+  MarketManagerSummary,
   Penalty,
   Payment,
   PaymentMethod,
@@ -114,10 +115,12 @@ export const api = {
     marketId: string;
     nationalIdNumber: string;
     district: string;
+    productSection: string;
+    profileImage?: File | null;
     idDocument: File;
     lcLetter: File;
   }) {
-    const { idDocument, lcLetter, ...payload } = input;
+    const { idDocument, lcLetter, profileImage, ...payload } = input;
     return apiRequest<{
       challengeId: string;
       expiresAt: string;
@@ -126,6 +129,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({
         ...payload,
+        profileImage: profileImage ? await toFilePayload(profileImage) : null,
         idDocument: await toFilePayload(idDocument),
         lcLetter: await toFilePayload(lcLetter),
       }),
@@ -170,15 +174,27 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
-  updateMyProfile: (input: { name: string; email: string; phone: string }) =>
-    apiRequest<{ user: AuthUser; message: string }>("/auth/me", {
+  async updateMyProfile(input: {
+    name: string;
+    email: string;
+    phone: string;
+    profileImage?: File | null;
+    removeProfileImage?: boolean;
+  }) {
+    const { profileImage, ...payload } = input;
+    return apiRequest<{ user: AuthUser; message: string }>("/auth/me", {
       method: "PATCH",
-      body: JSON.stringify(input),
-    }),
+      body: JSON.stringify({
+        ...payload,
+        ...(profileImage ? { profileImage: await toFilePayload(profileImage) } : {}),
+      }),
+    });
+  },
 
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
   getMe: () => apiRequest<{ user: AuthUser }>("/auth/me"),
   getMarkets: () => apiRequest<{ markets: Market[] }>("/markets"),
+  getMarketManagers: (marketId: string) => apiRequest<{ managers: MarketManagerSummary[] }>(`/markets/${marketId}/managers`),
   getChargeTypes: (marketId?: string) =>
     apiRequest<{ chargeTypes: ChargeType[] }>(`/billing/charge-types${buildQuery({ marketId })}`),
   updateChargeType: (chargeTypeId: string, isEnabled: boolean) =>
@@ -196,6 +212,7 @@ export const api = {
       email: string;
       phone: string;
       marketId: string;
+      productSection?: string | null;
     },
   ) =>
     apiRequest<{ vendor: VendorProfile; message: string }>(`/vendors/${vendorId}/profile`, {
@@ -225,6 +242,17 @@ export const api = {
       const isJson = response.headers.get("content-type")?.includes("application/json");
       const payload = isJson ? await response.json() : null;
       throw new ApiError(payload?.error || "Unable to load document.", response.status, payload?.details);
+    }
+    return URL.createObjectURL(await response.blob());
+  },
+  getUserProfileImageUrl: async (userId: string) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/profile-image`, {
+      headers: createHeaders(undefined, false),
+    });
+    if (!response.ok) {
+      const isJson = response.headers.get("content-type")?.includes("application/json");
+      const payload = isJson ? await response.json() : null;
+      throw new ApiError(payload?.error || "Unable to load profile image.", response.status, payload?.details);
     }
     return URL.createObjectURL(await response.blob());
   },

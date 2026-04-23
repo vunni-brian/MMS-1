@@ -29,7 +29,11 @@ const utilityChargeSelect = `
          utility_charges.unit,
          utility_charges.rate_per_unit,
          utility_charges.calculation_method,
-         utility_charges.amount,
+         CASE
+           WHEN COALESCE(utility_market_charge.is_enabled, utility_global_charge.is_enabled, 1) = 1
+           THEN utility_charges.amount
+           ELSE 0
+         END AS amount,
          utility_charges.due_date::text AS due_date,
          utility_charges.status,
          utility_charges.created_by,
@@ -84,6 +88,13 @@ const utilityChargeSelect = `
   LEFT JOIN stalls ON stalls.id = bookings.stall_id
   LEFT JOIN users AS creators ON creators.id = utility_charges.created_by
   LEFT JOIN markets ON markets.id = utility_charges.market_id
+  LEFT JOIN charge_types AS utility_market_charge
+    ON utility_market_charge.name = 'utilities'
+   AND utility_market_charge.scope = 'market'
+   AND utility_market_charge.market_id = utility_charges.market_id
+  LEFT JOIN charge_types AS utility_global_charge
+    ON utility_global_charge.name = 'utilities'
+   AND utility_global_charge.scope = 'global'
 `;
 
 const mapUtilityCharge = (row: {

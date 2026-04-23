@@ -42,13 +42,24 @@ export const reportRoutes: RouteDefinition[] = [
                 markets.name AS market_name,
                 payments.created_at,
                 users.name AS vendor_name,
-                payments.amount,
+                CASE
+                  WHEN COALESCE(payment_market_charge.is_enabled, payment_global_charge.is_enabled, 1) = 1
+                  THEN payments.amount
+                  ELSE 0
+                END AS amount,
                 payments.provider,
                 payments.transaction_id,
                 payments.status
          FROM payments
          INNER JOIN users ON users.id = payments.vendor_id
          LEFT JOIN markets ON markets.id = payments.market_id
+         LEFT JOIN charge_types AS payment_market_charge
+           ON payment_market_charge.name = payments.charge_type
+          AND payment_market_charge.scope = 'market'
+          AND payment_market_charge.market_id = payments.market_id
+         LEFT JOIN charge_types AS payment_global_charge
+           ON payment_global_charge.name = payments.charge_type
+          AND payment_global_charge.scope = 'global'
          WHERE ${clauses.join(" AND ")}
          ORDER BY payments.created_at DESC`,
         params,
@@ -105,8 +116,19 @@ export const reportRoutes: RouteDefinition[] = [
                 markets.name AS market_name,
                 users.name AS vendor_name,
                 stalls.name AS stall_name,
-                bookings.amount,
-                COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0)::INT AS paid_amount,
+                CASE
+                  WHEN COALESCE(booking_market_charge.is_enabled, booking_global_charge.is_enabled, 1) = 1
+                  THEN bookings.amount
+                  ELSE 0
+                END AS amount,
+                COALESCE(SUM(
+                  CASE
+                    WHEN payments.status = 'completed'
+                     AND COALESCE(payment_market_charge.is_enabled, payment_global_charge.is_enabled, 1) = 1
+                    THEN payments.amount
+                    ELSE 0
+                  END
+                ), 0)::INT AS paid_amount,
                 bookings.status,
                 bookings.created_at
          FROM bookings
@@ -114,9 +136,43 @@ export const reportRoutes: RouteDefinition[] = [
          INNER JOIN stalls ON stalls.id = bookings.stall_id
          LEFT JOIN payments ON payments.booking_id = bookings.id
          LEFT JOIN markets ON markets.id = bookings.market_id
+         LEFT JOIN charge_types AS booking_market_charge
+           ON booking_market_charge.name = 'booking_fee'
+          AND booking_market_charge.scope = 'market'
+          AND booking_market_charge.market_id = bookings.market_id
+         LEFT JOIN charge_types AS booking_global_charge
+           ON booking_global_charge.name = 'booking_fee'
+          AND booking_global_charge.scope = 'global'
+         LEFT JOIN charge_types AS payment_market_charge
+           ON payment_market_charge.name = payments.charge_type
+          AND payment_market_charge.scope = 'market'
+          AND payment_market_charge.market_id = payments.market_id
+         LEFT JOIN charge_types AS payment_global_charge
+           ON payment_global_charge.name = payments.charge_type
+          AND payment_global_charge.scope = 'global'
          WHERE ${clauses.join(" AND ")}
-         GROUP BY bookings.id, bookings.market_id, markets.name, users.name, stalls.name, bookings.amount, bookings.status, bookings.created_at
-         HAVING bookings.amount - COALESCE(SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END), 0) > 0
+         GROUP BY bookings.id,
+                  bookings.market_id,
+                  markets.name,
+                  users.name,
+                  stalls.name,
+                  bookings.amount,
+                  booking_market_charge.is_enabled,
+                  booking_global_charge.is_enabled,
+                  bookings.status,
+                  bookings.created_at
+         HAVING CASE
+                  WHEN COALESCE(booking_market_charge.is_enabled, booking_global_charge.is_enabled, 1) = 1
+                  THEN bookings.amount
+                  ELSE 0
+                END - COALESCE(SUM(
+                  CASE
+                    WHEN payments.status = 'completed'
+                     AND COALESCE(payment_market_charge.is_enabled, payment_global_charge.is_enabled, 1) = 1
+                    THEN payments.amount
+                    ELSE 0
+                  END
+                ), 0) > 0
          ORDER BY bookings.created_at DESC`,
         params,
       );
@@ -208,8 +264,19 @@ export const reportRoutes: RouteDefinition[] = [
       const collectionParams: Array<string | null> = [range.from, range.to];
       appendMarketScope(collectionClauses, collectionParams, "market_id", marketId);
       const collection = await all<{ amount: number }>(
-        `SELECT amount
+        `SELECT CASE
+                  WHEN COALESCE(payment_market_charge.is_enabled, payment_global_charge.is_enabled, 1) = 1
+                  THEN payments.amount
+                  ELSE 0
+                END AS amount
          FROM payments
+         LEFT JOIN charge_types AS payment_market_charge
+           ON payment_market_charge.name = payments.charge_type
+          AND payment_market_charge.scope = 'market'
+          AND payment_market_charge.market_id = payments.market_id
+         LEFT JOIN charge_types AS payment_global_charge
+           ON payment_global_charge.name = payments.charge_type
+          AND payment_global_charge.scope = 'global'
          WHERE ${collectionClauses.join(" AND ")}`,
         collectionParams,
       );

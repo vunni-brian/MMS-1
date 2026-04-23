@@ -10,7 +10,7 @@ import { config } from "../config.ts";
 import { rolePermissions } from "./permissions.ts";
 import { hashPassword, nowIso } from "./security.ts";
 import { syncSeedUserToSupabase } from "./supabase.ts";
-import type { AuthUser, LocationType, NotificationType, Role } from "../types.ts";
+import type { AuthUser, LocationType, MarketManagerSummary, NotificationType, Role } from "../types.ts";
 
 const { Pool, types } = pg;
 
@@ -292,8 +292,20 @@ export const listMarkets = async () =>
               area.name AS area_name,
               region.id AS region_id,
               region.name AS region_name,
-              managers.id AS manager_user_id,
-              managers.name AS manager_name,
+              (
+                SELECT manager_users.id
+                FROM users AS manager_users
+                WHERE manager_users.market_id = markets.id AND manager_users.role = 'manager'
+                ORDER BY manager_users.created_at ASC
+                LIMIT 1
+              ) AS manager_user_id,
+              (
+                SELECT manager_users.name
+                FROM users AS manager_users
+                WHERE manager_users.market_id = markets.id AND manager_users.role = 'manager'
+                ORDER BY manager_users.created_at ASC
+                LIMIT 1
+              ) AS manager_name,
               COUNT(DISTINCT CASE WHEN vendors.role = 'vendor' THEN vendors.id END)::INT AS vendor_count,
               COUNT(DISTINCT stalls.id)::INT AS stall_count,
               COUNT(DISTINCT CASE WHEN stalls.status = 'active' THEN stalls.id END)::INT AS active_stall_count,
@@ -304,7 +316,6 @@ export const listMarkets = async () =>
        LEFT JOIN locations AS sub_area ON sub_area.id = market_location.parent_id
        LEFT JOIN locations AS area ON area.id = sub_area.parent_id
        LEFT JOIN locations AS region ON region.id = area.parent_id
-       LEFT JOIN users AS managers ON managers.market_id = markets.id AND managers.role = 'manager'
        LEFT JOIN users AS vendors ON vendors.market_id = markets.id AND vendors.role = 'vendor'
        LEFT JOIN stalls ON stalls.market_id = markets.id
        GROUP BY markets.id,
@@ -316,9 +327,7 @@ export const listMarkets = async () =>
                 area.id,
                 area.name,
                 region.id,
-                region.name,
-                managers.id,
-                managers.name
+                region.name
        ORDER BY markets.name ASC`,
     )
   ).map(mapMarket);
@@ -332,6 +341,37 @@ export const getManagerForMarket = async (marketId: string) =>
      LIMIT 1`,
     [marketId],
   );
+
+export const listMarketManagers = async (marketId: string): Promise<MarketManagerSummary[]> =>
+  (
+    await all<{
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      market_id: string | null;
+      market_name: string | null;
+    }>(
+      `SELECT users.id,
+              users.name,
+              users.email,
+              users.phone,
+              users.market_id,
+              markets.name AS market_name
+       FROM users
+       LEFT JOIN markets ON markets.id = users.market_id
+       WHERE users.role = 'manager' AND users.market_id = ?
+       ORDER BY users.created_at ASC, users.name ASC`,
+      [marketId],
+    )
+  ).map((manager) => ({
+    id: manager.id,
+    name: manager.name,
+    email: manager.email,
+    phone: manager.phone,
+    marketId: manager.market_id,
+    marketName: manager.market_name,
+  }));
 
 export const logAuditEvent = async ({
   actorUserId,
@@ -381,6 +421,10 @@ export const serializeAuthUser = (row: {
   vendor_status: string | null;
   market_id: string | null;
   market_name: string | null;
+  profile_image_name: string | null;
+  profile_image_path: string | null;
+  profile_image_mime_type: string | null;
+  profile_image_size: number | null;
 }): AuthUser => {
   return {
     id: row.id,
@@ -393,6 +437,16 @@ export const serializeAuthUser = (row: {
     vendorStatus: row.vendor_status as AuthUser["vendorStatus"],
     marketId: row.market_id,
     marketName: row.market_name,
+    profileImage: row.profile_image_name
+      ? {
+          id: `${row.id}:profile-image`,
+          name: row.profile_image_name,
+          storagePath: row.profile_image_path,
+          mimeType: row.profile_image_mime_type,
+          size: row.profile_image_size,
+          createdAt: row.created_at,
+        }
+      : null,
     permissions: rolePermissions[row.role],
   };
 };
@@ -412,8 +466,12 @@ export const getUserRecordById = async (userId: string) => {
     vendor_status: string | null;
     market_id: string | null;
     market_name: string | null;
+    profile_image_name: string | null;
+    profile_image_path: string | null;
+    profile_image_mime_type: string | null;
+    profile_image_size: number | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN markets ON markets.id = users.market_id
@@ -437,8 +495,12 @@ export const getUserRecordByPhone = async (phone: string) => {
     vendor_status: string | null;
     market_id: string | null;
     market_name: string | null;
+    profile_image_name: string | null;
+    profile_image_path: string | null;
+    profile_image_mime_type: string | null;
+    profile_image_size: number | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN markets ON markets.id = users.market_id
@@ -784,11 +846,13 @@ export const seedDatabase = async () => {
     );
   });
 
+  const seedProductSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts"];
   users.filter((user) => user.role === "vendor").forEach((user, index) => {
     const managerUserId = user.marketId ? managerByMarket[user.marketId] : null;
     const seedNationalIdNumber = `CM${String(index + 1).padStart(8, "0")}`;
     const seedDistrict =
       user.marketId === "market_jinja" ? "Jinja" : user.marketId === "market_demo_test" ? "Kampala" : "Kampala";
+    const productSection = seedProductSections[index % seedProductSections.length];
     const documentBaseName = user.name.replace(/\s+/g, "_").toLowerCase();
     run(
       `INSERT OR IGNORE INTO vendor_profiles (
@@ -797,6 +861,7 @@ export const seedDatabase = async () => {
          approval_reason,
          national_id_number,
          district,
+         product_section,
          id_document_name,
          id_document_path,
          id_document_mime_type,
@@ -810,12 +875,13 @@ export const seedDatabase = async () => {
          rejected_by,
          rejected_at
        )
-       VALUES (?, ?, NULL, ?, ?, ?, ?, 'application/pdf', ?, ?, ?, 'application/pdf', ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 'application/pdf', ?, ?, ?, 'application/pdf', ?, ?, ?, ?, ?)`,
       [
         user.id,
         user.vendorStatus,
         seedNationalIdNumber,
         seedDistrict,
+        productSection,
         `${documentBaseName}_national_id.pdf`,
         path.join(config.uploadsDir, "seed", `${user.id}.pdf`),
         1024,
@@ -834,6 +900,7 @@ export const seedDatabase = async () => {
            approval_reason = NULL,
            national_id_number = ?,
            district = ?,
+           product_section = ?,
            id_document_name = ?,
            id_document_path = ?,
            id_document_mime_type = 'application/pdf',
@@ -851,6 +918,7 @@ export const seedDatabase = async () => {
         user.vendorStatus,
         seedNationalIdNumber,
         seedDistrict,
+        productSection,
         `${documentBaseName}_national_id.pdf`,
         path.join(config.uploadsDir, "seed", `${user.id}.pdf`),
         1024,

@@ -75,6 +75,24 @@ export interface Market {
   maintenanceStallCount: number;
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  storagePath: string;
+  createdAt: string;
+}
+
+export interface MarketManagerSummary {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  marketId: string | null;
+  marketName: string | null;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -87,6 +105,7 @@ export interface AuthUser {
   phoneVerifiedAt: string | null;
   marketId: string | null;
   marketName: string | null;
+  profileImage: Attachment | null;
 }
 
 export interface SessionAuth {

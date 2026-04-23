@@ -14,12 +14,17 @@ const vendorSelect = `
          users.phone,
          users.created_at,
          users.market_id,
+         users.profile_image_name,
+         users.profile_image_path,
+         users.profile_image_mime_type,
+         users.profile_image_size,
          markets.name AS market_name,
          markets.location AS market_location,
          vendor_profiles.approval_status,
          vendor_profiles.approval_reason,
          vendor_profiles.national_id_number,
          vendor_profiles.district,
+         vendor_profiles.product_section,
          vendor_profiles.id_document_name,
          vendor_profiles.id_document_path,
          vendor_profiles.id_document_mime_type,
@@ -40,12 +45,17 @@ const mapVendor = (row: {
   phone: string;
   created_at: string;
   market_id: string | null;
+  profile_image_name: string | null;
+  profile_image_path: string | null;
+  profile_image_mime_type: string | null;
+  profile_image_size: number | null;
   market_name: string | null;
   market_location: string | null;
   approval_status: string;
   approval_reason: string | null;
   national_id_number: string | null;
   district: string | null;
+  product_section: string | null;
   id_document_name: string | null;
   id_document_path: string | null;
   id_document_mime_type: string | null;
@@ -64,8 +74,19 @@ const mapVendor = (row: {
   marketName: row.market_name,
   nationalIdNumber: row.national_id_number,
   district: row.district,
+  productSection: row.product_section,
   status: row.approval_status,
   approvalReason: row.approval_reason,
+  profileImage: row.profile_image_name
+    ? {
+        id: `${row.id}:profile-image`,
+        name: row.profile_image_name,
+        storagePath: row.profile_image_path,
+        mimeType: row.profile_image_mime_type,
+        size: row.profile_image_size,
+        createdAt: row.created_at,
+      }
+    : null,
   idDocument: row.id_document_name
     ? {
         id: `${row.id}:national-id`,
@@ -98,12 +119,17 @@ const getVendorById = async (vendorId: string) => {
     phone: string;
     created_at: string;
     market_id: string | null;
+    profile_image_name: string | null;
+    profile_image_path: string | null;
+    profile_image_mime_type: string | null;
+    profile_image_size: number | null;
     market_name: string | null;
     market_location: string | null;
     approval_status: string;
     approval_reason: string | null;
     national_id_number: string | null;
     district: string | null;
+    product_section: string | null;
     id_document_name: string | null;
     id_document_path: string | null;
     id_document_mime_type: string | null;
@@ -131,12 +157,17 @@ export const vendorRoutes: RouteDefinition[] = [
         phone: string;
         created_at: string;
         market_id: string | null;
+        profile_image_name: string | null;
+        profile_image_path: string | null;
+        profile_image_mime_type: string | null;
+        profile_image_size: number | null;
         market_name: string | null;
         market_location: string | null;
         approval_status: string;
         approval_reason: string | null;
         national_id_number: string | null;
         district: string | null;
+        product_section: string | null;
         id_document_name: string | null;
         id_document_path: string | null;
         id_document_mime_type: string | null;
@@ -228,12 +259,14 @@ export const vendorRoutes: RouteDefinition[] = [
         email?: string;
         phone?: string;
         marketId?: string;
+        productSection?: string | null;
       }>(req);
 
       const name = body.name?.trim() || vendor.name;
       const email = body.email?.trim().toLowerCase() || vendor.email;
       const phone = body.phone ? normalizePhoneNumber(body.phone) : vendor.phone;
       const marketId = body.marketId?.trim() || vendor.marketId;
+      const productSection = body.productSection?.trim() || vendor.productSection || null;
 
       if (!name || !email || !phone || !marketId) {
         throw new HttpError(400, "Name, email, phone, and market are required.");
@@ -306,14 +339,15 @@ export const vendorRoutes: RouteDefinition[] = [
         if (marketChanged) {
           await run(
             `UPDATE vendor_profiles
-             SET approval_status = 'pending',
+             SET product_section = ?,
+                 approval_status = 'pending',
                  approval_reason = NULL,
                  approved_by = NULL,
                  approved_at = NULL,
                  rejected_by = NULL,
                  rejected_at = NULL
              WHERE user_id = ?`,
-            [params.id],
+            [productSection, params.id],
           );
           await run(
             `UPDATE bookings
@@ -325,6 +359,13 @@ export const vendorRoutes: RouteDefinition[] = [
                  updated_at = ?
              WHERE vendor_id = ? AND status = 'pending'`,
             [params.id, timestamp, "Cancelled because the vendor transferred to another market.", timestamp, params.id],
+          );
+        } else {
+          await run(
+            `UPDATE vendor_profiles
+             SET product_section = ?
+             WHERE user_id = ?`,
+            [productSection, params.id],
           );
         }
       });
@@ -362,6 +403,7 @@ export const vendorRoutes: RouteDefinition[] = [
         details: {
           previousMarketId: vendor.marketId,
           marketId: market.id,
+          productSection,
           phoneChanged,
           emailChanged: email !== vendor.email,
         },

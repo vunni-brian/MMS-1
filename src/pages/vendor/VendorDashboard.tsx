@@ -13,7 +13,9 @@ import {
   Store,
   TrendingUp,
   AlertCircle,
-  Loader2,
+  Mail,
+  Phone,
+  Users,
 } from "lucide-react";
 import {
   AreaChart,
@@ -75,19 +77,27 @@ const VendorDashboard = () => {
   const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings() });
   const paymentsQuery      = useQuery({ queryKey: ["payments"],          queryFn: () => api.getPayments(), refetchInterval: 10_000 });
   const notificationsQuery = useQuery({ queryKey: ["notifications", 5], queryFn: () => api.getNotifications(5) });
+  const managersQuery      = useQuery({ queryKey: ["market-managers", user?.marketId], queryFn: () => api.getMarketManagers(user!.marketId!), enabled: Boolean(user?.marketId) });
 
-  const isPending = stallsQuery.isPending || bookingsQuery.isPending || paymentsQuery.isPending || notificationsQuery.isPending;
-  const isError = stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError || notificationsQuery.isError;
+  const isPending =
+    stallsQuery.isPending ||
+    bookingsQuery.isPending ||
+    paymentsQuery.isPending ||
+    notificationsQuery.isPending ||
+    (Boolean(user?.marketId) && managersQuery.isPending);
+  const isError = stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError || notificationsQuery.isError || managersQuery.isError;
 
   const stallsData = stallsQuery.data;
   const bookingsData = bookingsQuery.data;
   const paymentsData = paymentsQuery.data;
   const notificationsData = notificationsQuery.data;
+  const managersData = managersQuery.data;
 
   const myStalls        = (stallsData?.stalls  || []).filter(s => s.vendorId === user?.id && s.status === "active");
   const myBookings      = bookingsData?.bookings      || [];
   const myPayments      = paymentsData?.payments      || [];
   const myNotifications = notificationsData?.notifications || [];
+  const marketManagers = managersData?.managers || [];
 
   const approvedBookings   = myBookings.filter(b => b.status === "approved");
   const pendingApplications = myBookings.filter(b => b.status === "pending");
@@ -365,6 +375,34 @@ const VendorDashboard = () => {
                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"/>
                 </Link>
               ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/80 bg-card shadow-sm">
+            <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
+              <p className="font-semibold font-heading text-sm">Market Managers</p>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="px-3 pb-3 space-y-2">
+              {marketManagers.length === 0 ? (
+                <p className="rounded-lg bg-muted/30 px-3 py-3 text-xs text-muted-foreground">No manager is assigned to your market yet.</p>
+              ) : (
+                marketManagers.map((manager) => (
+                  <div key={manager.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                    <p className="text-xs font-semibold">{manager.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                      <a href={`tel:${manager.phone}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                        <Phone className="h-3 w-3" />
+                        {manager.phone}
+                      </a>
+                      <a href={`mailto:${manager.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                        <Mail className="h-3 w-3" />
+                        {manager.email}
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

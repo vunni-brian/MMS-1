@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
@@ -25,7 +25,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -62,6 +62,7 @@ const AppLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading workspace...</div>;
@@ -101,6 +102,39 @@ const AppLayout = () => {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U";
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+    setProfileImageUrl(null);
+
+    if (!user.profileImage) {
+      return;
+    }
+
+    api
+      .getUserProfileImageUrl(user.id)
+      .then((url) => {
+        objectUrl = url;
+        if (isActive) {
+          setProfileImageUrl(url);
+        } else {
+          URL.revokeObjectURL(url);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setProfileImageUrl(null);
+        }
+      });
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [user.id, user.profileImage]);
 
   const openProfileTab = (tab?: string) => {
     navigate(`${profilePath}${tab ? `?tab=${tab}` : ""}`);
@@ -194,6 +228,7 @@ const AppLayout = () => {
                   className="flex h-9 items-center gap-2 rounded-full bg-background px-1.5 pr-2 text-left transition-colors hover:bg-muted/45"
                 >
                   <Avatar className="h-7 w-7 border border-border/70">
+                    {profileImageUrl && <AvatarImage src={profileImageUrl} alt={user.name} />}
                     <AvatarFallback className="bg-muted text-[11px] font-semibold text-foreground">{initials}</AvatarFallback>
                   </Avatar>
                   <span className="hidden max-w-[130px] truncate text-sm font-semibold sm:block">{user.name}</span>
@@ -204,6 +239,7 @@ const AppLayout = () => {
                 <DropdownMenuLabel className="p-2">
                   <div className="flex items-start gap-3">
                     <Avatar className="h-11 w-11 border border-border/70">
+                      {profileImageUrl && <AvatarImage src={profileImageUrl} alt={user.name} />}
                       <AvatarFallback className="bg-muted text-sm font-semibold text-foreground">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">

@@ -50,6 +50,8 @@ const isSettingsTab = (value: string | null): value is SettingsTab =>
 
 const roleLabel = (role: string) => role.charAt(0).toUpperCase() + role.slice(1);
 
+const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
+
 const SettingToggle = ({
   label,
   detail,
@@ -86,6 +88,8 @@ const ProfileSettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [removeProfileImage, setRemoveProfileImage] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -95,6 +99,7 @@ const ProfileSettingsPage = () => {
     email: "",
     phone: "",
     marketId: "",
+    productSection: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -145,6 +150,9 @@ const ProfileSettingsPage = () => {
     enabled: Boolean(isVendor),
   });
 
+  const vendor = vendorData?.vendor || null;
+  const markets = marketsData?.markets || [];
+
   useEffect(() => {
     if (!user) {
       return;
@@ -155,6 +163,7 @@ const ProfileSettingsPage = () => {
       email: user.email,
       phone: user.phone,
       marketId: user.marketId || "",
+      productSection: "",
     });
   }, [user]);
 
@@ -166,8 +175,52 @@ const ProfileSettingsPage = () => {
     };
   }, [avatarUrl]);
 
-  const vendor = vendorData?.vendor || null;
-  const markets = marketsData?.markets || [];
+  useEffect(() => {
+    if (!vendor) {
+      return;
+    }
+
+    setProfileForm((current) => ({
+      ...current,
+      productSection: vendor.productSection || "",
+    }));
+  }, [vendor]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    if (!user?.profileImage || profileImageFile || removeProfileImage) {
+      if (!profileImageFile) {
+        setAvatarUrl(null);
+      }
+      return;
+    }
+
+    api
+      .getUserProfileImageUrl(user.id)
+      .then((url) => {
+        objectUrl = url;
+        if (isActive) {
+          setAvatarUrl(url);
+        } else {
+          URL.revokeObjectURL(url);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setAvatarUrl(null);
+        }
+      });
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [profileImageFile, removeProfileImage, user?.id, user?.profileImage]);
+
   const selectedMarket = markets.find((market) => market.id === profileForm.marketId);
   const isPending = isVendor ? isVendorPending || isMarketsPending : false;
   const isError = isVendor ? isVendorError || isMarketsError : false;
@@ -179,24 +232,38 @@ const ProfileSettingsPage = () => {
       }
 
       if (user.role === "vendor") {
-        return await api.updateVendorProfile(user.id, {
+        const vendorResponse = await api.updateVendorProfile(user.id, {
           name: profileForm.name,
           email: profileForm.email,
           phone: profileForm.phone,
           marketId: profileForm.marketId,
+          productSection: profileForm.productSection,
         });
+        await api.updateMyProfile({
+          name: profileForm.name,
+          email: profileForm.email,
+          phone: profileForm.phone,
+          profileImage: profileImageFile,
+          removeProfileImage,
+        });
+        return vendorResponse;
       }
 
       return await api.updateMyProfile({
         name: profileForm.name,
         email: profileForm.email,
         phone: profileForm.phone,
+        profileImage: profileImageFile,
+        removeProfileImage,
       });
     },
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["vendor-profile", user?.id] });
       await queryClient.invalidateQueries({ queryKey: ["markets"] });
+      await queryClient.invalidateQueries({ queryKey: ["vendors"] });
       await refreshUser();
+      setProfileImageFile(null);
+      setRemoveProfileImage(false);
       setProfileMessage(response.message);
       setProfileError(null);
     },
@@ -238,7 +305,7 @@ const ProfileSettingsPage = () => {
 
   const canSaveProfile =
     Boolean(profileForm.name.trim() && profileForm.email.trim() && profileForm.phone.trim()) &&
-    (!isVendor || Boolean(profileForm.marketId));
+    (!isVendor || Boolean(profileForm.marketId && profileForm.productSection));
 
   const handleAvatarUpload = (file: File | null | undefined) => {
     if (!file) {
@@ -246,6 +313,14 @@ const ProfileSettingsPage = () => {
     }
 
     setAvatarUrl(URL.createObjectURL(file));
+    setProfileImageFile(file);
+    setRemoveProfileImage(false);
+  };
+
+  const handleAvatarDelete = () => {
+    setProfileImageFile(null);
+    setRemoveProfileImage(true);
+    setAvatarUrl(null);
   };
 
   const generalContent = (
@@ -281,7 +356,7 @@ const ProfileSettingsPage = () => {
                 onChange={(event) => handleAvatarUpload(event.target.files?.[0])}
               />
             </label>
-            <Button type="button" variant="outline" onClick={() => setAvatarUrl(null)}>
+            <Button type="button" variant="outline" onClick={handleAvatarDelete}>
               <Trash2 className="mr-1 h-4 w-4" />
               Delete
             </Button>
@@ -329,6 +404,26 @@ const ProfileSettingsPage = () => {
             <Label htmlFor="settings-role">Role</Label>
             <Input id="settings-role" value={roleLabel(user.role)} readOnly />
           </div>
+          {isVendor && (
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="settings-product-section">Product Section</Label>
+              <Select
+                value={profileForm.productSection}
+                onValueChange={(value) => setProfileForm((current) => ({ ...current, productSection: value }))}
+              >
+                <SelectTrigger id="settings-product-section">
+                  <SelectValue placeholder="Select product section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {productSections.map((section) => (
+                    <SelectItem key={section} value={section}>
+                      {section}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </section>
 

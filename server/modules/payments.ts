@@ -19,7 +19,11 @@ const paymentSelect = `
          payments.vendor_id,
          payments.provider,
          payments.charge_type,
-         payments.amount,
+         CASE
+           WHEN COALESCE(payment_market_charge.is_enabled, payment_global_charge.is_enabled, 1) = 1
+           THEN payments.amount
+           ELSE 0
+         END AS amount,
          payments.status,
          payments.transaction_id,
          payments.provider_reference,
@@ -45,6 +49,13 @@ const paymentSelect = `
   LEFT JOIN bookings AS utility_bookings ON utility_bookings.id = utility_charges.booking_id
   LEFT JOIN stalls AS utility_booking_stalls ON utility_booking_stalls.id = utility_bookings.stall_id
   LEFT JOIN markets ON markets.id = payments.market_id
+  LEFT JOIN charge_types AS payment_market_charge
+    ON payment_market_charge.name = payments.charge_type
+   AND payment_market_charge.scope = 'market'
+   AND payment_market_charge.market_id = payments.market_id
+  LEFT JOIN charge_types AS payment_global_charge
+    ON payment_global_charge.name = payments.charge_type
+   AND payment_global_charge.scope = 'global'
 `;
 
 const mapPayment = (row: {

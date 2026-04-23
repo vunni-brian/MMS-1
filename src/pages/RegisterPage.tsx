@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, CheckCircle, FileText, Store, Upload } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle, FileText, Store, Upload, UserCircle } from "lucide-react";
 
 import { api, ApiError } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
@@ -19,6 +19,8 @@ const formatFileLabel = (file: File | null) => {
   }
   return `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
 };
+
+const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
 
 const DocumentPreview = ({ file, label }: { file: File | null; label: string }) => (
   <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm">
@@ -46,6 +48,8 @@ const RegisterPage = () => {
     marketId: "",
     nationalIdNumber: "",
     district: "",
+    productSection: "",
+    profileImage: null as File | null,
     idFile: null as File | null,
     lcLetterFile: null as File | null,
   });
@@ -91,6 +95,8 @@ const RegisterPage = () => {
           marketId: form.marketId,
           nationalIdNumber: form.nationalIdNumber,
           district: form.district,
+          productSection: form.productSection,
+          profileImage: form.profileImage,
           idDocument: form.idFile,
           lcLetter: form.lcLetterFile,
         });
@@ -127,6 +133,7 @@ const RegisterPage = () => {
             form.marketId &&
             form.nationalIdNumber.trim() &&
             form.district.trim() &&
+            form.productSection &&
             form.idFile &&
             form.lcLetterFile,
         )
@@ -233,6 +240,26 @@ const RegisterPage = () => {
                   <section className="space-y-3">
                     <h2 className="text-sm font-semibold font-heading">Vendor Details</h2>
                     <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4 md:col-span-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium">Profile Photo</p>
+                            <p className="text-xs text-muted-foreground">Shown on your profile and in the manager vendor directory</p>
+                          </div>
+                          <UserCircle className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                          <Upload className="h-4 w-4" />
+                          Upload Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(event) => updateField("profileImage", event.target.files?.[0] || null)}
+                          />
+                        </label>
+                        <DocumentPreview file={form.profileImage} label="Profile photo preview" />
+                      </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="name">Full Name</Label>
                         <Input
@@ -259,6 +286,21 @@ const RegisterPage = () => {
                           onChange={(event) => updateField("district", event.target.value)}
                           required
                         />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="product-section">Product Section</Label>
+                        <Select value={form.productSection} onValueChange={(value) => updateField("productSection", value)}>
+                          <SelectTrigger id="product-section">
+                            <SelectValue placeholder="Select product section" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {productSections.map((section) => (
+                              <SelectItem key={section} value={section}>
+                                {section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="market">Market</Label>

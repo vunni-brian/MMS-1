@@ -1,3 +1,5 @@
+import fs from "node:fs";
+
 import {
   createId,
   get,
@@ -13,9 +15,9 @@ import {
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { getOtpNotificationMessage } from "../lib/otp-messages.ts";
 import { applyUserPassword, revokeUserSessions } from "../lib/passwords.ts";
-import { createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
+import { assertMarketAccess, createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
 import { addMinutes, createOtpCode, createTemporaryPassword, hashOtpCode, hashPassword, hashToken, normalizePhoneNumber, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
-import { createSupabaseAuthUser, deleteSupabaseAuthUser, findSupabaseAuthUser, updateSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
+import { createSupabaseAuthUser, deleteSupabaseAuthUser, downloadSupabaseStorageObject, findSupabaseAuthUser, updateSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
 import { persistFilePayload, removeStoredFile, validateFilePayload } from "../lib/storage.ts";
 import type { FilePayload } from "../types.ts";
 
@@ -144,6 +146,8 @@ export const authRoutes: RouteDefinition[] = [
         marketId: string;
         nationalIdNumber: string;
         district: string;
+        productSection: string;
+        profileImage: FilePayload | null;
         idDocument: FilePayload | null;
         lcLetter: FilePayload | null;
       }>(req);
@@ -151,11 +155,13 @@ export const authRoutes: RouteDefinition[] = [
       const name = body.name?.trim();
       const nationalIdNumber = body.nationalIdNumber?.trim().toUpperCase();
       const district = body.district?.trim();
+      const productSection = body.productSection?.trim();
 
-      if (!name || !body.email || !body.phone || !body.password || !body.marketId || !nationalIdNumber || !district) {
-        throw new HttpError(400, "Name, email, phone, password, market, NIN, and district are required.");
+      if (!name || !body.email || !body.phone || !body.password || !body.marketId || !nationalIdNumber || !district || !productSection) {
+        throw new HttpError(400, "Name, email, phone, password, market, NIN, district, and product section are required.");
       }
 
+      validateFilePayload(body.profileImage, ["image/jpeg", "image/png", "image/webp"], false);
       validateFilePayload(body.idDocument, ["application/pdf", "image/jpeg", "image/png"], true);
       validateFilePayload(body.lcLetter, ["application/pdf", "image/jpeg", "image/png"], true);
 
@@ -185,6 +191,7 @@ export const authRoutes: RouteDefinition[] = [
       const timestamp = nowIso();
       const expiresAt = addMinutes(config.otpTtlMinutes);
       let authUserId: string | null = null;
+      let storedProfileImagePath: string | null = null;
       let storedDocumentPath: string | null = null;
       let storedLcLetterPath: string | null = null;
 
@@ -214,11 +221,30 @@ export const authRoutes: RouteDefinition[] = [
         storedDocumentPath = file.storagePath;
         const lcLetter = await persistFilePayload("vendor-documents", userId, body.lcLetter!);
         storedLcLetterPath = lcLetter.storagePath;
+        const profileImage = body.profileImage ? await persistFilePayload("profile-images", userId, body.profileImage) : null;
+        storedProfileImagePath = profileImage?.storagePath || null;
 
         await transaction(async () => {
           await run(
-            `INSERT INTO users (id, auth_user_id, name, email, phone, password_hash, role, market_id, mfa_enabled, phone_verified_at, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, 'vendor', ?, 0, NULL, ?, ?)`,
+            `INSERT INTO users (
+               id,
+               auth_user_id,
+               name,
+               email,
+               phone,
+               password_hash,
+               role,
+               market_id,
+               mfa_enabled,
+               phone_verified_at,
+               profile_image_name,
+               profile_image_path,
+               profile_image_mime_type,
+               profile_image_size,
+               created_at,
+               updated_at
+             )
+             VALUES (?, ?, ?, ?, ?, ?, 'vendor', ?, 0, NULL, ?, ?, ?, ?, ?, ?)`,
             [
               userId,
               authUserId,
@@ -227,6 +253,10 @@ export const authRoutes: RouteDefinition[] = [
               normalizedPhone,
               hashPassword(body.password),
               market.id,
+              profileImage?.name || null,
+              profileImage?.storagePath || null,
+              profileImage?.mimeType || null,
+              profileImage?.size || null,
               timestamp,
               timestamp,
             ],
@@ -238,6 +268,7 @@ export const authRoutes: RouteDefinition[] = [
                approval_reason,
                national_id_number,
                district,
+               product_section,
                id_document_name,
                id_document_path,
                id_document_mime_type,
@@ -251,11 +282,12 @@ export const authRoutes: RouteDefinition[] = [
                rejected_by,
                rejected_at
              )
-             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
+             VALUES (?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL)`,
             [
               userId,
               nationalIdNumber,
               district,
+              productSection,
               file.name,
               file.storagePath,
               file.mimeType,
@@ -273,6 +305,7 @@ export const authRoutes: RouteDefinition[] = [
           );
         });
       } catch (error) {
+        await removeStoredFile(storedProfileImagePath);
         await removeStoredFile(storedDocumentPath);
         await removeStoredFile(storedLcLetterPath);
         if (authUserId) {
@@ -685,7 +718,13 @@ export const authRoutes: RouteDefinition[] = [
     path: "/auth/me",
     handler: async ({ req, res, auth, config }) => {
       const session = requireAuth(auth);
-      const body = await readJsonBody<{ name?: string; email?: string; phone?: string }>(req);
+      const body = await readJsonBody<{
+        name?: string;
+        email?: string;
+        phone?: string;
+        profileImage?: FilePayload | null;
+        removeProfileImage?: boolean;
+      }>(req);
       const name = body.name?.trim();
       const email = body.email?.trim().toLowerCase();
       const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
@@ -693,6 +732,7 @@ export const authRoutes: RouteDefinition[] = [
       if (!name || !email || !phone) {
         throw new HttpError(400, "Name, email, and phone are required.");
       }
+      validateFilePayload(body.profileImage, ["image/jpeg", "image/png", "image/webp"], false);
 
       const user = await getUserRecordById(session.user.id);
       if (!user) {
@@ -732,16 +772,54 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const timestamp = nowIso();
-      await run(
-        `UPDATE users
-         SET name = ?,
-             email = ?,
-             phone = ?,
-             phone_verified_at = ?,
-             updated_at = ?
-         WHERE id = ?`,
-        [name, email, phone, phone !== user.phone ? timestamp : user.phone_verified_at, timestamp, user.id],
-      );
+      let nextProfileImage:
+        | {
+            name: string;
+            storagePath: string;
+            mimeType: string;
+            size: number;
+          }
+        | null
+        | undefined;
+      let newProfileImagePath: string | null = null;
+
+      if (body.profileImage) {
+        nextProfileImage = await persistFilePayload("profile-images", user.id, body.profileImage);
+        newProfileImagePath = nextProfileImage.storagePath;
+      } else if (body.removeProfileImage) {
+        nextProfileImage = null;
+      }
+
+      try {
+        const profileImageSql =
+          nextProfileImage === undefined
+            ? ""
+            : `,\n             profile_image_name = ?,\n             profile_image_path = ?,\n             profile_image_mime_type = ?,\n             profile_image_size = ?`;
+        const profileImageParams =
+          nextProfileImage === undefined
+            ? []
+            : nextProfileImage
+              ? [nextProfileImage.name, nextProfileImage.storagePath, nextProfileImage.mimeType, nextProfileImage.size]
+              : [null, null, null, null];
+
+        await run(
+          `UPDATE users
+           SET name = ?,
+               email = ?,
+               phone = ?,
+               phone_verified_at = ?,
+               updated_at = ?${profileImageSql}
+           WHERE id = ?`,
+          [name, email, phone, phone !== user.phone ? timestamp : user.phone_verified_at, timestamp, ...profileImageParams, user.id],
+        );
+
+        if (nextProfileImage !== undefined) {
+          await removeStoredFile(user.profile_image_path);
+        }
+      } catch (error) {
+        await removeStoredFile(newProfileImagePath);
+        throw error;
+      }
 
       await logAuditEvent({
         actorUserId: user.id,
@@ -754,6 +832,7 @@ export const authRoutes: RouteDefinition[] = [
         details: {
           phoneChanged: phone !== user.phone,
           emailChanged: email !== user.email,
+          profileImageChanged: nextProfileImage !== undefined,
         },
       });
 
@@ -766,6 +845,57 @@ export const authRoutes: RouteDefinition[] = [
         user: serializeAuthUser(updatedUser),
         message: "Profile updated.",
       });
+    },
+  },
+  {
+    method: "GET",
+    path: "/users/:id/profile-image",
+    handler: async ({ res, auth, params }) => {
+      const session = requireAuth(auth);
+      const target = await get<{
+        id: string;
+        role: "vendor" | "manager" | "official" | "admin";
+        market_id: string | null;
+        profile_image_name: string | null;
+        profile_image_path: string | null;
+        profile_image_mime_type: string | null;
+      }>(
+        `SELECT id, role, market_id, profile_image_name, profile_image_path, profile_image_mime_type
+         FROM users
+         WHERE id = ?`,
+        [params.id],
+      );
+
+      if (!target || !target.profile_image_path || !target.profile_image_name) {
+        throw new HttpError(404, "Profile image not found.");
+      }
+      if (session.user.id !== target.id) {
+        if (session.user.role === "vendor") {
+          throw new HttpError(403, "You may only view your own profile image.");
+        }
+        assertMarketAccess(session, target.market_id);
+      }
+
+      res.setHeader("Content-Type", target.profile_image_mime_type || "application/octet-stream");
+      res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(target.profile_image_name)}"`);
+      res.setHeader("Cache-Control", "private, max-age=60");
+
+      if (target.profile_image_path.startsWith("supabase://")) {
+        const buffer = await downloadSupabaseStorageObject(target.profile_image_path);
+        if (!buffer) {
+          throw new HttpError(404, "Profile image not found.");
+        }
+        res.writeHead(200);
+        res.end(buffer);
+        return;
+      }
+
+      if (!fs.existsSync(target.profile_image_path)) {
+        throw new HttpError(404, "Profile image file is missing from storage.");
+      }
+
+      res.writeHead(200);
+      fs.createReadStream(target.profile_image_path).pipe(res);
     },
   },
   {

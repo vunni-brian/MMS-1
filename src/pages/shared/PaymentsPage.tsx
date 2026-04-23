@@ -348,15 +348,16 @@ const PaymentsPage = () => {
             <CardContent className="space-y-3">
               {pendingBookings.length === 0 ? <p className="text-sm text-muted-foreground">No approved bookings are currently awaiting payment.</p> : pendingBookings.map((booking) => {
                 const pendingPayment = pendingPaymentByBooking[booking.id];
+                const feeDisabled = booking.amount <= 0;
                 return (
                   <div key={booking.id} className="rounded-lg bg-muted/50 p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div><p className="font-medium text-sm">{booking.stallName}</p><p className="text-xs text-muted-foreground">{formatHumanDateRange(booking.startDate, booking.endDate)} - {formatCurrency(booking.amount)}</p></div>
                       <div className="flex items-center gap-2">
                         {pendingPayment && <StatusBadge status="pending" context="payment" />}
-                        <Button onClick={() => { setPaymentIntent({ title: booking.stallName, subtitle: formatHumanDateRange(booking.startDate, booking.endDate), amount: booking.amount, payload: { bookingId: booking.id } }); setError(null); }} disabled={Boolean(pendingPayment)}>
+                        <Button onClick={() => { setPaymentIntent({ title: booking.stallName, subtitle: formatHumanDateRange(booking.startDate, booking.endDate), amount: booking.amount, payload: { bookingId: booking.id } }); setError(null); }} disabled={Boolean(pendingPayment) || feeDisabled}>
                           <Wallet className="mr-1 h-4 w-4" />
-                          {pendingPayment ? "Awaiting Confirmation" : "Proceed to Payment"}
+                          {feeDisabled ? "Fee Disabled" : pendingPayment ? "Awaiting Confirmation" : "Proceed to Payment"}
                         </Button>
                       </div>
                     </div>
@@ -371,7 +372,8 @@ const PaymentsPage = () => {
             <CardContent className="space-y-3">
               {utilityCharges.length === 0 ? <p className="text-sm text-muted-foreground">No utility charges have been assigned to your account yet.</p> : utilityCharges.map((charge) => {
                 const pendingPayment = pendingPaymentByUtilityCharge[charge.id];
-                const canPay = charge.status === "unpaid" || charge.status === "overdue";
+                const amountDisabled = charge.amount <= 0;
+                const canPay = (charge.status === "unpaid" || charge.status === "overdue") && !amountDisabled;
                 const canViewReceipt = charge.status === "paid" && Boolean(charge.latestPaymentId);
                 const actionLabel = pendingPayment || charge.status === "pending" ? "Awaiting Confirmation" : "Proceed to Payment";
                 return (
@@ -388,7 +390,8 @@ const PaymentsPage = () => {
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {canPay && <Button onClick={() => { setPaymentIntent({ title: getUtilityChargeTitle(charge), subtitle: `${utilityTypeLabels[charge.utilityType]} - ${charge.billingPeriod}`, amount: charge.amount, payload: { utilityChargeId: charge.id } }); setError(null); }} disabled={Boolean(pendingPayment)}><Wallet className="mr-1 h-4 w-4" />{actionLabel}</Button>}
-                      {!canPay && (pendingPayment || charge.status === "pending") && <Button disabled><Wallet className="mr-1 h-4 w-4" />Awaiting Confirmation</Button>}
+                      {amountDisabled && ["unpaid", "overdue"].includes(charge.status) && <Button disabled><Wallet className="mr-1 h-4 w-4" />Fee Disabled</Button>}
+                      {!amountDisabled && !canPay && (pendingPayment || charge.status === "pending") && <Button disabled><Wallet className="mr-1 h-4 w-4" />Awaiting Confirmation</Button>}
                       {canViewReceipt && <Button variant="outline" onClick={() => setSelectedReceiptPaymentId(charge.latestPaymentId!)}><ReceiptText className="mr-1 h-4 w-4" />View Receipt</Button>}
                     </div>
                   </div>
@@ -402,7 +405,8 @@ const PaymentsPage = () => {
             <CardContent className="space-y-3">
               {penalties.length === 0 ? <p className="text-sm text-muted-foreground">No penalties have been issued to your account.</p> : penalties.map((penalty: Penalty) => {
                 const pendingPayment = pendingPaymentByPenalty[penalty.id];
-                const canPay = penalty.status === "unpaid";
+                const amountDisabled = penalty.amount <= 0;
+                const canPay = penalty.status === "unpaid" && !amountDisabled;
                 const canViewReceipt = penalty.status === "paid" && Boolean(penalty.latestPaymentId);
                 const actionLabel = pendingPayment || penalty.status === "pending" ? "Awaiting Confirmation" : "Proceed to Payment";
                 return (
@@ -419,7 +423,8 @@ const PaymentsPage = () => {
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {canPay && <Button onClick={() => { setPaymentIntent({ title: `Penalty - ${penalty.reason}`, subtitle: penalty.relatedUtilityChargeDescription || "Compliance enforcement", amount: penalty.amount, payload: { penaltyId: penalty.id } }); setError(null); }} disabled={Boolean(pendingPayment)}><Wallet className="mr-1 h-4 w-4" />{actionLabel}</Button>}
-                      {!canPay && (pendingPayment || penalty.status === "pending") && <Button disabled><Wallet className="mr-1 h-4 w-4" />Awaiting Confirmation</Button>}
+                      {amountDisabled && penalty.status === "unpaid" && <Button disabled><Wallet className="mr-1 h-4 w-4" />Fee Disabled</Button>}
+                      {!amountDisabled && !canPay && (pendingPayment || penalty.status === "pending") && <Button disabled><Wallet className="mr-1 h-4 w-4" />Awaiting Confirmation</Button>}
                       {canViewReceipt && <Button variant="outline" onClick={() => setSelectedReceiptPaymentId(penalty.latestPaymentId!)}><ReceiptText className="mr-1 h-4 w-4" />View Receipt</Button>}
                     </div>
                   </div>

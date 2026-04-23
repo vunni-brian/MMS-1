@@ -81,6 +81,15 @@ export interface Attachment {
   createdAt: string;
 }
 
+export interface MarketManagerSummary {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  marketId: string | null;
+  marketName: string | null;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -93,6 +102,7 @@ export interface AuthUser {
   phoneVerifiedAt: string | null;
   marketId: string | null;
   marketName: string | null;
+  profileImage: Attachment | null;
 }
 
 export interface VendorProfile {
@@ -105,8 +115,10 @@ export interface VendorProfile {
   marketName: string | null;
   nationalIdNumber: string | null;
   district: string | null;
+  productSection: string | null;
   status: VendorApprovalStatus;
   approvalReason: string | null;
+  profileImage: Attachment | null;
   idDocument: Attachment | null;
   lcLetter: Attachment | null;
   documentValidation: {

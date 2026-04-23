@@ -14,7 +14,11 @@ const penaltySelect = `
          vendors.phone AS vendor_phone,
          penalties.related_utility_charge_id,
          utility_charges.description AS related_utility_charge_description,
-         penalties.amount,
+         CASE
+           WHEN COALESCE(penalty_market_charge.is_enabled, penalty_global_charge.is_enabled, 1) = 1
+           THEN penalties.amount
+           ELSE 0
+         END AS amount,
          penalties.reason,
          penalties.status,
          penalties.issued_by,
@@ -67,6 +71,13 @@ const penaltySelect = `
   LEFT JOIN users AS issuers ON issuers.id = penalties.issued_by
   LEFT JOIN utility_charges ON utility_charges.id = penalties.related_utility_charge_id
   LEFT JOIN markets ON markets.id = penalties.market_id
+  LEFT JOIN charge_types AS penalty_market_charge
+    ON penalty_market_charge.name = 'penalties'
+   AND penalty_market_charge.scope = 'market'
+   AND penalty_market_charge.market_id = penalties.market_id
+  LEFT JOIN charge_types AS penalty_global_charge
+    ON penalty_global_charge.name = 'penalties'
+   AND penalty_global_charge.scope = 'global'
 `;
 
 const mapPenalty = (row: {

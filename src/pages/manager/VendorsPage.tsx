@@ -149,6 +149,8 @@ const VendorProfileCard = ({
   const vendor = row.vendor;
   const initials = getInitials(vendor.name);
   const marketName = vendor.marketName || "Assigned market";
+  const productSection = vendor.productSection || "Product section not set";
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const statusLabel =
     vendor.status === "approved"
       ? row.operationalStatus === "late_payment"
@@ -158,14 +160,52 @@ const VendorProfileCard = ({
         ? "Pending application"
         : "Rejected application";
 
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+    setProfileImageUrl(null);
+
+    if (!vendor.profileImage) {
+      return;
+    }
+
+    api
+      .getUserProfileImageUrl(vendor.id)
+      .then((url) => {
+        objectUrl = url;
+        if (isActive) {
+          setProfileImageUrl(url);
+        } else {
+          URL.revokeObjectURL(url);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setProfileImageUrl(null);
+        }
+      });
+
+    return () => {
+      isActive = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [vendor.id, vendor.profileImage]);
+
   return (
     <article className="rounded-xl border border-[#2b3546] bg-[#1f2937] p-5 text-slate-100 shadow-sm">
       <div className="flex flex-col items-center text-center">
-        <div className="flex h-28 w-28 items-center justify-center rounded-full border border-white/10 bg-slate-100 text-3xl font-bold text-slate-800 shadow-sm">
-          {initials}
+        <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-slate-100 text-3xl font-bold text-slate-800 shadow-sm">
+          {profileImageUrl ? (
+            <img src={profileImageUrl} alt={vendor.name} className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
         </div>
         <h2 className="mt-5 max-w-full truncate text-xl font-bold font-heading tracking-wide text-slate-100">{vendor.name}</h2>
         <p className="mt-1 max-w-full truncate text-sm font-semibold text-slate-200">{marketName}</p>
+        <p className="mt-1 max-w-full truncate text-sm text-slate-300">{productSection}</p>
         <p className="mt-2 max-w-full truncate text-sm text-slate-400">{statusLabel}</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           <StatusBadge status={vendor.status} context="vendor" />
@@ -466,6 +506,7 @@ const VendorsPage = () => {
                   <EvidenceField label="Email" value={selectedRow.vendor.email} />
                   <EvidenceField label="NIN" value={selectedRow.vendor.nationalIdNumber || "Not recorded"} mono={Boolean(selectedRow.vendor.nationalIdNumber)} />
                   <EvidenceField label="District" value={selectedRow.vendor.district || "Not recorded"} />
+                  <EvidenceField label="Product Section" value={selectedRow.vendor.productSection || "Not recorded"} />
                 </div>
 
                 <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
