@@ -72,6 +72,7 @@ const getBalanceTrend = (payments: { createdAt: string; amount: number }[]) => {
 /* ─── Component ─────────────────────────────────────────────── */
 const VendorDashboard = () => {
   const { user } = useAuth();
+  const isPendingVendor = user?.vendorStatus !== "approved";
 
   const stallsQuery        = useQuery({ queryKey: ["stalls","mine"],    queryFn: () => api.getStalls({ scope: "mine" }) });
   const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings() });
@@ -125,14 +126,14 @@ const VendorDashboard = () => {
   const stats = [
     { label: "Active Stalls",       value: myStalls.length,          detail: myStalls.length === 1 ? "1 stall" : `${myStalls.length} stalls`,            color: "hsl(var(--primary))" },
     { label: "Pending Applications", value: pendingApplications.length, detail: pendingApplications.length > 0 ? "Under review" : "None pending",          color: "hsl(var(--warning))" },
-    { label: "Awaiting Payment",    value: approvedBookings.length,  detail: awaitingTotal > 0 ? `${formatCurrency(awaitingTotal)} due` : "Nothing due",  color: "hsl(var(--info))", actionPath: "/vendor/payments" },
-    { label: "Unread Alerts",       value: unreadAlerts.length,      detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up",               color: "hsl(var(--accent))", highlight: true, actionPath: "/vendor/notifications" },
+    { label: "Awaiting Payment",    value: approvedBookings.length,  detail: awaitingTotal > 0 ? `${formatCurrency(awaitingTotal)} due` : "Nothing due",  color: "hsl(var(--info))", actionPath: isPendingVendor ? undefined : "/vendor/payments" },
+    { label: "Unread Alerts",       value: unreadAlerts.length,      detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up",               color: "hsl(var(--accent))", highlight: true, actionPath: isPendingVendor ? undefined : "/vendor/notifications" },
   ];
 
   const quickActions = [
-    { label: "My Stalls",   path: "/vendor/stalls",   icon: Grid3X3,   desc: "View stall allocations" },
-    { label: "Pay Bills",   path: "/vendor/payments", icon: ReceiptText, desc: "Settle pending payments" },
-    { label: "Apply",       path: "/vendor/stalls",   icon: Store,      desc: "Browse & apply for stalls" },
+    { label: "My Stalls",   path: "/vendor/stalls",   icon: Grid3X3,   desc: isPendingVendor ? "Available after manager approval" : "View stall allocations" },
+    { label: "Pay Bills",   path: "/vendor/payments", icon: ReceiptText, desc: isPendingVendor ? "Available after manager approval" : "Settle pending payments" },
+    { label: "Apply",       path: "/vendor/stalls",   icon: Store,      desc: isPendingVendor ? "Available after manager approval" : "Browse & apply for stalls" },
   ];
 
   const getLeaseExpiry = (stallId: string) => {
@@ -192,6 +193,16 @@ const VendorDashboard = () => {
           {completedPayments.length} completed payment{completedPayments.length !== 1 ? "s" : ""}
         </span>
       </div>
+
+      {isPendingVendor && (
+        <Alert className="border-warning/30 bg-warning/5">
+          <Shield className="h-4 w-4 text-warning" />
+          <AlertTitle>Approval Pending</AlertTitle>
+          <AlertDescription>
+            Your dashboard is available now. Stalls, payments, notifications, and complaints unlock after manager approval.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* ── Row 2: KPI Sparkline Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
@@ -364,16 +375,28 @@ const VendorDashboard = () => {
             <p className="font-semibold font-heading text-sm px-3 pt-3 pb-1.5 shrink-0">Quick Actions</p>
             <div className="overflow-y-auto max-h-48 lg:max-h-none lg:flex-1 px-2 pb-2 space-y-0.5 lg:min-h-0">
               {quickActions.map(a => (
-                <Link key={a.label} to={a.path} className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/50 transition-colors group">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <a.icon className="h-3.5 w-3.5"/>
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold">{a.label}</p>
-                    <p className="text-[11px] text-muted-foreground">{a.desc}</p>
+                isPendingVendor ? (
+                  <div key={a.label} className="flex items-center gap-2.5 rounded-lg px-2 py-2 opacity-60">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <a.icon className="h-3.5 w-3.5"/>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold">{a.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{a.desc}</p>
+                    </div>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"/>
-                </Link>
+                ) : (
+                  <Link key={a.label} to={a.path} className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/50 transition-colors group">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <a.icon className="h-3.5 w-3.5"/>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold">{a.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{a.desc}</p>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"/>
+                  </Link>
+                )
               ))}
             </div>
           </div>

@@ -28,3 +28,17 @@ export const ProtectedRoute = ({
 
   return <>{children}</>;
 };
+
+export const VendorApprovalGuard = ({ children }: { children: ReactNode }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading session...</div>;
+  }
+
+  if (user?.role === "vendor" && user.vendorStatus !== "approved") {
+    return <Navigate to="/vendor" replace state={{ approvalRequired: true }} />;
+  }
+
+  return <>{children}</>;
+};

@@ -357,9 +357,18 @@ export const authRoutes: RouteDefinition[] = [
       await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
       await run(`UPDATE users SET phone_verified_at = ?, updated_at = ? WHERE id = ?`, [timestamp, timestamp, challenge.user_id]);
 
+      const user = await getUserRecordById(challenge.user_id!);
+      if (!user) {
+        throw new HttpError(404, "User not found for registration challenge.");
+      }
+
+      const token = await createSessionForUser(user.id);
+      await logLoginSuccess(user, false);
       sendJson(res, 200, {
+        token,
+        user: serializeAuthUser(user),
         status: "pending_approval",
-        message: "Phone verified. Your vendor profile is pending manager approval.",
+        message: "Phone verified. Your dashboard is available while your vendor profile awaits manager approval.",
       });
     },
   },
@@ -560,9 +569,6 @@ export const authRoutes: RouteDefinition[] = [
             expiresAt: challenge.expiresAt,
           });
           return;
-        }
-        if (user.vendor_status === "pending") {
-          throw new HttpError(403, "Your vendor profile is awaiting manager approval.");
         }
         if (user.vendor_status === "rejected") {
           throw new HttpError(403, "Your vendor profile was rejected. Contact a manager.");

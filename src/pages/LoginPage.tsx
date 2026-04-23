@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, Shield, Store } from "lucide-react";
+import { Shield, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, setSessionToken } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,13 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const LoginPage = () => {
-  const { user, login, verifyPrivilegedMfa, pendingMfa, clearPendingMfa, isLoading, authError } = useAuth();
+  const { user, login, verifyPrivilegedMfa, pendingMfa, clearPendingMfa, isLoading, authError, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [pageError, setPageError] = useState<string | null>(null);
-  const [verificationSuccess, setVerificationSuccess] = useState<string | null>(null);
   const [pendingVendorVerification, setPendingVendorVerification] = useState<{
     challengeId: string;
     expiresAt: string;
@@ -42,8 +41,9 @@ const LoginPage = () => {
 
       if (pendingVendorVerification) {
         const response = await api.verifyRegistrationOtp(pendingVendorVerification.challengeId, otp);
+        setSessionToken(response.token);
+        await refreshUser();
         setPendingVendorVerification(null);
-        setVerificationSuccess(response.message);
         setOtp("");
         return;
       }
@@ -80,29 +80,9 @@ const LoginPage = () => {
   const handleBackToLogin = () => {
     clearPendingMfa();
     setPendingVendorVerification(null);
-    setVerificationSuccess(null);
     setOtp("");
     setPageError(null);
   };
-
-  if (verificationSuccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="card-warm w-full max-w-md text-center">
-          <CardContent className="pt-8 pb-8 space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10">
-              <CheckCircle className="w-8 h-8 text-success" />
-            </div>
-            <h2 className="text-xl font-bold font-heading">Phone Verified</h2>
-            <p className="text-muted-foreground text-sm">{verificationSuccess}</p>
-            <Button onClick={handleBackToLogin} variant="outline">
-              Back to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

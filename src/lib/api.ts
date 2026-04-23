@@ -137,7 +137,7 @@ export const api = {
   },
 
   verifyRegistrationOtp: (challengeId: string, code: string) =>
-    apiRequest<{ status: string; message: string }>("/auth/verify-registration-otp", {
+    apiRequest<{ token: string; user: AuthUser; status: string; message: string }>("/auth/verify-registration-otp", {
       method: "POST",
       body: JSON.stringify({ challengeId, code }),
     }),

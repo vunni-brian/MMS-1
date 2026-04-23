@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, CheckCircle, FileText, Store, Upload, UserCircle } from "lucide-react";
+import { ArrowLeft, Camera, FileText, Store, Upload, UserCircle } from "lucide-react";
 
-import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { api, ApiError, setSessionToken } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type RegistrationStep = "form" | "otp" | "done";
+type RegistrationStep = "details" | "documents" | "otp";
 
 const formatFileLabel = (file: File | null) => {
   if (!file) {
@@ -36,7 +37,8 @@ const DocumentPreview = ({ file, label }: { file: File | null; label: string }) 
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<RegistrationStep>("form");
+  const { refreshUser } = useAuth();
+  const [step, setStep] = useState<RegistrationStep>("details");
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,7 +82,12 @@ const RegisterPage = () => {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (step === "form") {
+      if (step === "details") {
+        setStep("documents");
+        return;
+      }
+
+      if (step === "documents") {
         if (!form.idFile) {
           throw new Error("A National ID document is required.");
         }
@@ -109,8 +116,10 @@ const RegisterPage = () => {
         throw new Error("Registration challenge not found. Restart the registration flow.");
       }
 
-      await api.verifyRegistrationOtp(challengeId, otp);
-      setStep("done");
+      const response = await api.verifyRegistrationOtp(challengeId, otp);
+      setSessionToken(response.token);
+      await refreshUser();
+      navigate("/vendor", { replace: true });
     } catch (error) {
       setError(error instanceof ApiError ? error.message : error instanceof Error ? error.message : "Unable to complete registration.");
     } finally {
@@ -124,7 +133,7 @@ const RegisterPage = () => {
   };
 
   const canSubmit =
-    step === "form"
+    step === "details"
       ? Boolean(
           form.name.trim() &&
             form.email.trim() &&
@@ -133,32 +142,14 @@ const RegisterPage = () => {
             form.marketId &&
             form.nationalIdNumber.trim() &&
             form.district.trim() &&
-            form.productSection &&
-            form.idFile &&
+            form.productSection,
+        )
+      : step === "documents"
+      ? Boolean(
+          form.idFile &&
             form.lcLetterFile,
         )
       : otp.length === 6 && Boolean(challengeId);
-
-  if (step === "done") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="card-warm w-full max-w-md text-center">
-          <CardContent className="pt-8 pb-8 space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10">
-              <CheckCircle className="w-8 h-8 text-success" />
-            </div>
-            <h2 className="text-xl font-bold font-heading">Registration Submitted</h2>
-            <p className="text-muted-foreground text-sm">
-              Your phone number is verified and your vendor profile is now pending manager approval.
-            </p>
-            <Button onClick={() => navigate("/login")} variant="outline">
-              Back to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -169,18 +160,140 @@ const RegisterPage = () => {
           </div>
           <h1 className="text-2xl font-bold font-heading">Vendor Registration</h1>
           <p className="text-muted-foreground text-sm">
-            {step === "form" ? "Create your vendor profile and submit your documents" : "Verify the OTP sent to your phone"}
+            {step === "details"
+              ? "Enter your account and vendor details first"
+              : step === "documents"
+                ? "Upload your verification documents"
+                : "Verify the OTP sent to your phone"}
           </p>
         </div>
 
         <Card className="card-warm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-heading">{step === "form" ? "Vendor details" : "Phone verification"}</CardTitle>
-            <CardDescription>Step {step === "form" ? "1" : "2"} of 2</CardDescription>
+            <CardTitle className="text-lg font-heading">
+              {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
+            </CardTitle>
+            <CardDescription>Step {step === "details" ? "1" : step === "documents" ? "2" : "3"} of 3</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-5" onSubmit={handleSubmit}>
-              {step === "form" ? (
+              {step === "details" ? (
+                <section className="space-y-3">
+                  <h2 className="text-sm font-semibold font-heading">Vendor Details</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4 md:col-span-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium">Profile Photo</p>
+                          <p className="text-xs text-muted-foreground">Shown on your profile and in the manager vendor directory</p>
+                        </div>
+                        <UserCircle className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
+                        <Upload className="h-4 w-4" />
+                        Upload Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => updateField("profileImage", event.target.files?.[0] || null)}
+                        />
+                      </label>
+                      <DocumentPreview file={form.profileImage} label="Profile photo preview" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={form.name}
+                        onChange={(event) => updateField("name", event.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="national-id-number">NIN / ID Number</Label>
+                      <Input
+                        id="national-id-number"
+                        value={form.nationalIdNumber}
+                        onChange={(event) => updateField("nationalIdNumber", event.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="district">District</Label>
+                      <Input
+                        id="district"
+                        value={form.district}
+                        onChange={(event) => updateField("district", event.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="product-section">Product Section</Label>
+                      <Select value={form.productSection} onValueChange={(value) => updateField("productSection", value)}>
+                        <SelectTrigger id="product-section">
+                          <SelectValue placeholder="Select product section" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productSections.map((section) => (
+                            <SelectItem key={section} value={section}>
+                              {section}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="market">Market</Label>
+                      <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
+                        <SelectTrigger id="market">
+                          <SelectValue placeholder="Select your market" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(marketsData?.markets || []).map((market) => (
+                            <SelectItem key={market.id} value={market.id}>
+                              {market.name} ({market.location})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        placeholder="+256 7XX XXX XXX"
+                        value={form.phone}
+                        onChange={(event) => updateField("phone", event.target.value)}
+                        autoComplete="tel"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={form.email}
+                        onChange={(event) => updateField("email", event.target.value)}
+                        autoComplete="email"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={form.password}
+                        onChange={(event) => updateField("password", event.target.value)}
+                        autoComplete="new-password"
+                        required
+                      />
+                    </div>
+                  </div>
+                </section>
+              ) : step === "documents" ? (
                 <>
                   <section className="space-y-3">
                     <h2 className="text-sm font-semibold font-heading">Document Upload</h2>
@@ -236,122 +349,6 @@ const RegisterPage = () => {
                       </div>
                     </div>
                   </section>
-
-                  <section className="space-y-3">
-                    <h2 className="text-sm font-semibold font-heading">Vendor Details</h2>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4 md:col-span-2">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium">Profile Photo</p>
-                            <p className="text-xs text-muted-foreground">Shown on your profile and in the manager vendor directory</p>
-                          </div>
-                          <UserCircle className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                          <Upload className="h-4 w-4" />
-                          Upload Photo
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(event) => updateField("profileImage", event.target.files?.[0] || null)}
-                          />
-                        </label>
-                        <DocumentPreview file={form.profileImage} label="Profile photo preview" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input
-                          id="name"
-                          value={form.name}
-                          onChange={(event) => updateField("name", event.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="national-id-number">NIN / ID Number</Label>
-                        <Input
-                          id="national-id-number"
-                          value={form.nationalIdNumber}
-                          onChange={(event) => updateField("nationalIdNumber", event.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="district">District</Label>
-                        <Input
-                          id="district"
-                          value={form.district}
-                          onChange={(event) => updateField("district", event.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="product-section">Product Section</Label>
-                        <Select value={form.productSection} onValueChange={(value) => updateField("productSection", value)}>
-                          <SelectTrigger id="product-section">
-                            <SelectValue placeholder="Select product section" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {productSections.map((section) => (
-                              <SelectItem key={section} value={section}>
-                                {section}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="market">Market</Label>
-                        <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
-                          <SelectTrigger id="market">
-                            <SelectValue placeholder="Select your market" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(marketsData?.markets || []).map((market) => (
-                              <SelectItem key={market.id} value={market.id}>
-                                {market.name} ({market.location})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          placeholder="+256 7XX XXX XXX"
-                          value={form.phone}
-                          onChange={(event) => updateField("phone", event.target.value)}
-                          autoComplete="tel"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="email">Email Address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={form.email}
-                          onChange={(event) => updateField("email", event.target.value)}
-                          autoComplete="email"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1.5 md:col-span-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={form.password}
-                          onChange={(event) => updateField("password", event.target.value)}
-                          autoComplete="new-password"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </section>
                 </>
               ) : (
                 <div className="space-y-3">
@@ -372,10 +369,12 @@ const RegisterPage = () => {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    if (step === "form") {
+                    if (step === "details") {
                       navigate("/login");
+                    } else if (step === "documents") {
+                      setStep("details");
                     } else {
-                      setStep("form");
+                      setStep("documents");
                       setOtp("");
                     }
                   }}
@@ -385,7 +384,7 @@ const RegisterPage = () => {
                   Back
                 </Button>
                 <Button type="submit" className="flex-1" disabled={isSubmitting || !canSubmit}>
-                  {step === "form" ? "Send OTP" : "Verify & Submit"}
+                  {step === "details" ? "Continue to Documents" : step === "documents" ? "Send OTP" : "Verify & Open Dashboard"}
                 </Button>
               </div>
             </form>

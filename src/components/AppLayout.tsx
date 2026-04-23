@@ -76,7 +76,16 @@ const AppLayout = () => {
   });
 
   const hasUnread = notificationsData?.notifications?.some((notification) => !notification.read) || false;
-  const filtered = navItems.filter((item) => item.roles.includes(user.role));
+  const isPendingVendor = user.role === "vendor" && user.vendorStatus !== "approved";
+  const filtered = navItems.filter((item) => {
+    if (!item.roles.includes(user.role)) {
+      return false;
+    }
+    if (isPendingVendor) {
+      return item.path === "" || item.path === "profile";
+    }
+    return true;
+  });
   const basePath = `/${user.role}`;
   const workspaceTitle =
     user.role === "admin"
@@ -212,8 +221,13 @@ const AppLayout = () => {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => openProfileTab("notifications")}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted/50 hover:text-foreground"
+              onClick={() => {
+                if (!isPendingVendor) {
+                  openProfileTab("notifications");
+                }
+              }}
+              disabled={isPendingVendor}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Bell className="h-4 w-4" />
               {user.role === "vendor" && hasUnread && (
@@ -254,10 +268,12 @@ const AppLayout = () => {
                   <UserCircle className="h-4 w-4" />
                   Profile Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openProfileTab("notifications")} className="gap-3">
-                  <Bell className="h-4 w-4" />
-                  Notifications
-                </DropdownMenuItem>
+                {!isPendingVendor && (
+                  <DropdownMenuItem onClick={() => openProfileTab("notifications")} className="gap-3">
+                    <Bell className="h-4 w-4" />
+                    Notifications
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => openProfileTab("security")} className="gap-3">
                   <KeyRound className="h-4 w-4" />
                   Change Password

@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute, VendorApprovalGuard } from "@/components/ProtectedRoute";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Index from "./pages/Index";
@@ -54,10 +54,10 @@ const App = () => (
               }
             >
               <Route index element={<VendorDashboard />} />
-              <Route path="stalls" element={<StallsPage />} />
-              <Route path="payments" element={<PaymentsPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="complaints" element={<ComplaintsPage />} />
+              <Route path="stalls" element={<VendorApprovalGuard><StallsPage /></VendorApprovalGuard>} />
+              <Route path="payments" element={<VendorApprovalGuard><PaymentsPage /></VendorApprovalGuard>} />
+              <Route path="notifications" element={<VendorApprovalGuard><NotificationsPage /></VendorApprovalGuard>} />
+              <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
