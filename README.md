@@ -3,6 +3,7 @@
 Market Management System (`MMS`) is a full-stack market-operations app in a single repo.
 
 Current release: `1.0.0` - April 17, 2026.
+Last repository audit: April 24, 2026.
 
 - `src/` contains the Vite + React frontend
 - `server/` contains the modular TypeScript API running on Node's built-in HTTP server
@@ -12,17 +13,32 @@ Current release: `1.0.0` - April 17, 2026.
 
 MMS `1.0.0` is the first production-shaped market operations console release. It packages the role-based workspaces, stall booking workflow, Pesapal payment lifecycle, utilities billing, notifications, reporting, audit evidence, and coordination tools into a calm, premium operational UI.
 
-Release notes are documented in [RELEASE.md](RELEASE.md).
+Release notes are documented in [RELEASE.md](RELEASE.md). This README also captures post-release implementation changes that have landed since the April 17 release note.
+
+## Post-release changes reflected here
+
+Changes audited through migration `0013_backfill_vendor_product_sections.sql` include:
+
+- Vendor registration now captures profile photo, NIN, district, product section, National ID document, LC Letter, and OTP phone verification before manager approval.
+- Manager vendor review now includes profile photos, product sections, document evidence previews, approval/rejection notes, and password reset support for approved vendors.
+- Pending vendors can access their dashboard and profile while operational routes such as stalls, payments, notifications, and complaints stay locked until approval.
+- User profiles now support avatar upload/removal and vendor profile edits; vendor market transfers return the profile to manager approval.
+- Charge-type disabling is enforced across booking fees, utilities, penalties, and the payment gateway, with vendor payment actions disabled when the related fee is off.
+- Seed data and migrations now include vendor product sections, profile image metadata, National ID metadata, LC Letter metadata, and market location hierarchy data.
 
 ## Current implementation
 
 - Role-based access for `vendor`, `manager`, `official`, and `admin`
 - Premium operations-console layout with structured page headers, scope filters, KPI strips, tables, detail drawers, and evidence panels
-- Vendor registration with ID upload, OTP phone verification, and manager approval
+- Vendor registration with profile photo, NIN, district, product section, National ID upload, LC Letter upload, OTP phone verification, and manager approval
 - Phone/password login with OTP MFA for privileged accounts
+- Pending-vendor dashboard with restricted operational navigation until approval
 - Market-scoped management for vendors, stalls, bookings, payments, reports, and audit records
+- Manager vendor directory with profile cards, document evidence previews, approval/rejection workflows, and approved-vendor password reset
+- Shared profile settings with avatar upload/removal and vendor market/product-section updates
 - Billing controls through `charge_types`, including global and market-specific enable/disable flags
 - Centralized billing governance where only admins can toggle charge categories and payment infrastructure
+- Charge-disable enforcement for booking fees, utilities, penalties, and gateway-backed payment initiation
 - Pesapal checkout initiation with iframe or redirect support
 - Callback/IPN-driven payment confirmation with provider-side status verification before marking payments complete
 - Receipt generation after confirmed payment
@@ -30,6 +46,7 @@ Release notes are documented in [RELEASE.md](RELEASE.md).
 - Ticketing, coordination messaging, and resource request review flows
 - Optional USSD/SMS fallback simulation endpoints for development and demos
 - Optional Supabase integration for Auth and Storage
+- Vercel Speed Insights on the frontend
 
 ## Design direction
 
@@ -55,6 +72,8 @@ Current payment flow:
 5. The API calls Pesapal's transaction-status endpoint before changing the local payment state.
 6. The payment is marked `completed` or `failed`.
 7. A receipt is made available only after confirmed completion.
+
+Payment initiation is blocked when `PAYMENTS_ENABLED=false`, when `payment_gateway` is disabled, or when the specific charge type such as `booking_fee`, `utilities`, or `penalties` is disabled for the market.
 
 ## Governance model
 
@@ -88,7 +107,7 @@ The Admin is the highest control level in the system and is responsible for cent
 
 - Frontend: React 18, Vite, TypeScript, TanStack Query, shadcn/ui, Tailwind CSS
 - Backend: Node 22, TypeScript, custom HTTP routing, PostgreSQL via `pg`
-- Integrations: Pesapal, Africa's Talking, optional Supabase Auth and Storage
+- Integrations: Pesapal, Africa's Talking, optional Supabase Auth and Storage, Vercel Speed Insights
 - Testing: Vitest
 
 ## Run locally
@@ -143,6 +162,7 @@ Notes:
 - The checked-in `.env.example` enables auto-migration and seed-on-boot for local development only. In production or hosted environments, set `MMS_SEED_ON_BOOT=false`.
 - If Africa's Talking is not configured and the app is not running in production mode, SMS messages are logged to the API console instead of being sent.
 - OTP codes are not returned in API responses.
+- File uploads are limited to 5 MB. Vendor documents accept PDF/JPEG/PNG, while profile images accept JPEG/PNG/WebP.
 
 ## Verification
 
@@ -203,6 +223,7 @@ Database settings:
 - `DATABASE_SSL` is optional; when unset, SSL is inferred for Supabase-style connection strings
 - `MMS_AUTO_MIGRATE=true` runs migrations on API boot
 - `MMS_SEED_ON_BOOT` seeds demo data on boot for local or demo use; set `MMS_SEED_ON_BOOT=false` in production and hosted environments
+- `MMS_DATA_DIR` controls local runtime uploads when Supabase Storage is not configured
 
 Supabase settings:
 
@@ -237,7 +258,7 @@ Sessions, notifications, fallback simulation:
 
 - `SESSION_TTL_HOURS` defaults to `24`
 - `NOTIFICATION_RETRY_COUNT` defaults to `2`
-- `MMS_ENABLE_FALLBACK_SIMULATION` defaults to enabled in development and disabled in production unless explicitly set
+- `MMS_ENABLE_FALLBACK_SIMULATION` defaults to enabled in development when unset and disabled in production; `.env.example` pins it to `false`
 
 ## Supabase deployment
 
@@ -339,5 +360,5 @@ If you use a custom frontend domain, add that domain to Render's `APP_URL` list 
 - Payment completion comes from Pesapal callback/IPN processing plus an explicit transaction-status check, not from a mock settlement loop
 - Fallback USSD/SMS routes are disabled unless fallback simulation is enabled
 - Managers, officials, and admins can send coordination messages; officials and admins can review resource requests
-- Planned utilities billing design notes are documented in [docs/utilities-billing-design.md](C:\Users\ousam\OneDrive\Desktop\MMS-1\docs\utilities-billing-design.md)
-- Penalties and compliance enforcement notes are documented in [docs/penalties-compliance-design.md](C:\Users\ousam\OneDrive\Desktop\MMS-1\docs\penalties-compliance-design.md)
+- Utilities billing design notes are documented in [docs/utilities-billing-design.md](docs/utilities-billing-design.md)
+- Penalties and compliance enforcement notes are documented in [docs/penalties-compliance-design.md](docs/penalties-compliance-design.md)
