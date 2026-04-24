@@ -460,6 +460,25 @@ const OfficialDashboard = () => {
     })
     .slice(0, 5);
 
+  const complianceIssueRows = [
+    ...overdueRows.map((item) => ({
+      id: item.id,
+      vendorName: item.vendor,
+      marketName: item.market,
+      amount: item.amount,
+      detail: item.detail,
+      status: null,
+    })),
+    ...utilityRows.map((item) => ({
+      id: item.id,
+      vendorName: item.vendorName,
+      marketName: item.marketName || "Assigned market",
+      amount: item.amount,
+      detail: `${utilityLabels[item.utilityType]} - ${item.marketName || "Assigned market"}`,
+      status: item.status,
+    })),
+  ].slice(0, 5);
+
   const summaryCards = [
     { label: "Markets", value: scopedMarkets.length.toLocaleString(), icon: Landmark },
     { label: "Vendors", value: regionVendors.length.toLocaleString(), icon: Users },
@@ -757,25 +776,22 @@ const OfficialDashboard = () => {
             <CardTitle className="text-base font-heading">Compliance Issues</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
-            {[...overdueRows, ...utilityRows].slice(0, 5).map((item: any) => (
+            {complianceIssueRows.map((item) => (
               <div
                 key={item.id}
                 className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium">{item.vendor || item.vendorName}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {item.detail ||
-                        `${utilityLabels[item.utilityType as UtilityType]} • ${item.marketName || item.market}`}
-                    </p>
+                    <p className="font-medium">{item.vendorName}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {item.market || item.marketName || "Assigned market"}
+                      {item.marketName}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{formatCurrency(item.amount)}</p>
-                    {"status" in item ? (
+                    {item.status ? (
                       <div className="mt-2">
                         <StatusBadge status={item.status} context="obligation" />
                       </div>
@@ -784,7 +800,7 @@ const OfficialDashboard = () => {
                 </div>
               </div>
             ))}
-            {[...overdueRows, ...utilityRows].length === 0 ? (
+            {complianceIssueRows.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 No compliance issues in this region.
               </p>

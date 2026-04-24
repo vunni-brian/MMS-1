@@ -8,12 +8,11 @@ import { filterPaymentsByHistory, getPaymentHistoryYears, getPaymentPurpose, get
 import { formatCurrency, formatHumanDate, formatHumanDateRange, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConsolePage, DetailSheet, EmptyState, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
+import { ConsolePage, DataTableFrame, DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/sonner";
@@ -322,21 +321,7 @@ const PaymentsPage = () => {
           <AlertDescription>We couldn't reach the server to load the payment data. Please check your connection.</AlertDescription>
         </Alert>
       ) : isPending ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-          </div>
-          {role === "vendor" && (
-             <div className="grid gap-3">
-               <Skeleton className="h-40 w-full rounded-xl" />
-               <Skeleton className="h-40 w-full rounded-xl" />
-             </div>
-          )}
-          <Skeleton className="h-64 w-full rounded-xl mt-4" />
-        </div>
+        <LoadingState rows={role === "vendor" ? 7 : 5} itemClassName="h-28 rounded-xl" />
       ) : (
         <>
           <KpiStrip items={pageKpis} />
@@ -435,14 +420,12 @@ const PaymentsPage = () => {
         </>
       )}
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div><CardTitle className="text-base font-heading">{role === "vendor" ? "Payment History & Evidence" : "Payment Records"}</CardTitle><p className="mt-1 text-sm text-muted-foreground">{role === "vendor" ? "Review what you paid for, when it was confirmed, and keep a clear record of past transactions." : "Review payment evidence, references, and receipt access."}</p></div>
-            {role === "vendor" && <p className="text-xs text-muted-foreground">Showing {filteredPayments.length} of {payments.length} record{payments.length === 1 ? "" : "s"}</p>}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <DataTableFrame
+        title={role === "vendor" ? "Payment History & Evidence" : "Payment Records"}
+        description={role === "vendor" ? "Review what you paid for, when it was confirmed, and keep a clear record of past transactions." : "Review payment evidence, references, and receipt access."}
+        actions={role === "vendor" && <p className="text-xs text-muted-foreground">Showing {filteredPayments.length} of {payments.length} record{payments.length === 1 ? "" : "s"}</p>}
+      >
+        <div className="space-y-4 p-4">
           {filteredPayments.length === 0 ? (
             <EmptyState
               title={role === "vendor" && hasHistoryFilters ? "No matching payment evidence" : "No payment records yet"}
@@ -484,8 +467,8 @@ const PaymentsPage = () => {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </DataTableFrame>
       </>
       )}
 

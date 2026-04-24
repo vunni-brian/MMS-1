@@ -11,7 +11,6 @@ import {
   MapPin,
   Phone,
   Search,
-  Store,
   UserX,
   Users,
   X,
@@ -21,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
 import { formatCurrency, formatHumanDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ConsolePage, DetailSheet, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
+import { ConsolePage, DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -194,19 +193,19 @@ const VendorProfileCard = ({
   }, [vendor.id, vendor.profileImage]);
 
   return (
-    <article className="rounded-xl border border-[#2b3546] bg-[#1f2937] p-5 text-slate-100 shadow-sm">
+    <article className="rounded-xl border border-border/80 bg-card p-4 shadow-sm transition-colors hover:border-border">
       <div className="flex flex-col items-center text-center">
-        <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-slate-100 text-3xl font-bold text-slate-800 shadow-sm">
+        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted text-2xl font-bold text-muted-foreground shadow-sm">
           {profileImageUrl ? (
             <img src={profileImageUrl} alt={vendor.name} className="h-full w-full object-cover" />
           ) : (
             initials
           )}
         </div>
-        <h2 className="mt-5 max-w-full truncate text-xl font-bold font-heading tracking-wide text-slate-100">{vendor.name}</h2>
-        <p className="mt-1 max-w-full truncate text-sm font-semibold text-slate-200">{marketName}</p>
-        <p className="mt-1 max-w-full truncate text-sm text-slate-300">{productSection}</p>
-        <p className="mt-2 max-w-full truncate text-sm text-slate-400">{statusLabel}</p>
+        <h2 className="mt-4 max-w-full truncate text-lg font-semibold font-heading">{vendor.name}</h2>
+        <p className="mt-1 max-w-full truncate text-sm font-medium text-muted-foreground">{marketName}</p>
+        <p className="mt-1 max-w-full truncate text-sm text-muted-foreground">{productSection}</p>
+        <p className="mt-2 max-w-full truncate text-xs text-muted-foreground">{statusLabel}</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           <StatusBadge status={vendor.status} context="vendor" />
           <StatusBadge status={row.operationalStatus} />
@@ -217,14 +216,14 @@ const VendorProfileCard = ({
         <a
           href={`tel:${vendor.phone}`}
           title={`Call ${vendor.name}`}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white transition-colors hover:bg-[#33446b]"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Phone className="h-4 w-4" />
         </a>
         <a
           href={`mailto:${vendor.email}`}
           title={`Email ${vendor.name}`}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white transition-colors hover:bg-[#33446b]"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Mail className="h-4 w-4" />
         </a>
@@ -232,17 +231,17 @@ const VendorProfileCard = ({
           type="button"
           onClick={onOpen}
           title="View submitted documents"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white transition-colors hover:bg-[#33446b]"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <FileText className="h-4 w-4" />
         </button>
         <span
           title={`Outstanding: ${formatCurrency(row.totalOutstanding)}`}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-muted-foreground"
         >
           <CreditCard className="h-4 w-4" />
         </span>
-        <span title={marketName} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#263453] text-white">
+        <span title={marketName} className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-muted/35 text-muted-foreground">
           <MapPin className="h-4 w-4" />
         </span>
       </div>
@@ -250,34 +249,34 @@ const VendorProfileCard = ({
       <div className="mt-6 grid grid-cols-3 gap-3">
         <a
           href={`tel:${vendor.phone}`}
-          className="inline-flex h-11 items-center justify-center rounded-md border border-slate-600 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-border/70 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           Call
         </a>
         <button
           type="button"
           onClick={onOpen}
-          className="inline-flex h-11 items-center justify-center rounded-md border border-primary text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-primary/50 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
         >
-          Edit
+          Review
         </button>
         <button
           type="button"
           onClick={onOpen}
-          className="inline-flex h-11 items-center justify-center rounded-md border border-slate-600 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-border/70 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           View
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs text-slate-400">
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/70 pt-4 text-xs text-muted-foreground">
         <div>
           <p>Outstanding</p>
-          <p className="mt-1 font-semibold text-slate-100">{formatCurrency(row.totalOutstanding)}</p>
+          <p className="mt-1 font-semibold text-foreground">{formatCurrency(row.totalOutstanding)}</p>
         </div>
         <div className="text-right">
           <p>Permit Expiry</p>
-          <p className="mt-1 font-semibold text-slate-100">
+          <p className="mt-1 font-semibold text-foreground">
             {row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No permit"}
           </p>
         </div>
@@ -297,15 +296,15 @@ const VendorsPage = () => {
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const { data: vendorsData } = useQuery({
+  const { data: vendorsData, isPending: vendorsPending } = useQuery({
     queryKey: ["vendors"],
     queryFn: () => api.getVendors(),
   });
-  const { data: bookingsData } = useQuery({
+  const { data: bookingsData, isPending: bookingsPending } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.getBookings(),
   });
-  const { data: paymentsData } = useQuery({
+  const { data: paymentsData, isPending: paymentsPending } = useQuery({
     queryKey: ["payments"],
     queryFn: () => api.getPayments(),
     refetchInterval: 10_000,
@@ -369,6 +368,7 @@ const VendorsPage = () => {
   const vendors = vendorsData?.vendors || [];
   const bookings = bookingsData?.bookings || [];
   const payments = paymentsData?.payments || [];
+  const isLoading = vendorsPending || bookingsPending || paymentsPending;
 
   const paidByBooking = payments.reduce<Record<string, number>>((accumulator, payment) => {
     if (payment.status === "completed" && payment.bookingId) {
@@ -473,20 +473,22 @@ const VendorsPage = () => {
 
       {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
-      <KpiStrip items={vendorKpis} />
-
-      {vendorRows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 bg-card px-4 py-12 text-center">
-          <Store className="mx-auto h-10 w-10 text-muted-foreground" />
-          <p className="mt-3 text-sm font-semibold">No vendors found</p>
-          <p className="mt-1 text-sm text-muted-foreground">Try another name, phone number, or email address.</p>
-        </div>
+      {isLoading ? (
+        <LoadingState rows={8} className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" itemClassName="h-[328px] rounded-xl" />
       ) : (
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {vendorRows.map((row) => (
-            <VendorProfileCard key={row.vendor.id} row={row} onOpen={() => setSelectedVendorId(row.vendor.id)} />
-          ))}
-        </section>
+        <>
+          <KpiStrip items={vendorKpis} />
+
+          {vendorRows.length === 0 ? (
+            <EmptyState title="No vendors found" description="Try another name, phone number, or email address." />
+          ) : (
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              {vendorRows.map((row) => (
+                <VendorProfileCard key={row.vendor.id} row={row} onOpen={() => setSelectedVendorId(row.vendor.id)} />
+              ))}
+            </section>
+          )}
+        </>
       )}
 
       <DetailSheet

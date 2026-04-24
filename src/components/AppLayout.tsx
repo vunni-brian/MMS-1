@@ -64,20 +64,19 @@ const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
-  if (!user) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading workspace...</div>;
-  }
-
   const { data: notificationsData } = useQuery({
     queryKey: ["notifications", "app-layout-badge"],
     queryFn: () => api.getNotifications(5),
-    enabled: user.role === "vendor",
+    enabled: user?.role === "vendor",
     refetchInterval: 30000,
   });
 
   const hasUnread = notificationsData?.notifications?.some((notification) => !notification.read) || false;
-  const isPendingVendor = user.role === "vendor" && user.vendorStatus !== "approved";
+  const isPendingVendor = user?.role === "vendor" && user.vendorStatus !== "approved";
   const filtered = navItems.filter((item) => {
+    if (!user) {
+      return false;
+    }
     if (!item.roles.includes(user.role)) {
       return false;
     }
@@ -86,26 +85,26 @@ const AppLayout = () => {
     }
     return true;
   });
-  const basePath = `/${user.role}`;
+  const basePath = user ? `/${user.role}` : "/";
   const workspaceTitle =
-    user.role === "admin"
+    user?.role === "admin"
       ? "System Admin"
-      : user.role === "official"
+      : user?.role === "official"
         ? "Market Oversight"
-        : user.role === "vendor"
+        : user?.role === "vendor"
           ? "Vendor Workspace"
           : "Market Manager";
   const headerScope =
-    user.marketName ||
-    (user.role === "admin"
+    user?.marketName ||
+    (user?.role === "admin"
       ? "All Markets Admin"
-      : user.role === "official"
+      : user?.role === "official"
         ? "All Markets Oversight"
         : "No Market");
-  const roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+  const roleLabel = user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "";
   const profilePath = `${basePath}/profile`;
   const initials =
-    user.name
+    user?.name
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
@@ -117,7 +116,7 @@ const AppLayout = () => {
     let objectUrl: string | null = null;
     setProfileImageUrl(null);
 
-    if (!user.profileImage) {
+    if (!user?.profileImage) {
       return;
     }
 
@@ -143,7 +142,11 @@ const AppLayout = () => {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [user.id, user.profileImage]);
+  }, [user?.id, user?.profileImage]);
+
+  if (!user) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading workspace...</div>;
+  }
 
   const openProfileTab = (tab?: string) => {
     navigate(`${profilePath}${tab ? `?tab=${tab}` : ""}`);

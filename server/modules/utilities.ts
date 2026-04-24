@@ -410,7 +410,7 @@ export const utilityChargeRoutes: RouteDefinition[] = [
         throw new HttpError(409, "Utility charges can only be assigned to approved vendors.");
       }
 
-      let bookingId: string | null = body.bookingId?.trim() || null;
+      const bookingId: string | null = body.bookingId?.trim() || null;
       if (bookingId) {
         const booking = await get<{ id: string }>(
           `SELECT id

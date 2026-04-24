@@ -1,7 +1,8 @@
-import type { ElementType, ReactNode } from "react";
+import type { ChangeEvent, ElementType, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface ConsolePageProps {
@@ -132,6 +133,107 @@ export const EmptyState = ({ title, description, action }: EmptyStateProps) => (
     {description && <p className="mx-auto mt-1 max-w-xl text-sm text-muted-foreground">{description}</p>}
     {action && <div className="mt-4 flex justify-center">{action}</div>}
   </div>
+);
+
+interface LoadingStateProps {
+  rows?: number;
+  className?: string;
+  itemClassName?: string;
+}
+
+export const LoadingState = ({ rows = 4, className, itemClassName = "h-24 rounded-xl" }: LoadingStateProps) => (
+  <div className={cn("grid gap-3", className)}>
+    {Array.from({ length: rows }).map((_, index) => (
+      <Skeleton key={index} className={itemClassName} />
+    ))}
+  </div>
+);
+
+interface DataTableFrameProps {
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
+
+export const DataTableFrame = ({ title, description, actions, children, className }: DataTableFrameProps) => (
+  <section className={cn("console-table-card", className)}>
+    {(title || description || actions) && (
+      <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          {title && <h2 className="text-base font-semibold font-heading">{title}</h2>}
+          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      </div>
+    )}
+    <div className="overflow-x-auto">{children}</div>
+  </section>
+);
+
+interface FormSectionProps {
+  title: string;
+  description?: string;
+  children: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}
+
+export const FormSection = ({ title, description, children, actions, className }: FormSectionProps) => (
+  <section className={cn("rounded-xl border border-border/70 bg-card p-4 shadow-sm", className)}>
+    <div className="flex flex-col gap-3 border-b border-border/70 pb-3 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <h2 className="text-base font-semibold font-heading">{title}</h2>
+        {description && <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>}
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+    <div className="mt-4 space-y-4">{children}</div>
+  </section>
+);
+
+interface FileUploadCardProps {
+  id: string;
+  label: string;
+  description?: string;
+  value?: string;
+  accept?: string;
+  capture?: boolean | "user" | "environment";
+  disabled?: boolean;
+  className?: string;
+  onChange: (file: File | null) => void;
+}
+
+export const FileUploadCard = ({ id, label, description, value, accept, capture, disabled = false, className, onChange }: FileUploadCardProps) => (
+  <label
+    htmlFor={id}
+    className={cn(
+      "block rounded-xl border border-dashed border-border/80 bg-muted/10 p-4 transition-colors",
+      disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-border hover:bg-muted/20",
+      className,
+    )}
+  >
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
+      </div>
+      <span className="inline-flex h-9 items-center justify-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold text-muted-foreground">
+        Choose File
+      </span>
+    </div>
+    <p className="mt-3 truncate rounded-md bg-background px-3 py-2 text-xs text-muted-foreground">{value || "No file selected"}</p>
+    <input
+      id={id}
+      type="file"
+      accept={accept}
+      capture={capture}
+      disabled={disabled}
+      className="sr-only"
+      onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.files?.[0] || null)}
+    />
+  </label>
 );
 
 interface DetailSheetProps {

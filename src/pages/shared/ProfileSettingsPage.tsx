@@ -16,7 +16,6 @@ import {
   Shield,
   SlidersHorizontal,
   Trash2,
-  Upload,
   UserCircle,
   Users,
 } from "lucide-react";
@@ -27,10 +26,10 @@ import { formatHumanDate } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { FileUploadCard, FormSection, LoadingState } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -51,6 +50,13 @@ const isSettingsTab = (value: string | null): value is SettingsTab =>
 const roleLabel = (role: string) => role.charAt(0).toUpperCase() + role.slice(1);
 
 const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
+
+const formatLocalFileLabel = (file: File | null) => {
+  if (!file) {
+    return "No file selected";
+  }
+  return `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+};
 
 const SettingToggle = ({
   label,
@@ -331,8 +337,11 @@ const ProfileSettingsPage = () => {
       </div>
       <div className="border-t border-border/70" />
 
-      <section className="space-y-4">
-        <p className="text-sm font-semibold font-heading">Profile picture upload</p>
+      <FormSection
+        title="Profile Picture"
+        description="Shown in the workspace header, profile screen, and manager vendor directory."
+        className="shadow-none"
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border border-border/70">
@@ -346,26 +355,23 @@ const ProfileSettingsPage = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-              <Upload className="h-4 w-4" />
-              Upload New Photo
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => handleAvatarUpload(event.target.files?.[0])}
-              />
-            </label>
             <Button type="button" variant="outline" onClick={handleAvatarDelete}>
               <Trash2 className="mr-1 h-4 w-4" />
               Delete
             </Button>
           </div>
         </div>
-      </section>
+        <FileUploadCard
+          id="settings-profile-image"
+          label="Upload New Photo"
+          description="JPEG, PNG, or WebP up to 5 MB."
+          accept="image/*"
+          value={profileImageFile ? formatLocalFileLabel(profileImageFile) : formatAttachmentLabel(user.profileImage)}
+          onChange={handleAvatarUpload}
+        />
+      </FormSection>
 
-      <section className="space-y-4">
-        <p className="text-sm font-semibold font-heading">Organization Information</p>
+      <FormSection title="Organization Information" description="Core account details used across the workspace." className="shadow-none">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="settings-name">Full Name</Label>
@@ -425,10 +431,9 @@ const ProfileSettingsPage = () => {
             </div>
           )}
         </div>
-      </section>
+      </FormSection>
 
-      <section className="space-y-4">
-        <p className="text-sm font-semibold font-heading">Address</p>
+      <FormSection title="Address" description="Market assignment and vendor identity references." className="shadow-none">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="settings-country">Country</Label>
@@ -462,7 +467,7 @@ const ProfileSettingsPage = () => {
             <Input id="settings-nin" value={vendor?.nationalIdNumber || "Not recorded"} readOnly />
           </div>
         </div>
-      </section>
+      </FormSection>
 
       {profileMessage && <div className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">{profileMessage}</div>}
       {profileError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{profileError}</div>}
@@ -510,7 +515,11 @@ const ProfileSettingsPage = () => {
         <p className="mt-1 text-sm text-muted-foreground">Password and sign-in protection.</p>
       </div>
       <div className="border-t border-border/70" />
-      <section className="space-y-4">
+      <FormSection
+        title="Password"
+        description="Use a strong password and confirm the new value before saving."
+        className="shadow-none"
+      >
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="current-password">Current Password</Label>
@@ -560,7 +569,7 @@ const ProfileSettingsPage = () => {
           <KeyRound className="mr-1 h-4 w-4" />
           {changePassword.isPending ? "Updating Password..." : "Update Password"}
         </Button>
-      </section>
+      </FormSection>
     </div>
   );
 
@@ -670,8 +679,8 @@ const ProfileSettingsPage = () => {
         </Alert>
       ) : isPending ? (
         <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-          <Skeleton className="h-[420px] rounded-xl" />
-          <Skeleton className="h-[560px] rounded-xl" />
+          <LoadingState rows={6} itemClassName="h-16 rounded-xl" />
+          <LoadingState rows={5} itemClassName="h-28 rounded-xl" />
         </div>
       ) : (
         <div className="grid min-h-[calc(100vh-150px)] gap-6 rounded-xl border border-border/70 bg-card p-4 shadow-sm lg:grid-cols-[240px_1fr] lg:p-6">

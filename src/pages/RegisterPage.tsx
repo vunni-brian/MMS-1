@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, FileText, Store, Upload, UserCircle } from "lucide-react";
+import { ArrowLeft, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
+import { FileUploadCard, FormSection } from "@/components/console/ConsolePage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,18 +23,6 @@ const formatFileLabel = (file: File | null) => {
 };
 
 const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
-
-const DocumentPreview = ({ file, label }: { file: File | null; label: string }) => (
-  <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm">
-    <div className="flex items-center gap-2">
-      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="truncate font-medium">{formatFileLabel(file)}</p>
-      </div>
-    </div>
-  </div>
-);
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -178,29 +167,21 @@ const RegisterPage = () => {
           <CardContent>
             <form className="space-y-5" onSubmit={handleSubmit}>
               {step === "details" ? (
-                <section className="space-y-3">
-                  <h2 className="text-sm font-semibold font-heading">Vendor Details</h2>
+                <FormSection
+                  title="Vendor Details"
+                  description="Account identity, market assignment, and profile photo used by managers during review."
+                  className="shadow-none"
+                >
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4 md:col-span-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium">Profile Photo</p>
-                          <p className="text-xs text-muted-foreground">Shown on your profile and in the manager vendor directory</p>
-                        </div>
-                        <UserCircle className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                        <Upload className="h-4 w-4" />
-                        Upload Photo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(event) => updateField("profileImage", event.target.files?.[0] || null)}
-                        />
-                      </label>
-                      <DocumentPreview file={form.profileImage} label="Profile photo preview" />
-                    </div>
+                    <FileUploadCard
+                      id="profile-photo"
+                      label="Profile Photo"
+                      description="Shown on your profile and in the manager vendor directory."
+                      accept="image/*"
+                      value={formatFileLabel(form.profileImage)}
+                      className="md:col-span-2"
+                      onChange={(file) => updateField("profileImage", file)}
+                    />
                     <div className="space-y-1.5">
                       <Label htmlFor="name">Full Name</Label>
                       <Input
@@ -292,64 +273,43 @@ const RegisterPage = () => {
                       />
                     </div>
                   </div>
-                </section>
+                </FormSection>
               ) : step === "documents" ? (
-                <>
-                  <section className="space-y-3">
-                    <h2 className="text-sm font-semibold font-heading">Document Upload</h2>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                        <div>
-                          <p className="text-sm font-medium">National ID</p>
-                          <p className="text-xs text-muted-foreground">Primary identity document</p>
-                        </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                            <Upload className="h-4 w-4" />
-                            Upload File
-                            <input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              className="hidden"
-                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
-                            />
-                          </label>
-                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                            <Camera className="h-4 w-4" />
-                            Take Photo
-                            <input
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              className="hidden"
-                              onChange={(event) => updateField("idFile", event.target.files?.[0] || null)}
-                            />
-                          </label>
-                        </div>
-                        <DocumentPreview file={form.idFile} label="National ID preview" />
-                      </div>
-
-                      <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-4">
-                        <div>
-                          <p className="text-sm font-medium">LC Letter</p>
-                          <p className="text-xs text-muted-foreground">Proof of residence</p>
-                        </div>
-                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-border/80 bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/40">
-                          <Upload className="h-4 w-4" />
-                          Upload File
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={(event) => updateField("lcLetterFile", event.target.files?.[0] || null)}
-                          />
-                        </label>
-                        <DocumentPreview file={form.lcLetterFile} label="LC Letter preview" />
-                        <p className="text-xs text-muted-foreground">LC Letter should confirm your residence in the selected district.</p>
-                      </div>
+                <FormSection
+                  title="Document Upload"
+                  description="Upload a National ID and LC Letter for manager verification. Files must be PDF, JPG, JPEG, or PNG."
+                  className="shadow-none"
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FileUploadCard
+                      id="national-id-upload"
+                      label="National ID"
+                      description="Primary identity document."
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      value={formatFileLabel(form.idFile)}
+                      onChange={(file) => updateField("idFile", file)}
+                    />
+                    <FileUploadCard
+                      id="national-id-camera"
+                      label="Take National ID Photo"
+                      description="Use the device camera when registering on mobile."
+                      accept="image/*"
+                      capture="environment"
+                      value={formatFileLabel(form.idFile)}
+                      onChange={(file) => updateField("idFile", file)}
+                    />
+                    <div className="md:col-span-2">
+                      <FileUploadCard
+                        id="lc-letter-upload"
+                        label="LC Letter"
+                        description="Proof of residence in the selected district."
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        value={formatFileLabel(form.lcLetterFile)}
+                        onChange={(file) => updateField("lcLetterFile", file)}
+                      />
                     </div>
-                  </section>
-                </>
+                  </div>
+                </FormSection>
               ) : (
                 <div className="space-y-3">
                   <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">

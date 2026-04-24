@@ -7,7 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConsolePage, EmptyState, EvidenceField, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
+import { ConsolePage, DataTableFrame, EmptyState, EvidenceField, FormSection, KpiStrip, LoadingState, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,17 +77,17 @@ const BillingPage = () => {
     setForm((current) => ({ ...current, marketId: selectedMarketId === "all" ? "" : selectedMarketId, vendorId: "", bookingId: "none" }));
   }, [isManager, selectedMarketId, user?.marketId]);
 
-  const { data: chargeTypesData, error: chargeTypesError } = useQuery({
+  const { data: chargeTypesData, error: chargeTypesError, isPending: chargeTypesPending } = useQuery({
     queryKey: ["charge-types", user?.role, utilityMarketId || "all"],
     queryFn: () => api.getChargeTypes(isManager ? user?.marketId || undefined : utilityMarketId),
     enabled: Boolean(user),
   });
-  const { data: marketsData } = useQuery({
+  const { data: marketsData, isPending: marketsPending } = useQuery({
     queryKey: ["markets", "billing"],
     queryFn: () => api.getMarkets(),
     enabled: Boolean(user && !isManager),
   });
-  const { data: utilityChargesData, error: utilityChargesError } = useQuery({
+  const { data: utilityChargesData, error: utilityChargesError, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "billing", utilityMarketId || "all"],
     queryFn: () => api.getUtilityCharges({ marketId: utilityMarketId }),
     enabled: Boolean(user),
@@ -182,6 +182,7 @@ const BillingPage = () => {
   const vendors = (vendorsData?.vendors || []).filter((vendor) => vendor.status === "approved");
   const bookings = (bookingsData?.bookings || []).filter((booking) => booking.vendorId === form.vendorId);
   const selectedVendor = vendors.find((vendor) => vendor.id === form.vendorId) || null;
+  const isPageLoading = chargeTypesPending || utilityChargesPending || (!isManager && marketsPending);
   const loadError = chargeTypesError instanceof ApiError
     ? chargeTypesError.message
     : utilityChargesError instanceof ApiError
@@ -275,40 +276,42 @@ const BillingPage = () => {
 
       {(error || loadError) && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error || loadError}</div>}
 
-      <KpiStrip items={billingKpis} />
+      {isPageLoading ? (
+        <LoadingState rows={5} itemClassName="h-32 rounded-xl" />
+      ) : (
+        <>
+          <KpiStrip items={billingKpis} />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {chargeTypes.map((chargeType) => (
-          <Card key={chargeType.id} className="card-warm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-heading">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                {chargeType.displayName}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Scope</p><p className="mt-1 font-medium capitalize">{chargeType.scope}</p></div>
-                <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Status</p><p className={`mt-1 font-medium ${chargeType.isEnabled ? "text-success" : "text-destructive"}`}>{chargeType.isEnabled ? "Enabled" : "Disabled"}</p></div>
-              </div>
-              <div className="rounded-xl bg-muted/20 p-3 text-muted-foreground">Last updated by {chargeType.updatedByName || "system"} on {formatHumanDateTime(chargeType.updatedAt)}.</div>
-              <Button variant={chargeType.isEnabled ? "destructive" : "default"} disabled={!canManageChargeTypes || updateChargeType.isPending} onClick={() => updateChargeType.mutate({ chargeTypeId: chargeType.id, isEnabled: !chargeType.isEnabled })}>
-                {chargeType.isEnabled ? "Disable Charge Type" : "Enable Charge Type"}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {chargeTypes.map((chargeType) => (
+              <Card key={chargeType.id} className="card-warm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base font-heading">
+                    <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+                    {chargeType.displayName}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Scope</p><p className="mt-1 font-medium capitalize">{chargeType.scope}</p></div>
+                    <div className="rounded-xl bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Status</p><p className={`mt-1 font-medium ${chargeType.isEnabled ? "text-success" : "text-destructive"}`}>{chargeType.isEnabled ? "Enabled" : "Disabled"}</p></div>
+                  </div>
+                  <div className="rounded-xl bg-muted/20 p-3 text-muted-foreground">Last updated by {chargeType.updatedByName || "system"} on {formatHumanDateTime(chargeType.updatedAt)}.</div>
+                  <Button variant={chargeType.isEnabled ? "destructive" : "default"} disabled={!canManageChargeTypes || updateChargeType.isPending} onClick={() => updateChargeType.mutate({ chargeTypeId: chargeType.id, isEnabled: !chargeType.isEnabled })}>
+                    {chargeType.isEnabled ? "Disable Charge Type" : "Enable Charge Type"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-      {canManageUtilities && (
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base font-heading">
-              <PlusCircle className="h-4 w-4 text-muted-foreground" />
-              Create Utility Charge
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 lg:grid-cols-2">
+          {canManageUtilities && (
+            <FormSection
+              title="Create Utility Charge"
+              description="Assign a metered, estimated, or fixed utility obligation to an approved vendor."
+              actions={<PlusCircle className="h-5 w-5 text-muted-foreground" />}
+            >
+              <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="utility-vendor">Vendor</Label>
               <Select value={form.vendorId} onValueChange={(value) => setForm((current) => ({ ...current, vendorId: value, bookingId: "none" }))} disabled={!utilityMarketId}>
@@ -373,47 +376,49 @@ const BillingPage = () => {
                 {createUtilityCharge.isPending ? "Creating Charge..." : "Create Utility Charge"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+            </FormSection>
+          )}
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Utility Charge Register</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {utilityCharges.length === 0 ? <EmptyState title="No utility charges recorded" description="Create metered, estimated, or fixed utility obligations for vendors in the selected market." /> : utilityCharges.map((charge) => (
-            <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="font-medium">{charge.description}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{charge.vendorName} - {charge.marketName || charge.marketId} - {charge.billingPeriod}</p>
+          <DataTableFrame
+            title="Utility Charge Register"
+            description="Utility obligations, due dates, payment attempts, and latest gateway references."
+          >
+            <div className="space-y-3 p-4">
+              {utilityCharges.length === 0 ? <EmptyState title="No utility charges recorded" description="Create metered, estimated, or fixed utility obligations for vendors in the selected market." /> : utilityCharges.map((charge) => (
+                <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="font-medium">{charge.description}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{charge.vendorName} - {charge.marketName || charge.marketId} - {charge.billingPeriod}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={charge.status} label={getObligationStatusLabel(charge.status)} context="obligation" />
+                      <span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
+                    <EvidenceField label="Calculation" value={`${charge.calculationMethod} ${charge.unit ? `(${charge.unit})` : ""}`} />
+                    <EvidenceField label="Payment Attempts" value={charge.paymentCount} />
+                    <EvidenceField label="Latest Reference" value={charge.latestPaymentReference || "Awaiting payment"} mono={Boolean(charge.latestPaymentReference)} />
+                  </div>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      Created by {charge.createdByName || "system"} on {formatDateTime(charge.createdAt)}. {charge.paidAt ? `Paid on ${formatDateTime(charge.paidAt)}.` : ""}
+                    </div>
+                    {canManageUtilities && (charge.status === "unpaid" || charge.status === "overdue") && (
+                      <Button variant="outline" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>
+                        Cancel Charge
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={charge.status} label={getObligationStatusLabel(charge.status)} context="obligation" />
-                  <span className="text-sm font-semibold">{formatCurrency(charge.amount)}</span>
-                </div>
+              ))}
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
-                <EvidenceField label="Calculation" value={`${charge.calculationMethod} ${charge.unit ? `(${charge.unit})` : ""}`} />
-                <EvidenceField label="Payment Attempts" value={charge.paymentCount} />
-                <EvidenceField label="Latest Reference" value={charge.latestPaymentReference || "Awaiting payment"} mono={Boolean(charge.latestPaymentReference)} />
-              </div>
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-xs text-muted-foreground">
-                  Created by {charge.createdByName || "system"} on {formatDateTime(charge.createdAt)}. {charge.paidAt ? `Paid on ${formatDateTime(charge.paidAt)}.` : ""}
-                </div>
-                {canManageUtilities && (charge.status === "unpaid" || charge.status === "overdue") && (
-                  <Button variant="outline" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>
-                    Cancel Charge
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+          </DataTableFrame>
+        </>
+      )}
     </ConsolePage>
   );
 };
