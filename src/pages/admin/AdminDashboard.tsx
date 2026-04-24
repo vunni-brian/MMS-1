@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailSheet, EvidenceField } from "@/components/console/ConsolePage";
+import { DetailSheet, EmptyState, EvidenceField, LoadingState } from "@/components/console/ConsolePage";
 import type { AuditEvent, ChargeTypeName, Market, Payment, Role, Ticket } from "@/types";
 
 type RegionId = "central" | "western" | "eastern" | "northern";
@@ -110,44 +110,44 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<UserRoleRow | null>(null);
 
-  const { data: marketsData } = useQuery({
+  const { data: marketsData, isPending: marketsPending } = useQuery({
     queryKey: ["markets", "admin-dashboard"],
     queryFn: () => api.getMarkets(),
   });
-  const { data: stallsData } = useQuery({
+  const { data: stallsData, isPending: stallsPending } = useQuery({
     queryKey: ["stalls", "admin-dashboard"],
     queryFn: () => api.getStalls(),
   });
-  const { data: vendorsData } = useQuery({
+  const { data: vendorsData, isPending: vendorsPending } = useQuery({
     queryKey: ["vendors", "admin-dashboard"],
     queryFn: () => api.getVendors(),
   });
-  const { data: paymentsData } = useQuery({
+  const { data: paymentsData, isPending: paymentsPending } = useQuery({
     queryKey: ["payments", "admin-dashboard"],
     queryFn: () => api.getPayments(),
     refetchInterval: 10_000,
   });
-  const { data: ticketsData } = useQuery({
+  const { data: ticketsData, isPending: ticketsPending } = useQuery({
     queryKey: ["tickets", "admin-dashboard"],
     queryFn: () => api.getTickets(),
   });
-  const { data: utilityChargesData } = useQuery({
+  const { data: utilityChargesData, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "admin-dashboard"],
     queryFn: () => api.getUtilityCharges(),
   });
-  const { data: penaltiesData } = useQuery({
+  const { data: penaltiesData, isPending: penaltiesPending } = useQuery({
     queryKey: ["penalties", "admin-dashboard"],
     queryFn: () => api.getPenalties(),
   });
-  const { data: financialAuditData } = useQuery({
+  const { data: financialAuditData, isPending: financialAuditPending } = useQuery({
     queryKey: ["financial-audit", "admin-dashboard"],
     queryFn: () => api.getFinancialAudit(),
   });
-  const { data: chargeTypesData } = useQuery({
+  const { data: chargeTypesData, isPending: chargeTypesPending } = useQuery({
     queryKey: ["charge-types", "admin-dashboard"],
     queryFn: () => api.getChargeTypes(),
   });
-  const { data: auditData } = useQuery({
+  const { data: auditData, isPending: auditPending } = useQuery({
     queryKey: ["audit", "admin-dashboard"],
     queryFn: () => api.getAudit(),
   });
@@ -162,6 +162,28 @@ const AdminDashboard = () => {
   const chargeTypes = chargeTypesData?.chargeTypes || [];
   const auditEvents = auditData?.events || [];
   const auditSummary = financialAuditData?.summary || { variance: 0, collectedTotal: 0, depositedTotal: 0, from: "", to: "" };
+  const isDashboardLoading =
+    marketsPending ||
+    stallsPending ||
+    vendorsPending ||
+    paymentsPending ||
+    ticketsPending ||
+    utilityChargesPending ||
+    penaltiesPending ||
+    financialAuditPending ||
+    chargeTypesPending ||
+    auditPending;
+
+  if (isDashboardLoading) {
+    return (
+      <div className="space-y-4 lg:space-y-5">
+        <LoadingState rows={1} itemClassName="h-28 rounded-xl" />
+        <LoadingState rows={5} className="grid gap-3 md:grid-cols-2 xl:grid-cols-5" itemClassName="h-28 rounded-xl" />
+        <LoadingState rows={2} itemClassName="h-[360px] rounded-xl" />
+        <LoadingState rows={2} className="grid gap-4 xl:grid-cols-2" itemClassName="h-[360px] rounded-xl" />
+      </div>
+    );
+  }
 
   const completedPayments = payments.filter((payment) => payment.status === "completed");
   const failedPayments = payments.filter((payment) => payment.status === "failed");
@@ -397,30 +419,37 @@ const AdminDashboard = () => {
           <CardTitle className="text-base font-heading">All Markets Overview</CardTitle>
         </CardHeader>
         <CardContent className="max-h-[290px] overflow-y-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Market</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead className="text-right">Vendors</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
-                <TableHead className="text-right">Utilities Due</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {marketRows.slice(0, 5).map((market) => (
-                <TableRow key={market.id}>
-                  <TableCell className="font-medium">{market.market}</TableCell>
-                  <TableCell className="text-muted-foreground">{market.region}</TableCell>
-                  <TableCell className="text-right">{market.vendors}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(market.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(market.utilitiesDue)}</TableCell>
-                  <TableCell><span className={statusClassName(market.status)}>{market.status}</span></TableCell>
+          {marketRows.length === 0 ? (
+            <EmptyState
+              title="No markets registered"
+              description="Market-level governance and revenue indicators will appear after markets are created."
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Market</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead className="text-right">Vendors</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Utilities Due</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {marketRows.slice(0, 5).map((market) => (
+                  <TableRow key={market.id}>
+                    <TableCell className="font-medium">{market.market}</TableCell>
+                    <TableCell className="text-muted-foreground">{market.region}</TableCell>
+                    <TableCell className="text-right">{market.vendors}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(market.revenue)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(market.utilitiesDue)}</TableCell>
+                    <TableCell><span className={statusClassName(market.status)}>{market.status}</span></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -429,40 +458,47 @@ const AdminDashboard = () => {
           <CardTitle className="text-base font-heading">Users & Roles</CardTitle>
         </CardHeader>
         <CardContent className="max-h-[290px] overflow-y-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Market</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Active</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {userRows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell className="capitalize">{row.role}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.market}</TableCell>
-                  <TableCell>
-                    <span className={row.status === "Active" ? "status-badge border-success/20 bg-success/15 text-success" : "status-badge border-warning/25 bg-warning/15 text-warning"}>
-                      {row.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.lastActive === "Current session" ? row.lastActive : row.lastActive ? formatHumanDateTime(row.lastActive) : "No recent activity"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="outline" onClick={() => setSelectedUser(row)}>
-                      Review
-                    </Button>
-                  </TableCell>
+          {userRows.length === 0 ? (
+            <EmptyState
+              title="No user activity"
+              description="Admins, officials, managers, and vendors will appear after activity is recorded."
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Market</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {userRows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="capitalize">{row.role}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.market}</TableCell>
+                    <TableCell>
+                      <span className={row.status === "Active" ? "status-badge border-success/20 bg-success/15 text-success" : "status-badge border-warning/25 bg-warning/15 text-warning"}>
+                        {row.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.lastActive === "Current session" ? row.lastActive : row.lastActive ? formatHumanDateTime(row.lastActive) : "No recent activity"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" onClick={() => setSelectedUser(row)}>
+                        Review
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -473,7 +509,10 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent className="max-h-[290px] overflow-y-auto">
             {recentPayments.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No payment records are available yet.</p>
+              <EmptyState
+                title="No payment records"
+                description="Confirmed and pending payment records will appear when markets start transacting."
+              />
             ) : (
               <Table>
                 <TableHeader>
@@ -533,7 +572,10 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent className="max-h-[290px] overflow-y-auto">
             {alerts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No system alerts require attention.</p>
+              <EmptyState
+                title="No system alerts"
+                description="Rule violations, failed payments, and audit issues that need action will appear here."
+              />
             ) : (
               <Table>
                 <TableHeader>
@@ -574,7 +616,10 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent className="max-h-[290px] overflow-y-auto">
             {recentAuditRows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No system activity is available yet.</p>
+              <EmptyState
+                title="No system activity"
+                description="Administrative and governance actions will appear as the audit trail records events."
+              />
             ) : (
               <Table>
                 <TableHeader>

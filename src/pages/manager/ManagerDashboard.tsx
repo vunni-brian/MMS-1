@@ -17,6 +17,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState, LoadingState } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "@/components/ui/sonner";
 import type {
@@ -109,33 +110,33 @@ const ManagerDashboard = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: stallsData } = useQuery({
+  const { data: stallsData, isPending: stallsPending } = useQuery({
     queryKey: ["stalls"],
     queryFn: () => api.getStalls(),
   });
 
-  const { data: bookingsData } = useQuery({
+  const { data: bookingsData, isPending: bookingsPending } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.getBookings(),
   });
 
-  const { data: paymentsData } = useQuery({
+  const { data: paymentsData, isPending: paymentsPending } = useQuery({
     queryKey: ["payments"],
     queryFn: () => api.getPayments(),
     refetchInterval: 10_000,
   });
 
-  const { data: vendorsData } = useQuery({
+  const { data: vendorsData, isPending: vendorsPending } = useQuery({
     queryKey: ["vendors"],
     queryFn: () => api.getVendors(),
   });
 
-  const { data: ticketsData } = useQuery({
+  const { data: ticketsData, isPending: ticketsPending } = useQuery({
     queryKey: ["tickets"],
     queryFn: () => api.getTickets(),
   });
 
-  const { data: utilityChargesData } = useQuery({
+  const { data: utilityChargesData, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "manager-dashboard"],
     queryFn: () => api.getUtilityCharges(),
     refetchInterval: 10_000,
@@ -192,6 +193,24 @@ const ManagerDashboard = () => {
   const vendors = vendorsData?.vendors || [];
   const tickets = ticketsData?.tickets || [];
   const utilityCharges = utilityChargesData?.utilityCharges || [];
+  const isDashboardLoading =
+    stallsPending ||
+    bookingsPending ||
+    paymentsPending ||
+    vendorsPending ||
+    ticketsPending ||
+    utilityChargesPending;
+
+  if (isDashboardLoading) {
+    return (
+      <div className="space-y-4 lg:space-y-5">
+        <LoadingState rows={1} itemClassName="h-32 rounded-xl" />
+        <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-28 rounded-xl" />
+        <LoadingState rows={2} className="grid gap-4 xl:grid-cols-2" itemClassName="h-[360px] rounded-xl" />
+        <LoadingState rows={3} className="grid gap-4 xl:grid-cols-3" itemClassName="h-[300px] rounded-xl" />
+      </div>
+    );
+  }
 
   const pendingVendors = vendors.filter((vendor) => vendor.status === "pending");
   const pendingApplications = bookings.filter((booking) => booking.status === "pending");
@@ -341,7 +360,7 @@ const ManagerDashboard = () => {
     <div className="space-y-4 lg:space-y-5">
       <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
         <h1 className="text-2xl font-bold font-heading lg:text-[2rem] leading-tight">
-          {getTimeAwareGreeting(firstName)} 👋
+          {getTimeAwareGreeting(firstName)}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Here&apos;s today&apos;s market operations overview.
@@ -405,9 +424,10 @@ const ManagerDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-2 overflow-y-auto max-h-[290px] px-4 pb-4">
             {approvalRows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No vendor or stall applications need review right now.
-              </p>
+              <EmptyState
+                title="No reviews waiting"
+                description="Vendor registrations and stall applications that need a decision will appear here."
+              />
             ) : (
               approvalRows.slice(0, 3).map((row) => (
                 <div
@@ -419,7 +439,7 @@ const ManagerDashboard = () => {
                       <p className="font-medium">{row.vendorName}</p>
                       <p className="mt-1 text-sm text-muted-foreground">{row.detail}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {row.market} • {formatHumanDate(row.appliedAt)}
+                        {row.market} - {formatHumanDate(row.appliedAt)}
                       </p>
                     </div>
                     <StatusBadge
@@ -465,9 +485,10 @@ const ManagerDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-2 overflow-y-auto max-h-[290px] px-4 pb-4">
             {pendingPayments.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No vendor payments are awaiting confirmation.
-              </p>
+              <EmptyState
+                title="No payments waiting"
+                description="Pending vendor payment confirmations will appear here."
+              />
             ) : (
               pendingPayments.slice(0, 3).map((payment) => (
                 <div
@@ -539,9 +560,10 @@ const ManagerDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-2 overflow-y-auto max-h-[230px] px-4 pb-4">
             {utilityRows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No open utility charges need follow-up.
-              </p>
+              <EmptyState
+                title="No utility follow-up"
+                description="Unpaid and overdue utility charges will appear here."
+              />
             ) : (
               utilityRows.map((charge) => (
                 <div
@@ -552,7 +574,7 @@ const ManagerDashboard = () => {
                     <div className="min-w-0">
                       <p className="font-medium">{charge.vendorName}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {utilityLabels[charge.utilityType]} • {charge.billingPeriod}
+                        {utilityLabels[charge.utilityType]} - {charge.billingPeriod}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {charge.stallName || "No stall linked"}
@@ -588,9 +610,10 @@ const ManagerDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-2 overflow-y-auto max-h-[230px] px-4 pb-4">
             {complaintRows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No open complaints need response.
-              </p>
+              <EmptyState
+                title="No open complaints"
+                description="Vendor issues that need a manager response will appear here."
+              />
             ) : (
               complaintRows.map((ticket) => {
                 const priority = getComplaintPriority(ticket);
@@ -611,7 +634,7 @@ const ManagerDashboard = () => {
                         <p className="font-medium">{ticket.vendorName}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{ticket.subject}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {categoryLabels[ticket.category]} • {formatHumanDate(ticket.createdAt)}
+                          {categoryLabels[ticket.category]} - {formatHumanDate(ticket.createdAt)}
                         </p>
                       </div>
                       <span className={`status-badge ${priorityClasses}`}>{priority}</span>

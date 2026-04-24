@@ -14,6 +14,7 @@ import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState, LoadingState } from "@/components/console/ConsolePage";
 import type {
   Market,
   Payment,
@@ -283,35 +284,35 @@ const OfficialDashboard = () => {
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   const [selectedSubAreaId, setSelectedSubAreaId] = useState<string | null>(null);
 
-  const { data: marketsData } = useQuery({
+  const { data: marketsData, isPending: marketsPending } = useQuery({
     queryKey: ["markets", "official"],
     queryFn: () => api.getMarkets(),
   });
-  const { data: stallsData } = useQuery({
+  const { data: stallsData, isPending: stallsPending } = useQuery({
     queryKey: ["stalls", "official", "all"],
     queryFn: () => api.getStalls(),
   });
-  const { data: vendorsData } = useQuery({
+  const { data: vendorsData, isPending: vendorsPending } = useQuery({
     queryKey: ["vendors", "official", "all"],
     queryFn: () => api.getVendors(),
   });
-  const { data: paymentsData } = useQuery({
+  const { data: paymentsData, isPending: paymentsPending } = useQuery({
     queryKey: ["payments", "official", "all"],
     queryFn: () => api.getPayments(),
   });
-  const { data: ticketsData } = useQuery({
+  const { data: ticketsData, isPending: ticketsPending } = useQuery({
     queryKey: ["tickets", "official", "all"],
     queryFn: () => api.getTickets(),
   });
-  const { data: bookingsData } = useQuery({
+  const { data: bookingsData, isPending: bookingsPending } = useQuery({
     queryKey: ["bookings", "official", "all"],
     queryFn: () => api.getBookings(),
   });
-  const { data: utilityChargesData } = useQuery({
+  const { data: utilityChargesData, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "official", "all"],
     queryFn: () => api.getUtilityCharges(),
   });
-  const { data: penaltiesData } = useQuery({
+  const { data: penaltiesData, isPending: penaltiesPending } = useQuery({
     queryKey: ["penalties", "official", "all"],
     queryFn: () => api.getPenalties(),
   });
@@ -324,6 +325,26 @@ const OfficialDashboard = () => {
   const bookings = bookingsData?.bookings || [];
   const utilityCharges = utilityChargesData?.utilityCharges || [];
   const penalties = penaltiesData?.penalties || [];
+  const isDashboardLoading =
+    marketsPending ||
+    stallsPending ||
+    vendorsPending ||
+    paymentsPending ||
+    ticketsPending ||
+    bookingsPending ||
+    utilityChargesPending ||
+    penaltiesPending;
+
+  if (isDashboardLoading) {
+    return (
+      <div className="space-y-4 lg:space-y-5">
+        <LoadingState rows={1} itemClassName="h-28 rounded-xl" />
+        <LoadingState rows={2} className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]" itemClassName="h-[430px] rounded-xl" />
+        <LoadingState rows={1} itemClassName="h-[320px] rounded-xl" />
+        <LoadingState rows={2} className="grid gap-4 xl:grid-cols-2" itemClassName="h-[300px] rounded-xl" />
+      </div>
+    );
+  }
 
   const selectedRegionInfo = regions.find((region) => region.id === selectedRegion)!;
   const selectedAreas = locationAreas.filter((area) => area.regionId === selectedRegion);
@@ -732,9 +753,10 @@ const OfficialDashboard = () => {
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto px-4 pb-4">
           {marketRows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No markets are registered in this selected area yet.
-            </p>
+            <EmptyState
+              title="No markets in this area"
+              description="Registered markets for the selected region, district, or sub-area will appear here."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -776,35 +798,37 @@ const OfficialDashboard = () => {
             <CardTitle className="text-base font-heading">Compliance Issues</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto space-y-3 px-4 pb-4">
-            {complianceIssueRows.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">{item.vendorName}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {item.marketName}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(item.amount)}</p>
-                    {item.status ? (
-                      <div className="mt-2">
-                        <StatusBadge status={item.status} context="obligation" />
-                      </div>
-                    ) : null}
+            {complianceIssueRows.length === 0 ? (
+              <EmptyState
+                title="No compliance issues"
+                description="Overdue bookings, unpaid utilities, and other regional issues will appear here."
+              />
+            ) : (
+              complianceIssueRows.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{item.vendorName}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.marketName}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{formatCurrency(item.amount)}</p>
+                      {item.status ? (
+                        <div className="mt-2">
+                          <StatusBadge status={item.status} context="obligation" />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {complianceIssueRows.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No compliance issues in this region.
-              </p>
-            ) : null}
+              ))
+            )}
           </CardContent>
         </Card>
 
