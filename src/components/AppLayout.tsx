@@ -213,17 +213,24 @@ const AppLayout = () => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="relative flex items-center gap-3 px-3 lg:px-4 py-2.5 border-b bg-card">
-          <button className="lg:hidden text-foreground" onClick={() => setSidebarOpen(true)}>
+        <header className="flex items-center gap-2 px-3 py-2.5 border-b bg-card lg:gap-3 lg:px-4">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            className="shrink-0 text-foreground lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-xs font-medium bg-muted text-muted-foreground px-3 py-1 rounded-full">{headerScope}</span>
+          <div className="flex min-w-0 flex-1 justify-center px-1 sm:px-3">
+            <span className="max-w-full truncate whitespace-nowrap rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              {headerScope}
+            </span>
           </div>
-          <div className="flex-1" />
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
+              aria-label="Open notifications"
               onClick={() => {
                 if (!isPendingVendor) {
                   openProfileTab("notifications");
@@ -290,7 +297,7 @@ const AppLayout = () => {
             </DropdownMenu>
           </div>
         </header>
-        <div className="flex-1 flex flex-col overflow-y-auto p-3 lg:p-4">
+        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden p-3 lg:p-4">
           <div className="flex-1 flex flex-col">
             <Outlet />
           </div>

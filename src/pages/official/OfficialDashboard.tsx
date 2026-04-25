@@ -751,7 +751,7 @@ const OfficialDashboard = () => {
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-base font-heading">Markets in Selected Area</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto px-4 pb-4">
+        <CardContent className="flex-1 overflow-auto px-4 pb-4">
           {marketRows.length === 0 ? (
             <EmptyState
               title="No markets in this area"

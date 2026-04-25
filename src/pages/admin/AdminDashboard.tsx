@@ -418,7 +418,7 @@ const AdminDashboard = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">All Markets Overview</CardTitle>
         </CardHeader>
-        <CardContent className="max-h-[290px] overflow-y-auto">
+        <CardContent className="max-h-[290px] overflow-auto">
           {marketRows.length === 0 ? (
             <EmptyState
               title="No markets registered"
@@ -457,7 +457,7 @@ const AdminDashboard = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">Users & Roles</CardTitle>
         </CardHeader>
-        <CardContent className="max-h-[290px] overflow-y-auto">
+        <CardContent className="max-h-[290px] overflow-auto">
           {userRows.length === 0 ? (
             <EmptyState
               title="No user activity"
@@ -507,7 +507,7 @@ const AdminDashboard = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-heading">Recent Payments</CardTitle>
           </CardHeader>
-          <CardContent className="max-h-[290px] overflow-y-auto">
+          <CardContent className="max-h-[290px] overflow-auto">
             {recentPayments.length === 0 ? (
               <EmptyState
                 title="No payment records"
@@ -570,7 +570,7 @@ const AdminDashboard = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-heading">System Alerts</CardTitle>
           </CardHeader>
-          <CardContent className="max-h-[290px] overflow-y-auto">
+          <CardContent className="max-h-[290px] overflow-auto">
             {alerts.length === 0 ? (
               <EmptyState
                 title="No system alerts"
@@ -614,7 +614,7 @@ const AdminDashboard = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="max-h-[290px] overflow-y-auto">
+          <CardContent className="max-h-[290px] overflow-auto">
             {recentAuditRows.length === 0 ? (
               <EmptyState
                 title="No system activity"

@@ -47,7 +47,8 @@ loadEnvFile(path.join(rootDir, ".env"));
 const appEnv = process.env.APP_ENV?.trim() || process.env.NODE_ENV || "development";
 const devMode = appEnv !== "production";
 const appName = process.env.APP_NAME?.trim() || "MMS";
-const appUrls = (process.env.APP_URL || "http://localhost:8080")
+const defaultAppUrls = "http://localhost:8080,http://localhost:5173,http://127.0.0.1:5173";
+const appUrls = (process.env.APP_URL || defaultAppUrls)
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
