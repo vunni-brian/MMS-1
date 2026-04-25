@@ -46,10 +46,10 @@ const users: SmokeUser[] = [
     password: "Admin123!",
     requiresMfa: true,
     expectedHomePath: "/admin",
-    dashboardHeading: "Admin Dashboard",
+    dashboardHeading: "System Administration",
     dashboardHeadingExact: true,
-    navVisible: ["Dashboard", "Billing", "Reports", "Audit Log", "Coordination"],
-    navHidden: ["Stalls", "Payments", "Notifications", "Complaints", "Vendors", "Profile"],
+    navVisible: ["Dashboard", "Billing & Utilities", "Reports", "Audit Log", "Coordination", "Profile"],
+    navHidden: ["Stalls", "Payments & Receipts", "Notifications", "Complaints", "Vendors"],
   },
   {
     label: "manager",
@@ -58,10 +58,10 @@ const users: SmokeUser[] = [
     password: "Manager123!",
     requiresMfa: true,
     expectedHomePath: "/manager",
-    dashboardHeading: "Manager Dashboard",
-    dashboardHeadingExact: true,
-    navVisible: ["Dashboard", "Vendors", "Stalls", "Payments", "Complaints", "Billing", "Reports", "Audit Log", "Coordination"],
-    navHidden: ["Notifications", "Profile"],
+    dashboardHeading: /Good (morning|afternoon|evening),/,
+    dashboardHeadingExact: false,
+    navVisible: ["Dashboard", "Vendors", "Stalls", "Payments & Receipts", "Complaints", "Billing & Utilities", "Reports", "Audit Log", "Coordination", "Profile"],
+    navHidden: ["Notifications"],
   },
   {
     label: "official",
@@ -70,10 +70,10 @@ const users: SmokeUser[] = [
     password: "Official123!",
     requiresMfa: true,
     expectedHomePath: "/official",
-    dashboardHeading: "Official Dashboard",
+    dashboardHeading: "National Market Oversight",
     dashboardHeadingExact: true,
-    navVisible: ["Dashboard", "Billing", "Reports", "Audit Log", "Coordination"],
-    navHidden: ["Stalls", "Payments", "Notifications", "Complaints", "Vendors", "Profile"],
+    navVisible: ["Dashboard", "Billing & Utilities", "Reports", "Audit Log", "Coordination", "Profile"],
+    navHidden: ["Stalls", "Payments & Receipts", "Notifications", "Complaints", "Vendors"],
   },
   {
     label: "vendor-james",
@@ -82,10 +82,10 @@ const users: SmokeUser[] = [
     password: "Vendor123!",
     requiresMfa: false,
     expectedHomePath: "/vendor",
-    dashboardHeading: /Welcome back,/,
+    dashboardHeading: /Good (morning|afternoon|evening),/,
     dashboardHeadingExact: false,
-    navVisible: ["Dashboard", "Stalls", "Payments", "Notifications", "Complaints", "Profile"],
-    navHidden: ["Vendors", "Billing", "Reports", "Audit Log", "Coordination"],
+    navVisible: ["Dashboard", "Stalls", "Payments & Receipts", "Notifications", "Complaints", "Profile"],
+    navHidden: ["Vendors", "Billing & Utilities", "Reports", "Audit Log", "Coordination"],
   },
   {
     label: "vendor-precious",
@@ -94,10 +94,10 @@ const users: SmokeUser[] = [
     password: "Vendor123!",
     requiresMfa: false,
     expectedHomePath: "/vendor",
-    dashboardHeading: /Welcome back,/,
+    dashboardHeading: /Good (morning|afternoon|evening),/,
     dashboardHeadingExact: false,
-    navVisible: ["Dashboard", "Stalls", "Payments", "Notifications", "Complaints", "Profile"],
-    navHidden: ["Vendors", "Billing", "Reports", "Audit Log", "Coordination"],
+    navVisible: ["Dashboard", "Stalls", "Payments & Receipts", "Notifications", "Complaints", "Profile"],
+    navHidden: ["Vendors", "Billing & Utilities", "Reports", "Audit Log", "Coordination"],
   },
 ];
 
@@ -333,11 +333,11 @@ const verifyAdminFlow = async (page: import("playwright").Page, result: SmokeRes
   result.billingBehavior.penaltiesRestored = true;
 
   await gotoAndCheckHeading(page, "/admin/reports", "Reports");
-  result.pages.reports = await labelVisible(page, "Market");
   result.pages.financialAuditVisible = (await page.getByText("Financial Audit", { exact: true }).count()) > 0;
+  result.pages.reports = result.pages.financialAuditVisible;
 
   await gotoAndCheckHeading(page, "/admin/audit", "Audit Trail");
-  result.pages.audit = await labelVisible(page, "Market");
+  result.pages.audit = (await page.getByText("Audit Events", { exact: true }).count()) > 0;
 
   await gotoAndCheckHeading(page, "/admin/coordination", "Manager & Official Coordination");
   result.pages.coordination = (await page.getByText("Shared Channel", { exact: true }).count()) > 0;
@@ -387,10 +387,10 @@ const verifyOfficialFlow = async (page: import("playwright").Page, result: Smoke
   };
 
   await gotoAndCheckHeading(page, "/official/reports", "Reports");
-  result.pages.reports = await labelVisible(page, "Market");
+  result.pages.reports = (await page.getByText("Financial Audit", { exact: true }).count()) > 0;
 
   await gotoAndCheckHeading(page, "/official/audit", "Audit Trail");
-  result.pages.audit = await labelVisible(page, "Market");
+  result.pages.audit = (await page.getByText("Audit Events", { exact: true }).count()) > 0;
 
   await gotoAndCheckHeading(page, "/official/coordination", "Manager & Official Coordination");
   result.pages.coordination = (await page.getByText("Shared Channel", { exact: true }).count()) > 0;
@@ -410,7 +410,8 @@ const verifyVendorFlow = async (page: import("playwright").Page, result: SmokeRe
   result.pages.stalls = true;
 
   await gotoAndCheckHeading(page, "/vendor/payments", "Payments");
-  result.pages.payments = (await page.getByText("Approved Bookings", { exact: false }).count()) > 0;
+  await page.getByText("Payment History & Evidence", { exact: true }).waitFor({ state: "visible", timeout: 20_000 });
+  result.pages.payments = true;
 
   await gotoAndCheckHeading(page, "/vendor/notifications", "Notifications");
   result.pages.notifications = true;
@@ -418,7 +419,7 @@ const verifyVendorFlow = async (page: import("playwright").Page, result: SmokeRe
   await gotoAndCheckHeading(page, "/vendor/complaints", "Complaints & Disputes");
   result.pages.complaints = (await page.getByRole("button", { name: "New Complaint", exact: true }).count()) > 0;
 
-  await gotoAndCheckHeading(page, "/vendor/profile", "My Profile");
+  await gotoAndCheckHeading(page, "/vendor/profile", "General Information");
   result.pages.profile = (await page.getByRole("button", { name: "Save Changes", exact: true }).count()) > 0;
 };
 

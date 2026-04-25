@@ -211,7 +211,7 @@ Core app settings:
 - `API_PORT` defaults to `3001`
 - `APP_ENV` defaults to `development`
 - `APP_NAME` defaults to `MMS`
-- `APP_URL` defaults to `http://localhost:8080` and can be a comma-separated list of allowed frontend origins
+- `APP_URL` defaults to local dev origins (`http://localhost:8080`, `http://localhost:5173`, `http://127.0.0.1:5173`) and can be a comma-separated list of allowed frontend origins
 - `API_URL` defaults to `http://localhost:3001`
 - `VITE_API_BASE_URL` sets the frontend API base URL
 - `MMS_DATA_DIR` defaults to `./runtime`
