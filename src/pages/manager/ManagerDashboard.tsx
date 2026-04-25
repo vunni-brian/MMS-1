@@ -478,7 +478,6 @@ const ManagerDashboard = () => {
             </div>
           </CardHeader>
 
-          <CardContent className="max-h-[340px] space-y-2 overflow-y-auto px-4 pb-4">
             {activeTaskTab === "approvals" &&
               (approvalRows.length === 0 ? (
                 <EmptyState
