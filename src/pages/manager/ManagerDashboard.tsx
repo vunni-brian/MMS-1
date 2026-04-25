@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -357,30 +357,10 @@ const ManagerDashboard = () => {
   ];
 
   const occupancySummary = [
-    {
-      label: "Occupied",
-      value: activeStalls.length,
-      detail: "Assigned",
-      icon: CheckCircle2,
-    },
-    {
-      label: "Vacant",
-      value: vacantStalls.length,
-      detail: "Available",
-      icon: Grid3X3,
-    },
-    {
-      label: "Maintenance",
-      value: maintenanceStalls.length,
-      detail: "Needs follow-up",
-      icon: Wrench,
-    },
-    {
-      label: "Renewals",
-      value: renewalPending.length,
-      detail: "Within 7 days",
-      icon: AlertCircle,
-    },
+    { label: "Occupied", value: activeStalls.length, detail: "Assigned", icon: CheckCircle2 },
+    { label: "Vacant", value: vacantStalls.length, detail: "Available", icon: Grid3X3 },
+    { label: "Maintenance", value: maintenanceStalls.length, detail: "Needs follow-up", icon: Wrench },
+    { label: "Renewals", value: renewalPending.length, detail: "Within 7 days", icon: AlertCircle },
   ];
 
   const taskTabs: Array<{ key: ActiveTaskTab; label: string; count: number }> = [
@@ -389,16 +369,15 @@ const ManagerDashboard = () => {
     { key: "complaints", label: "Complaints", count: openComplaints.length },
   ];
 
-  const activeTaskRoute = useMemo(() => {
-    if (activeTaskTab === "payments") return "/manager/payments";
-    if (activeTaskTab === "complaints") return "/manager/complaints";
-    return "/manager/vendors";
-  }, [activeTaskTab]);
+  const activeTaskRoute =
+    activeTaskTab === "payments"
+      ? "/manager/payments"
+      : activeTaskTab === "complaints"
+        ? "/manager/complaints"
+        : "/manager/vendors";
 
   return (
     <div className="space-y-3 lg:space-y-4">
-      {/* DEBUG: Manager dashboard compact control-center layout */}
-
       <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -478,153 +457,162 @@ const ManagerDashboard = () => {
             </div>
           </CardHeader>
 
-            {activeTaskTab === "approvals" &&
-              (approvalRows.length === 0 ? (
-                <EmptyState
-                  title="No reviews waiting"
-                  description="Vendor registrations and stall applications will appear here."
-                />
-              ) : (
-                approvalRows.slice(0, 5).map((row) => (
-                  <div
-                    key={row.id}
-                    className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-                  >
-                    <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-medium">{row.vendorName}</p>
-                          <StatusBadge
-                            status={row.status}
-                            context={row.kind === "booking" ? "booking" : "vendor"}
-                          />
-                        </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
-                          {row.detail}
-                        </p>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
-                          {row.market} • {formatHumanDate(row.appliedAt)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button asChild size="sm" variant="outline" className="h-8">
-                          <Link to={row.kind === "vendor" ? "/manager/vendors" : "/manager/stalls"}>
-                            View
-                          </Link>
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          className="h-8"
-                          onClick={() => approveRow(row)}
-                          disabled={actionDisabled}
-                        >
-                          Approve
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          className="h-8"
-                          variant="destructive"
-                          onClick={() => rejectRow(row)}
-                          disabled={actionDisabled}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ))}
-
-            {activeTaskTab === "payments" &&
-              (pendingPayments.length === 0 ? (
-                <EmptyState
-                  title="No payments waiting"
-                  description="Pending confirmations will appear here."
-                />
-              ) : (
-                pendingPayments.slice(0, 5).map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-                  >
-                    <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-medium">{payment.vendorName}</p>
-                          <StatusBadge status={payment.status} context="payment" />
-                        </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
-                          {getPaymentPurpose(payment)}
-                        </p>
-                        <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
-                          {getPaymentReference(payment)}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-3">
-                        <p className="text-sm font-semibold">{formatCurrency(payment.amount)}</p>
-                        <Button asChild size="sm" variant="outline" className="h-8">
-                          <Link to="/manager/payments">View</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ))}
-
-            {activeTaskTab === "complaints" &&
-              (complaintRows.length === 0 ? (
-                <EmptyState
-                  title="No open complaints"
-                  description="Vendor issues needing response will appear here."
-                />
-              ) : (
-                complaintRows.map((ticket) => {
-                  const priority = getComplaintPriority(ticket);
-                  const priorityClasses =
-                    priority === "High"
-                      ? "border-destructive/20 bg-destructive/15 text-destructive"
-                      : priority === "Medium"
-                        ? "border-warning/20 bg-warning/15 text-warning-foreground"
-                        : "border-border bg-muted text-muted-foreground";
-
-                  return (
+          <CardContent className="max-h-[340px] space-y-2 overflow-y-auto px-4 pb-4">
+            {activeTaskTab === "approvals" && (
+              <>
+                {approvalRows.length === 0 ? (
+                  <EmptyState
+                    title="No reviews waiting"
+                    description="Vendor registrations and stall applications will appear here."
+                  />
+                ) : (
+                  approvalRows.slice(0, 5).map((row) => (
                     <div
-                      key={ticket.id}
+                      key={row.id}
                       className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
                     >
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-medium">{ticket.vendorName}</p>
-                            <span className={`status-badge ${priorityClasses}`}>{priority}</span>
-                            <StatusBadge status={ticket.status} context="ticket" />
+                            <p className="truncate text-sm font-medium">{row.vendorName}</p>
+                            <StatusBadge
+                              status={row.status}
+                              context={row.kind === "booking" ? "booking" : "vendor"}
+                            />
                           </div>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {ticket.subject}
+                            {row.detail}
                           </p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {categoryLabels[ticket.category]} •{" "}
-                            {formatHumanDate(ticket.createdAt)}
+                            {row.market} • {formatHumanDate(row.appliedAt)}
                           </p>
                         </div>
 
-                        <Button
-                          asChild
-                          size="sm"
-                          className="h-8"
-                          variant={priority === "High" ? "default" : "outline"}
-                        >
-                          <Link to="/manager/complaints">Respond</Link>
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button asChild size="sm" variant="outline" className="h-8">
+                            <Link to={row.kind === "vendor" ? "/manager/vendors" : "/manager/stalls"}>
+                              View
+                            </Link>
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8"
+                            onClick={() => approveRow(row)}
+                            disabled={actionDisabled}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8"
+                            variant="destructive"
+                            onClick={() => rejectRow(row)}
+                            disabled={actionDisabled}
+                          >
+                            Reject
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  );
-                })
-              ))}
+                  ))
+                )}
+              </>
+            )}
+
+            {activeTaskTab === "payments" && (
+              <>
+                {pendingPayments.length === 0 ? (
+                  <EmptyState
+                    title="No payments waiting"
+                    description="Pending confirmations will appear here."
+                  />
+                ) : (
+                  pendingPayments.slice(0, 5).map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                    >
+                      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-medium">{payment.vendorName}</p>
+                            <StatusBadge status={payment.status} context="payment" />
+                          </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {getPaymentPurpose(payment)}
+                          </p>
+                          <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                            {getPaymentReference(payment)}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3">
+                          <p className="text-sm font-semibold">{formatCurrency(payment.amount)}</p>
+                          <Button asChild size="sm" variant="outline" className="h-8">
+                            <Link to="/manager/payments">View</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+
+            {activeTaskTab === "complaints" && (
+              <>
+                {complaintRows.length === 0 ? (
+                  <EmptyState
+                    title="No open complaints"
+                    description="Vendor issues needing response will appear here."
+                  />
+                ) : (
+                  complaintRows.map((ticket) => {
+                    const priority = getComplaintPriority(ticket);
+                    const priorityClasses =
+                      priority === "High"
+                        ? "border-destructive/20 bg-destructive/15 text-destructive"
+                        : priority === "Medium"
+                          ? "border-warning/20 bg-warning/15 text-warning-foreground"
+                          : "border-border bg-muted text-muted-foreground";
+
+                    return (
+                      <div
+                        key={ticket.id}
+                        className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
+                      >
+                        <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-medium">{ticket.vendorName}</p>
+                              <span className={`status-badge ${priorityClasses}`}>
+                                {priority}
+                              </span>
+                              <StatusBadge status={ticket.status} context="ticket" />
+                            </div>
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
+                              {ticket.subject}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
+                              {categoryLabels[ticket.category]} • {formatHumanDate(ticket.createdAt)}
+                            </p>
+                          </div>
+
+                          <Button
+                            asChild
+                            size="sm"
+                            className="h-8"
+                            variant={priority === "High" ? "default" : "outline"}
+                          >
+                            <Link to="/manager/complaints">Respond</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -681,90 +669,6 @@ const ManagerDashboard = () => {
               <p className="mt-1 text-xs text-muted-foreground">
                 {utilityRows.length} active follow-up items
               </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-3 xl:grid-cols-2">
-        <Card className="card-warm h-[245px] overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between gap-3 px-4 pb-2 pt-3">
-            <CardTitle className="text-base font-heading">Utility Charges</CardTitle>
-            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-              <Link to="/manager/billing">View all</Link>
-            </Button>
-          </CardHeader>
-
-          <CardContent className="max-h-[187px] space-y-2 overflow-y-auto px-4 pb-3">
-            {utilityRows.length === 0 ? (
-              <EmptyState
-                title="No utility follow-up"
-                description="Unpaid utility charges will appear here."
-              />
-            ) : (
-              utilityRows.map((charge) => (
-                <div
-                  key={charge.id}
-                  className="rounded-xl border border-border/70 bg-background p-2.5 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{charge.vendorName}</p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {utilityLabels[charge.utilityType]} • {charge.billingPeriod}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {charge.stallName || "No stall linked"}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-semibold">{formatCurrency(charge.amount)}</p>
-                      <div className="mt-1">
-                        <StatusBadge status={charge.status} context="obligation" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm h-[245px] overflow-hidden">
-          <CardHeader className="px-4 pb-2 pt-3">
-            <CardTitle className="text-base font-heading">Operations Snapshot</CardTitle>
-          </CardHeader>
-
-          <CardContent className="grid gap-2 px-4 pb-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">High-priority complaints</p>
-              <p className="mt-1 text-xl font-bold font-heading">
-                {highPriorityComplaints.length}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">Needs fast response</p>
-            </div>
-
-            <div className="rounded-xl border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Pending applications</p>
-              <p className="mt-1 text-xl font-bold font-heading">
-                {pendingApplications.length}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">Stall requests</p>
-            </div>
-
-            <div className="rounded-xl border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Vendor reviews</p>
-              <p className="mt-1 text-xl font-bold font-heading">{pendingVendors.length}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Registration checks</p>
-            </div>
-
-            <div className="rounded-xl border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Payment value</p>
-              <p className="mt-1 text-xl font-bold font-heading">
-                {formatCurrency(pendingPaymentsTotal)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">Pending confirmation</p>
             </div>
           </CardContent>
         </Card>
