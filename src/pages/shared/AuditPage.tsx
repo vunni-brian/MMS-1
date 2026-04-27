@@ -201,38 +201,6 @@ const AuditPage = () => {
         }
       />
 
-      <ScopeBar>
-        {canScopeMarkets && (
-          <ScopeItem label="Market scope" className="w-full sm:w-[260px]">
-            <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select market" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Markets</SelectItem>
-                {(marketsData?.markets || []).map((market) => (
-                  <SelectItem key={market.id} value={market.id}>
-                    {market.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ScopeItem>
-        )}
-
-        <ScopeItem label="Evidence policy">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            Append-only operational log
-          </div>
-        </ScopeItem>
-
-        <ScopeItem label="Primary action">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            Inspect event evidence
-          </div>
-        </ScopeItem>
-      </ScopeBar>
-
       <KpiStrip items={auditKpis} />
 
       <Card className="card-warm">
