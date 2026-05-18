@@ -211,18 +211,6 @@ const StallsPage = () => {
             </SelectContent>
           </Select>
         </ScopeItem>
-
-        <ScopeItem label="Role context">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm capitalize">
-            {role}
-          </div>
-        </ScopeItem>
-
-        <ScopeItem label="Primary action">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            {role === "vendor" ? "Apply for an available stall" : "Keep stall inventory accurate"}
-          </div>
-        </ScopeItem>
       </ScopeBar>
 
       {error && (
@@ -277,7 +265,7 @@ const StallsPage = () => {
                 <button
                   key={stall.id}
                   onClick={() => setSelectedStall(stall)}
-                  className={`group rounded-xl border p-4 text-left transition-all duration-150 hover:-translate-y-[2px] hover:bg-muted/30 hover:shadow-md ${statusColors[stall.status] || "border-border bg-card"
+                  className={`group rounded-lg border p-4 text-left transition-colors duration-150 hover:bg-muted/30 hover:shadow-md ${statusColors[stall.status] || "border-border bg-card"
                     }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -328,7 +316,7 @@ const StallsPage = () => {
       >
         {selectedStall && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
               <EvidenceField label="Status" value={<StatusBadge status={selectedStall.status} />} />
               <EvidenceField
                 label="Monthly Rent"
@@ -340,7 +328,7 @@ const StallsPage = () => {
                 value={selectedStall.isPublished ? "Published" : "Unpublished"}
               />
               {selectedStall.vendorName && (
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <EvidenceField label="Assigned To" value={selectedStall.vendorName} />
                 </div>
               )}
@@ -352,7 +340,7 @@ const StallsPage = () => {
                   Submit an application. The market manager will review it before the stall becomes
                   active on your dashboard.
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="startDate">Start Date</Label>
                     <Input

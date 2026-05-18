@@ -7,14 +7,20 @@ import {
   Filter,
   Plus,
   Search,
-  Upload,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  ConsolePage,
+  DataTableFrame,
+  EmptyState,
+  FileUploadCard,
+  KpiStrip,
+  PageHeader,
+} from "@/components/console/ConsolePage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/sonner";
 import {
   Table,
   TableBody,
@@ -65,6 +72,18 @@ const getPriority = (ticket: Ticket) => {
   if (ticket.category === "dispute") return "High";
   if (ticket.category === "billing" || ticket.category === "maintenance") return "Medium";
   return "Normal";
+};
+
+const ticketStatusOptions: Array<{ value: TicketStatus; label: string }> = [
+  { value: "open", label: "Pending" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "resolved", label: "Resolved" },
+];
+
+const nextTicketStatusOptions = (status: TicketStatus) => {
+  if (status === "open") return ticketStatusOptions.filter((option) => option.value !== "resolved");
+  if (status === "in_progress") return ticketStatusOptions.filter((option) => option.value !== "open");
+  return ticketStatusOptions.filter((option) => option.value === "resolved");
 };
 
 const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
@@ -141,9 +160,16 @@ const ComplaintsPage = () => {
         attachment: null,
       });
       setError(null);
+      toast.success("Complaint submitted", {
+        description: "The ticket is now in the complaint register for review.",
+      });
     },
-    onError: (mutationError) =>
-      setError(mutationError instanceof ApiError ? mutationError.message : "Unable to create ticket."),
+    onError: (mutationError) => {
+      const message =
+        mutationError instanceof ApiError ? mutationError.message : "Unable to create ticket.";
+      setError(message);
+      toast.error("Complaint was not submitted", { description: message });
+    },
   });
 
   const updateTicket = useMutation({
@@ -153,9 +179,14 @@ const ComplaintsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setSelected(null);
       setError(null);
+      toast.success("Ticket updated");
     },
-    onError: (mutationError) =>
-      setError(mutationError instanceof ApiError ? mutationError.message : "Unable to update ticket."),
+    onError: (mutationError) => {
+      const message =
+        mutationError instanceof ApiError ? mutationError.message : "Unable to update ticket.";
+      setError(message);
+      toast.error("Ticket was not updated", { description: message });
+    },
   });
 
   const tickets = data?.tickets || [];
@@ -186,29 +217,64 @@ const ComplaintsPage = () => {
   const inProgressTickets = tickets.filter((ticket) => ticket.status === "in_progress");
   const resolvedTickets = tickets.filter((ticket) => ticket.status === "resolved");
   const highPriorityTickets = tickets.filter((ticket) => getPriority(ticket) === "High");
+  const canSubmitComplaint = Boolean(
+    newTicket.category &&
+      newTicket.subject.trim() &&
+      newTicket.description.trim(),
+  );
+  const canUpdateSelectedTicket =
+    Boolean(selected) &&
+    (managerUpdate.status !== "resolved" || Boolean(managerUpdate.resolutionNote.trim()));
+  const complaintKpis = [
+    {
+      label: "Total Tickets",
+      value: tickets.length,
+      detail: "All complaint records",
+      icon: AlertCircle,
+      tone: "default" as const,
+    },
+    {
+      label: "Pending",
+      value: openTickets.length,
+      detail: "Awaiting manager action",
+      icon: Clock3,
+      tone: openTickets.length ? ("warning" as const) : ("default" as const),
+    },
+    {
+      label: "In Progress",
+      value: inProgressTickets.length,
+      detail: "Currently being handled",
+      icon: Clock3,
+      tone: "info" as const,
+    },
+    {
+      label: "High Priority",
+      value: highPriorityTickets.length,
+      detail: "Dispute-related cases",
+      icon: AlertCircle,
+      tone: highPriorityTickets.length ? ("destructive" as const) : ("success" as const),
+    },
+  ];
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Ticket desk
-          </p>
-          <h1 className="text-2xl font-bold font-heading">Complaints & Disputes</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {role === "vendor"
-              ? "Lodge complaints and track progress from submission to resolution."
-              : "Review vendor complaints, prioritize urgent cases, and update resolution progress."}
-          </p>
-        </div>
-
-        {role === "vendor" && (
-          <Button onClick={() => setShowNew(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            New Complaint
-          </Button>
-        )}
-      </div>
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Ticket desk"
+        title="Complaints & Disputes"
+        description={
+          role === "vendor"
+            ? "Lodge complaints and track progress from submission to resolution."
+            : "Review vendor complaints, prioritize urgent cases, and update resolution progress."
+        }
+        actions={
+          role === "vendor" && (
+            <Button onClick={() => setShowNew(true)} className="w-full sm:w-auto">
+              <Plus className="mr-1 h-4 w-4" />
+              New Complaint
+            </Button>
+          )
+        }
+      />
 
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -232,52 +298,14 @@ const ComplaintsPage = () => {
         </div>
       ) : (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="card-warm">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Total Tickets</p>
-                <p className="mt-1 text-2xl font-bold font-heading">{tickets.length}</p>
-                <p className="mt-1 text-xs text-muted-foreground">All complaint records</p>
-              </CardContent>
-            </Card>
+          <KpiStrip items={complaintKpis} />
 
-            <Card className="card-warm">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Open</p>
-                <p className="mt-1 text-2xl font-bold font-heading">{openTickets.length}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Awaiting manager action</p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-warm">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">In Progress</p>
-                <p className="mt-1 text-2xl font-bold font-heading">{inProgressTickets.length}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Being handled</p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-warm">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">High Priority</p>
-                <p className="mt-1 text-2xl font-bold font-heading">{highPriorityTickets.length}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Dispute-related cases</p>
-              </CardContent>
-            </Card>
-          </section>
-
-          <Card className="card-warm">
-            <CardContent className="space-y-4 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <h2 className="text-base font-semibold font-heading">Ticket Register</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Showing {filteredTickets.length} of {tickets.length} complaint records.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <div className="relative min-w-[220px]">
+          <DataTableFrame
+            title="Ticket Register"
+            description={`Showing ${filteredTickets.length} of ${tickets.length} complaint records.`}
+            actions={
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+                  <div className="relative w-full sm:w-[240px]">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="pl-9"
@@ -288,7 +316,7 @@ const ComplaintsPage = () => {
                   </div>
 
                   <Select value={categoryFilter} onValueChange={(value: CategoryFilter) => setCategoryFilter(value)}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -302,7 +330,7 @@ const ComplaintsPage = () => {
                   </Select>
 
                   <Select value={statusFilter} onValueChange={(value: StatusFilter) => setStatusFilter(value)}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-full sm:w-[150px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -315,6 +343,7 @@ const ComplaintsPage = () => {
 
                   <Button
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setSearch("");
                       setCategoryFilter("all");
@@ -325,14 +354,15 @@ const ComplaintsPage = () => {
                     Reset
                   </Button>
                 </div>
-              </div>
+            }
+          >
+            <div className="space-y-4 p-4">
 
               {filteredTickets.length === 0 ? (
-                <div className="py-8">
-                  <p className="text-center text-sm text-muted-foreground">
-                    No complaints match the selected filters.
-                  </p>
-                </div>
+                <EmptyState
+                  title="No complaints match this view"
+                  description="Clear the filters or search by ticket, vendor, category, or status."
+                />
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-border/70">
                   <Table>
@@ -424,27 +454,27 @@ const ComplaintsPage = () => {
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </DataTableFrame>
         </>
       )}
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="font-heading">Lodge a Complaint</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Category</Label>
+              <Label htmlFor="complaint-category">Category</Label>
               <Select
                 value={newTicket.category}
                 onValueChange={(value: TicketCategory) =>
                   setNewTicket((current) => ({ ...current, category: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="complaint-category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -458,8 +488,9 @@ const ComplaintsPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Subject</Label>
+              <Label htmlFor="complaint-subject">Subject</Label>
               <Input
+                id="complaint-subject"
                 value={newTicket.subject}
                 onChange={(event) =>
                   setNewTicket((current) => ({ ...current, subject: event.target.value }))
@@ -468,8 +499,9 @@ const ComplaintsPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Description</Label>
+              <Label htmlFor="complaint-description">Description</Label>
               <Textarea
+                id="complaint-description"
                 value={newTicket.description}
                 onChange={(event) =>
                   setNewTicket((current) => ({ ...current, description: event.target.value }))
@@ -478,42 +510,28 @@ const ComplaintsPage = () => {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Attachment (optional)</Label>
-              <label className="block cursor-pointer rounded-xl border-2 border-dashed border-border p-4 text-center transition-colors hover:border-foreground/25">
-                <Upload className="mx-auto mb-1 h-6 w-6 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">
-                  {newTicket.attachment
-                    ? newTicket.attachment.name
-                    : "Click to upload a photo or document"}
-                </p>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={(event) =>
-                    setNewTicket((current) => ({
-                      ...current,
-                      attachment: event.target.files?.[0] || null,
-                    }))
-                  }
-                />
-              </label>
-            </div>
+            <FileUploadCard
+              id="complaint-attachment"
+              label="Attachment (optional)"
+              description="Add a photo or document if it helps the manager resolve the case."
+              accept=".pdf,.jpg,.jpeg,.png"
+              value={newTicket.attachment?.name || "No file selected"}
+              onChange={(file) => setNewTicket((current) => ({ ...current, attachment: file }))}
+            />
 
             <Button
               className="w-full"
               onClick={() => createTicket.mutate()}
-              disabled={createTicket.isPending}
+              disabled={createTicket.isPending || !canSubmitComplaint}
             >
-              Submit Complaint
+              {createTicket.isPending ? "Submitting Complaint..." : "Submit Complaint"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(selected)} onOpenChange={() => setSelected(null)}>
-        <DialogContent>
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="font-heading">Ticket #{selected?.id}</DialogTitle>
           </DialogHeader>
@@ -570,27 +588,33 @@ const ComplaintsPage = () => {
               {role === "manager" ? (
                 <>
                   <div className="space-y-1.5">
-                    <Label>Update Status</Label>
+                    <Label htmlFor="ticket-status">Update Status</Label>
                     <Select
                       value={managerUpdate.status}
                       onValueChange={(value: TicketStatus) =>
                         setManagerUpdate((current) => ({ ...current, status: value }))
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="ticket-status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="open">Pending</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
+                        {nextTicketStatusOptions(selected.status).map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Complaints move from Pending to In Progress before they can be resolved.
+                    </p>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Resolution Note</Label>
+                    <Label htmlFor="ticket-resolution-note">Resolution Note</Label>
                     <Textarea
+                      id="ticket-resolution-note"
                       value={managerUpdate.resolutionNote}
                       onChange={(event) =>
                         setManagerUpdate((current) => ({
@@ -603,8 +627,9 @@ const ComplaintsPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Manager Note</Label>
+                    <Label htmlFor="ticket-manager-note">Manager Note</Label>
                     <Textarea
+                      id="ticket-manager-note"
                       value={managerUpdate.note}
                       onChange={(event) =>
                         setManagerUpdate((current) => ({ ...current, note: event.target.value }))
@@ -616,7 +641,7 @@ const ComplaintsPage = () => {
                   <Button
                     className="w-full"
                     onClick={() => updateTicket.mutate()}
-                    disabled={updateTicket.isPending}
+                    disabled={updateTicket.isPending || !canUpdateSelectedTicket}
                   >
                     Update Ticket
                   </Button>
@@ -633,7 +658,7 @@ const ComplaintsPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </ConsolePage>
   );
 };
 

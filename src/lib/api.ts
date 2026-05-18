@@ -23,6 +23,7 @@ import type {
   UtilityCalculationMethod,
   UtilityCharge,
   UtilityType,
+  VendorActivityEvent,
   VendorProfile,
 } from "@/types";
 
@@ -207,6 +208,7 @@ export const api = {
 
   getVendors: (marketId?: string) => apiRequest<{ vendors: VendorProfile[] }>(`/vendors${buildQuery({ marketId })}`),
   getVendor: (vendorId: string) => apiRequest<{ vendor: VendorProfile }>(`/vendors/${vendorId}`),
+  getVendorActivity: (vendorId: string) => apiRequest<{ events: VendorActivityEvent[] }>(`/vendors/${vendorId}/activity`),
   updateVendorProfile: (
     vendorId: string,
     input: {
@@ -378,6 +380,7 @@ export const api = {
     apiRequest<{ notifications: AppNotification[] }>(`/notifications${limit ? `?limit=${limit}` : ""}`),
   markNotificationRead: (notificationId: string) =>
     apiRequest<{ ok: true }>(`/notifications/${notificationId}/read`, { method: "PATCH" }),
+  markAllNotificationsRead: () => apiRequest<{ ok: true; updated: number }>("/notifications/read-all", { method: "PATCH" }),
 
   getTickets: (marketId?: string) => apiRequest<{ tickets: Ticket[] }>(`/tickets${buildQuery({ marketId })}`),
   async createTicket(input: {

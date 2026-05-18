@@ -27,7 +27,7 @@ interface UserRoleRow {
 }
 
 const regionKeywords: Record<RegionId, string[]> = {
-  central: ["kampala", "central", "wakiso", "mukono", "masaka", "mityana", "mpigi", "luwero", "kayunga", "mubende", "testbed", "demo"],
+  central: ["kampala", "central", "wakiso", "mukono", "masaka", "mityana", "mpigi", "luwero", "kayunga", "mubende", "kisenyi"],
   western: ["western", "mbarara", "fort portal", "hoima", "kabale", "kasese", "masindi", "bushenyi", "ntungamo", "ibanda"],
   eastern: ["eastern", "jinja", "mbale", "tororo", "soroti", "iganga", "busia", "pallisa", "kapchorwa", "jin"],
   northern: ["northern", "gulu", "lira", "arua", "kitgum", "moroto", "nebbi", "adjumani", "apac"],

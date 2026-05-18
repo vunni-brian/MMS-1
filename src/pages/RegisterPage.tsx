@@ -23,6 +23,11 @@ const formatFileLabel = (file: File | null) => {
 };
 
 const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
+const registrationSteps: Array<{ id: RegistrationStep; label: string; description: string }> = [
+  { id: "details", label: "Account", description: "Identity and market assignment" },
+  { id: "documents", label: "Documents", description: "Required verification evidence" },
+  { id: "otp", label: "Verify", description: "Phone ownership confirmation" },
+];
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -150,9 +155,9 @@ const RegisterPage = () => {
           <h1 className="text-2xl font-bold font-heading">Vendor Registration</h1>
           <p className="text-muted-foreground text-sm">
             {step === "details"
-              ? "Enter your account and vendor details first"
+              ? "Create your account and select the market where you operate"
               : step === "documents"
-                ? "Upload your verification documents"
+                ? "Upload required verification documents"
                 : "Verify the OTP sent to your phone"}
           </p>
         </div>
@@ -163,25 +168,39 @@ const RegisterPage = () => {
               {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
             </CardTitle>
             <CardDescription>Step {step === "details" ? "1" : step === "documents" ? "2" : "3"} of 3</CardDescription>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              {registrationSteps.map((item, index) => {
+                const activeIndex = registrationSteps.findIndex((candidate) => candidate.id === step);
+                const isComplete = index < activeIndex;
+                const isActive = item.id === step;
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-md border px-3 py-2 ${
+                      isActive
+                        ? "border-primary/40 bg-primary/10"
+                        : isComplete
+                          ? "border-success/25 bg-success/10"
+                          : "border-border/70 bg-muted/20"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold">{item.label}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{item.description}</p>
+                  </div>
+                );
+              })}
+            </div>
           </CardHeader>
           <CardContent>
             <form className="space-y-5" onSubmit={handleSubmit}>
               {step === "details" ? (
                 <FormSection
-                  title="Vendor Details"
-                  description="Account identity, market assignment, and profile photo used by managers during review."
+                  title="Account & Market Details"
+                  description="Create the vendor account, identify the operator, and assign the correct market section before document review."
                   className="shadow-none"
                 >
                   <div className="grid gap-4 md:grid-cols-2">
-                    <FileUploadCard
-                      id="profile-photo"
-                      label="Profile Photo"
-                      description="Shown on your profile and in the manager vendor directory."
-                      accept="image/*"
-                      value={formatFileLabel(form.profileImage)}
-                      className="md:col-span-2"
-                      onChange={(file) => updateField("profileImage", file)}
-                    />
                     <div className="space-y-1.5">
                       <Label htmlFor="name">Full Name</Label>
                       <Input
@@ -199,45 +218,6 @@ const RegisterPage = () => {
                         onChange={(event) => updateField("nationalIdNumber", event.target.value)}
                         required
                       />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="district">District</Label>
-                      <Input
-                        id="district"
-                        value={form.district}
-                        onChange={(event) => updateField("district", event.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="product-section">Product Section</Label>
-                      <Select value={form.productSection} onValueChange={(value) => updateField("productSection", value)}>
-                        <SelectTrigger id="product-section">
-                          <SelectValue placeholder="Select product section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {productSections.map((section) => (
-                            <SelectItem key={section} value={section}>
-                              {section}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="market">Market</Label>
-                      <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
-                        <SelectTrigger id="market">
-                          <SelectValue placeholder="Select your market" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(marketsData?.markets || []).map((market) => (
-                            <SelectItem key={market.id} value={market.id}>
-                              {market.name} ({market.location})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="phone">Phone Number</Label>
@@ -272,6 +252,45 @@ const RegisterPage = () => {
                         required
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="market">Market</Label>
+                      <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
+                        <SelectTrigger id="market">
+                          <SelectValue placeholder="Select your market" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(marketsData?.markets || []).map((market) => (
+                            <SelectItem key={market.id} value={market.id}>
+                              {market.name} ({market.location})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="product-section">Product Section</Label>
+                      <Select value={form.productSection} onValueChange={(value) => updateField("productSection", value)}>
+                        <SelectTrigger id="product-section">
+                          <SelectValue placeholder="Select product section" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productSections.map((section) => (
+                            <SelectItem key={section} value={section}>
+                              {section}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label htmlFor="district">Operating District</Label>
+                      <Input
+                        id="district"
+                        value={form.district}
+                        onChange={(event) => updateField("district", event.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
                 </FormSection>
               ) : step === "documents" ? (
@@ -290,24 +309,22 @@ const RegisterPage = () => {
                       onChange={(file) => updateField("idFile", file)}
                     />
                     <FileUploadCard
-                      id="national-id-camera"
-                      label="Take National ID Photo"
-                      description="Use the device camera when registering on mobile."
-                      accept="image/*"
-                      capture="environment"
-                      value={formatFileLabel(form.idFile)}
-                      onChange={(file) => updateField("idFile", file)}
+                      id="lc-letter-upload"
+                      label="LC Letter"
+                      description="Proof of residence in the selected district."
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      value={formatFileLabel(form.lcLetterFile)}
+                      onChange={(file) => updateField("lcLetterFile", file)}
                     />
-                    <div className="md:col-span-2">
-                      <FileUploadCard
-                        id="lc-letter-upload"
-                        label="LC Letter"
-                        description="Proof of residence in the selected district."
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        value={formatFileLabel(form.lcLetterFile)}
-                        onChange={(file) => updateField("lcLetterFile", file)}
-                      />
-                    </div>
+                    <FileUploadCard
+                      id="profile-photo"
+                      label="Profile Photo (Optional)"
+                      description="Used only for the vendor directory after approval."
+                      accept="image/*"
+                      value={formatFileLabel(form.profileImage)}
+                      className="md:col-span-2"
+                      onChange={(file) => updateField("profileImage", file)}
+                    />
                   </div>
                 </FormSection>
               ) : (
@@ -324,7 +341,7 @@ const RegisterPage = () => {
 
               {error && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="outline"
@@ -338,13 +355,13 @@ const RegisterPage = () => {
                       setOtp("");
                     }
                   }}
-                  className="flex-1"
+                  className="w-full sm:flex-1"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" />
                   Back
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isSubmitting || !canSubmit}>
-                  {step === "details" ? "Continue to Documents" : step === "documents" ? "Send OTP" : "Verify & Open Dashboard"}
+                <Button type="submit" className="w-full sm:flex-1" disabled={isSubmitting || !canSubmit}>
+                  {step === "details" ? "Continue to Verification" : step === "documents" ? "Send OTP" : "Verify & Open Dashboard"}
                 </Button>
               </div>
             </form>

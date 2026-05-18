@@ -48,10 +48,20 @@ const appEnv = process.env.APP_ENV?.trim() || process.env.NODE_ENV || "developme
 const devMode = appEnv !== "production";
 const appName = process.env.APP_NAME?.trim() || "MMS";
 const defaultAppUrls = "http://localhost:8080,http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173";
-const appUrls = (process.env.APP_URL || defaultAppUrls)
+const configuredAppUrls = (process.env.APP_URL || "")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
+const fallbackAppUrls = defaultAppUrls
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const appUrls = Array.from(
+  new Set([
+    ...configuredAppUrls,
+    ...((devMode || configuredAppUrls.length === 0) ? fallbackAppUrls : []),
+  ]),
+);
 const primaryAppUrl = appUrls[0] || "http://localhost:8080";
 const normalizePhoneValue = (value?: string | null) => {
   const normalized = value?.trim().replace(/\s+/g, "") || null;

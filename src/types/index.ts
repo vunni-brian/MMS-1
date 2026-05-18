@@ -44,6 +44,7 @@ export type PenaltyStatus = "unpaid" | "pending" | "pending_payment" | "paid" | 
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
+export type NotificationPriority = "low" | "normal" | "high";
 export type PaymentMethod = "mtn" | "airtel" | "pesapal";
 export type ResourceRequestCategory = "budget" | "structural";
 export type ResourceRequestStatus = "pending" | "approved" | "rejected";
@@ -281,9 +282,23 @@ export interface AppNotification {
   id: string;
   userId: string;
   type: NotificationType;
+  priority: NotificationPriority;
   message: string;
   read: boolean;
   readAt: string | null;
+  createdAt: string;
+}
+
+export interface VendorActivityEvent {
+  id: string;
+  type: "audit" | "booking" | "ticket" | "ticket_update" | "payment" | "notification";
+  title: string;
+  description: string;
+  actorName: string | null;
+  actorRole: Role | null;
+  status: string | null;
+  priority: NotificationPriority;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
 }
 

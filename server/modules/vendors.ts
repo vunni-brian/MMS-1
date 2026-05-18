@@ -2,10 +2,12 @@ import fs from "node:fs";
 
 import { all, get, getManagerForMarket, getUserRecordById, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { getNotificationPriority } from "../lib/notification-priority.ts";
 import { applyUserPassword, buildVendorPasswordResetMessage, revokeUserSessions } from "../lib/passwords.ts";
 import { assertMarketAccess, requireAuth, requirePermission, resolveScopedMarket } from "../lib/session.ts";
 import { createTemporaryPassword, normalizePhoneNumber, nowIso } from "../lib/security.ts";
 import { downloadSupabaseStorageObject, findSupabaseAuthUser, updateSupabaseAuthUser } from "../lib/supabase.ts";
+import type { Role, VendorActivityEvent } from "../types.ts";
 
 const vendorSelect = `
   SELECT users.id,
@@ -143,6 +145,327 @@ const getVendorById = async (vendorId: string) => {
   return vendor ? mapVendor(vendor) : null;
 };
 
+const auditActionLabels: Record<string, string> = {
+  APPROVE_VENDOR: "Vendor approved",
+  REJECT_VENDOR: "Vendor rejected",
+  RESET_VENDOR_PASSWORD: "Vendor password reset",
+  TRANSFER_VENDOR_MARKET: "Market transfer requested",
+  UPDATE_VENDOR_PROFILE: "Vendor profile updated",
+  UPDATE_OWN_PROFILE: "Account profile updated",
+  LOGIN_SUCCESS: "Login successful",
+  LOGIN_FAILED: "Login failed",
+  LOGIN_BLOCKED_REJECTED_VENDOR: "Login blocked",
+  CREATE_TICKET: "Complaint created",
+  UPDATE_TICKET: "Complaint updated",
+  APPROVE_BOOKING: "Stall allocation approved",
+  REJECT_BOOKING: "Stall allocation rejected",
+  MARK_BOOKING_PAID: "Stall allocation paid",
+  CONFIRM_BOOKING: "Stall allocation confirmed",
+  CREATE_PAYMENT: "Payment initiated",
+  COMPLETE_PAYMENT: "Payment completed",
+};
+
+const formatActionTitle = (action: string) =>
+  auditActionLabels[action] ||
+  action
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const formatStatusLabel = (status: string | null) =>
+  status
+    ? status
+        .split("_")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    : null;
+
+const parseDetailsJson = (value: string | null): Record<string, unknown> | null => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return { value: parsed };
+  } catch {
+    return { raw: value };
+  }
+};
+
+const normalizePriority = (statusOrAction: string | null): VendorActivityEvent["priority"] => {
+  const value = (statusOrAction || "").toLowerCase();
+  if (
+    value.includes("reject") ||
+    value.includes("failed") ||
+    value.includes("blocked") ||
+    value.includes("overdue") ||
+    value.includes("penalty") ||
+    value.includes("suspended")
+  ) {
+    return "high";
+  }
+  if (value.includes("pending") || value.includes("open") || value.includes("in_progress") || value.includes("approval")) {
+    return "normal";
+  }
+  return "low";
+};
+
+const normalizeRole = (role: string | null): Role | null =>
+  role === "vendor" || role === "manager" || role === "official" || role === "admin" ? role : null;
+
+const loadVendorActivity = async (vendorId: string): Promise<VendorActivityEvent[]> => {
+  const [auditRows, bookingRows, ticketRows, ticketUpdateRows, paymentRows, notificationRows] = await Promise.all([
+    all<{
+      id: string;
+      actor_name: string;
+      actor_role: string;
+      action: string;
+      entity_type: string;
+      entity_id: string;
+      details_json: string | null;
+      created_at: string;
+    }>(
+      `SELECT id, actor_name, actor_role, action, entity_type, entity_id, details_json, created_at
+       FROM audit_events
+       WHERE (entity_type = 'vendor' AND entity_id = ?)
+          OR (entity_type = 'user' AND entity_id = ?)
+          OR (actor_user_id = ? AND action LIKE 'LOGIN_%')
+          OR (entity_type = 'ticket' AND entity_id IN (SELECT id FROM tickets WHERE vendor_id = ?))
+          OR (entity_type = 'booking' AND entity_id IN (SELECT id FROM bookings WHERE vendor_id = ?))
+          OR (entity_type = 'payment' AND entity_id IN (SELECT id FROM payments WHERE vendor_id = ?))
+       ORDER BY created_at DESC
+       LIMIT 80`,
+      [vendorId, vendorId, vendorId, vendorId, vendorId, vendorId],
+    ),
+    all<{
+      id: string;
+      status: string;
+      start_date: string;
+      end_date: string;
+      amount: number;
+      created_at: string;
+      reviewed_at: string | null;
+      reviewed_by_name: string | null;
+      stall_name: string;
+      stall_zone: string;
+    }>(
+      `SELECT bookings.id,
+              bookings.status,
+              bookings.start_date,
+              bookings.end_date,
+              bookings.amount,
+              bookings.created_at,
+              bookings.reviewed_at,
+              reviewers.name AS reviewed_by_name,
+              stalls.name AS stall_name,
+              stalls.zone AS stall_zone
+       FROM bookings
+       INNER JOIN stalls ON stalls.id = bookings.stall_id
+       LEFT JOIN users AS reviewers ON reviewers.id = bookings.reviewed_by_user_id
+       WHERE bookings.vendor_id = ?
+       ORDER BY bookings.created_at DESC
+       LIMIT 40`,
+      [vendorId],
+    ),
+    all<{
+      id: string;
+      category: string;
+      subject: string;
+      status: string;
+      resolution_note: string | null;
+      created_at: string;
+      updated_at: string;
+    }>(
+      `SELECT id, category, subject, status, resolution_note, created_at, updated_at
+       FROM tickets
+       WHERE vendor_id = ?
+       ORDER BY updated_at DESC
+       LIMIT 40`,
+      [vendorId],
+    ),
+    all<{
+      id: string;
+      status: string;
+      note: string;
+      created_at: string;
+      actor_name: string;
+      actor_role: string;
+      subject: string;
+    }>(
+      `SELECT ticket_updates.id,
+              ticket_updates.status,
+              ticket_updates.note,
+              ticket_updates.created_at,
+              users.name AS actor_name,
+              users.role AS actor_role,
+              tickets.subject
+       FROM ticket_updates
+       INNER JOIN tickets ON tickets.id = ticket_updates.ticket_id
+       INNER JOIN users ON users.id = ticket_updates.actor_user_id
+       WHERE tickets.vendor_id = ?
+       ORDER BY ticket_updates.created_at DESC
+       LIMIT 60`,
+      [vendorId],
+    ),
+    all<{
+      id: string;
+      charge_type: string | null;
+      amount: number;
+      status: string;
+      transaction_id: string | null;
+      receipt_id: string | null;
+      created_at: string;
+      updated_at: string;
+      completed_at: string | null;
+    }>(
+      `SELECT id, charge_type, amount, status, transaction_id, receipt_id, created_at, updated_at, completed_at
+       FROM payments
+       WHERE vendor_id = ?
+       ORDER BY created_at DESC
+       LIMIT 40`,
+      [vendorId],
+    ),
+    all<{
+      id: string;
+      type: string;
+      message: string;
+      read_at: string | null;
+      created_at: string;
+    }>(
+      `SELECT id, type, message, read_at, created_at
+       FROM notifications
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 40`,
+      [vendorId],
+    ),
+  ]);
+
+  const events: VendorActivityEvent[] = [];
+
+  for (const row of auditRows) {
+    const title = formatActionTitle(row.action);
+    const details = parseDetailsJson(row.details_json);
+    events.push({
+      id: `audit:${row.id}`,
+      type: "audit",
+      title,
+      description: `${row.actor_name} recorded ${title.toLowerCase()}.`,
+      actorName: row.actor_name,
+      actorRole: normalizeRole(row.actor_role),
+      status: row.action,
+      priority: normalizePriority(row.action),
+      metadata: details ? { ...details, entityType: row.entity_type, entityId: row.entity_id } : { entityType: row.entity_type, entityId: row.entity_id },
+      createdAt: row.created_at,
+    });
+  }
+
+  for (const row of bookingRows) {
+    const status = formatStatusLabel(row.status) || row.status;
+    events.push({
+      id: `booking:${row.id}`,
+      type: "booking",
+      title: `Stall allocation ${status.toLowerCase()}`,
+      description: `${row.stall_name} in ${row.stall_zone} is ${status.toLowerCase()} for this vendor.`,
+      actorName: row.reviewed_by_name,
+      actorRole: row.reviewed_by_name ? "manager" : null,
+      status: row.status,
+      priority: normalizePriority(row.status),
+      metadata: {
+        amount: row.amount,
+        startDate: row.start_date,
+        endDate: row.end_date,
+        reviewedAt: row.reviewed_at,
+      },
+      createdAt: row.reviewed_at || row.created_at,
+    });
+  }
+
+  for (const row of ticketRows) {
+    const status = formatStatusLabel(row.status) || row.status;
+    events.push({
+      id: `ticket:${row.id}`,
+      type: "ticket",
+      title: `Complaint ${status.toLowerCase()}`,
+      description: `${row.subject} is ${status.toLowerCase()}.`,
+      actorName: null,
+      actorRole: null,
+      status: row.status,
+      priority: normalizePriority(row.status),
+      metadata: {
+        category: row.category,
+        resolutionNote: row.resolution_note,
+      },
+      createdAt: row.updated_at || row.created_at,
+    });
+  }
+
+  for (const row of ticketUpdateRows) {
+    const status = formatStatusLabel(row.status) || row.status;
+    events.push({
+      id: `ticket-update:${row.id}`,
+      type: "ticket_update",
+      title: `Complaint moved to ${status}`,
+      description: `${row.subject}: ${row.note}`,
+      actorName: row.actor_name,
+      actorRole: normalizeRole(row.actor_role),
+      status: row.status,
+      priority: normalizePriority(row.status),
+      metadata: null,
+      createdAt: row.created_at,
+    });
+  }
+
+  for (const row of paymentRows) {
+    const status = formatStatusLabel(row.status) || row.status;
+    const chargeType = formatStatusLabel(row.charge_type || "payment") || "Payment";
+    events.push({
+      id: `payment:${row.id}`,
+      type: "payment",
+      title: `${chargeType} payment ${status.toLowerCase()}`,
+      description: `${chargeType} payment of UGX ${Number(row.amount || 0).toLocaleString("en-US")} is ${status.toLowerCase()}.`,
+      actorName: null,
+      actorRole: null,
+      status: row.status,
+      priority: normalizePriority(row.status),
+      metadata: {
+        transactionId: row.transaction_id,
+        receiptId: row.receipt_id,
+      },
+      createdAt: row.completed_at || row.updated_at || row.created_at,
+    });
+  }
+
+  for (const row of notificationRows) {
+    events.push({
+      id: `notification:${row.id}`,
+      type: "notification",
+      title: `${formatStatusLabel(row.type) || "System"} notification`,
+      description: row.message,
+      actorName: null,
+      actorRole: null,
+      status: row.read_at ? "read" : "unread",
+      priority: getNotificationPriority(row.type, row.message),
+      metadata: {
+        notificationType: row.type,
+        readAt: row.read_at,
+      },
+      createdAt: row.created_at,
+    });
+  }
+
+  return events
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 120);
+};
+
 export const vendorRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -195,6 +518,23 @@ export const vendorRoutes: RouteDefinition[] = [
       }
       assertMarketAccess(session, vendor.marketId);
       sendJson(res, 200, { vendor });
+    },
+  },
+  {
+    method: "GET",
+    path: "/vendors/:id/activity",
+    handler: async ({ res, auth, params }) => {
+      const session = requireAuth(auth);
+      const vendor = await getVendorById(params.id);
+      if (!vendor) {
+        throw new HttpError(404, "Vendor not found.");
+      }
+      if (session.user.role === "vendor" && session.user.id !== params.id) {
+        throw new HttpError(403, "You may only view your own vendor activity.");
+      }
+      assertMarketAccess(session, vendor.marketId);
+
+      sendJson(res, 200, { events: await loadVendorActivity(params.id) });
     },
   },
   {

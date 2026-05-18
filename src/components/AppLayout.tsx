@@ -43,16 +43,36 @@ interface NavItem {
   roles: Role[];
 }
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
-  { label: "Stalls", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
-  { label: "Payments", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
-  { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager"] },
-  { label: "Vendors", path: "vendors", icon: Users, roles: ["manager"] },
-  { label: "Billing", path: "billing", icon: SlidersHorizontal, roles: ["manager", "official", "admin"] },
-  { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official"] },
-  { label: "Audit Log", path: "audit", icon: ScrollText, roles: ["manager", "official", "admin"] },
-  { label: "Requests", path: "coordination", icon: MessagesSquare, roles: ["manager", "official"] },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: "Workbench",
+    items: [
+      { label: "Dashboard", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { label: "Stalls", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
+      { label: "Vendors", path: "vendors", icon: Users, roles: ["manager"] },
+      { label: "Payments", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
+      { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager"] },
+      { label: "Billing", path: "billing", icon: SlidersHorizontal, roles: ["manager", "official", "admin"] },
+    ],
+  },
+  {
+    title: "Oversight",
+    items: [
+      { label: "Requests", path: "coordination", icon: MessagesSquare, roles: ["manager", "official"] },
+      { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official"] },
+      { label: "Audit Log", path: "audit", icon: ScrollText, roles: ["manager", "official", "admin"] },
+    ],
+  },
 ];
 
 const AppLayout = () => {
@@ -70,18 +90,23 @@ const AppLayout = () => {
 
   const hasUnread = notificationsData?.notifications?.some((notification) => !notification.read) || false;
   const isPendingVendor = user?.role === "vendor" && user.vendorStatus !== "approved";
-  const filtered = navItems.filter((item) => {
-    if (!user) {
-      return false;
-    }
-    if (!item.roles.includes(user.role)) {
-      return false;
-    }
-    if (isPendingVendor) {
-      return item.path === "" || item.path === "profile";
-    }
-    return true;
-  });
+  const filteredGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!user) {
+          return false;
+        }
+        if (!item.roles.includes(user.role)) {
+          return false;
+        }
+        if (isPendingVendor) {
+          return item.path === "";
+        }
+        return true;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
   const basePath = user ? `/${user.role}` : "/";
   const workspaceTitle =
     user?.role === "admin"
@@ -172,30 +197,44 @@ const AppLayout = () => {
             <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">{workspaceTitle}</p>
             <p className="mt-0.5 truncate text-[11px] text-sidebar-foreground/60">{headerScope}</p>
           </div>
-          <button type="button" aria-label="Close navigation" className="rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent lg:hidden" onClick={() => setSidebarOpen(false)}>
+          <button
+            type="button"
+            aria-label="Close navigation"
+            className="rounded-md p-1 text-sidebar-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3">
-          {filtered.map((item) => (
-            <NavLink
-              key={item.path}
-              to={`${basePath}/${item.path}`}
-              end={item.path === ""}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
-                )
-              }
-            >
-              <item.icon className="w-5 h-5 shrink-0" />
-              {item.label}
-            </NavLink>
+          {filteredGroups.map((group) => (
+            <div key={group.title} className="mb-4 last:mb-0">
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/40">
+                {group.title}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={`${basePath}/${item.path}`}
+                    end={item.path === ""}
+                    onClick={() => setSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold before:absolute before:left-1 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
+                      )
+                    }
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
@@ -215,7 +254,7 @@ const AppLayout = () => {
           <button
             type="button"
             aria-label="Open navigation"
-            className="shrink-0 text-foreground lg:hidden"
+            className="rounded-md p-1 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="w-5 h-5" />

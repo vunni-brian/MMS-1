@@ -1,0 +1,459 @@
+openapi: 3.0.3
+info:
+  title: Market Management System API
+  description: |
+    Enterprise-grade API for managing market operations including vendor onboarding, 
+    stall allocation, payments, compliance, and audit reporting.
+  version: 1.0.0
+  contact:
+    name: MMS Support
+    email: support@mms.example.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+  - url: https://mms-api.onrender.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Vendors
+    description: Vendor management operations
+  - name: Stalls
+    description: Stall allocation and management
+  - name: Payments
+    description: Payment processing and transactions
+  - name: Billing
+    description: Billing and charge management
+  - name: Markets
+    description: Market configuration and management
+  - name: Tickets
+    description: Complaint and ticket management
+  - name: Reports
+    description: Reporting and analytics
+  - name: Notifications
+    description: Notification management
+  - name: Health
+    description: Health check and system status
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check endpoint
+      description: Returns the health status of the API
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user with phone and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                  example: "+256700100200"
+                password:
+                  type: string
+                  format: password
+                  example: "Vendor123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Account blocked or rejected
+        '429':
+          description: Too many login attempts
+
+  /auth/register-vendor:
+    post:
+      tags: [Authentication]
+      summary: Register new vendor
+      description: Register a new vendor with OTP verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, phone, password, marketId, nationalIdNumber, district, productSection]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                password:
+                  type: string
+                  format: password
+                marketId:
+                  type: string
+                nationalIdNumber:
+                  type: string
+                district:
+                  type: string
+                productSection:
+                  type: string
+                profileImage:
+                  type: string
+                  format: byte
+                idDocument:
+                  type: string
+                  format: byte
+                lcLetter:
+                  type: string
+                  format: byte
+      responses:
+        '201':
+          description: Registration initiated
+        '400':
+          description: Invalid input
+        '409':
+          description: User already exists
+
+  /auth/verify-registration-otp:
+    post:
+      tags: [Authentication]
+      summary: Verify registration OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeId, code]
+              properties:
+                challengeId:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: OTP verified
+        '400':
+          description: Invalid OTP
+        '410':
+          description: OTP expired
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logout successful
+
+  /vendors:
+    get:
+      tags: [Vendors]
+      summary: List vendors
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: marketId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        '200':
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vendor'
+
+  /stalls:
+    get:
+      tags: [Stalls]
+      summary: List stalls
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: marketId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, occupied, reserved]
+      responses:
+        '200':
+          description: List of stalls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stall'
+
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Initiate payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, type, description]
+              properties:
+                amount:
+                  type: number
+                type:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Payment initiated
+        '400':
+          description: Invalid payment details
+
+  /billing/charges:
+    get:
+      tags: [Billing]
+      summary: List billing charges
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of charges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Charge'
+
+  /markets:
+    get:
+      tags: [Markets]
+      summary: List markets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of markets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Market'
+
+  /tickets:
+    get:
+      tags: [Tickets]
+      summary: List tickets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: Generate reports
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [financial, compliance, activity]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Report data
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [vendor, manager, official, admin]
+        marketId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Vendor:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        nationalIdNumber:
+          type: string
+        district:
+          type: string
+        productSection:
+          type: string
+        approvalStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        approvedAt:
+          type: string
+          format: date-time
+
+    Stall:
+      type: object
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+        marketId:
+          type: string
+        section:
+          type: string
+        status:
+          type: string
+          enum: [available, occupied, reserved]
+        monthlyFee:
+          type: number
+        vendorId:
+          type: string
+
+    Charge:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        name:
+          type: string
+        amount:
+          type: number
+        enabled:
+          type: boolean
+
+    Market:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        district:
+          type: string
+        totalStalls:
+          type: integer
+        activeVendors:
+          type: integer
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

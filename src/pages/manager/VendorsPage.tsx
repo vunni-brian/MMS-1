@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Activity,
   AlertTriangle,
   Check,
   CheckCircle2,
+  Clock3,
   CreditCard,
   FileText,
   KeyRound,
@@ -18,7 +20,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
-import { formatCurrency, formatHumanDate } from "@/lib/utils";
+import { formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   ConsolePage,
@@ -36,7 +38,7 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import type { VendorProfile } from "@/types";
+import type { VendorActivityEvent, VendorProfile } from "@/types";
 
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 
@@ -209,9 +211,7 @@ const VendorProfileCard = ({
         : "Rejected";
 
   return (
-    <article className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
-      {/* DEBUG: Compact vendor card layout inspired by user-card reference */}
-
+    <article className="rounded-lg border border-border/70 bg-card p-4 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/15">
       <div className="flex items-start gap-3">
         <div className="relative shrink-0">
           <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted text-base font-bold text-muted-foreground">
@@ -273,7 +273,7 @@ const VendorProfileCard = ({
       <div className="mt-3 flex items-center justify-between gap-2">
         <StatusBadge status={row.operationalStatus} />
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           <a
             href={`tel:${vendor.phone}`}
             title={`Call ${vendor.name}`}
@@ -318,6 +318,78 @@ const VendorProfileCard = ({
   );
 };
 
+const activityPriorityStyles = {
+  high: "border-destructive/20 bg-destructive/10 text-destructive",
+  normal: "border-info/20 bg-info/10 text-info",
+  low: "border-border bg-muted text-muted-foreground",
+};
+
+const activityTypeLabels: Record<VendorActivityEvent["type"], string> = {
+  audit: "Audit",
+  booking: "Stall",
+  ticket: "Complaint",
+  ticket_update: "Case update",
+  payment: "Payment",
+  notification: "Notice",
+};
+
+const VendorActivityTimeline = ({
+  events,
+  isLoading,
+}: {
+  events: VendorActivityEvent[];
+  isLoading: boolean;
+}) => (
+  <div className="rounded-lg border border-border/70 bg-muted/10 p-4">
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <div>
+        <p className="font-semibold font-heading">Activity Timeline</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Approvals, login events, complaints, payments, and notifications for this vendor.
+        </p>
+      </div>
+      <Activity className="h-5 w-5 shrink-0 text-muted-foreground" />
+    </div>
+
+    {isLoading ? (
+      <LoadingState rows={4} itemClassName="h-16 rounded-lg" />
+    ) : events.length === 0 ? (
+      <div className="rounded-lg border border-dashed border-border/70 bg-background p-4 text-sm text-muted-foreground">
+        No operational activity has been recorded for this vendor yet.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {events.slice(0, 12).map((event) => (
+          <div key={event.id} className="grid gap-3 rounded-lg border border-border/70 bg-background p-3 sm:grid-cols-[1fr_auto]">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold">{event.title}</span>
+                <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {activityTypeLabels[event.type]}
+                </span>
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${activityPriorityStyles[event.priority]}`}>
+                  {event.priority}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{event.description}</p>
+              {event.actorName && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  By {event.actorName}
+                  {event.actorRole ? ` (${event.actorRole})` : ""}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground sm:justify-end">
+              <Clock3 className="h-3.5 w-3.5" />
+              {formatHumanDateTime(event.createdAt)}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
 const VendorsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -344,6 +416,12 @@ const VendorsPage = () => {
     queryKey: ["payments"],
     queryFn: () => api.getPayments(),
     refetchInterval: 10_000,
+  });
+
+  const { data: activityData, isPending: activityPending } = useQuery({
+    queryKey: ["vendor-activity", selectedVendorId],
+    queryFn: () => api.getVendorActivity(selectedVendorId!),
+    enabled: Boolean(selectedVendorId),
   });
 
   const approveVendor = useMutation({
@@ -529,18 +607,6 @@ const VendorsPage = () => {
             />
           </div>
         </ScopeItem>
-
-        <ScopeItem label="Market scope">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            {user?.marketName || "Assigned market"}
-          </div>
-        </ScopeItem>
-
-        <ScopeItem label="Primary action">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            Review pending vendors and account risk
-          </div>
-        </ScopeItem>
       </ScopeBar>
 
       {error && (
@@ -644,6 +710,11 @@ const VendorsPage = () => {
                 className="md:col-span-3"
               />
             </div>
+
+            <VendorActivityTimeline
+              events={activityData?.events || []}
+              isLoading={activityPending}
+            />
 
             {selectedRow.vendor.status === "approved" && (
               <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">

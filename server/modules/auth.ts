@@ -102,6 +102,31 @@ const logLoginSuccess = async (
   });
 };
 
+const logLoginFailure = async (
+  user: {
+    id: string;
+    name: string;
+    phone: string;
+    role: "vendor" | "manager" | "official" | "admin";
+    market_id: string | null;
+  },
+  reason: string,
+) => {
+  await logAuditEvent({
+    actorUserId: user.id,
+    actorName: user.name,
+    actorRole: user.role,
+    marketId: user.market_id,
+    action: reason === "rejected_vendor" ? "LOGIN_BLOCKED_REJECTED_VENDOR" : "LOGIN_FAILED",
+    entityType: "user",
+    entityId: user.id,
+    details: {
+      phone: user.phone,
+      reason,
+    },
+  });
+};
+
 const issueRegistrationChallenge = async ({
   userId,
   phone,
@@ -578,6 +603,7 @@ export const authRoutes: RouteDefinition[] = [
       const isPasswordValid = isLocalPasswordValid || supabaseUser?.id === user.auth_user_id;
 
       if (!isPasswordValid) {
+        await logLoginFailure(user, "invalid_password");
         throw new HttpError(401, "Invalid phone number or password.");
       }
 
@@ -597,6 +623,7 @@ export const authRoutes: RouteDefinition[] = [
           return;
         }
         if (user.vendor_status === "rejected") {
+          await logLoginFailure(user, "rejected_vendor");
           throw new HttpError(403, "Your vendor profile was rejected. Contact a manager.");
         }
       }

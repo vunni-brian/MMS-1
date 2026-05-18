@@ -6,6 +6,8 @@ import {
   Bell,
   Building2,
   CheckCircle2,
+  CheckCheck,
+  Clock3,
   CreditCard,
   FileText,
   Info,
@@ -22,7 +24,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
-import { formatHumanDate } from "@/lib/utils";
+import { formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -87,6 +89,20 @@ const ReadOnlyMetric = ({ icon: Icon, label, value }: { icon: React.ElementType;
     </div>
   </div>
 );
+
+const notificationPriorityStyles = {
+  high: "border-destructive/20 bg-destructive/10 text-destructive",
+  normal: "border-info/20 bg-info/10 text-info",
+  low: "border-border bg-muted text-muted-foreground",
+};
+
+const notificationTypeLabels: Record<string, string> = {
+  otp: "Security",
+  payment: "Payment",
+  booking: "Stall",
+  complaint: "Complaint",
+  system: "System",
+};
 
 const ProfileSettingsPage = () => {
   const { user, refreshUser } = useAuth();
@@ -295,6 +311,29 @@ const ProfileSettingsPage = () => {
       setPasswordError(mutationError instanceof ApiError ? mutationError.message : "Unable to change password.");
     },
   });
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications", "profile-settings"],
+    queryFn: () => api.getNotifications(),
+    enabled: Boolean(user),
+  });
+
+  const markNotificationRead = useMutation({
+    mutationFn: (notificationId: string) => api.markNotificationRead(notificationId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const markAllNotificationsRead = useMutation({
+    mutationFn: () => api.markAllNotificationsRead(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const notifications = notificationsQuery.data?.notifications || [];
+  const unreadNotifications = notifications.filter((notification) => !notification.read);
 
   if (!user) {
     return null;
@@ -575,11 +614,78 @@ const ProfileSettingsPage = () => {
 
   const notificationsContent = (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Notifications</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Market alerts and delivery channels.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-heading">Notifications</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Operational alerts, approvals, reminders, and delivery channels.</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => markAllNotificationsRead.mutate()}
+          disabled={markAllNotificationsRead.isPending || unreadNotifications.length === 0}
+          className="w-full sm:w-auto"
+        >
+          <CheckCheck className="mr-1 h-4 w-4" />
+          Mark all read
+        </Button>
       </div>
       <div className="border-t border-border/70" />
+      <div className="grid gap-3 md:grid-cols-3">
+        <ReadOnlyMetric icon={Bell} label="Unread alerts" value={unreadNotifications.length} />
+        <ReadOnlyMetric
+          icon={AlertCircle}
+          label="High priority"
+          value={notifications.filter((notification) => notification.priority === "high" && !notification.read).length}
+        />
+        <ReadOnlyMetric icon={Clock3} label="Latest update" value={formatHumanDateTime(notifications[0]?.createdAt)} />
+      </div>
+      <div className="rounded-lg border border-border/70 bg-background">
+        <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+          <div>
+            <p className="font-semibold font-heading">Notification Center</p>
+            <p className="text-xs text-muted-foreground">Unread items stay prioritized until acknowledged.</p>
+          </div>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+            {notifications.length} total
+          </span>
+        </div>
+        <div className="divide-y divide-border/70">
+          {notificationsQuery.isPending ? (
+            <div className="p-4">
+              <LoadingState rows={4} itemClassName="h-16 rounded-lg" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">No operational notifications yet.</div>
+          ) : (
+            notifications.slice(0, 12).map((notification) => (
+              <button
+                key={notification.id}
+                type="button"
+                onClick={() => !notification.read && markNotificationRead.mutate(notification.id)}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 ${
+                  notification.read ? "bg-background" : "bg-primary/5"
+                }`}
+              >
+                <span
+                  className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                    notification.read ? "bg-muted-foreground/30" : "bg-primary"
+                  }`}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">{notificationTypeLabels[notification.type] || "Alert"}</span>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${notificationPriorityStyles[notification.priority]}`}>
+                      {notification.priority}
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{notification.message}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">{formatHumanDateTime(notification.createdAt)}</span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
       <div className="grid gap-3">
         <SettingToggle
           label="In-app notifications"

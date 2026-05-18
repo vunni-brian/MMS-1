@@ -1,5 +1,6 @@
 import { all, get, run } from "../lib/db.ts";
 import { HttpError, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { getNotificationPriority } from "../lib/notification-priority.ts";
 import { requirePermission } from "../lib/session.ts";
 import { nowIso } from "../lib/security.ts";
 import { sendSmsDelivery } from "../lib/sms.ts";
@@ -16,6 +17,7 @@ const mapNotification = (row: {
   id: row.id,
   userId: row.user_id,
   type: row.type,
+  priority: getNotificationPriority(row.type, row.message),
   message: row.message,
   read: Boolean(row.read_at),
   readAt: row.read_at,
@@ -112,6 +114,18 @@ export const notificationRoutes: RouteDefinition[] = [
         [session.user.id],
       );
       sendJson(res, 200, { notifications: notifications.map(mapNotification) });
+    },
+  },
+  {
+    method: "PATCH",
+    path: "/notifications/read-all",
+    handler: async ({ res, auth }) => {
+      const session = requirePermission(auth, "notification:update");
+      const result = await run(`UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL`, [
+        nowIso(),
+        session.user.id,
+      ]);
+      sendJson(res, 200, { ok: true, updated: result.rowCount });
     },
   },
   {

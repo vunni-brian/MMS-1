@@ -123,6 +123,12 @@ const getTicketById = async (ticketId: string) => {
   return ticket ? await mapTicket(ticket) : null;
 };
 
+const allowedTicketTransitions: Record<TicketStatus, TicketStatus[]> = {
+  open: ["open", "in_progress"],
+  in_progress: ["in_progress", "resolved"],
+  resolved: ["resolved"],
+};
+
 export const ticketRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -260,7 +266,19 @@ export const ticketRoutes: RouteDefinition[] = [
 
       const body = await readJsonBody<{ status?: TicketStatus; resolutionNote?: string; note?: string }>(req);
       const status = body.status || ticket.status;
-      const note = body.note?.trim() || body.resolutionNote?.trim() || "Ticket updated by manager.";
+      if (!allowedTicketTransitions[ticket.status].includes(status)) {
+        throw new HttpError(409, `Complaints must move sequentially from ${ticket.status} before reaching ${status}.`);
+      }
+
+      const resolutionNote = body.resolutionNote?.trim() || ticket.resolution;
+      if (status === "resolved" && !resolutionNote) {
+        throw new HttpError(400, "A resolution note is required before closing a complaint.");
+      }
+
+      const note =
+        body.note?.trim() ||
+        body.resolutionNote?.trim() ||
+        (status !== ticket.status ? `Status changed to ${status}.` : "Ticket updated by manager.");
       const timestamp = nowIso();
       const vendorNotification = getVendorTicketNotification({
         previousStatus: ticket.status,
@@ -272,7 +290,7 @@ export const ticketRoutes: RouteDefinition[] = [
         `UPDATE tickets
          SET status = ?, resolution_note = ?, updated_at = ?
          WHERE id = ?`,
-        [status, body.resolutionNote?.trim() || ticket.resolution, timestamp, params.id],
+        [status, resolutionNote, timestamp, params.id],
       );
       await run(
         `INSERT INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
@@ -297,7 +315,7 @@ export const ticketRoutes: RouteDefinition[] = [
         action: "UPDATE_TICKET",
         entityType: "ticket",
         entityId: params.id,
-        details: { status, note },
+        details: { previousStatus: ticket.status, status, note },
       });
 
       sendJson(res, 200, { ticket: await getTicketById(params.id) });

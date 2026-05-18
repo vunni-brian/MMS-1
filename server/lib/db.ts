@@ -585,10 +585,10 @@ export const seedDatabase = async () => {
     { id: "loc_subarea_kampala_rubaga", name: "Rubaga Division", type: "division", parentId: "loc_area_kampala" },
     { id: "loc_subarea_kampala_makindye", name: "Makindye Division", type: "division", parentId: "loc_area_kampala" },
     { id: "loc_subarea_jinja_municipality", name: "Jinja Municipality", type: "municipality", parentId: "loc_area_jinja" },
-    { id: "loc_subarea_testbed", name: "MMS Testbed", type: "subcounty", parentId: "loc_area_kampala" },
+    { id: "loc_subarea_testbed", name: "Kisenyi Trade Area", type: "subcounty", parentId: "loc_area_kampala" },
     { id: "loc_market_kampala_central", name: "Kampala Central Market", type: "market", parentId: "loc_subarea_kampala_central" },
     { id: "loc_market_jinja_main", name: "Jinja Main Market", type: "market", parentId: "loc_subarea_jinja_municipality" },
-    { id: "loc_market_demo_test", name: "MMS Demo Test Market", type: "market", parentId: "loc_subarea_testbed" },
+    { id: "loc_market_demo_test", name: "Kisenyi Central Market", type: "market", parentId: "loc_subarea_testbed" },
   ] as const;
 
   const markets = [
@@ -608,9 +608,9 @@ export const seedDatabase = async () => {
     },
     {
       id: "market_demo_test",
-      name: "MMS Demo Test Market",
-      code: "MMS-DEMO",
-      location: "Local Testbed",
+      name: "Kisenyi Central Market",
+      code: "KIS-CENTRAL",
+      location: "Kampala",
       locationId: "loc_market_demo_test",
     },
   ] as const;

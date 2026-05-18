@@ -46,6 +46,7 @@ export type PenaltyStatus = "unpaid" | "pending" | "pending_payment" | "paid" | 
 export type TicketStatus = "open" | "in_progress" | "resolved";
 export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
+export type NotificationPriority = "low" | "normal" | "high";
 export type NotificationChannel = "system" | "sms" | "email";
 export type OtpPurpose = "registration" | "manager_mfa";
 export type ResourceRequestCategory = "budget" | "structural";
@@ -205,4 +206,17 @@ export interface ResourceRequest {
   reviewedByName: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface VendorActivityEvent {
+  id: string;
+  type: "audit" | "booking" | "ticket" | "ticket_update" | "payment" | "notification";
+  title: string;
+  description: string;
+  actorName: string | null;
+  actorRole: Role | null;
+  status: string | null;
+  priority: NotificationPriority;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 }
