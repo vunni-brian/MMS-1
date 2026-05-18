@@ -13,7 +13,7 @@ const Index = () => {
         </div>
         <h1 className="text-4xl font-bold font-heading text-foreground">Market Management System</h1>
         <p className="text-muted-foreground text-lg">
-          Streamline your market operations — manage stalls, payments, and vendors all in one place.
+          Streamline your market operations - manage stalls, payments, and vendors all in one place.
         </p>
         <Button size="lg" onClick={() => navigate('/login')} className="gap-2">
           Get Started <ArrowRight className="w-4 h-4" />

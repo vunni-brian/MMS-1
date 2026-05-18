@@ -14,7 +14,6 @@ import {
   MessageSquare,
   MessagesSquare,
   ScrollText,
-  Settings,
   SlidersHorizontal,
   Store,
   UserCircle,
@@ -47,15 +46,14 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
   { label: "Stalls", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
-  { label: "Payments & Receipts", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
+  { label: "Payments", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
   { label: "Notifications", path: "notifications", icon: Bell, roles: ["vendor"] },
   { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager"] },
   { label: "Vendors", path: "vendors", icon: Users, roles: ["manager"] },
-  { label: "Billing & Utilities", path: "billing", icon: SlidersHorizontal, roles: ["manager", "official", "admin"] },
+  { label: "Billing", path: "billing", icon: SlidersHorizontal, roles: ["manager", "official", "admin"] },
   { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official", "admin"] },
   { label: "Audit Log", path: "audit", icon: ScrollText, roles: ["manager", "official", "admin"] },
   { label: "Coordination", path: "coordination", icon: MessagesSquare, roles: ["manager", "official", "admin"] },
-  { label: "Profile", path: "profile", icon: Settings, roles: ["vendor", "manager", "official", "admin"] },
 ];
 
 const AppLayout = () => {
@@ -158,28 +156,29 @@ const AppLayout = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {sidebarOpen && <div className="fixed inset-0 bg-foreground/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+    <div className="flex h-screen overflow-hidden bg-background">
+      {sidebarOpen && <div className="fixed inset-0 z-40 bg-foreground/45 backdrop-blur-[2px] lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 w-64 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-200 shadow-md lg:shadow-none",
+          "fixed lg:static inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 shadow-md lg:shadow-none",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-lg border border-sidebar-border bg-sidebar-accent/40 flex items-center justify-center shrink-0">
-            <Store className="w-5 h-5 text-sidebar-foreground" />
+        <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-sidebar-border bg-sidebar-accent/60">
+            <Store className="h-5 w-5 text-sidebar-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-heading font-bold text-sm truncate text-sidebar-foreground">{workspaceTitle}</p>
+            <p className="mt-0.5 truncate text-[11px] text-sidebar-foreground/60">{headerScope}</p>
           </div>
-          <button className="lg:hidden text-sidebar-foreground" onClick={() => setSidebarOpen(false)}>
+          <button type="button" aria-label="Close navigation" className="rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
           {filtered.map((item) => (
             <NavLink
               key={item.path}
@@ -201,7 +200,7 @@ const AppLayout = () => {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="border-t border-sidebar-border p-3">
           <Button
             variant="ghost"
             onClick={signOut}
@@ -213,7 +212,7 @@ const AppLayout = () => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center gap-2 px-3 py-2.5 border-b bg-card lg:gap-3 lg:px-4">
+        <header className="flex items-center gap-2 border-b border-border/70 bg-card/95 px-3 py-2.5 lg:gap-3 lg:px-5">
           <button
             type="button"
             aria-label="Open navigation"
@@ -222,10 +221,9 @@ const AppLayout = () => {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex min-w-0 flex-1 justify-center px-1 sm:px-3">
-            <span className="max-w-full truncate whitespace-nowrap rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-              {headerScope}
-            </span>
+          <div className="flex min-w-0 flex-1 flex-col px-1 sm:px-3">
+            <span className="truncate text-sm font-semibold text-foreground">{workspaceTitle}</span>
+            <span className="truncate text-xs text-muted-foreground">{headerScope}</span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
@@ -297,13 +295,10 @@ const AppLayout = () => {
             </DropdownMenu>
           </div>
         </header>
-        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden p-3 lg:p-4">
-          <div className="flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-3 py-4 lg:px-5">
+          <div className="flex min-h-full flex-col">
             <Outlet />
           </div>
-          <footer className="mt-4 pt-4 pb-1 text-center text-[11px] text-muted-foreground border-t border-border/40 shrink-0">
-            &copy; {new Date().getFullYear()} Market Management System. All rights reserved.
-          </footer>
         </div>
       </main>
     </div>

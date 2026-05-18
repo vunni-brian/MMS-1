@@ -286,7 +286,7 @@ const StallsPage = () => {
                   </div>
 
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {stall.zone} • {stall.marketName || "Market"}
+                    {stall.zone} - {stall.marketName || "Market"}
                   </p>
 
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
