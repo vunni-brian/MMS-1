@@ -435,22 +435,42 @@ const ManagerDashboard = () => {
       <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
       <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <Panel
-          title="Active Tasks"
-          description="One queue for decisions that need manager attention."
-          actions={
-            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-              <Link to={activeTaskRoute}>View all</Link>
-            </Button>
-          }
-          className="h-[430px]"
-          contentClassName="max-h-[344px] space-y-3 overflow-y-auto"
-        >
-          <SegmentedControl<ActiveTaskTab>
-            value={activeTaskTab}
-            options={taskTabOptions}
-            onChange={(value) => setActiveTaskTab(value)}
-          />
+        <Card className="card-warm h-[430px] overflow-hidden">
+          <CardHeader className="px-4 pb-2 pt-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="text-base font-heading">Active Tasks</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  One queue for decisions that need manager attention.
+                </p>
+              </div>
+
+              <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+                <Link to={activeTaskRoute}>View all</Link>
+              </Button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {taskTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTaskTab(tab.key)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${activeTaskTab === tab.key
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                >
+                  {tab.label}
+                  <span className="ml-2 rounded-full bg-background/40 px-1.5 py-0.5 text-[10px]">
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardHeader>
+
+          <CardContent className="max-h-[340px] space-y-2 overflow-y-auto px-4 pb-4">
             {activeTaskTab === "approvals" && (
               <>
                 {approvalRows.length === 0 ? (
@@ -597,14 +617,14 @@ const ManagerDashboard = () => {
                 )}
               </>
             )}
-        </Panel>
+          </Panel>
 
-        <Panel
-          title="Market Health"
-          description="Quick health view for the assigned market."
-          className="h-[430px]"
-          contentClassName="space-y-4"
-        >
+          <Panel
+            title="Market Health"
+            description="Quick health view for the assigned market."
+            className="h-[430px]"
+            contentClassName="space-y-4"
+          >
             <div className="flex justify-center">
               <div
                 className="relative flex h-36 w-36 items-center justify-center rounded-full"
@@ -650,7 +670,7 @@ const ManagerDashboard = () => {
                 {utilityRows.length} active follow-up items
               </p>
             </div>
-        </Panel>
+          </Panel>
       </div>
     </div>
   );
