@@ -66,7 +66,7 @@ const BillingPage = () => {
 
   const isManager = user?.role === "manager";
   const canManageChargeTypes = user?.role === "admin";
-  const canManageUtilities = user?.role === "manager" || user?.role === "admin";
+  const canManageUtilities = user?.role === "manager";
 
   const [selectedMarketId, setSelectedMarketId] = useState(
     isManager ? user?.marketId || "" : "all",

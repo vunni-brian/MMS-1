@@ -325,7 +325,7 @@ const AdminDashboard = () => {
       type: "Financial",
       severity: "Medium" as AlertSeverity,
       action: "Investigate",
-      path: "/admin/reports",
+      path: "/admin/audit",
     })),
     ...(unpaidUtilityAmount > 0
       ? [
@@ -350,7 +350,7 @@ const AdminDashboard = () => {
           type: "Audit",
           severity: "High" as AlertSeverity,
           action: "Reconcile",
-          path: "/admin/reports",
+          path: "/admin/audit",
         },
       ]
       : []),
@@ -781,15 +781,12 @@ const AdminDashboard = () => {
             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
               <p className="text-sm font-medium">Governance actions</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Use the audit trail for evidence review and coordination for follow-up. Role changes and deactivation should stay in a dedicated user-management workflow when that surface is enabled.
+                Use the audit trail for evidence review. Role changes and deactivation should stay in a dedicated user-management workflow when that surface is enabled.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button asChild size="sm">
                   <Link to="/admin/audit">Open Audit Trail</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to="/admin/coordination">Open Coordination</Link>
                 </Button>
               </div>
             </div>

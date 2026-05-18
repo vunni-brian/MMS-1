@@ -446,17 +446,6 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(input),
     }),
-
-  simulateUssd: (phone: string, input: string) =>
-    apiRequest<{ response: string }>("/fallback/ussd", {
-      method: "POST",
-      body: JSON.stringify({ phone, input }),
-    }),
-  simulateSms: (phone: string, message: string) =>
-    apiRequest<{ response: string }>("/fallback/sms", {
-      method: "POST",
-      body: JSON.stringify({ phone, message }),
-    }),
 };
 
 export const formatAttachmentLabel = (attachment: Attachment | null) => {

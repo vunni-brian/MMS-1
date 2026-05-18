@@ -25,7 +25,6 @@ const AuditPage = lazy(() => import("./pages/shared/AuditPage"));
 const BillingPage = lazy(() => import("./pages/shared/BillingPage"));
 const CoordinationPage = lazy(() => import("./pages/shared/CoordinationPage"));
 const ProfileSettingsPage = lazy(() => import("./pages/shared/ProfileSettingsPage"));
-const NotificationsPage = lazy(() => import("./pages/vendor/NotificationsPage"));
 const VendorsPage = lazy(() => import("./pages/manager/VendorsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -72,7 +71,6 @@ const App = () => (
               <Route index element={<VendorDashboard />} />
               <Route path="stalls" element={<VendorApprovalGuard><StallsPage /></VendorApprovalGuard>} />
               <Route path="payments" element={<VendorApprovalGuard><PaymentsPage /></VendorApprovalGuard>} />
-              <Route path="notifications" element={<VendorApprovalGuard><NotificationsPage /></VendorApprovalGuard>} />
               <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>

@@ -13,7 +13,6 @@ export const rolePermissions: Record<Role, Permission[]> = {
     "notification:update",
     "ticket:read",
     "ticket:create",
-    "fallback:query",
   ],
   manager: [
     "billing:read",

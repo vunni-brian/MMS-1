@@ -47,13 +47,12 @@ const navItems: NavItem[] = [
   { label: "Dashboard", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
   { label: "Stalls", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
   { label: "Payments", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
-  { label: "Notifications", path: "notifications", icon: Bell, roles: ["vendor"] },
   { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager"] },
   { label: "Vendors", path: "vendors", icon: Users, roles: ["manager"] },
   { label: "Billing", path: "billing", icon: SlidersHorizontal, roles: ["manager", "official", "admin"] },
-  { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official", "admin"] },
+  { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official"] },
   { label: "Audit Log", path: "audit", icon: ScrollText, roles: ["manager", "official", "admin"] },
-  { label: "Coordination", path: "coordination", icon: MessagesSquare, roles: ["manager", "official", "admin"] },
+  { label: "Requests", path: "coordination", icon: MessagesSquare, roles: ["manager", "official"] },
 ];
 
 const AppLayout = () => {
