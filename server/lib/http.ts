@@ -33,6 +33,8 @@ const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
+const MAX_REQUEST_BODY_BYTES = 25 * 1024 * 1024;
+
 export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config: AppConfig) => {
   const requestOrigin = req.headers.origin;
   const allowedOrigin = requestOrigin && config.appUrls.includes(requestOrigin) ? requestOrigin : config.appUrl;
@@ -85,9 +87,15 @@ export const readJsonBody = async <T>(req: IncomingMessage): Promise<T> => {
 
 export const readRawBody = async (req: IncomingMessage) => {
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
 
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.length;
+    if (totalBytes > MAX_REQUEST_BODY_BYTES) {
+      throw new HttpError(413, "Request body is too large.");
+    }
+    chunks.push(buffer);
   }
 
   if (chunks.length === 0) {

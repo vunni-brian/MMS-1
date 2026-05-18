@@ -25,6 +25,7 @@ export const createOtpCode = () => String(crypto.randomInt(100_000, 1_000_000));
 export const hashOtpCode = (code: string) => crypto.createHash("sha256").update(code).digest("hex");
 export const verifyOtpCode = (code: string, storedHash: string) => hashOtpCode(code) === storedHash;
 export const createTemporaryPassword = () => `Tmp${crypto.randomBytes(4).toString("hex")}!`;
+
 export const normalizePhoneNumber = (phone: string) => {
   const compact = phone.trim().replace(/\s+/g, "");
   const digitsOnly = compact.replace(/[^\d]/g, "");
@@ -48,6 +49,9 @@ export const normalizePhoneNumber = (phone: string) => {
 
   return compact;
 };
+
+export const isValidEmailAddress = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+export const isValidPhoneNumber = (phone: string) => /^\+\d{8,15}$/.test(phone.trim());
 
 export const nowIso = () => new Date().toISOString();
 export const addMinutes = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();

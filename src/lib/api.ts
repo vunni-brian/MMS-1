@@ -93,9 +93,11 @@ const toFilePayload = async (file: File): Promise<{
 }> => {
   const arrayBuffer = await file.arrayBuffer();
   let binary = "";
-  new Uint8Array(arrayBuffer).forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
+  const bytes = new Uint8Array(arrayBuffer);
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
   return {
     name: file.name,
     mimeType: file.type,

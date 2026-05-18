@@ -8,17 +8,15 @@ interface PendingMfaChallenge {
   expiresAt: string;
 }
 
+type LoginResult =
+  | { mfaRequired: false; verificationRequired: false }
+  | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string }
+  | { mfaRequired: true; verificationRequired: false };
+
 interface AuthContextType {
   user: AuthUser | null;
   role: AuthUser["role"] | null;
-  login: (
-    phone: string,
-    password: string,
-  ) => Promise<
-    | { mfaRequired: false; verificationRequired: false }
-    | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string }
-    | { mfaRequired: true; verificationRequired: false }
-  >;
+  login: (phone: string, password: string) => Promise<LoginResult>;
   verifyPrivilegedMfa: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -62,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     void refreshUser();
   }, []);
 
-  const login = async (phone: string, password: string) => {
+  const login = async (phone: string, password: string): Promise<LoginResult> => {
     setIsLoading(true);
     try {
       const response = await api.login(phone, password);
@@ -74,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { mfaRequired: false, verificationRequired: false };
       }
 
-      if (response.mfaRequired) {
+      if ("mfaRequired" in response && response.mfaRequired) {
         setPendingMfa({
           challengeId: response.challengeId,
           expiresAt: response.expiresAt,
@@ -83,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { mfaRequired: true, verificationRequired: false };
       }
 
-      if (response.verificationRequired) {
+      if ("verificationRequired" in response && response.verificationRequired) {
         setPendingMfa(null);
         setAuthError(null);
         return {

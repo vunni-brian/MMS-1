@@ -17,8 +17,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState, LoadingState } from "@/components/console/ConsolePage";
+import {
+  EmptyState,
+  KpiStrip,
+  LoadingState,
+  PageHeader,
+  Panel,
+  RecordCard,
+  SegmentedControl,
+} from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "@/components/ui/sonner";
 import type {
@@ -329,30 +336,58 @@ const ManagerDashboard = () => {
     {
       label: "Pending Approvals",
       value: approvalRows.length,
-      detail: "Awaiting review",
+      detail: (
+        <>
+          <span className="block">Awaiting review</span>
+          <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px]">
+            {pendingVendors.length} vendors
+          </span>
+        </>
+      ),
       icon: ClipboardList,
-      trend: `${pendingVendors.length} vendors`,
+      tone: "warning" as const,
     },
     {
       label: "Active Stalls",
       value: activeStalls.length,
-      detail: `${vacantStalls.length} vacant`,
+      detail: (
+        <>
+          <span className="block">{vacantStalls.length} vacant</span>
+          <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px]">
+            {occupancyRate}% occupied
+          </span>
+        </>
+      ),
       icon: Grid3X3,
-      trend: `${occupancyRate}% occupied`,
+      tone: "success" as const,
     },
     {
       label: "Pending Payments",
       value: pendingPayments.length,
-      detail: "Awaiting confirmation",
+      detail: (
+        <>
+          <span className="block">Awaiting confirmation</span>
+          <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px]">
+            {formatCurrency(pendingPaymentsTotal)}
+          </span>
+        </>
+      ),
       icon: CreditCard,
-      trend: formatCurrency(pendingPaymentsTotal),
+      tone: "info" as const,
     },
     {
       label: "Open Complaints",
       value: openComplaints.length,
-      detail: `${highPriorityComplaints.length} high priority`,
+      detail: (
+        <>
+          <span className="block">{highPriorityComplaints.length} high priority</span>
+          <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px]">
+            Needs action
+          </span>
+        </>
+      ),
       icon: AlertCircle,
-      trend: "Needs action",
+      tone: highPriorityComplaints.length ? ("destructive" as const) : ("default" as const),
     },
   ];
 
@@ -368,6 +403,12 @@ const ManagerDashboard = () => {
     { key: "payments", label: "Payments", count: pendingPayments.length },
     { key: "complaints", label: "Complaints", count: openComplaints.length },
   ];
+  const taskTabOptions: Array<{ value: ActiveTaskTab; label: string; count: number }> =
+    taskTabs.map((tab) => ({
+      value: tab.key,
+      label: tab.label,
+      count: tab.count,
+    }));
 
   const activeTaskRoute =
     activeTaskTab === "payments"
@@ -377,87 +418,39 @@ const ManagerDashboard = () => {
         : "/manager/vendors";
 
   return (
-    <div className="space-y-3 lg:space-y-4">
-      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold font-heading leading-tight lg:text-2xl">
-              {getTimeAwareGreeting(firstName)}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Today&apos;s market decisions and follow-ups.
-            </p>
-          </div>
-
-          <p className="text-xs text-muted-foreground sm:text-right">
-            Approvals • Payments • Complaints • Stalls
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((item, index) => (
-          <Card
-            key={item.label}
-            className={index === 0 ? "stat-card border-primary/30" : "stat-card"}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-muted-foreground">{item.label}</p>
-                  <p className="mt-1 text-xl font-bold font-heading leading-none">{item.value}</p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{item.detail}</p>
-                  <p className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {item.trend}
-                  </p>
-                </div>
-
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <item.icon className="h-4 w-4" />
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+    <div className="space-y-4">
+      <PageHeader
+        eyebrow="Manager workspace"
+        title={getTimeAwareGreeting(firstName)}
+        description="Today's market decisions, payment follow-ups, complaint responses, and stall occupancy signals."
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Approvals</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Payments</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Complaints</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Stalls</span>
+          </>
+        }
+      />
+      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
       <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <Card className="card-warm h-[430px] overflow-hidden">
-          <CardHeader className="px-4 pb-2 pt-3">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <CardTitle className="text-base font-heading">Active Tasks</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  One queue for decisions that need manager attention.
-                </p>
-              </div>
-
-              <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-                <Link to={activeTaskRoute}>View all</Link>
-              </Button>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {taskTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setActiveTaskTab(tab.key)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${activeTaskTab === tab.key
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted"
-                    }`}
-                >
-                  {tab.label}
-                  <span className="ml-2 rounded-full bg-background/40 px-1.5 py-0.5 text-[10px]">
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </CardHeader>
-
-          <CardContent className="max-h-[340px] space-y-2 overflow-y-auto px-4 pb-4">
+        <Panel
+          title="Active Tasks"
+          description="One queue for decisions that need manager attention."
+          actions={
+            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+              <Link to={activeTaskRoute}>View all</Link>
+            </Button>
+          }
+          className="h-[430px]"
+          contentClassName="max-h-[344px] space-y-3 overflow-y-auto"
+        >
+          <SegmentedControl<ActiveTaskTab>
+            value={activeTaskTab}
+            options={taskTabOptions}
+            onChange={(value) => setActiveTaskTab(value)}
+          />
             {activeTaskTab === "approvals" && (
               <>
                 {approvalRows.length === 0 ? (
@@ -467,10 +460,7 @@ const ManagerDashboard = () => {
                   />
                 ) : (
                   approvalRows.slice(0, 5).map((row) => (
-                    <div
-                      key={row.id}
-                      className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-                    >
+                    <RecordCard key={row.id}>
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -484,7 +474,7 @@ const ManagerDashboard = () => {
                             {row.detail}
                           </p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {row.market} • {formatHumanDate(row.appliedAt)}
+                            {row.market} - {formatHumanDate(row.appliedAt)}
                           </p>
                         </div>
 
@@ -513,7 +503,7 @@ const ManagerDashboard = () => {
                           </Button>
                         </div>
                       </div>
-                    </div>
+                    </RecordCard>
                   ))
                 )}
               </>
@@ -528,10 +518,7 @@ const ManagerDashboard = () => {
                   />
                 ) : (
                   pendingPayments.slice(0, 5).map((payment) => (
-                    <div
-                      key={payment.id}
-                      className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-                    >
+                    <RecordCard key={payment.id}>
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -553,7 +540,7 @@ const ManagerDashboard = () => {
                           </Button>
                         </div>
                       </div>
-                    </div>
+                    </RecordCard>
                   ))
                 )}
               </>
@@ -577,10 +564,7 @@ const ManagerDashboard = () => {
                           : "border-border bg-muted text-muted-foreground";
 
                     return (
-                      <div
-                        key={ticket.id}
-                        className="rounded-xl border border-border/70 bg-background p-3 shadow-sm"
-                      >
+                      <RecordCard key={ticket.id}>
                         <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -594,7 +578,7 @@ const ManagerDashboard = () => {
                               {ticket.subject}
                             </p>
                             <p className="mt-1 truncate text-xs text-muted-foreground">
-                              {categoryLabels[ticket.category]} • {formatHumanDate(ticket.createdAt)}
+                              {categoryLabels[ticket.category]} - {formatHumanDate(ticket.createdAt)}
                             </p>
                           </div>
 
@@ -607,24 +591,20 @@ const ManagerDashboard = () => {
                             <Link to="/manager/complaints">Respond</Link>
                           </Button>
                         </div>
-                      </div>
+                      </RecordCard>
                     );
                   })
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+        </Panel>
 
-        <Card className="card-warm h-[430px] overflow-hidden">
-          <CardHeader className="px-4 pb-2 pt-3">
-            <CardTitle className="text-base font-heading">Market Health</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Quick health view for the assigned market.
-            </p>
-          </CardHeader>
-
-          <CardContent className="space-y-4 px-4 pb-4">
+        <Panel
+          title="Market Health"
+          description="Quick health view for the assigned market."
+          className="h-[430px]"
+          contentClassName="space-y-4"
+        >
             <div className="flex justify-center">
               <div
                 className="relative flex h-36 w-36 items-center justify-center rounded-full"
@@ -670,8 +650,7 @@ const ManagerDashboard = () => {
                 {utilityRows.length} active follow-up items
               </p>
             </div>
-          </CardContent>
-        </Card>
+        </Panel>
       </div>
     </div>
   );

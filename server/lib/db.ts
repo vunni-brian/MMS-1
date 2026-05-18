@@ -556,7 +556,16 @@ export const queueNotification = async ({
   return notificationId;
 };
 
+const executeSeedStatement = run;
+
 export const seedDatabase = async () => {
+  let seedQueue: Promise<void> = Promise.resolve();
+  const run = (sql: string, params: unknown[] = []) => {
+    const queued = seedQueue.then(() => executeSeedStatement(sql, params));
+    seedQueue = queued.then(() => undefined);
+    return queued;
+  };
+
   const createdAt = nowIso();
   const locations = [
     { id: "loc_region_central", name: "Central", type: "region", parentId: null },
@@ -1505,6 +1514,8 @@ export const seedDatabase = async () => {
      WHERE market_id IS NULL AND actor_user_id IS NOT NULL`,
   );
   });
+
+  await seedQueue;
 
   if (config.supabaseAuthEnabled) {
     for (const user of users) {

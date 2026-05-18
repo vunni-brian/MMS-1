@@ -14,9 +14,22 @@ import {
 } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { getOtpNotificationMessage } from "../lib/otp-messages.ts";
-import { applyUserPassword, revokeUserSessions } from "../lib/passwords.ts";
+import { applyUserPassword, revokeUserSessions, validatePasswordStrength } from "../lib/passwords.ts";
 import { assertMarketAccess, createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
-import { addMinutes, createOtpCode, createTemporaryPassword, hashOtpCode, hashPassword, hashToken, normalizePhoneNumber, nowIso, verifyOtpCode, verifyPassword } from "../lib/security.ts";
+import {
+  addMinutes,
+  createOtpCode,
+  createTemporaryPassword,
+  hashOtpCode,
+  hashPassword,
+  hashToken,
+  isValidEmailAddress,
+  isValidPhoneNumber,
+  normalizePhoneNumber,
+  nowIso,
+  verifyOtpCode,
+  verifyPassword,
+} from "../lib/security.ts";
 import { createSupabaseAuthUser, deleteSupabaseAuthUser, downloadSupabaseStorageObject, findSupabaseAuthUser, updateSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
 import { persistFilePayload, removeStoredFile, validateFilePayload } from "../lib/storage.ts";
 import type { FilePayload } from "../types.ts";
@@ -153,13 +166,22 @@ export const authRoutes: RouteDefinition[] = [
       }>(req);
 
       const name = body.name?.trim();
+      const email = body.email?.trim().toLowerCase();
       const nationalIdNumber = body.nationalIdNumber?.trim().toUpperCase();
       const district = body.district?.trim();
       const productSection = body.productSection?.trim();
+      const normalizedPhone = normalizePhoneNumber(body.phone || "");
 
-      if (!name || !body.email || !body.phone || !body.password || !body.marketId || !nationalIdNumber || !district || !productSection) {
+      if (!name || !email || !normalizedPhone || !body.password || !body.marketId || !nationalIdNumber || !district || !productSection) {
         throw new HttpError(400, "Name, email, phone, password, market, NIN, district, and product section are required.");
       }
+      if (!isValidEmailAddress(email)) {
+        throw new HttpError(400, "A valid email address is required.");
+      }
+      if (!isValidPhoneNumber(normalizedPhone)) {
+        throw new HttpError(400, "A valid international phone number is required.");
+      }
+      validatePasswordStrength(body.password);
 
       validateFilePayload(body.profileImage, ["image/jpeg", "image/png", "image/webp"], false);
       validateFilePayload(body.idDocument, ["application/pdf", "image/jpeg", "image/png"], true);
@@ -170,10 +192,8 @@ export const authRoutes: RouteDefinition[] = [
         throw new HttpError(400, "Selected market is invalid.");
       }
 
-      const normalizedPhone = normalizePhoneNumber(body.phone);
-
       const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ?`, [normalizedPhone]);
-      const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE email = ?`, [body.email]);
+      const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE lower(email) = ?`, [email]);
       if (existingPhone || existingEmail) {
         throw new HttpError(409, "A user with that phone or email already exists.");
       }
@@ -199,14 +219,14 @@ export const authRoutes: RouteDefinition[] = [
         if (config.supabaseAuthEnabled) {
           const existingSupabaseUser = await findSupabaseAuthUser({
             phone: normalizedPhone,
-            email: body.email.trim().toLowerCase(),
+            email,
           });
           if (existingSupabaseUser) {
             throw new HttpError(409, "A Supabase Auth user with that phone or email already exists.");
           }
 
           const authUser = await createSupabaseAuthUser({
-            email: body.email.trim().toLowerCase(),
+            email,
             phone: normalizedPhone,
             password: body.password,
             localUserId: userId,
@@ -249,7 +269,7 @@ export const authRoutes: RouteDefinition[] = [
               userId,
               authUserId,
               name,
-              body.email.trim().toLowerCase(),
+              email,
               normalizedPhone,
               hashPassword(body.password),
               market.id,
@@ -396,6 +416,12 @@ export const authRoutes: RouteDefinition[] = [
       if (!name || !email || !phone || !marketId) {
         throw new HttpError(400, "Name, email, phone, and market are required.");
       }
+      if (!isValidEmailAddress(email)) {
+        throw new HttpError(400, "A valid email address is required.");
+      }
+      if (!isValidPhoneNumber(phone)) {
+        throw new HttpError(400, "A valid international phone number is required.");
+      }
 
       const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [marketId]);
       if (!market) {
@@ -428,7 +454,7 @@ export const authRoutes: RouteDefinition[] = [
       const duplicateEmail = await get<{ id: string }>(
         `SELECT id
          FROM users
-         WHERE email = ?${existingManager ? " AND id != ?" : ""}
+         WHERE lower(email) = ?${existingManager ? " AND id != ?" : ""}
          LIMIT 1`,
         existingManager ? [email, existingManager.id] : [email],
       );
@@ -738,6 +764,12 @@ export const authRoutes: RouteDefinition[] = [
       if (!name || !email || !phone) {
         throw new HttpError(400, "Name, email, and phone are required.");
       }
+      if (!isValidEmailAddress(email)) {
+        throw new HttpError(400, "A valid email address is required.");
+      }
+      if (!isValidPhoneNumber(phone)) {
+        throw new HttpError(400, "A valid international phone number is required.");
+      }
       validateFilePayload(body.profileImage, ["image/jpeg", "image/png", "image/webp"], false);
 
       const user = await getUserRecordById(session.user.id);
@@ -754,7 +786,7 @@ export const authRoutes: RouteDefinition[] = [
       }
 
       const duplicateEmail = await get<{ id: string }>(
-        `SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1`,
+        `SELECT id FROM users WHERE lower(email) = ? AND id != ? LIMIT 1`,
         [email, user.id],
       );
       if (duplicateEmail) {

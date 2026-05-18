@@ -318,7 +318,7 @@ const AuditPage = () => {
                         </TableCell>
 
                         <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">
-                          {event.details ? "View payload" : "—"}
+                          {event.details ? "View payload" : "-"}
                         </TableCell>
 
                         <TableCell className="text-right">

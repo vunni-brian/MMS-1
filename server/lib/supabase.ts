@@ -1,4 +1,4 @@
-import { createClient, type User } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 import { config } from "../config.ts";
 
@@ -12,12 +12,12 @@ const clientOptions = {
   },
 };
 
-const publicClient =
+const publicClient: SupabaseClient | null =
   config.supabaseUrl && config.supabaseAnonKey
     ? createClient(config.supabaseUrl, config.supabaseAnonKey, clientOptions)
     : null;
 
-const adminClient =
+const adminClient: SupabaseClient | null =
   config.supabaseUrl && config.supabaseServiceRoleKey
     ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, clientOptions)
     : null;
@@ -43,8 +43,9 @@ export const findSupabaseAuthUser = async ({
       throw new Error(`Unable to query Supabase Auth users: ${error.message}`);
     }
 
+    const users = (data.users || []) as User[];
     const match =
-      data.users.find((candidate) => {
+      users.find((candidate) => {
         const candidateEmail = candidate.email?.trim().toLowerCase() || null;
         const candidatePhone = candidate.phone?.trim() || null;
         return (normalizedPhone && candidatePhone === normalizedPhone) || (normalizedEmail && candidateEmail === normalizedEmail);
@@ -54,11 +55,12 @@ export const findSupabaseAuthUser = async ({
       return match;
     }
 
-    if (!data.nextPage) {
+    const nextPage = "nextPage" in data ? data.nextPage : null;
+    if (!nextPage) {
       return null;
     }
 
-    page = data.nextPage;
+    page = nextPage;
   }
 };
 

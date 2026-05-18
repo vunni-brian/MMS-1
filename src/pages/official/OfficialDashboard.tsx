@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { EmptyState, LoadingState } from "@/components/console/ConsolePage";
+import { EmptyState, LoadingState, PageHeader } from "@/components/console/ConsolePage";
 import type {
   Market,
   UtilityCharge,
@@ -625,14 +625,19 @@ const OfficialDashboard = () => {
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
-        <h1 className="text-2xl font-bold font-heading leading-tight lg:text-[2rem]">
-          National Market Oversight
-        </h1>
-        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-          Monitor market performance, compliance, and financial activity across assigned regions.
-        </p>
-      </section>
+      <PageHeader
+        eyebrow="Official workspace"
+        title="National Market Oversight"
+        description="Monitor market performance, compliance, and financial activity across assigned regions."
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">{selectedScopeLabel}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">
+              {canViewAllRegions ? "All regions" : "Assigned region"}
+            </span>
+          </>
+        }
+      />
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="card-warm">
@@ -710,9 +715,9 @@ const OfficialDashboard = () => {
             </div>
 
             <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
-              Current path: Uganda → {selectedRegionInfo.name} Region
-              {selectedArea ? ` → ${selectedArea.name}` : ""}
-              {selectedSubArea ? ` → ${selectedSubArea.name}` : ""}
+              Current path: Uganda &gt; {selectedRegionInfo.name} Region
+              {selectedArea ? ` > ${selectedArea.name}` : ""}
+              {selectedSubArea ? ` > ${selectedSubArea.name}` : ""}
             </div>
           </CardContent>
         </Card>

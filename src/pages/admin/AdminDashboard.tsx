@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailSheet, EmptyState, EvidenceField, LoadingState } from "@/components/console/ConsolePage";
+import { DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader } from "@/components/console/ConsolePage";
 import type { AuditEvent, ChargeTypeName, Market, Payment, Role, Ticket } from "@/types";
 
 type RegionId = "central" | "western" | "eastern" | "northern";
@@ -460,36 +460,21 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-4 lg:space-y-5">
-      <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm lg:p-5">
-        <h1 className="text-2xl font-bold font-heading lg:text-3xl">
-          System Administration
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Monitor users, markets, financial flows, system alerts, and audit activity from one command center.
-        </p>
-      </section>
+      <PageHeader
+        eyebrow="Admin workspace"
+        title="System Administration"
+        description="Monitor users, markets, financial flows, system alerts, and audit activity from one command center."
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Users</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Markets</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Financial controls</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">Audit trail</span>
+          </>
+        }
+      />
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        {kpis.map((item) => (
-          <Card key={item.label} className="stat-card">
-            <CardContent className="p-3.5 lg:p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="mt-1 text-lg font-bold font-heading lg:text-xl">
-                    {item.value}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">{item.detail}</p>
-                </div>
-
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                  <item.icon className="h-4 w-4" />
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+      <KpiStrip items={kpis} columns="grid-cols-2 md:grid-cols-3 xl:grid-cols-5" />
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <Card className="card-warm h-[360px]">

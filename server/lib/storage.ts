@@ -33,12 +33,18 @@ export const validateFilePayload = (
 
 export const persistFilePayload = async (subdirectory: string, prefix: string, file: FilePayload) => {
   validateFilePayload(file, [file.mimeType], true);
+  if (!/^[a-zA-Z0-9+/]+={0,2}$/.test(file.base64)) {
+    throw new HttpError(400, "Uploaded file payload is invalid.");
+  }
+  const buffer = Buffer.from(file.base64, "base64");
+  if (buffer.length !== file.size) {
+    throw new HttpError(400, "Uploaded file size does not match the payload.");
+  }
 
   const safePrefix = sanitizeName(prefix);
   const directory = path.join(config.uploadsDir, subdirectory);
   const safeName = sanitizeName(file.name);
   const fileName = `${safePrefix}-${Date.now()}-${safeName}`;
-  const buffer = Buffer.from(file.base64, "base64");
 
   if (config.supabaseStorageEnabled) {
     const objectPath = `${subdirectory}/${safePrefix}/${fileName}`;

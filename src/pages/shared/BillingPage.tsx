@@ -419,7 +419,7 @@ const BillingPage = () => {
                       </div>
 
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Scope: <span className="capitalize">{chargeType.scope}</span> • Last updated
+                        Scope: <span className="capitalize">{chargeType.scope}</span> - Last updated
                         by {chargeType.updatedByName || "system"} on{" "}
                         {formatHumanDateTime(chargeType.updatedAt)}
                       </p>
