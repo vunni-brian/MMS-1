@@ -261,11 +261,7 @@ const ComplaintsPage = () => {
       <PageHeader
         eyebrow="Ticket desk"
         title="Complaints & Disputes"
-        description={
-          role === "vendor"
-            ? "Lodge complaints and track progress from submission to resolution."
-            : "Review vendor complaints, prioritize urgent cases, and update resolution progress."
-        }
+        description={role === "vendor" ? "Submit and track market complaints." : "Prioritize complaints and update resolution status."}
         actions={
           role === "vendor" && (
             <Button onClick={() => setShowNew(true)} className="w-full sm:w-auto">
@@ -302,7 +298,7 @@ const ComplaintsPage = () => {
 
           <DataTableFrame
             title="Ticket Register"
-            description={`Showing ${filteredTickets.length} of ${tickets.length} complaint records.`}
+            description="Operational queue for complaint handling."
             actions={
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                   <div className="relative w-full sm:w-[240px]">
@@ -341,6 +337,10 @@ const ComplaintsPage = () => {
                     </SelectContent>
                   </Select>
 
+                  <span className="inline-flex h-9 items-center rounded-md border border-border/70 bg-background px-3 text-xs text-muted-foreground">
+                    {filteredTickets.length} / {tickets.length}
+                  </span>
+
                   <Button
                     variant="outline"
                     className="w-full sm:w-auto"
@@ -356,15 +356,14 @@ const ComplaintsPage = () => {
                 </div>
             }
           >
-            <div className="space-y-4 p-4">
-
               {filteredTickets.length === 0 ? (
-                <EmptyState
-                  title="No complaints match this view"
-                  description="Clear the filters or search by ticket, vendor, category, or status."
-                />
+                <div className="p-3">
+                  <EmptyState
+                    title="No complaints match this view"
+                    description="Clear the filters or search by ticket, vendor, category, or status."
+                  />
+                </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-border/70">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40">
@@ -400,12 +399,7 @@ const ComplaintsPage = () => {
                             )}
 
                             <TableCell className="min-w-[220px]">
-                              <div>
-                                <p className="text-sm font-medium">{ticket.subject}</p>
-                                <div className="mt-2 max-w-[260px]">
-                                  <ComplaintProgress status={ticket.status} />
-                                </div>
-                              </div>
+                              <p className="truncate text-sm font-medium">{ticket.subject}</p>
                             </TableCell>
 
                             <TableCell>
@@ -452,9 +446,7 @@ const ComplaintsPage = () => {
                       })}
                     </TableBody>
                   </Table>
-                </div>
               )}
-            </div>
           </DataTableFrame>
         </>
       )}

@@ -57,7 +57,7 @@ export const coordinationRoutes: RouteDefinition[] = [
                 coordination_messages.created_at
          FROM coordination_messages
          LEFT JOIN markets ON markets.id = coordination_messages.market_id
-         WHERE (? IS NULL OR coordination_messages.market_id = ? OR coordination_messages.market_id IS NULL)
+         WHERE (?::text IS NULL OR coordination_messages.market_id = ? OR coordination_messages.market_id IS NULL)
          ORDER BY coordination_messages.created_at DESC`,
         [marketId, marketId],
       );

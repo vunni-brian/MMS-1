@@ -6,8 +6,6 @@ import {
   ClipboardList,
   Landmark,
   MessageSquare,
-  ReceiptText,
-  ShieldCheck,
 } from "lucide-react";
 
 import { api } from "@/lib/api";
@@ -259,11 +257,11 @@ const OfficialDashboard = () => {
     .slice(0, 4);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         eyebrow="Official workspace"
         title="Oversight Desk"
-        description="Review operational requests, market risk, complaints, and payment exceptions across active markets."
+        description="Review requests, market risk, complaints, and payment exceptions across active markets."
         actions={
           <Button asChild>
             <Link to="/official/coordination">Open Requests</Link>
@@ -271,20 +269,19 @@ const OfficialDashboard = () => {
         }
         meta={
           <>
-            <span className="rounded-full bg-muted px-2.5 py-1">Operational review</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Complaints</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Market risk</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{pendingResourceRequests.length} requests</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{openComplaints.length} complaints</span>
           </>
         }
       />
 
       <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
         <Panel
           title="Priority Review Queue"
-          description="The highest-value official actions: request decisions, complaint escalation, and overdue obligations."
-          className="min-h-[390px]"
+          description="Request decisions, complaint escalation, and overdue obligations."
+          className="min-h-[340px]"
           actions={
             <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
               <SelectTrigger className="h-9 w-[180px]">
@@ -371,7 +368,7 @@ const OfficialDashboard = () => {
         <Panel
           title="Financial & Occupancy Snapshot"
           description="Operational health indicators across monitored markets."
-          className="min-h-[390px]"
+          className="min-h-[340px]"
         >
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <div className="rounded-md border border-border/70 bg-background p-3">
@@ -397,95 +394,48 @@ const OfficialDashboard = () => {
       <Panel
         title="Market Risk Register"
         description="A compact operating view for deciding where official attention is needed."
+        contentClassName="max-h-[320px] overflow-auto p-0"
       >
         {marketRows.length === 0 ? (
-          <EmptyState
-            title="No markets available"
-            description="Registered markets will appear here after setup."
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Manager</TableHead>
-                  <TableHead className="text-right">Vendors</TableHead>
-                  <TableHead className="text-right">Occupancy</TableHead>
-                  <TableHead className="text-right">Complaints</TableHead>
-                  <TableHead className="text-right">Overdue</TableHead>
-                  <TableHead className="text-right">Requests</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {marketRows.map((market) => (
-                  <TableRow key={market.id}>
-                    <TableCell className="font-medium">{market.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{market.manager}</TableCell>
-                    <TableCell className="text-right">{market.vendors}</TableCell>
-                    <TableCell className="text-right">{market.occupancy}%</TableCell>
-                    <TableCell className="text-right">{market.complaints}</TableCell>
-                    <TableCell className="text-right">{market.overdue}</TableCell>
-                    <TableCell className="text-right">{market.requests}</TableCell>
-                    <TableCell>
-                      <span className={riskClassName(market.risk)}>{market.risk}</span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="p-3">
+            <EmptyState
+              title="No markets available"
+              description="Registered markets will appear here after setup."
+            />
           </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Market</TableHead>
+                <TableHead>Manager</TableHead>
+                <TableHead className="text-right">Vendors</TableHead>
+                <TableHead className="text-right">Occupancy</TableHead>
+                <TableHead className="text-right">Complaints</TableHead>
+                <TableHead className="text-right">Overdue</TableHead>
+                <TableHead className="text-right">Requests</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {marketRows.map((market) => (
+                <TableRow key={market.id}>
+                  <TableCell className="font-medium">{market.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{market.manager}</TableCell>
+                  <TableCell className="text-right">{market.vendors}</TableCell>
+                  <TableCell className="text-right">{market.occupancy}%</TableCell>
+                  <TableCell className="text-right">{market.complaints}</TableCell>
+                  <TableCell className="text-right">{market.overdue}</TableCell>
+                  <TableCell className="text-right">{market.requests}</TableCell>
+                  <TableCell>
+                    <span className={riskClassName(market.risk)}>{market.risk}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </Panel>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Panel title="Open Resource Requests" description="Requests pending official budget or structural decisions.">
-          {pendingResourceRequests.length === 0 ? (
-            <EmptyState title="No resource requests pending" />
-          ) : (
-            <div className="space-y-2">
-              {sortByCreatedAtDesc(pendingResourceRequests).slice(0, 5).map((request) => (
-                <RecordCard key={request.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{request.title}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {request.marketName} - {request.managerName}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold">{formatCurrency(request.amountRequested)}</p>
-                  </div>
-                </RecordCard>
-              ))}
-            </div>
-          )}
-        </Panel>
-
-        <Panel title="Complaint Escalations" description="Open vendor issues that may require official follow-up.">
-          {openComplaints.length === 0 ? (
-            <EmptyState title="No open complaints" />
-          ) : (
-            <div className="space-y-2">
-              {sortByCreatedAtDesc(openComplaints).slice(0, 5).map((ticket) => (
-                <RecordCard key={ticket.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{ticket.subject}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {ticket.marketName || "Assigned market"} - {ticket.vendorName}
-                      </p>
-                    </div>
-                    <span className="status-badge border-border bg-muted text-muted-foreground">
-                      {getComplaintPriority(ticket)}
-                    </span>
-                  </div>
-                </RecordCard>
-              ))}
-            </div>
-          )}
-        </Panel>
-      </div>
     </div>
   );
 };

@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ClipboardList, Send, Shield, UserCog } from "lucide-react";
+import { CheckCircle2, Send, Shield, UserCog } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState } from "@/components/console/ConsolePage";
+import { ConsolePage, EmptyState, PageHeader, Panel } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { ResourceRequest, ResourceRequestCategory } from "@/types";
 
@@ -122,34 +121,48 @@ const CoordinationPage = () => {
   const pendingResourceRequests = resourceRequests.filter((request) => request.status === "pending");
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-heading">Manager & Official Coordination</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Share operational updates, oversight requests, and action items.
-        </p>
-      </div>
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Operations channel"
+        title="Coordination"
+        description="Resource requests and market updates."
+        actions={
+          canScopeMarkets && (
+            <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
+              <SelectTrigger className="h-9 w-full sm:w-[220px]">
+                <SelectValue placeholder="Filter by market" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Markets</SelectItem>
+                {(marketsData?.markets || []).map((market) => (
+                  <SelectItem key={market.id} value={market.id}>
+                    {market.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )
+        }
+        meta={
+          showResourceRequests ? (
+            <span className="rounded-full bg-muted px-2.5 py-1">
+              {pendingResourceRequests.length} pending requests
+            </span>
+          ) : undefined
+        }
+      />
 
       {showResourceRequests && (
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-base font-heading">
-                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                  Resource Requests
-                </CardTitle>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Budget and structural requests that require official review.
-                </p>
-              </div>
-              <span className="status-badge border-warning/25 bg-warning/15 text-warning">
-                {pendingResourceRequests.length} pending
-              </span>
-            </div>
-          </CardHeader>
-
-          <CardContent className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+        <Panel
+          title="Resource Requests"
+          description="Budget and structural requests requiring review."
+          actions={
+            <span className="status-badge border-warning/25 bg-warning/15 text-warning">
+              {pendingResourceRequests.length} pending
+            </span>
+          }
+          contentClassName="grid gap-3 lg:grid-cols-[1fr_1.2fr]"
+        >
             {canCreateResourceRequest && (
               <div className="space-y-3 rounded-lg border border-border/70 bg-background p-3">
                 <div className="space-y-1.5">
@@ -259,43 +272,19 @@ const CoordinationPage = () => {
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+        </Panel>
       )}
 
-      <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <CardTitle className="text-base font-heading">Shared Channel</CardTitle>
-              {canScopeMarkets && (
-                <div className="w-full lg:w-[220px]">
-                  <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filter by market" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Markets</SelectItem>
-                      {(marketsData?.markets || []).map((market) => (
-                        <SelectItem key={market.id} value={market.id}>
-                          {market.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+        <Panel title="Shared Channel" description="Latest operational coordination messages." contentClassName="space-y-2">
             {messages.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No coordination messages yet.</p>
+              <EmptyState title="No coordination messages yet" />
             ) : (
               messages.map((message) => {
                 const Icon = message.senderRole === "manager" ? UserCog : Shield;
 
                 return (
-                  <div key={message.id} className="interactive-row border p-4">
+                  <div key={message.id} className="interactive-row border p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
@@ -321,32 +310,9 @@ const CoordinationPage = () => {
                 );
               })
             )}
-          </CardContent>
-        </Card>
+        </Panel>
 
-        <Card className="card-warm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Post Update</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {canScopeMarkets && (
-              <div className="space-y-1.5">
-                <Label htmlFor="coordination-market">Market scope</Label>
-                <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-                  <SelectTrigger id="coordination-market">
-                    <SelectValue placeholder="Select message scope" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Markets</SelectItem>
-                    {(marketsData?.markets || []).map((market) => (
-                      <SelectItem key={market.id} value={market.id}>
-                        {market.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+        <Panel title="Post Update" description="Send a concise operational note." contentClassName="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="coordination-subject">Subject</Label>
               <Input
@@ -381,10 +347,9 @@ const CoordinationPage = () => {
               <Send className="w-4 h-4 mr-2" />
               Send Message
             </Button>
-          </CardContent>
-        </Card>
+        </Panel>
       </div>
-    </div>
+    </ConsolePage>
   );
 };
 

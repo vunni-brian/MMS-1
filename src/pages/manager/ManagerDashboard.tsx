@@ -213,16 +213,16 @@ const ManagerDashboard = () => {
   if (isDashboardLoading) {
     return (
       <div className="space-y-3">
-        <LoadingState rows={1} itemClassName="h-24 rounded-xl" />
+        <LoadingState rows={1} itemClassName="h-20 rounded-xl" />
         <LoadingState
           rows={4}
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-          itemClassName="h-24 rounded-xl"
+          itemClassName="h-20 rounded-xl"
         />
         <LoadingState
           rows={2}
           className="grid gap-3 xl:grid-cols-[2fr_1fr]"
-          itemClassName="h-[410px] rounded-xl"
+          itemClassName="h-[340px] rounded-xl"
         />
       </div>
     );
@@ -415,17 +415,15 @@ const ManagerDashboard = () => {
         : "/manager/vendors";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader
         eyebrow="Manager workspace"
         title={getTimeAwareGreeting(firstName)}
-        description="Today's market decisions, payment follow-ups, complaint responses, and stall occupancy signals."
+        description="Immediate market decisions, escalations, payment follow-ups, and occupancy signals."
         meta={
           <>
-            <span className="rounded-full bg-muted px-2.5 py-1">Approvals</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Payments</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Complaints</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Stalls</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{approvalRows.length} approvals</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{openComplaints.length} complaints</span>
           </>
         }
       />
@@ -434,14 +432,14 @@ const ManagerDashboard = () => {
       <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
         <Panel
           title="Active Tasks"
-          description="One queue for decisions that need manager attention."
+          description="Decisions that need manager action today."
           actions={
             <Button asChild variant="ghost" size="sm" className="h-auto px-0">
               <Link to={activeTaskRoute}>View all</Link>
             </Button>
           }
-          className="h-[430px]"
-          contentClassName="max-h-[344px] space-y-3 overflow-y-auto"
+          className="h-[372px]"
+          contentClassName="max-h-[292px] space-y-2 overflow-y-auto"
         >
           <SegmentedControl<ActiveTaskTab>
             value={activeTaskTab}
@@ -598,33 +596,33 @@ const ManagerDashboard = () => {
 
           <Panel
             title="Market Health"
-            description="Quick health view for the assigned market."
-            className="h-[430px]"
-            contentClassName="space-y-4"
+            description="Occupancy, availability, and financial follow-up."
+            className="h-[372px]"
+            contentClassName="space-y-3"
           >
-            <div className="flex justify-center">
-              <div
-                className="relative flex h-36 w-36 items-center justify-center rounded-full"
-                style={{
-                  background: `conic-gradient(hsl(var(--primary)) ${occupancyRate * 3.6
-                    }deg, hsl(var(--muted)) 0deg)`,
-                }}
-              >
-                <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-card text-center shadow-sm">
-                  <p className="text-2xl font-bold font-heading">{occupancyRate}%</p>
+            <div className="rounded-md border border-border/70 bg-background p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
                   <p className="text-xs text-muted-foreground">Occupancy</p>
+                  <p className="mt-0.5 text-2xl font-bold leading-none font-heading">{occupancyRate}%</p>
                 </div>
+                <p className="text-right text-xs text-muted-foreground">
+                  {activeStalls.length} of {stalls.length} stalls assigned
+                </p>
+              </div>
+              <div className="mt-3 h-2 rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(occupancyRate, 100)}%` }} />
               </div>
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               {occupancySummary.map((item) => (
                 <div
                   key={item.label}
-                  className="flex items-center justify-between rounded-xl border border-border/70 bg-background p-2.5"
+                  className="flex items-center justify-between rounded-md border border-border/70 bg-background p-2.5"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
                       <item.icon className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
@@ -638,14 +636,17 @@ const ManagerDashboard = () => {
               ))}
             </div>
 
-            <div className="rounded-xl border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Utilities due</p>
-              <p className="mt-1 text-lg font-bold font-heading">
-                {formatCurrency(unpaidUtilitiesTotal)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {utilityRows.length} active follow-up items
-              </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border border-border/70 bg-background p-3">
+                <p className="text-xs text-muted-foreground">Utilities due</p>
+                <p className="mt-1 truncate text-base font-bold font-heading">
+                  {formatCurrency(unpaidUtilitiesTotal)}
+                </p>
+              </div>
+              <div className="rounded-md border border-border/70 bg-background p-3">
+                <p className="text-xs text-muted-foreground">Follow-ups</p>
+                <p className="mt-1 text-base font-bold font-heading">{utilityRows.length}</p>
+              </div>
             </div>
           </Panel>
       </div>

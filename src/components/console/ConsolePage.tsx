@@ -11,25 +11,25 @@ interface ConsolePageProps {
 }
 
 export const ConsolePage = ({ children, className }: ConsolePageProps) => (
-  <div className={cn("mx-auto flex w-full max-w-[1480px] flex-col gap-5 pb-6", className)}>{children}</div>
+  <div className={cn("mx-auto flex w-full max-w-[1480px] flex-col gap-4 pb-4", className)}>{children}</div>
 );
 
 interface PageHeaderProps {
   eyebrow?: string;
   title: string;
-  description: string;
+  description?: ReactNode;
   actions?: ReactNode;
   meta?: ReactNode;
 }
 
 export const PageHeader = ({ eyebrow, title, description, actions, meta }: PageHeaderProps) => (
   <section className="console-section">
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0 max-w-3xl">
         {eyebrow && <p className="page-kicker">{eyebrow}</p>}
-        <h1 className="mt-1 text-2xl font-bold leading-tight font-heading lg:text-[1.7rem]">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
-        {meta && <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">{meta}</div>}
+        <h1 className="mt-1 text-xl font-bold leading-tight font-heading lg:text-2xl">{title}</h1>
+        {description && <p className="mt-1.5 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>}
+        {meta && <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">{meta}</div>}
       </div>
       {actions && <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
     </div>
@@ -86,16 +86,16 @@ export const KpiStrip = ({ items, columns = "grid-cols-2 lg:grid-cols-4" }: KpiS
       const tone = item.tone || "default";
 
       return (
-        <Card key={item.label} className="stat-card min-h-[112px]">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-3">
+        <Card key={item.label} className="stat-card min-h-[90px]">
+          <CardContent className="p-3">
+            <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-muted-foreground">{item.label}</p>
-                <p className="mt-1 break-words text-xl font-bold leading-tight font-heading tabular-nums">{item.value}</p>
-                {item.detail && <div className="mt-2 text-xs leading-5 text-muted-foreground">{item.detail}</div>}
+                <p className="mt-1 break-words text-lg font-bold leading-tight font-heading tabular-nums">{item.value}</p>
+                {item.detail && <div className="mt-1.5 text-xs leading-4 text-muted-foreground">{item.detail}</div>}
               </div>
               {Icon && (
-                <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", kpiToneStyles[tone])}>
+                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md border", kpiToneStyles[tone])}>
                   <Icon className="h-4 w-4" />
                 </span>
               )}
@@ -115,7 +115,7 @@ interface EvidenceFieldProps {
 }
 
 export const EvidenceField = ({ label, value, mono = false, className }: EvidenceFieldProps) => (
-  <div className={cn("rounded-md border border-border/60 bg-muted/20 p-3", className)}>
+  <div className={cn("rounded-md border border-border/60 bg-muted/15 p-2.5", className)}>
     <p className="text-xs text-muted-foreground">{label}</p>
     <div className={cn("mt-1 break-words text-sm font-medium", mono && "font-mono text-xs")}>{value}</div>
   </div>
@@ -128,10 +128,10 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = ({ title, description, action }: EmptyStateProps) => (
-  <div className="rounded-md border border-dashed border-border/70 bg-muted/10 px-4 py-6 text-center">
+  <div className="rounded-md border border-dashed border-border/70 bg-muted/10 px-4 py-4 text-center">
     <p className="text-sm font-medium">{title}</p>
-    {description && <p className="mx-auto mt-1 max-w-xl text-sm text-muted-foreground">{description}</p>}
-    {action && <div className="mt-4 flex justify-center">{action}</div>}
+    {description && <p className="mx-auto mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{description}</p>}
+    {action && <div className="mt-3 flex justify-center">{action}</div>}
   </div>
 );
 
@@ -160,10 +160,10 @@ interface DataTableFrameProps {
 export const DataTableFrame = ({ title, description, actions, children, className }: DataTableFrameProps) => (
   <section className={cn("console-table-card", className)}>
     {(title || description || actions) && (
-      <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-2.5 border-b border-border/70 px-3 py-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          {title && <h2 className="text-base font-semibold font-heading">{title}</h2>}
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          {title && <h2 className="text-sm font-semibold font-heading">{title}</h2>}
+          {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -181,15 +181,15 @@ interface FormSectionProps {
 }
 
 export const FormSection = ({ title, description, children, actions, className }: FormSectionProps) => (
-  <section className={cn("rounded-lg border border-border/70 bg-card p-4 shadow-sm", className)}>
-    <div className="flex flex-col gap-3 border-b border-border/70 pb-3 lg:flex-row lg:items-start lg:justify-between">
+  <section className={cn("rounded-lg border border-border/70 bg-card p-3 shadow-sm", className)}>
+    <div className="flex flex-col gap-2.5 border-b border-border/70 pb-2.5 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
-        <h2 className="text-base font-semibold font-heading">{title}</h2>
-        {description && <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>}
+        <h2 className="text-sm font-semibold font-heading">{title}</h2>
+        {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
-    <div className="mt-4 space-y-4">{children}</div>
+    <div className="mt-3 space-y-3">{children}</div>
   </section>
 );
 
@@ -209,7 +209,7 @@ export const FileUploadCard = ({ id, label, description, value, accept, capture,
   <label
     htmlFor={id}
     className={cn(
-      "group block rounded-lg border border-dashed border-border/80 bg-muted/10 p-4 transition-colors",
+      "group block rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 transition-colors",
       disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-primary/40 hover:bg-muted/20",
       className,
     )}
@@ -219,11 +219,11 @@ export const FileUploadCard = ({ id, label, description, value, accept, capture,
         <p className="text-sm font-medium">{label}</p>
         {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
       </div>
-      <span className="inline-flex h-9 items-center justify-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+      <span className="inline-flex h-8 items-center justify-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
         Choose File
       </span>
     </div>
-    <p className="mt-3 truncate rounded-md bg-background px-3 py-2 text-xs text-muted-foreground">{value || "No file selected"}</p>
+    <p className="mt-2 truncate rounded-md bg-background px-2.5 py-1.5 text-xs text-muted-foreground">{value || "No file selected"}</p>
     <input
       id={id}
       type="file"
@@ -250,8 +250,8 @@ export const Panel = ({ title, description, actions, children, className, conten
     {(title || description || actions) && (
       <div className="dashboard-panel-header">
         <div className="min-w-0">
-          {title && <h2 className="text-base font-semibold leading-tight font-heading">{title}</h2>}
-          {description && <div className="mt-1 text-sm leading-5 text-muted-foreground">{description}</div>}
+          {title && <h2 className="text-sm font-semibold leading-tight font-heading">{title}</h2>}
+          {description && <div className="mt-1 text-xs leading-5 text-muted-foreground">{description}</div>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -358,7 +358,7 @@ export const DetailSheet = ({ open, onOpenChange, title, description, children, 
         <SheetTitle className="font-heading">{title}</SheetTitle>
         {description && <SheetDescription>{description}</SheetDescription>}
       </SheetHeader>
-      <div className="mt-6">{children}</div>
+      <div className="mt-4">{children}</div>
     </SheetContent>
   </Sheet>
 );

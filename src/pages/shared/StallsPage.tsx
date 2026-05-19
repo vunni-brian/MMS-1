@@ -13,8 +13,6 @@ import {
   EvidenceField,
   KpiStrip,
   PageHeader,
-  ScopeBar,
-  ScopeItem,
 } from "@/components/console/ConsolePage";
 import {
   Dialog,
@@ -177,12 +175,25 @@ const StallsPage = () => {
       <PageHeader
         eyebrow={role === "vendor" ? "Stall marketplace" : "Market inventory"}
         title="Stall Management"
-        description={
-          role === "vendor"
-            ? "Find available stalls, inspect the rent and location, then submit an application for manager review."
-            : "Manage stall availability, publication, maintenance state, and vendor allocation from one inventory workspace."
+        description={role === "vendor" ? "Available stalls, pricing, and application status." : "Inventory, allocation, and availability controls."}
+        actions={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="h-9 w-full sm:w-[190px]">
+                <SelectValue placeholder="Filter by zone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Zones</SelectItem>
+                {zones.map((zone) => (
+                  <SelectItem key={zone} value={zone}>
+                    {zone}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {role === "manager" && <Button onClick={() => setShowCreate(true)}>New Stall</Button>}
+          </div>
         }
-        actions={role === "manager" && <Button onClick={() => setShowCreate(true)}>New Stall</Button>}
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">
@@ -194,24 +205,6 @@ const StallsPage = () => {
           </>
         }
       />
-
-      <ScopeBar>
-        <ScopeItem label="Zone filter" className="w-full sm:w-[220px]">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by zone" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Zones</SelectItem>
-              {zones.map((zone) => (
-                <SelectItem key={zone} value={zone}>
-                  {zone}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </ScopeItem>
-      </ScopeBar>
 
       {error && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -228,27 +221,27 @@ const StallsPage = () => {
           </AlertDescription>
         </Alert>
       ) : isPending ? (
-        <div className="space-y-4">
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Skeleton className="h-[90px] w-full rounded-xl" />
+            <Skeleton className="h-[90px] w-full rounded-xl" />
+            <Skeleton className="h-[90px] w-full rounded-xl" />
+            <Skeleton className="h-[90px] w-full rounded-xl" />
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
-            <Skeleton className="h-36 w-full rounded-xl" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-32 w-full rounded-xl" />
           </div>
         </div>
       ) : (
         <>
           <KpiStrip items={stallKpis} />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {filtered.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState
@@ -265,11 +258,11 @@ const StallsPage = () => {
                 <button
                   key={stall.id}
                   onClick={() => setSelectedStall(stall)}
-                  className={`group rounded-lg border p-4 text-left transition-colors duration-150 hover:bg-muted/30 hover:shadow-md ${statusColors[stall.status] || "border-border bg-card"
+                  className={`group rounded-lg border p-3 text-left transition-colors duration-150 hover:bg-muted/30 ${statusColors[stall.status] || "border-border bg-card"
                     }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-base font-semibold font-heading">{stall.name}</p>
+                    <p className="truncate text-sm font-semibold font-heading">{stall.name}</p>
                     <StatusBadge status={stall.status} />
                   </div>
 
@@ -281,14 +274,14 @@ const StallsPage = () => {
                     {stall.size}
                   </p>
 
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <p className="truncate text-lg font-bold font-heading">
+                  <div className="mt-2.5 flex items-center justify-between gap-2">
+                    <p className="truncate text-base font-bold font-heading">
                       {formatCurrency(stall.pricePerMonth)}
                     </p>
                     <span className="shrink-0 text-xs text-muted-foreground">/month</span>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     {stall.vendorName ? (
                       <span className="truncate">{stall.vendorName}</span>
                     ) : (
@@ -488,21 +481,6 @@ const StallsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-success/60" />
-          Available
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-muted-foreground/35" />
-          Occupied
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-full bg-muted" />
-          Maintenance
-        </span>
-      </div>
     </ConsolePage>
   );
 };

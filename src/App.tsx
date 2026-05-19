@@ -44,12 +44,17 @@ const RouteFallback = () => (
   </div>
 );
 
+const shouldRenderSpeedInsights = () => {
+  if (!import.meta.env.PROD || typeof window === "undefined") return false;
+  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <SpeedInsights />
+      {shouldRenderSpeedInsights() ? <SpeedInsights /> : null}
       <AuthProvider>
         <BrowserRouter>
           <Suspense fallback={<RouteFallback />}>

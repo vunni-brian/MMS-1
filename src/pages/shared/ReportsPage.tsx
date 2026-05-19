@@ -5,8 +5,7 @@ import { AlertTriangle, BarChart3, Download, ReceiptText, Wallet } from "lucide-
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConsolePage, KpiStrip, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
+import { ConsolePage, DataTableFrame, KpiStrip, PageHeader, Panel, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -113,7 +112,7 @@ const ReportsPage = () => {
       <PageHeader
         eyebrow="Reports and reconciliation"
         title="Reports"
-        description="Review revenue, outstanding dues, bank deposits, and payment evidence by date and market scope."
+        description="Revenue, dues, deposits, and payment evidence."
         actions={
           <Button onClick={exportCSV} variant="outline">
           <Download className="w-4 h-4 mr-1" />
@@ -152,42 +151,29 @@ const ReportsPage = () => {
             </Select>
           </ScopeItem>
         )}
-        <ScopeItem label="Evidence policy">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">Use confirmed gateway status for revenue</div>
-        </ScopeItem>
       </ScopeBar>
 
       <KpiStrip items={reportKpis} />
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Financial Audit</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Panel title="Financial Audit" description="Collected payments compared with recorded deposits." contentClassName="space-y-3">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl bg-muted/40 p-4">
+            <div className="rounded-md border border-border/70 bg-background p-3">
               <p className="text-xs text-muted-foreground">Collected Total</p>
-              <p className="mt-1 text-xl font-bold font-heading">{formatCurrency(auditSummary.collectedTotal)}</p>
+              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(auditSummary.collectedTotal)}</p>
             </div>
-            <div className="rounded-xl bg-muted/40 p-4">
+            <div className="rounded-md border border-border/70 bg-background p-3">
               <p className="text-xs text-muted-foreground">Deposited Total</p>
-              <p className="mt-1 text-xl font-bold font-heading">{formatCurrency(auditSummary.depositedTotal)}</p>
+              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(auditSummary.depositedTotal)}</p>
             </div>
-            <div className="rounded-xl bg-muted/40 p-4">
+            <div className="rounded-md border border-border/70 bg-background p-3">
               <p className="text-xs text-muted-foreground">Variance</p>
-              <p className={`mt-1 text-xl font-bold font-heading ${varianceToneClass}`}>{formatCurrency(auditSummary.variance)}</p>
+              <p className={`mt-1 text-lg font-bold font-heading ${varianceToneClass}`}>{formatCurrency(auditSummary.variance)}</p>
             </div>
           </div>
-          <div className={`rounded-xl border px-4 py-3 text-sm ${variancePanelClass}`}>{varianceMessage}</div>
-        </CardContent>
-      </Card>
+          <div className={`rounded-md border px-3 py-2.5 text-sm ${variancePanelClass}`}>{varianceMessage}</div>
+      </Panel>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Payment Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <DataTableFrame title="Payment Details">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -214,16 +200,9 @@ const ReportsPage = () => {
                 ))}
               </TableBody>
             </Table>
-          </div>
-        </CardContent>
-      </Card>
+      </DataTableFrame>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Outstanding Dues</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <DataTableFrame title="Outstanding Dues">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -248,16 +227,9 @@ const ReportsPage = () => {
                 ))}
               </TableBody>
             </Table>
-          </div>
-        </CardContent>
-      </Card>
+      </DataTableFrame>
 
-      <Card className="card-warm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Bank Deposits</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+      <DataTableFrame title="Bank Deposits">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -286,9 +258,7 @@ const ReportsPage = () => {
                 )}
               </TableBody>
             </Table>
-          </div>
-        </CardContent>
-      </Card>
+      </DataTableFrame>
     </ConsolePage>
   );
 };

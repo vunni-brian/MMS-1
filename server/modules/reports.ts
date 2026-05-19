@@ -260,9 +260,12 @@ export const reportRoutes: RouteDefinition[] = [
     handler: async ({ res, auth, url }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
-      const collectionClauses = ["status = 'completed'", "created_at::date BETWEEN ?::date AND ?::date"];
+      const collectionClauses = [
+        "payments.status = 'completed'",
+        "payments.created_at::date BETWEEN ?::date AND ?::date",
+      ];
       const collectionParams: Array<string | null> = [range.from, range.to];
-      appendMarketScope(collectionClauses, collectionParams, "market_id", marketId);
+      appendMarketScope(collectionClauses, collectionParams, "payments.market_id", marketId);
       const collection = await all<{ amount: number }>(
         `SELECT CASE
                   WHEN COALESCE(payment_market_charge.is_enabled, payment_global_charge.is_enabled, 1) = 1

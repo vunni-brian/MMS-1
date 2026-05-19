@@ -28,7 +28,7 @@ import { formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { FileUploadCard, FormSection, LoadingState } from "@/components/console/ConsolePage";
+import { ConsolePage, FileUploadCard, FormSection, LoadingState, PageHeader } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,12 +38,12 @@ import { StatusBadge } from "@/components/StatusBadge";
 type SettingsTab = "general" | "preferences" | "security" | "notifications" | "account" | "billing";
 
 const settingsTabs: Array<{ id: SettingsTab; label: string; icon: React.ElementType }> = [
-  { id: "general", label: "General Information", icon: Info },
+  { id: "general", label: "General", icon: Info },
   { id: "preferences", label: "Preferences", icon: SlidersHorizontal },
   { id: "security", label: "Security", icon: Shield },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "account", label: "Account", icon: UserCircle },
-  { id: "billing", label: "Billings", icon: CreditCard },
+  { id: "billing", label: "Billing", icon: CreditCard },
 ];
 
 const isSettingsTab = (value: string | null): value is SettingsTab =>
@@ -71,7 +71,7 @@ const SettingToggle = ({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) => (
-  <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-background px-4 py-3">
+  <div className="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-background px-3 py-2.5">
     <div className="min-w-0">
       <p className="font-medium">{label}</p>
       <p className="text-xs text-muted-foreground">{detail}</p>
@@ -371,7 +371,7 @@ const ProfileSettingsPage = () => {
   const generalContent = (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold font-heading">General Information</h1>
+        <h2 className="text-base font-semibold font-heading">General Information</h2>
         <p className="mt-1 text-sm text-muted-foreground">Profile and organization record.</p>
       </div>
       <div className="border-t border-border/70" />
@@ -520,7 +520,7 @@ const ProfileSettingsPage = () => {
   const preferencesContent = (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold font-heading">Preferences</h1>
+        <h2 className="text-base font-semibold font-heading">Preferences</h2>
         <p className="mt-1 text-sm text-muted-foreground">Workspace behavior and display choices.</p>
       </div>
       <div className="border-t border-border/70" />
@@ -550,7 +550,7 @@ const ProfileSettingsPage = () => {
   const securityContent = (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold font-heading">Security</h1>
+        <h2 className="text-base font-semibold font-heading">Security</h2>
         <p className="mt-1 text-sm text-muted-foreground">Password and sign-in protection.</p>
       </div>
       <div className="border-t border-border/70" />
@@ -616,7 +616,7 @@ const ProfileSettingsPage = () => {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-heading">Notifications</h1>
+          <h2 className="text-base font-semibold font-heading">Notifications</h2>
           <p className="mt-1 text-sm text-muted-foreground">Operational alerts, approvals, reminders, and delivery channels.</p>
         </div>
         <Button
@@ -724,7 +724,7 @@ const ProfileSettingsPage = () => {
   const accountContent = (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold font-heading">Account</h1>
+        <h2 className="text-base font-semibold font-heading">Account</h2>
         <p className="mt-1 text-sm text-muted-foreground">Identity, access, and submitted records.</p>
       </div>
       <div className="border-t border-border/70" />
@@ -748,7 +748,7 @@ const ProfileSettingsPage = () => {
   const billingContent = (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold font-heading">Billings</h1>
+        <h2 className="text-base font-semibold font-heading">Billing</h2>
         <p className="mt-1 text-sm text-muted-foreground">Payments, receipts, and market charges.</p>
       </div>
       <div className="border-t border-border/70" />
@@ -776,7 +776,21 @@ const ProfileSettingsPage = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <ConsolePage>
+      <PageHeader
+        eyebrow="Account workspace"
+        title="Profile Settings"
+        description="Identity, security, notifications, and billing preferences."
+        meta={
+          user ? (
+            <>
+              <span className="rounded-full bg-muted px-2.5 py-1">{roleLabel(user.role)}</span>
+              <span className="rounded-full bg-muted px-2.5 py-1">{user.marketName || "No market assigned"}</span>
+            </>
+          ) : undefined
+        }
+      />
+
       {isError ? (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -784,20 +798,20 @@ const ProfileSettingsPage = () => {
           <AlertDescription>We couldn't reach the server. Please check your connection.</AlertDescription>
         </Alert>
       ) : isPending ? (
-        <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+        <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
           <LoadingState rows={6} itemClassName="h-16 rounded-xl" />
           <LoadingState rows={5} itemClassName="h-28 rounded-xl" />
         </div>
       ) : (
-        <div className="grid min-h-[calc(100vh-150px)] gap-6 rounded-xl border border-border/70 bg-card p-4 shadow-sm lg:grid-cols-[240px_1fr] lg:p-6">
-          <aside className="border-b border-border/70 pb-4 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
+        <div className="grid gap-3 rounded-lg border border-border/70 bg-card p-3 shadow-sm lg:grid-cols-[220px_1fr]">
+          <aside className="border-b border-border/70 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-3">
             <nav className="grid gap-1">
               {settingsTabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
                     activeTab === tab.id
                       ? "bg-primary/10 font-semibold text-primary"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -812,7 +826,7 @@ const ProfileSettingsPage = () => {
           <main className="min-w-0">{tabContent[activeTab]}</main>
         </div>
       )}
-    </div>
+    </ConsolePage>
   );
 };
 

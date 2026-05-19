@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ConsolePage,
   DataTableFrame,
@@ -16,6 +15,7 @@ import {
   KpiStrip,
   LoadingState,
   PageHeader,
+  Panel,
   ScopeBar,
   ScopeItem,
 } from "@/components/console/ConsolePage";
@@ -304,7 +304,7 @@ const BillingPage = () => {
       <PageHeader
         eyebrow="Billing and utilities"
         title="Billing Controls"
-        description="Manage charge policy, utility obligations, usage calculations, payment references, and settlement evidence without mixing what is owed with how it was paid."
+        description="Charge policy, utility obligations, and settlement evidence."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">Role: {user?.role}</span>
@@ -340,29 +340,16 @@ const BillingPage = () => {
           </ScopeItem>
         )}
 
-        <ScopeItem label="Pricing model">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            Metered, estimated, and fixed charges
-          </div>
-        </ScopeItem>
-
-        <ScopeItem label="Payment gateway">
-          <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-            Pesapal confirmation required
-          </div>
-        </ScopeItem>
       </ScopeBar>
 
       {!canManageUtilities && (
-        <Card className="card-warm">
-          <CardContent className="flex items-start gap-3 p-4">
+        <div className="flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 text-sm text-muted-foreground shadow-sm">
             <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
-            <div className="text-sm text-muted-foreground">
+            <div>
               This view is read-only for your role. Utility charges and switches are shown for
               oversight only.
             </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {(error || loadError) && (
@@ -377,21 +364,12 @@ const BillingPage = () => {
         <>
           <KpiStrip items={billingKpis} />
 
-          <Card className="card-warm">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base font-heading">Billing Switches</CardTitle>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Enable or disable charge types. Managers can view these rules, while admins
-                    control system-wide billing switches.
-                  </p>
-                </div>
-                <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardHeader>
-
-            <CardContent className="divide-y divide-border/70 p-0">
+          <Panel
+            title="Billing Switches"
+            description="Charge type availability and policy state."
+            actions={<SlidersHorizontal className="h-4 w-4 text-muted-foreground" />}
+            contentClassName="divide-y divide-border/70 p-0"
+          >
               {chargeTypes.length === 0 ? (
                 <div className="p-4">
                   <EmptyState
@@ -403,7 +381,7 @@ const BillingPage = () => {
                 chargeTypes.map((chargeType) => (
                   <div
                     key={chargeType.id}
-                    className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -441,8 +419,7 @@ const BillingPage = () => {
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+          </Panel>
 
           {canManageUtilities && (
             <FormSection
@@ -653,9 +630,9 @@ const BillingPage = () => {
 
           <DataTableFrame
             title="Utility Charge Register"
-            description="Utility obligations, due dates, payment attempts, and latest gateway references."
+            description="Obligations, due dates, payment attempts, and references."
           >
-            <div className="space-y-3 p-4">
+            <div className="space-y-3 p-3">
               {utilityCharges.length === 0 ? (
                 <EmptyState
                   title="No utility charges recorded"
@@ -663,7 +640,7 @@ const BillingPage = () => {
                 />
               ) : (
                 utilityCharges.map((charge) => (
-                  <div key={charge.id} className="rounded-xl border border-border/70 bg-background/80 p-4">
+                  <div key={charge.id} className="rounded-md border border-border/70 bg-background/80 p-3">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <p className="font-medium">{charge.description}</p>
@@ -685,7 +662,7 @@ const BillingPage = () => {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
                       <EvidenceField
                         label="Calculation"
@@ -700,7 +677,7 @@ const BillingPage = () => {
                       />
                     </div>
 
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="text-xs text-muted-foreground">
                         Created by {charge.createdByName || "system"} on{" "}
                         {formatDateTime(charge.createdAt)}.{" "}

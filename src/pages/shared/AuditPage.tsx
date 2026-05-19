@@ -14,15 +14,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   ConsolePage,
+  DataTableFrame,
   DetailSheet,
   EvidenceField,
   KpiStrip,
   PageHeader,
-  ScopeBar,
-  ScopeItem,
 } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import {
@@ -187,7 +185,7 @@ const AuditPage = () => {
       <PageHeader
         eyebrow="Evidence layer"
         title="Audit Trail"
-        description="Read-only operational evidence for payments, billing changes, vendor actions, complaints, resource requests, and market-scoped governance."
+        description="Read-only evidence for system actions and governance events."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">
@@ -203,10 +201,33 @@ const AuditPage = () => {
 
       <KpiStrip items={auditKpis} />
 
-      <Card className="card-warm">
-        <CardContent className="space-y-4 pt-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[180px] flex-1">
+      <DataTableFrame
+        title="Audit Events"
+        description="Who did what, when, and in which market scope."
+        actions={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-end">
+            {canScopeMarkets && (
+              <div className="w-full sm:w-[210px]">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Market
+                </label>
+                <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All markets" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All markets</SelectItem>
+                    {(marketsData?.markets || []).map((market) => (
+                      <SelectItem key={market.id} value={market.id}>
+                        {market.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="w-full sm:w-[180px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Date From
               </label>
@@ -217,7 +238,7 @@ const AuditPage = () => {
               />
             </div>
 
-            <div className="min-w-[180px] flex-1">
+            <div className="w-full sm:w-[180px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Date To
               </label>
@@ -228,7 +249,7 @@ const AuditPage = () => {
               />
             </div>
 
-            <div className="min-w-[220px] flex-[1.4]">
+            <div className="w-full sm:w-[240px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Search Logs
               </label>
@@ -259,9 +280,8 @@ const AuditPage = () => {
               Download CSV
             </Button>
           </div>
-
-          <div className="rounded-xl border border-border/70 bg-background">
-            <div className="overflow-x-auto">
+        }
+      >
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
@@ -335,10 +355,7 @@ const AuditPage = () => {
                   )}
                 </TableBody>
               </Table>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      </DataTableFrame>
 
       <DetailSheet
         open={Boolean(selectedEventId)}

@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createId } from "../server/lib/db.ts";
 import { nowIso } from "../server/lib/security.ts";
@@ -93,8 +93,7 @@ class DatabaseBackup {
   }
 
   private getFileSize(filepath: string): number {
-    const fs = require("node:fs");
-    const stats = fs.statSync(filepath);
+    const stats = statSync(filepath);
     return stats.size;
   }
 
@@ -126,8 +125,7 @@ class DatabaseBackup {
   }
 
   async listBackups(): Promise<Array<{ filename: string; createdAt: string; size: number }>> {
-    const fs = require("node:fs");
-    const files = fs.readdirSync(this.config.backupDir);
+    const files = readdirSync(this.config.backupDir);
     const backups: Array<{ filename: string; createdAt: string; size: number }> = [];
 
     for (const file of files) {
@@ -138,11 +136,11 @@ class DatabaseBackup {
       const metadataPath = `${filepath}.metadata.json`;
 
       let createdAt = nowIso();
-      let size = this.getFileSize(filepath);
+      const size = this.getFileSize(filepath);
 
       if (existsSync(metadataPath)) {
         try {
-          const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+          const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
           createdAt = metadata.createdAt || createdAt;
         } catch {
           // Use file stats if metadata is invalid
@@ -168,10 +166,9 @@ class DatabaseBackup {
         const filepath = join(this.config.backupDir, backup.filename);
         const metadataPath = `${filepath}.metadata.json`;
 
-        const fs = require("node:fs");
-        fs.unlinkSync(filepath);
+        unlinkSync(filepath);
         if (existsSync(metadataPath)) {
-          fs.unlinkSync(metadataPath);
+          unlinkSync(metadataPath);
         }
 
         console.log(`Deleted old backup: ${backup.filename}`);
@@ -227,14 +224,15 @@ async function main() {
       }
       await backup.restoreBackup(process.argv[3]);
       break;
-    case "list":
+    case "list": {
       const backups = await backup.listBackups();
       console.table(backups);
       break;
+    }
     case "cleanup":
       await backup.cleanupOldBackups();
       break;
-    case "verify":
+    case "verify": {
       if (!process.argv[3]) {
         console.error("Please specify backup file to verify");
         process.exit(1);
@@ -242,6 +240,7 @@ async function main() {
       const isValid = await backup.verifyBackup(process.argv[3]);
       console.log(`Backup is ${isValid ? "valid" : "invalid"}`);
       break;
+    }
     default:
       console.log("Usage:");
       console.log("  node backup-database.ts create     - Create a new backup");

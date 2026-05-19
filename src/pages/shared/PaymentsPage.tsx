@@ -4,7 +4,6 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowUpRight,
-  CalendarRange,
   CheckCircle2,
   Clock3,
   ExternalLink,
@@ -30,7 +29,6 @@ import {
   formatHumanDateTime,
 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ConsolePage,
   DataTableFrame,
@@ -40,8 +38,10 @@ import {
   KpiStrip,
   LoadingState,
   PageHeader,
+  Panel,
   ScopeBar,
   ScopeItem,
+  SegmentedControl,
 } from "@/components/console/ConsolePage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -382,11 +382,7 @@ const PaymentsPage = () => {
       <PageHeader
         eyebrow="Payments and evidence"
         title="Payments"
-        description={
-          role === "vendor"
-            ? "Track what you owe, what is processing, and every confirmed receipt from one trusted payment workspace."
-            : "Review Pesapal attempts, payment status, references, receipts, and gateway evidence across the current market scope."
-        }
+        description={role === "vendor" ? "Obligations, checkout status, and receipts." : "Payment status, references, and gateway evidence."}
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">Role: {role}</span>
@@ -406,66 +402,56 @@ const PaymentsPage = () => {
         </div>
       )}
 
-      {role === "vendor" ? (
+      {role === "vendor" && (
         <ScopeBar>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <CalendarRange className="h-4 w-4 text-muted-foreground" />
-              Payment history filters
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Find receipts and failed attempts by status, year, or date range.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {paymentStatusFilters.map((filter) => (
-                <Button
-                  key={filter.value}
-                  type="button"
-                  variant={statusFilter === filter.value ? "secondary" : "outline"}
-                  size="sm"
-                  onClick={() => setStatusFilter(filter.value)}
-                >
-                  {filter.label}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <ScopeItem label="Status" className="w-full sm:w-[170px]">
+            <Select value={statusFilter} onValueChange={(value: PaymentHistoryStatusFilter) => setStatusFilter(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentStatusFilters.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </ScopeItem>
 
-          <div className="grid gap-3 md:grid-cols-3 lg:min-w-[560px]">
-            <ScopeItem label="Year">
-              <Select value={yearFilter} onValueChange={setYearFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All years" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All years</SelectItem>
-                  {paymentHistoryYears.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </ScopeItem>
+          <ScopeItem label="Year" className="w-full sm:w-[150px]">
+            <Select value={yearFilter} onValueChange={setYearFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All years" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All years</SelectItem>
+                {paymentHistoryYears.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </ScopeItem>
 
-            <ScopeItem label="From">
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-                max={dateTo || undefined}
-              />
-            </ScopeItem>
+          <ScopeItem label="From" className="w-full sm:w-[160px]">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              max={dateTo || undefined}
+            />
+          </ScopeItem>
 
-            <ScopeItem label="To">
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-                min={dateFrom || undefined}
-              />
-            </ScopeItem>
-          </div>
+          <ScopeItem label="To" className="w-full sm:w-[160px]">
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+              min={dateFrom || undefined}
+            />
+          </ScopeItem>
 
           {hasHistoryFilters && (
             <Button
@@ -481,26 +467,6 @@ const PaymentsPage = () => {
               Clear Filters
             </Button>
           )}
-        </ScopeBar>
-      ) : (
-        <ScopeBar>
-          <ScopeItem label="Market scope">
-            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-              {user?.marketName || "All accessible markets"}
-            </div>
-          </ScopeItem>
-
-          <ScopeItem label="Evidence policy">
-            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-              Receipts only after gateway confirmation
-            </div>
-          </ScopeItem>
-
-          <ScopeItem label="Refresh">
-            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-              Live status polling enabled
-            </div>
-          </ScopeItem>
         </ScopeBar>
       )}
 
@@ -519,40 +485,22 @@ const PaymentsPage = () => {
           <KpiStrip items={pageKpis} />
 
           {role === "vendor" && (
-            <Card className="card-warm">
-              <CardHeader className="pb-3">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <CardTitle className="text-base font-heading">
-                      Outstanding Payments
-                    </CardTitle>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      One place for booking fees, utilities, and penalties awaiting payment.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {outstandingTabs.map((tab) => (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setOutstandingTab(tab.key)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${outstandingTab === tab.key
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-background text-muted-foreground hover:bg-muted"
-                          }`}
-                      >
-                        {tab.label}
-                        <span className="ml-2 rounded-full bg-background/40 px-1.5 py-0.5 text-[10px]">
-                          {tab.count}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
+            <Panel
+              title="Outstanding Payments"
+              description="Booking fees, utilities, and penalties awaiting payment."
+              actions={
+                <SegmentedControl<OutstandingTab>
+                  value={outstandingTab}
+                  options={outstandingTabs.map((tab) => ({
+                    value: tab.key,
+                    label: tab.label,
+                    count: tab.count,
+                  }))}
+                  onChange={setOutstandingTab}
+                />
+              }
+              contentClassName="space-y-3"
+            >
                 {outstandingTab === "bookings" && (
                   <>
                     {pendingBookings.length === 0 ? (
@@ -568,7 +516,7 @@ const PaymentsPage = () => {
                         return (
                           <div
                             key={booking.id}
-                            className="rounded-xl border border-border/70 bg-background p-4"
+                            className="rounded-md border border-border/70 bg-background p-3"
                           >
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div>
@@ -640,7 +588,7 @@ const PaymentsPage = () => {
                         return (
                           <div
                             key={charge.id}
-                            className="rounded-xl border border-border/70 bg-background p-4"
+                            className="rounded-md border border-border/70 bg-background p-3"
                           >
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                               <div>
@@ -663,7 +611,7 @@ const PaymentsPage = () => {
                               </div>
                             </div>
 
-                            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                               <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
                               <EvidenceField
                                 label="Calculation"
@@ -683,7 +631,7 @@ const PaymentsPage = () => {
                               />
                             </div>
 
-                            <div className="mt-4 flex flex-wrap gap-2">
+                            <div className="mt-3 flex flex-wrap gap-2">
                               {canPay && (
                                 <Button
                                   onClick={() => {
@@ -760,7 +708,7 @@ const PaymentsPage = () => {
                         return (
                           <div
                             key={penalty.id}
-                            className="rounded-xl border border-border/70 bg-background p-4"
+                            className="rounded-md border border-border/70 bg-background p-3"
                           >
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                               <div>
@@ -787,7 +735,7 @@ const PaymentsPage = () => {
                               </div>
                             </div>
 
-                            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                               <EvidenceField
                                 label="Issued At"
                                 value={formatDateTime(penalty.createdAt)}
@@ -810,7 +758,7 @@ const PaymentsPage = () => {
                               />
                             </div>
 
-                            <div className="mt-4 flex flex-wrap gap-2">
+                            <div className="mt-3 flex flex-wrap gap-2">
                               {canPay && (
                                 <Button
                                   onClick={() => {
@@ -865,17 +813,12 @@ const PaymentsPage = () => {
                     )}
                   </>
                 )}
-              </CardContent>
-            </Card>
+            </Panel>
           )}
 
           <DataTableFrame
             title={role === "vendor" ? "Payment History & Evidence" : "Payment Records"}
-            description={
-              role === "vendor"
-                ? "Review what you paid for, when it was confirmed, and keep a clear record of past transactions."
-                : "Review payment evidence, references, and receipt access."
-            }
+            description="Gateway evidence, references, and receipt access."
             actions={
               role === "vendor" && (
                 <p className="text-xs text-muted-foreground">
@@ -885,24 +828,24 @@ const PaymentsPage = () => {
               )
             }
           >
-            <div className="space-y-4 p-4">
               {filteredPayments.length === 0 ? (
-                <EmptyState
-                  title={
-                    role === "vendor" && hasHistoryFilters
-                      ? "No matching payment evidence"
-                      : "No payment records yet"
-                  }
-                  description={
-                    role === "vendor" && statusFilter === "cancelled"
-                      ? "No cancelled payments are recorded in the system yet."
-                      : role === "vendor" && hasHistoryFilters
-                        ? "Adjust the filters to find older receipts or payment attempts."
-                        : "Payment rows will appear here after a checkout attempt is created."
-                  }
-                />
+                <div className="p-3">
+                  <EmptyState
+                    title={
+                      role === "vendor" && hasHistoryFilters
+                        ? "No matching payment evidence"
+                        : "No payment records yet"
+                    }
+                    description={
+                      role === "vendor" && statusFilter === "cancelled"
+                        ? "No cancelled payments are recorded in the system yet."
+                        : role === "vendor" && hasHistoryFilters
+                          ? "Adjust the filters to find older receipts or payment attempts."
+                          : "Payment rows will appear here after a checkout attempt is created."
+                    }
+                  />
+                </div>
               ) : (
-                <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -995,9 +938,7 @@ const PaymentsPage = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
               )}
-            </div>
           </DataTableFrame>
         </>
       )}

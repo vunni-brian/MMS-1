@@ -211,10 +211,10 @@ const VendorProfileCard = ({
         : "Rejected";
 
   return (
-    <article className="rounded-lg border border-border/70 bg-card p-4 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/15">
+    <article className="rounded-lg border border-border/70 bg-card p-3 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/15">
       <div className="flex items-start gap-3">
         <div className="relative shrink-0">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted text-base font-bold text-muted-foreground">
+          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted text-sm font-bold text-muted-foreground">
             {profileImageUrl ? (
               <img src={profileImageUrl} alt={vendor.name} className="h-full w-full object-cover" />
             ) : (
@@ -254,15 +254,15 @@ const VendorProfileCard = ({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-xl border border-border/70 bg-muted/20 p-2">
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <div className="rounded-md border border-border/70 bg-muted/20 p-2">
           <p className="text-muted-foreground">Outstanding</p>
           <p className="mt-1 truncate font-semibold text-foreground">
             {formatCurrency(row.totalOutstanding)}
           </p>
         </div>
 
-        <div className="rounded-xl border border-border/70 bg-muted/20 p-2">
+        <div className="rounded-md border border-border/70 bg-muted/20 p-2">
           <p className="text-muted-foreground">Permit</p>
           <p className="mt-1 truncate font-semibold text-foreground">
             {row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No permit"}
@@ -584,7 +584,7 @@ const VendorsPage = () => {
       <PageHeader
         eyebrow="Vendor operations"
         title="Vendor Directory"
-        description="Search vendors, review approval evidence, track permit coverage, and act on payment or account risk without leaving the directory."
+        description="Vendor status, approval evidence, permits, and payment risk."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">

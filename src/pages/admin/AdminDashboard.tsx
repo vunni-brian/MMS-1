@@ -7,10 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
 import type { AuditEvent, ChargeTypeName, Market, Payment, Role, Ticket } from "@/types";
 
 type RegionId = "central" | "western" | "eastern" | "northern";
@@ -154,11 +153,6 @@ const AdminDashboard = () => {
     queryFn: () => api.getPenalties(),
   });
 
-  const { data: financialAuditData, isPending: financialAuditPending } = useQuery({
-    queryKey: ["financial-audit", "admin-dashboard"],
-    queryFn: () => api.getFinancialAudit(),
-  });
-
   const { data: chargeTypesData, isPending: chargeTypesPending } = useQuery({
     queryKey: ["charge-types", "admin-dashboard"],
     queryFn: () => api.getChargeTypes(),
@@ -178,13 +172,6 @@ const AdminDashboard = () => {
   const penalties = penaltiesData?.penalties || [];
   const chargeTypes = chargeTypesData?.chargeTypes || [];
   const auditEvents = auditData?.events || [];
-  const auditSummary = financialAuditData?.summary || {
-    variance: 0,
-    collectedTotal: 0,
-    depositedTotal: 0,
-    from: "",
-    to: "",
-  };
 
   const isDashboardLoading =
     marketsPending ||
@@ -194,7 +181,6 @@ const AdminDashboard = () => {
     ticketsPending ||
     utilityChargesPending ||
     penaltiesPending ||
-    financialAuditPending ||
     chargeTypesPending ||
     auditPending;
 
@@ -342,15 +328,15 @@ const AdminDashboard = () => {
         },
       ]
       : []),
-    ...(auditSummary.variance !== 0
+    ...(openPenaltyAmount > 0
       ? [
         {
-          id: "audit-variance",
-          alert: `Financial audit variance is ${formatCurrency(Math.abs(auditSummary.variance))}`,
+          id: "open-penalties",
+          alert: `${formatCurrency(openPenaltyAmount)} penalties remain unresolved`,
           type: "Audit",
-          severity: "High" as AlertSeverity,
-          action: "Reconcile",
-          path: "/admin/audit",
+          severity: openPenaltyAmount >= 1_000_000 ? ("High" as AlertSeverity) : ("Medium" as AlertSeverity),
+          action: "Review",
+          path: "/admin/billing",
         },
       ]
       : []),
@@ -458,297 +444,241 @@ const AdminDashboard = () => {
     },
   ];
 
+  const systemHealth = [
+    {
+      label: "Payment gateway",
+      value: paymentGateway?.isEnabled === false ? "Disabled" : "Online",
+      detail: paymentGateway?.isEnabled === false ? "Collections paused" : "Collections available",
+      tone: paymentGateway?.isEnabled === false ? "destructive" : "success",
+    },
+    {
+      label: "Penalty exposure",
+      value: formatCurrency(openPenaltyAmount),
+      detail: openPenaltyAmount === 0 ? "Clear" : `${openPenalties.length} open`,
+      tone: openPenaltyAmount === 0 ? "success" : "warning",
+    },
+    {
+      label: "Failed payments",
+      value: failedPayments.length.toLocaleString(),
+      detail: "Recent failed transactions",
+      tone: failedPayments.length ? "warning" : "success",
+    },
+    {
+      label: "Open cases",
+      value: openTickets.length.toLocaleString(),
+      detail: "Unresolved complaints",
+      tone: openTickets.length ? "warning" : "success",
+    },
+  ];
+
+  const quickActions = [
+    { label: "Audit trail", path: "/admin/audit" },
+    { label: "Billing controls", path: "/admin/billing" },
+    { label: "Reports", path: "/admin/reports" },
+  ];
+
   return (
-    <div className="space-y-4 lg:space-y-5">
+    <div className="space-y-3">
       <PageHeader
         eyebrow="Admin workspace"
         title="System Administration"
-        description="Monitor users, markets, financial flows, system alerts, and audit activity from one command center."
+        description="Compact control center for markets, users, financial exceptions, and audit activity."
         meta={
           <>
-            <span className="rounded-full bg-muted px-2.5 py-1">Users</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Markets</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Financial controls</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Audit trail</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{markets.length} markets</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{alerts.length} alerts</span>
           </>
         }
       />
 
       <KpiStrip items={kpis} columns="grid-cols-2 md:grid-cols-3 xl:grid-cols-5" />
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="card-warm h-[360px]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">All Markets Overview</CardTitle>
-          </CardHeader>
-
-          <CardContent className="max-h-[290px] overflow-auto">
-            {marketRows.length === 0 ? (
-              <EmptyState
-                title="No markets registered"
-                description="Market-level governance and revenue indicators will appear after markets are created."
-              />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs">Market</TableHead>
-                    <TableHead className="text-xs">Region</TableHead>
-                    <TableHead className="text-right text-xs">Vendors</TableHead>
-                    <TableHead className="text-right text-xs">Revenue</TableHead>
-                    <TableHead className="text-right text-xs">Utilities Due</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {marketRows.slice(0, 5).map((market) => (
-                    <TableRow key={market.id} className="text-xs">
-                      <TableCell className="font-medium">{market.market}</TableCell>
-                      <TableCell className="text-muted-foreground">{market.region}</TableCell>
-                      <TableCell className="text-right">{market.vendors}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(market.revenue)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(market.utilitiesDue)}</TableCell>
-                      <TableCell>
-                        <span className={statusClassName(market.status)}>{market.status}</span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm h-[360px]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Revenue Summary</CardTitle>
-          </CardHeader>
-
-          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Total Revenue</p>
-              <p className="mt-1 text-xl font-bold font-heading">
-                {formatCurrency(totalRevenue)}
-              </p>
+      <section className="grid gap-3 xl:grid-cols-[1.45fr_0.75fr]">
+        <Panel
+          title="Attention Queue"
+          description="Critical exceptions and the latest governance actions."
+          actions={
+            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+              <Link to="/admin/audit">Audit trail</Link>
+            </Button>
+          }
+          contentClassName="grid gap-3 lg:grid-cols-2"
+        >
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Flagged issues</p>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{alerts.length}</span>
             </div>
-
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Unpaid Utilities</p>
-              <p className="mt-1 text-xl font-bold font-heading">
-                {formatCurrency(unpaidUtilityAmount)}
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Open Penalties</p>
-              <p className="mt-1 text-xl font-bold font-heading">
-                {formatCurrency(openPenaltyAmount)}
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Failed Payments</p>
-              <p className="mt-1 text-xl font-bold font-heading">{failedPayments.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="card-warm h-[360px]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Users & Roles</CardTitle>
-          </CardHeader>
-
-          <CardContent className="max-h-[290px] overflow-auto">
-            {userRows.length === 0 ? (
-              <EmptyState
-                title="No user activity"
-                description="Admins, officials, managers, and vendors will appear after activity is recorded."
-              />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs">Name</TableHead>
-                    <TableHead className="text-xs">Role</TableHead>
-                    <TableHead className="text-xs">Market</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs">Last Active</TableHead>
-                    <TableHead className="text-right text-xs">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userRows.map((row) => (
-                    <TableRow key={row.id} className="text-xs">
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell className="capitalize">{row.role}</TableCell>
-                      <TableCell className="text-muted-foreground">{row.market}</TableCell>
-                      <TableCell>
-                        <span
-                          className={
-                            row.status === "Active"
-                              ? "status-badge border-success/20 bg-success/15 text-success"
-                              : "status-badge border-warning/25 bg-warning/15 text-warning"
-                          }
-                        >
-                          {row.status}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {row.lastActive === "Current session"
-                          ? row.lastActive
-                          : row.lastActive
-                            ? formatHumanDateTime(row.lastActive)
-                            : "No recent activity"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => setSelectedUser(row)}>
-                          Review
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-warm h-[360px]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Recent Payments</CardTitle>
-          </CardHeader>
-
-          <CardContent className="max-h-[290px] overflow-auto">
-            {recentPayments.length === 0 ? (
-              <EmptyState
-                title="No payment records"
-                description="Confirmed and pending payment records will appear when markets start transacting."
-              />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs">Vendor</TableHead>
-                    <TableHead className="text-xs">Amount</TableHead>
-                    <TableHead className="text-xs">Purpose</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs">Reference</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentPayments.map((payment) => (
-                    <TableRow key={payment.id} className="text-xs">
-                      <TableCell className="font-medium">{payment.vendorName}</TableCell>
-                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell className="text-muted-foreground">{getPaymentPurpose(payment)}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={payment.status} context="payment" />
-                      </TableCell>
-                      <TableCell className="max-w-[220px] truncate font-mono text-xs text-muted-foreground">
-                        {getPaymentReference(payment)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="card-warm h-[360px]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">System Alerts</CardTitle>
-          </CardHeader>
-
-          <CardContent className="max-h-[290px] overflow-auto">
             {alerts.length === 0 ? (
-              <EmptyState
-                title="No system alerts"
-                description="Rule violations, failed payments, and audit issues that need action will appear here."
-              />
+              <EmptyState title="No system alerts" description="Exceptions will appear here when they need action." />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs">Alert</TableHead>
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">Severity</TableHead>
-                    <TableHead className="text-right text-xs">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {alerts.map((alert) => (
-                    <TableRow key={alert.id} className="text-xs">
-                      <TableCell className="font-medium">{alert.alert}</TableCell>
-                      <TableCell className="text-muted-foreground">{alert.type}</TableCell>
-                      <TableCell>
+              alerts.slice(0, 4).map((alert) => (
+                <RecordCard key={alert.id} className="p-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <span className={severityClassName(alert.severity)}>{alert.severity}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          asChild
-                          size="sm"
-                          variant={alert.severity === "High" ? "default" : "outline"}
-                        >
-                          <Link to={alert.path}>{alert.action}</Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        <span className="text-xs text-muted-foreground">{alert.type}</span>
+                      </div>
+                      <p className="mt-1 truncate text-sm font-medium">{alert.alert}</p>
+                    </div>
+                    <Button asChild size="sm" variant={alert.severity === "High" ? "default" : "outline"} className="h-7 shrink-0 px-2 text-xs">
+                      <Link to={alert.path}>{alert.action}</Link>
+                    </Button>
+                  </div>
+                </RecordCard>
+              ))
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="card-warm h-[360px]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base font-heading">System Activity Logs</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-                <Link to="/admin/audit">View all</Link>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recent activity</p>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{recentAuditRows.length}</span>
+            </div>
+            {recentAuditRows.length === 0 ? (
+              <EmptyState title="No activity yet" description="Audit events will appear as staff use the system." />
+            ) : (
+              recentAuditRows.slice(0, 5).map((event) => (
+                <RecordCard key={event.id} className="p-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{formatAction(event.action)}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {event.actorName} - {event.marketName || "System"}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-right text-xs text-muted-foreground">
+                      {formatHumanDateTime(event.createdAt)}
+                    </p>
+                  </div>
+                </RecordCard>
+              ))
+            )}
+          </div>
+        </Panel>
+
+        <Panel title="System Health" description="Controls and signals administrators check first." contentClassName="space-y-3">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            {systemHealth.map((item) => (
+              <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-muted-foreground">{item.label}</p>
+                  <p className="mt-0.5 truncate text-sm font-semibold">{item.value}</p>
+                </div>
+                <span
+                  className={
+                    item.tone === "success"
+                      ? "status-badge border-success/20 bg-success/15 text-success"
+                      : item.tone === "destructive"
+                        ? "status-badge border-destructive/20 bg-destructive/15 text-destructive"
+                        : "status-badge border-warning/25 bg-warning/15 text-warning"
+                  }
+                >
+                  {item.detail}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-2">
+            {quickActions.map((action) => (
+              <Button key={action.path} asChild variant="outline" size="sm" className="justify-start">
+                <Link to={action.path}>{action.label}</Link>
+              </Button>
+            ))}
+          </div>
+        </Panel>
+      </section>
+
+      <section className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr]">
+        <Panel title="Market Operating Snapshot" description="Compact market status for quick regional triage." contentClassName="max-h-[310px] overflow-auto p-0">
+          {marketRows.length === 0 ? (
+            <div className="p-3">
+              <EmptyState title="No markets registered" description="Market governance indicators will appear after setup." />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40">
+                  <TableHead>Market</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead className="text-right">Vendors</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Utilities</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {marketRows.map((market) => (
+                  <TableRow key={market.id} className="text-xs">
+                    <TableCell className="font-medium">{market.market}</TableCell>
+                    <TableCell className="text-muted-foreground">{market.region}</TableCell>
+                    <TableCell className="text-right">{market.vendors}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(market.revenue)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(market.utilitiesDue)}</TableCell>
+                    <TableCell>
+                      <span className={statusClassName(market.status)}>{market.status}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Panel>
+
+        <Panel title="People & Payments" description="Recent access actors and collection movement." contentClassName="grid gap-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Users</p>
+              <Button asChild variant="ghost" size="sm" className="h-auto px-0 text-xs">
+                <Link to="/admin/audit">Review</Link>
               </Button>
             </div>
-          </CardHeader>
-
-          <CardContent className="max-h-[290px] overflow-auto">
-            {recentAuditRows.length === 0 ? (
-              <EmptyState
-                title="No system activity"
-                description="Administrative and governance actions will appear as the audit trail records events."
-              />
+            {userRows.length === 0 ? (
+              <EmptyState title="No user activity" />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="text-xs">Time</TableHead>
-                    <TableHead className="text-xs">Action</TableHead>
-                    <TableHead className="text-xs">Actor</TableHead>
-                    <TableHead className="text-xs">Scope</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentAuditRows.map((event) => (
-                    <TableRow key={event.id} className="text-xs">
-                      <TableCell className="text-muted-foreground">
-                        {formatHumanDateTime(event.createdAt)}
-                      </TableCell>
-                      <TableCell className="font-medium">{formatAction(event.action)}</TableCell>
-                      <TableCell>{event.actorName}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {event.marketName || "System"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              userRows.slice(0, 3).map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => setSelectedUser(row)}
+                  className="flex w-full items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-2.5 text-left hover:bg-muted/25"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{row.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{row.role} - {row.market}</span>
+                  </span>
+                  <span className={row.status === "Active" ? "status-badge border-success/20 bg-success/15 text-success" : "status-badge border-warning/25 bg-warning/15 text-warning"}>
+                    {row.status}
+                  </span>
+                </button>
+              ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recent payments</p>
+            {recentPayments.length === 0 ? (
+              <EmptyState title="No payment records" />
+            ) : (
+              recentPayments.map((payment) => (
+                <RecordCard key={payment.id} className="p-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{payment.vendorName}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{getPaymentPurpose(payment)}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold">{formatCurrency(payment.amount)}</p>
+                      <StatusBadge status={payment.status} context="payment" />
+                    </div>
+                  </div>
+                </RecordCard>
+              ))
+            )}
+          </div>
+        </Panel>
       </section>
 
       <DetailSheet
