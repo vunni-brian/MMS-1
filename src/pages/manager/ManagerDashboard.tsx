@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/utils";
+import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import {
   EmptyState,
@@ -25,6 +26,7 @@ import {
 } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "@/components/ui/sonner";
+import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import type {
   BookingStatus,
   ChargeTypeName,
@@ -36,6 +38,8 @@ import type {
 } from "@/types";
 
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
+
+const RENEWAL_WARNING_HOURS = DASHBOARD_CONFIG.RENEWAL_WARNING_DAYS * 24;
 
 const categoryLabels: Record<Ticket["category"], string> = {
   billing: "Billing",
@@ -64,25 +68,25 @@ type ActiveTaskTab = "approvals" | "payments" | "complaints";
 
 type ApprovalRow =
   | {
-    id: string;
-    kind: "vendor";
-    vendorId: string;
-    vendorName: string;
-    detail: string;
-    market: string;
-    appliedAt: string;
-    status: VendorApprovalStatus;
-  }
+      id: string;
+      kind: "vendor";
+      vendorId: string;
+      vendorName: string;
+      detail: string;
+      market: string;
+      appliedAt: string;
+      status: VendorApprovalStatus;
+    }
   | {
-    id: string;
-    kind: "booking";
-    bookingId: string;
-    vendorName: string;
-    detail: string;
-    market: string;
-    appliedAt: string;
-    status: BookingStatus;
-  };
+      id: string;
+      kind: "booking";
+      bookingId: string;
+      vendorName: string;
+      detail: string;
+      market: string;
+      appliedAt: string;
+      status: BookingStatus;
+    };
 
 type ComplaintPriority = "High" | "Medium" | "Normal";
 
@@ -121,33 +125,39 @@ const ManagerDashboard = () => {
   const { data: stallsData, isPending: stallsPending } = useQuery({
     queryKey: ["stalls"],
     queryFn: () => api.getStalls(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const { data: bookingsData, isPending: bookingsPending } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.getBookings(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const { data: paymentsData, isPending: paymentsPending } = useQuery({
     queryKey: ["payments"],
     queryFn: () => api.getPayments(),
-    refetchInterval: 10_000,
+    refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL,
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
   });
 
   const { data: vendorsData, isPending: vendorsPending } = useQuery({
     queryKey: ["vendors"],
     queryFn: () => api.getVendors(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const { data: ticketsData, isPending: ticketsPending } = useQuery({
     queryKey: ["tickets"],
     queryFn: () => api.getTickets(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const { data: utilityChargesData, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "manager-dashboard"],
     queryFn: () => api.getUtilityCharges(),
-    refetchInterval: 10_000,
+    refetchInterval: DASHBOARD_CONFIG.UTILITIES_REFRESH_INTERVAL,
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
   });
 
   const approveVendor = useMutation({
@@ -248,7 +258,7 @@ const ManagerDashboard = () => {
       (endOfDay(booking.endDate).getTime() - Date.now()) / (1000 * 60 * 60),
     );
 
-    return hoursLeft >= 0 && hoursLeft <= 24 * 7;
+    return hoursLeft >= 0 && hoursLeft <= RENEWAL_WARNING_HOURS;
   });
 
   const approvalRows: ApprovalRow[] = [
@@ -280,7 +290,7 @@ const ManagerDashboard = () => {
   const utilityRows = utilityCharges
     .filter((charge) => charge.status !== "paid" && charge.status !== "cancelled")
     .sort((left, right) => utilityStatusWeight[left.status] - utilityStatusWeight[right.status])
-    .slice(0, 3);
+    .slice(0, DASHBOARD_CONFIG.UTILITY_PREVIEW_LIMIT);
 
   const complaintRows = [...openComplaints]
     .sort((left, right) => {
@@ -294,7 +304,7 @@ const ManagerDashboard = () => {
         new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
       );
     })
-    .slice(0, 5);
+    .slice(0, DASHBOARD_CONFIG.COMPLAINT_PREVIEW_LIMIT);
 
   const actionDisabled =
     approveVendor.isPending || rejectVendor.isPending || reviewBookingApplication.isPending;
@@ -430,17 +440,18 @@ const ManagerDashboard = () => {
       <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
       <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <Panel
-          title="Active Tasks"
-          description="Decisions that need manager action today."
-          actions={
-            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-              <Link to={activeTaskRoute}>View all</Link>
-            </Button>
-          }
-          className="h-[372px]"
-          contentClassName="max-h-[292px] space-y-2 overflow-y-auto"
-        >
+        <DashboardErrorBoundary>
+          <Panel
+            title="Active Tasks"
+            description="Decisions that need manager action today."
+            actions={
+              <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+                <Link to={activeTaskRoute}>View all</Link>
+              </Button>
+            }
+            className="h-[372px]"
+            contentClassName="max-h-[292px] space-y-2 overflow-y-auto"
+          >
           <SegmentedControl<ActiveTaskTab>
             value={activeTaskTab}
             options={taskTabOptions}
@@ -454,7 +465,7 @@ const ManagerDashboard = () => {
                     description="Vendor registrations and stall applications will appear here."
                   />
                 ) : (
-                  approvalRows.slice(0, 5).map((row) => (
+                  approvalRows.slice(0, DASHBOARD_CONFIG.DASHBOARD_PREVIEW_LIMIT).map((row) => (
                     <RecordCard key={row.id}>
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <div className="min-w-0">
@@ -512,7 +523,7 @@ const ManagerDashboard = () => {
                     description="Pending confirmations will appear here."
                   />
                 ) : (
-                  pendingPayments.slice(0, 5).map((payment) => (
+                  pendingPayments.slice(0, DASHBOARD_CONFIG.DASHBOARD_PREVIEW_LIMIT).map((payment) => (
                     <RecordCard key={payment.id}>
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                         <div className="min-w-0">
@@ -592,11 +603,13 @@ const ManagerDashboard = () => {
                 )}
               </>
             )}
-        </Panel>
+          </Panel>
+        </DashboardErrorBoundary>
 
+        <DashboardErrorBoundary>
           <Panel
             title="Market Health"
-            description="Occupancy, availability, and financial follow-up."
+            description="Occupancy signals and unpaid utility obligations."
             className="h-[372px]"
             contentClassName="space-y-3"
           >
@@ -649,6 +662,7 @@ const ManagerDashboard = () => {
               </div>
             </div>
           </Panel>
+        </DashboardErrorBoundary>
       </div>
     </div>
   );

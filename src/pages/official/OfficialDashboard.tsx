@@ -10,6 +10,7 @@ import {
 
 import { api } from "@/lib/api";
 import { formatCurrency, formatHumanDate } from "@/lib/utils";
+import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import {
   EmptyState,
@@ -20,6 +21,7 @@ import {
   RecordCard,
 } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
+import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import {
   Table,
   TableBody,
@@ -70,7 +72,8 @@ const getMarketRisk = ({
   pendingRequests: number;
   failedPayments: number;
 }): MarketRisk => {
-  if (openComplaints >= 5 || overdueObligations >= 4 || failedPayments >= 3) {
+  const { ESCALATE_COMPLAINTS, ESCALATE_OVERDUE, ESCALATE_FAILED_PAYMENTS } = DASHBOARD_CONFIG.MARKET_RISK_THRESHOLDS;
+  if (openComplaints >= ESCALATE_COMPLAINTS || overdueObligations >= ESCALATE_OVERDUE || failedPayments >= ESCALATE_FAILED_PAYMENTS) {
     return "Escalate";
   }
 
@@ -90,41 +93,49 @@ const OfficialDashboard = () => {
   const marketsQuery = useQuery({
     queryKey: ["markets", "official-dashboard"],
     queryFn: () => api.getMarkets(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const stallsQuery = useQuery({
     queryKey: ["stalls", "official-dashboard"],
     queryFn: () => api.getStalls(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const vendorsQuery = useQuery({
     queryKey: ["vendors", "official-dashboard"],
     queryFn: () => api.getVendors(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const paymentsQuery = useQuery({
     queryKey: ["payments", "official-dashboard"],
     queryFn: () => api.getPayments(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const ticketsQuery = useQuery({
     queryKey: ["tickets", "official-dashboard"],
     queryFn: () => api.getTickets(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const utilityChargesQuery = useQuery({
     queryKey: ["utility-charges", "official-dashboard"],
     queryFn: () => api.getUtilityCharges(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const penaltiesQuery = useQuery({
     queryKey: ["penalties", "official-dashboard"],
     queryFn: () => api.getPenalties(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const resourceRequestsQuery = useQuery({
     queryKey: ["resource-requests", "official-dashboard"],
     queryFn: () => api.getResourceRequests(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const isLoading =
@@ -250,11 +261,11 @@ const OfficialDashboard = () => {
     };
   });
 
-  const priorityResourceRows = sortByCreatedAtDesc(pendingResourceRequests).slice(0, 4);
-  const priorityComplaintRows = sortByCreatedAtDesc(openComplaints).slice(0, 4);
+  const priorityResourceRows = sortByCreatedAtDesc(pendingResourceRequests).slice(0, DASHBOARD_CONFIG.RESOURCE_REQUEST_PREVIEW_LIMIT);
+  const priorityComplaintRows = sortByCreatedAtDesc(openComplaints).slice(0, DASHBOARD_CONFIG.COMPLAINT_PREVIEW_LIMIT);
   const priorityUtilityRows = [...overdueUtilityCharges]
     .sort((left, right) => Number(right.amount) - Number(left.amount))
-    .slice(0, 4);
+    .slice(0, DASHBOARD_CONFIG.UTILITY_PREVIEW_LIMIT);
 
   return (
     <div className="space-y-3">
@@ -436,6 +447,7 @@ const OfficialDashboard = () => {
           </Table>
         )}
       </Panel>
+      </DashboardErrorBoundary>
     </div>
   );
 };

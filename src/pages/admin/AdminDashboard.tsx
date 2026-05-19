@@ -6,10 +6,12 @@ import { AlertTriangle, Landmark, Store, Users, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
+import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
+import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import type { AuditEvent, ChargeTypeName, Market, Payment, Role, Ticket } from "@/types";
 
 type RegionId = "central" | "western" | "eastern" | "northern";
@@ -68,7 +70,8 @@ const getMarketStatus = ({
   complaints: number;
   penalties: number;
 }): MarketStatus => {
-  if (failedPayments >= 3 || complaints >= 5 || penalties >= 3 || utilitiesDue >= 2_000_000) {
+  const { CRITICAL_FAILED_PAYMENTS, CRITICAL_COMPLAINTS, CRITICAL_PENALTIES, CRITICAL_UTILITIES_DUE } = DASHBOARD_CONFIG.MARKET_RISK_THRESHOLDS;
+  if (failedPayments >= CRITICAL_FAILED_PAYMENTS || complaints >= CRITICAL_COMPLAINTS || penalties >= CRITICAL_PENALTIES || utilitiesDue >= CRITICAL_UTILITIES_DUE) {
     return "Critical";
   }
   if (failedPayments > 0 || complaints > 0 || penalties > 0 || utilitiesDue > 0) {
@@ -120,47 +123,57 @@ const AdminDashboard = () => {
   const { data: marketsData, isPending: marketsPending } = useQuery({
     queryKey: ["markets", "admin-dashboard"],
     queryFn: () => api.getMarkets(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const { data: stallsData, isPending: stallsPending } = useQuery({
     queryKey: ["stalls", "admin-dashboard"],
     queryFn: () => api.getStalls(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const { data: vendorsData, isPending: vendorsPending } = useQuery({
     queryKey: ["vendors", "admin-dashboard"],
     queryFn: () => api.getVendors(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const { data: paymentsData, isPending: paymentsPending } = useQuery({
     queryKey: ["payments", "admin-dashboard"],
     queryFn: () => api.getPayments(),
-    refetchInterval: 10_000,
+    refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL,
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
   });
 
   const { data: ticketsData, isPending: ticketsPending } = useQuery({
     queryKey: ["tickets", "admin-dashboard"],
     queryFn: () => api.getTickets(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const { data: utilityChargesData, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "admin-dashboard"],
     queryFn: () => api.getUtilityCharges(),
+    refetchInterval: DASHBOARD_CONFIG.UTILITIES_REFRESH_INTERVAL,
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
   });
 
   const { data: penaltiesData, isPending: penaltiesPending } = useQuery({
     queryKey: ["penalties", "admin-dashboard"],
     queryFn: () => api.getPenalties(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const { data: chargeTypesData, isPending: chargeTypesPending } = useQuery({
     queryKey: ["charge-types", "admin-dashboard"],
     queryFn: () => api.getChargeTypes(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
   });
 
   const { data: auditData, isPending: auditPending } = useQuery({
     queryKey: ["audit", "admin-dashboard"],
     queryFn: () => api.getAudit(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
   });
 
   const markets = marketsData?.markets || [];
@@ -255,7 +268,7 @@ const AdminDashboard = () => {
     ]
     : [];
 
-  const vendorRows: UserRoleRow[] = vendors.slice(0, 8).map((vendor) => ({
+  const vendorRows: UserRoleRow[] = vendors.slice(0, DASHBOARD_CONFIG.VENDOR_PREVIEW_LIMIT).map((vendor) => ({
     id: vendor.id,
     name: vendor.name,
     role: "vendor" as Role,
@@ -271,7 +284,7 @@ const AdminDashboard = () => {
     (row, index, rows) => rows.findIndex((candidate) => candidate.id === row.id) === index,
   );
 
-  const userRows = allUserRows.slice(0, 5);
+  const userRows = allUserRows.slice(0, DASHBOARD_CONFIG.USER_PREVIEW_LIMIT);
 
   const totalUserCount = new Set([
     ...allUserRows.map((row) => row.id),
@@ -296,7 +309,7 @@ const AdminDashboard = () => {
 
   const alerts = [
     ...Object.entries(activeStallCountsByVendor)
-      .filter(([, item]) => item.count > 1)
+      .filter(([, item]) => item.count > DASHBOARD_CONFIG.MULTI_STALL_LIMIT)
       .map(([, item]) => ({
         id: `multi-stall-${item.vendor}`,
         alert: `${item.vendor} has ${item.count} active stalls`,
@@ -320,7 +333,7 @@ const AdminDashboard = () => {
           alert: `${formatCurrency(unpaidUtilityAmount)} utilities remain unpaid`,
           type: "Billing",
           severity:
-            unpaidUtilityAmount >= 2_000_000
+            unpaidUtilityAmount >= DASHBOARD_CONFIG.MARKET_RISK_THRESHOLDS.CRITICAL_UTILITIES_DUE
               ? ("High" as AlertSeverity)
               : ("Medium" as AlertSeverity),
           action: "Review",
@@ -334,7 +347,7 @@ const AdminDashboard = () => {
           id: "open-penalties",
           alert: `${formatCurrency(openPenaltyAmount)} penalties remain unresolved`,
           type: "Audit",
-          severity: openPenaltyAmount >= 1_000_000 ? ("High" as AlertSeverity) : ("Medium" as AlertSeverity),
+          severity: openPenaltyAmount >= DASHBOARD_CONFIG.MARKET_RISK_THRESHOLDS.CRITICAL_UTILITIES_DUE / 2 ? ("High" as AlertSeverity) : ("Medium" as AlertSeverity),
           action: "Review",
           path: "/admin/billing",
         },
@@ -363,7 +376,7 @@ const AdminDashboard = () => {
         action: "Review",
         path: "/admin/audit",
       })),
-  ].slice(0, 5);
+  ].slice(0, DASHBOARD_CONFIG.ALERTS_LIMIT);
 
   const marketRows = markets.map((market) => {
     const marketPayments = payments.filter((payment) => payment.marketId === market.id);
@@ -405,11 +418,11 @@ const AdminDashboard = () => {
 
   const recentPayments = [...payments]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 3);
+    .slice(0, DASHBOARD_CONFIG.PAYMENT_PREVIEW_LIMIT);
 
   const recentAuditRows = [...auditEvents]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 5);
+    .slice(0, DASHBOARD_CONFIG.AUDIT_PREVIEW_LIMIT);
 
   const kpis = [
     {
@@ -494,16 +507,17 @@ const AdminDashboard = () => {
       <KpiStrip items={kpis} columns="grid-cols-2 md:grid-cols-3 xl:grid-cols-5" />
 
       <section className="grid gap-3 xl:grid-cols-[1.45fr_0.75fr]">
-        <Panel
-          title="Attention Queue"
-          description="Critical exceptions and the latest governance actions."
-          actions={
-            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-              <Link to="/admin/audit">Audit trail</Link>
-            </Button>
-          }
-          contentClassName="grid gap-3 lg:grid-cols-2"
-        >
+        <DashboardErrorBoundary>
+          <Panel
+            title="Attention Queue"
+            description="Critical exceptions and the latest governance actions."
+            actions={
+              <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+                <Link to="/admin/audit">Audit trail</Link>
+              </Button>
+            }
+            contentClassName="grid gap-3 lg:grid-cols-2"
+          >
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Flagged issues</p>
@@ -512,7 +526,7 @@ const AdminDashboard = () => {
             {alerts.length === 0 ? (
               <EmptyState title="No system alerts" description="Exceptions will appear here when they need action." />
             ) : (
-              alerts.slice(0, 4).map((alert) => (
+              alerts.slice(0, DASHBOARD_CONFIG.DASHBOARD_PREVIEW_LIMIT).map((alert) => (
                 <RecordCard key={alert.id} className="p-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -539,7 +553,7 @@ const AdminDashboard = () => {
             {recentAuditRows.length === 0 ? (
               <EmptyState title="No activity yet" description="Audit events will appear as staff use the system." />
             ) : (
-              recentAuditRows.slice(0, 5).map((event) => (
+              recentAuditRows.slice(0, DASHBOARD_CONFIG.AUDIT_PREVIEW_LIMIT).map((event) => (
                 <RecordCard key={event.id} className="p-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -557,8 +571,10 @@ const AdminDashboard = () => {
             )}
           </div>
         </Panel>
+          </DashboardErrorBoundary>
 
-        <Panel title="System Health" description="Controls and signals administrators check first." contentClassName="space-y-3">
+        <DashboardErrorBoundary>
+          <Panel title="System Health" description="Controls and signals administrators check first." contentClassName="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
             {systemHealth.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-2.5">
@@ -589,10 +605,12 @@ const AdminDashboard = () => {
             ))}
           </div>
         </Panel>
+        </DashboardErrorBoundary>
       </section>
 
       <section className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr]">
-        <Panel title="Market Operating Snapshot" description="Compact market status for quick regional triage." contentClassName="max-h-[310px] overflow-auto p-0">
+        <DashboardErrorBoundary>
+          <Panel title="Market Operating Snapshot" description="Compact market status for quick regional triage." contentClassName="max-h-[310px] overflow-auto p-0">
           {marketRows.length === 0 ? (
             <div className="p-3">
               <EmptyState title="No markets registered" description="Market governance indicators will appear after setup." />
@@ -638,7 +656,7 @@ const AdminDashboard = () => {
             {userRows.length === 0 ? (
               <EmptyState title="No user activity" />
             ) : (
-              userRows.slice(0, 3).map((row) => (
+              userRows.slice(0, DASHBOARD_CONFIG.USER_PREVIEW_LIMIT).map((row) => (
                 <button
                   key={row.id}
                   type="button"
@@ -679,9 +697,11 @@ const AdminDashboard = () => {
             )}
           </div>
         </Panel>
+        </DashboardErrorBoundary>
       </section>
 
-      <DetailSheet
+      <DashboardErrorBoundary>
+        <DetailSheet
         open={Boolean(selectedUser)}
         onOpenChange={(open) => {
           if (!open) setSelectedUser(null);
@@ -723,6 +743,7 @@ const AdminDashboard = () => {
           </div>
         )}
       </DetailSheet>
+      </DashboardErrorBoundary>
     </div>
   );
 };

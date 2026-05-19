@@ -315,7 +315,7 @@ export const SegmentedControl = <Value extends string,>({
   onChange,
   className,
 }: SegmentedControlProps<Value>) => (
-  <div className={cn("flex flex-wrap gap-1 rounded-md bg-muted p-1", className)} role="tablist">
+  <div className={cn("flex flex-wrap gap-1 rounded-md bg-muted p-1", className)} role="tablist" aria-label="Tab navigation">
     {options.map((option) => {
       const selected = option.value === value;
       return (
@@ -325,8 +325,19 @@ export const SegmentedControl = <Value extends string,>({
           onClick={() => onChange(option.value)}
           role="tab"
           aria-selected={selected}
+          aria-controls={`panel-${option.value}`}
+          tabIndex={selected ? 0 : -1}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+              e.preventDefault();
+              const currentIndex = options.findIndex((opt) => opt.value === option.value);
+              const direction = e.key === "ArrowRight" ? 1 : -1;
+              const nextIndex = (currentIndex + direction + options.length) % options.length;
+              onChange(options[nextIndex].value);
+            }
+          }}
           className={cn(
-            "inline-flex h-8 items-center gap-2 rounded px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex h-8 items-center gap-2 rounded px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -353,10 +364,13 @@ interface DetailSheetProps {
 
 export const DetailSheet = ({ open, onOpenChange, title, description, children, className }: DetailSheetProps) => (
   <Sheet open={open} onOpenChange={onOpenChange}>
-    <SheetContent className={cn("w-full overflow-y-auto sm:max-w-xl lg:max-w-2xl", className)}>
+    <SheetContent 
+      className={cn("w-full overflow-y-auto sm:max-w-xl lg:max-w-2xl", className)}
+      aria-describedby={description ? "detail-description" : undefined}
+    >
       <SheetHeader className="pr-6">
         <SheetTitle className="font-heading">{title}</SheetTitle>
-        {description && <SheetDescription>{description}</SheetDescription>}
+        {description && <SheetDescription id="detail-description">{description}</SheetDescription>}
       </SheetHeader>
       <div className="mt-4">{children}</div>
     </SheetContent>

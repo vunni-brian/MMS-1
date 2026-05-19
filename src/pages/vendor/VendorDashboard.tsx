@@ -17,8 +17,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
+import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
-import { EmptyState, LoadingState } from "@/components/console/ConsolePage";
+import { EmptyState, LoadingState, KpiStrip } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -94,11 +95,11 @@ const VendorDashboard = () => {
   const { user } = useAuth();
   const isPendingVendor = user?.vendorStatus !== "approved";
 
-  const stallsQuery        = useQuery({ queryKey: ["stalls","mine"],    queryFn: () => api.getStalls({ scope: "mine" }) });
-  const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings() });
-  const paymentsQuery      = useQuery({ queryKey: ["payments"],          queryFn: () => api.getPayments(), refetchInterval: 10_000 });
-  const notificationsQuery = useQuery({ queryKey: ["notifications", 5], queryFn: () => api.getNotifications(5) });
-  const managersQuery      = useQuery({ queryKey: ["market-managers", user?.marketId], queryFn: () => api.getMarketManagers(user!.marketId!), enabled: Boolean(user?.marketId) });
+  const stallsQuery        = useQuery({ queryKey: ["stalls","mine"],    queryFn: () => api.getStalls({ scope: "mine" }), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+  const paymentsQuery      = useQuery({ queryKey: ["payments"],          queryFn: () => api.getPayments(), refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
+  const notificationsQuery = useQuery({ queryKey: ["notifications", 5], queryFn: () => api.getNotifications(5), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+  const managersQuery      = useQuery({ queryKey: ["market-managers", user?.marketId], queryFn: () => api.getMarketManagers(user!.marketId!), enabled: Boolean(user?.marketId), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
 
   const isPending =
     stallsQuery.isPending ||
@@ -128,16 +129,16 @@ const VendorDashboard = () => {
   const firstName          = user?.name?.split(" ")[0] || "there";
   const recentBookings = [...myBookings]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 4);
+    .slice(0, DASHBOARD_CONFIG.BOOKING_PREVIEW_LIMIT);
   const recentPayments = [...myPayments]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 6);
+    .slice(0, DASHBOARD_CONFIG.PAYMENT_PREVIEW_LIMIT);
 
-  const stats = [
-    { label: "Active Stalls",       value: myStalls.length,          detail: myStalls.length === 1 ? "1 stall" : `${myStalls.length} stalls`,            color: "hsl(var(--primary))" },
-    { label: "Pending Applications", value: pendingApplications.length, detail: pendingApplications.length > 0 ? "Under review" : "None pending",          color: "hsl(var(--warning))" },
-    { label: "Awaiting Payment",    value: approvedBookings.length,  detail: awaitingTotal > 0 ? `${formatCurrency(awaitingTotal)} due` : "Nothing due",  color: "hsl(var(--info))", actionPath: isPendingVendor ? undefined : "/vendor/payments" },
-    { label: "Unread Alerts",       value: unreadAlerts.length,      detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up",               color: "hsl(var(--accent))", highlight: true, actionPath: isPendingVendor ? undefined : "/vendor/profile?tab=notifications" },
+  const kpiItems = [
+    { label: "Active Stalls", value: myStalls.length, detail: myStalls.length === 1 ? "1 stall" : `${myStalls.length} stalls`, icon: Store, tone: "success" as const },
+    { label: "Pending Applications", value: pendingApplications.length, detail: pendingApplications.length > 0 ? "Under review" : "None pending", icon: Grid3X3, tone: "warning" as const },
+    { label: "Awaiting Payment", value: approvedBookings.length, detail: awaitingTotal > 0 ? `${formatCurrency(awaitingTotal)} due` : "Nothing due", icon: ReceiptText, tone: "info" as const },
+    { label: "Unread Alerts", value: unreadAlerts.length, detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up", icon: MessageSquare, tone: unreadAlerts.length > 0 ? "destructive" as const : "default" as const },
   ];
 
   const quickActions = [
@@ -223,31 +224,8 @@ const VendorDashboard = () => {
         <ApprovalProgress steps={approvalSteps} marketName={user?.marketName} />
       )}
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
-        {stats.map(stat => (
-          <div
-            key={stat.label}
-            className={`relative overflow-hidden rounded-xl border shadow-sm transition-all group ${
-              stat.highlight ? "border-accent/40 bg-accent text-accent-foreground hover:bg-accent/90" : "border-border/80 bg-card hover:border-border hover:shadow"
-            }`}
-          >
-            {stat.actionPath && <Link to={stat.actionPath} className="absolute inset-0 z-10" />}
-            <div className="px-3 py-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className={`text-[11px] font-medium truncate ${stat.highlight ? "text-accent-foreground/70" : "text-muted-foreground"}`}>{stat.label}</p>
-                  <p className={`text-xl font-bold font-heading leading-tight mt-0.5 ${stat.highlight ? "text-accent-foreground" : ""}`}>{stat.value}</p>
-                </div>
-                {stat.actionPath && <ArrowRight className={`h-4 w-4 opacity-50 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 ${stat.highlight ? "text-accent-foreground" : "text-muted-foreground"}`} />}
-              </div>
-              <p className={`mt-2 text-[10px] ${stat.highlight ? "text-accent-foreground/80 font-medium" : "text-muted-foreground"}`}>
-                {stat.detail}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* KPI Strip */}
+      <KpiStrip items={kpiItems} columns="grid-cols-2 lg:grid-cols-4" />
 
       {/* Operational status */}
       <div className="grid gap-3 lg:grid-cols-2 shrink-0">
@@ -265,14 +243,16 @@ const VendorDashboard = () => {
             {approvedBookings.length === 0 ? (
               <EmptyState title="No payments due" description="Approved stall charges will appear here." />
             ) : (
-              approvedBookings.slice(0, 3).map((booking) => (
+              approvedBookings.slice(0, DASHBOARD_CONFIG.DASHBOARD_PREVIEW_LIMIT).map((booking) => (
                 <div key={booking.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">Stall {booking.stallName}</p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">{fmtRange(booking.startDate, booking.endDate)}</p>
                     </div>
-                    <p className="shrink-0 text-xs font-bold">{formatCurrency(booking.amount)}</p>
+                    <p className="shrink-0 text-xs font-bold font-heading">
+                      {formatCurrency(booking.amount)}
+                    </p>
                   </div>
                 </div>
               ))
@@ -328,7 +308,7 @@ const VendorDashboard = () => {
             {myStalls.length === 0 ? (
               <EmptyState title="No active stalls yet" description="Approved stall allocations will appear here after manager review." />
             ) : (
-              myStalls.slice(0, 5).map(stall => {
+              myStalls.slice(0, DASHBOARD_CONFIG.STALL_PREVIEW_LIMIT).map(stall => {
                 const exp = getLeaseExpiry(stall.id);
                 return (
                   <div key={stall.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 hover:bg-muted/50 transition-colors">
