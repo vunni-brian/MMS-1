@@ -19,7 +19,15 @@ import { api } from "@/lib/api";
 import { formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
-import { EmptyState, LoadingState, KpiStrip } from "@/components/console/ConsolePage";
+import {
+  ConsolePage,
+  EmptyState,
+  KpiStrip,
+  LoadingState,
+  PageHeader,
+  Panel,
+  RecordCard,
+} from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -206,19 +214,25 @@ const VendorDashboard = () => {
   }
 
   return (
-    <div className="space-y-3 lg:min-h-full lg:flex lg:flex-col lg:gap-3 lg:space-y-0">
+    <ConsolePage className="lg:min-h-full">
 
-      {/* Greeting */}
-      <div className="flex shrink-0 items-center justify-between rounded-xl border border-border/70 bg-card px-4 py-2.5 shadow-sm">
-        <div>
-          <h1 className="text-base font-bold font-heading leading-tight">{getTimeAwareGreeting(firstName)} <span className="text-muted-foreground font-normal ml-2 text-xs hidden sm:inline-block">{fmtDate(new Date())}</span></h1>
-          <p className="text-xs text-muted-foreground">Overview of your stalls, applications, and payments.</p>
-        </div>
-        <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
-          <Store className="h-3 w-3" />
-          {user?.marketName || "Assigned market"}
-        </span>
-      </div>
+      <PageHeader
+        eyebrow="Vendor operations"
+        title={getTimeAwareGreeting(firstName)}
+        description="Overview of stall access, applications, payment obligations, and market contact points."
+        actions={
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+            <Store className="h-3 w-3" />
+            {user?.marketName || "Assigned market"}
+          </span>
+        }
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">{fmtDate(new Date())}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{isPendingVendor ? "Approval pending" : "Operational access"}</span>
+          </>
+        }
+      />
 
       {isPendingVendor && (
         <ApprovalProgress steps={approvalSteps} marketName={user?.marketName} />
@@ -228,23 +242,18 @@ const VendorDashboard = () => {
       <KpiStrip items={kpiItems} columns="grid-cols-2 lg:grid-cols-4" />
 
       {/* Operational status */}
-      <div className="grid gap-3 lg:grid-cols-2 shrink-0">
-        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold font-heading text-sm">Payment Obligations</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Approved charges that need payment before stall access or renewal.
-              </p>
-            </div>
-            <p className="text-sm font-bold font-heading">{formatCurrency(awaitingTotal)}</p>
-          </div>
-          <div className="mt-3 space-y-2">
+      <div className="grid shrink-0 gap-3 lg:grid-cols-2">
+        <Panel
+          title="Payment Obligations"
+          description="Approved charges that need payment before stall access or renewal."
+          actions={<p className="text-sm font-bold font-heading">{formatCurrency(awaitingTotal)}</p>}
+          contentClassName="space-y-2"
+        >
             {approvedBookings.length === 0 ? (
               <EmptyState title="No payments due" description="Approved stall charges will appear here." />
             ) : (
               approvedBookings.slice(0, DASHBOARD_CONFIG.DASHBOARD_PREVIEW_LIMIT).map((booking) => (
-                <div key={booking.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                <RecordCard key={booking.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">Stall {booking.stallName}</p>
@@ -254,31 +263,25 @@ const VendorDashboard = () => {
                       {formatCurrency(booking.amount)}
                     </p>
                   </div>
-                </div>
+                </RecordCard>
               ))
             )}
-          </div>
           <Button asChild size="sm" className="mt-3 h-8 w-full">
             <Link to="/vendor/payments">Open Payments</Link>
           </Button>
-        </div>
+        </Panel>
 
-        <div className="rounded-xl border border-border/80 bg-card p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold font-heading text-sm">Application Status</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Recent stall applications and allocation decisions.
-              </p>
-            </div>
-            <p className="text-sm font-bold font-heading">{pendingApplications.length} pending</p>
-          </div>
-          <div className="mt-3 space-y-2">
+        <Panel
+          title="Application Status"
+          description="Recent stall applications and allocation decisions."
+          actions={<p className="text-sm font-bold font-heading">{pendingApplications.length} pending</p>}
+          contentClassName="space-y-2"
+        >
             {recentBookings.length === 0 ? (
               <EmptyState title="No applications yet" description="Apply for a stall to start an allocation request." />
             ) : (
               recentBookings.map((booking) => (
-                <div key={booking.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                <RecordCard key={booking.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">Stall {booking.stallName}</p>
@@ -286,32 +289,33 @@ const VendorDashboard = () => {
                     </div>
                     <StatusBadge status={booking.status} context="booking" className="shrink-0" />
                   </div>
-                </div>
+                </RecordCard>
               ))
             )}
-          </div>
-        </div>
+        </Panel>
       </div>
 
       {/* Stalls, payments, actions, and contacts */}
       <div className="grid gap-3 lg:grid-cols-3 lg:flex-1 lg:min-h-0">
 
         {/* My Active Stalls */}
-        <div className="rounded-xl border border-border/80 bg-card shadow-sm flex flex-col lg:min-h-0">
-          <div className="flex items-center justify-between px-3 pt-3 pb-1.5 shrink-0">
-            <p className="font-semibold font-heading text-sm">My Active Stalls</p>
+        <Panel
+          title="My Active Stalls"
+          className="flex flex-col lg:min-h-0"
+          actions={
             <Button asChild variant="ghost" size="sm" className="h-auto px-0 text-xs text-muted-foreground">
-              <Link to="/vendor/stalls">View all <ArrowRight className="h-3 w-3 ml-1"/></Link>
+              <Link to="/vendor/stalls">View all <ArrowRight className="ml-1 h-3 w-3"/></Link>
             </Button>
-          </div>
-          <div className="overflow-y-auto max-h-64 lg:max-h-none lg:flex-1 px-3 pb-3 space-y-1.5 lg:min-h-0">
+          }
+          contentClassName="max-h-64 space-y-1.5 overflow-y-auto lg:max-h-none lg:flex-1 lg:min-h-0"
+        >
             {myStalls.length === 0 ? (
               <EmptyState title="No active stalls yet" description="Approved stall allocations will appear here after manager review." />
             ) : (
               myStalls.slice(0, DASHBOARD_CONFIG.STALL_PREVIEW_LIMIT).map(stall => {
                 const exp = getLeaseExpiry(stall.id);
                 return (
-                  <div key={stall.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2 hover:bg-muted/50 transition-colors">
+                  <RecordCard key={stall.id}>
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold leading-tight">{stall.name}</p>
@@ -323,22 +327,23 @@ const VendorDashboard = () => {
                       </div>
                       <StatusBadge status="active" label="Active" className="shrink-0 scale-90 origin-top-right" />
                     </div>
-                  </div>
+                  </RecordCard>
                 );
               })
             )}
-          </div>
-        </div>
+        </Panel>
 
         {/* Recent Payments */}
-        <div className="rounded-xl border border-border/80 bg-card shadow-sm flex flex-col lg:min-h-0">
-          <div className="flex items-center justify-between px-3 pt-3 pb-1.5 shrink-0">
-            <p className="font-semibold font-heading text-sm">Recent Payments</p>
+        <Panel
+          title="Recent Payments"
+          className="flex flex-col lg:min-h-0"
+          actions={
             <Button asChild variant="ghost" size="sm" className="h-auto px-0 text-xs text-muted-foreground">
-              <Link to="/vendor/payments">View all <ArrowRight className="h-3 w-3 ml-1"/></Link>
+              <Link to="/vendor/payments">View all <ArrowRight className="ml-1 h-3 w-3"/></Link>
             </Button>
-          </div>
-          <div className="overflow-y-auto max-h-64 lg:max-h-none lg:flex-1 px-3 pb-3 space-y-0.5 lg:min-h-0">
+          }
+          contentClassName="max-h-64 space-y-0.5 overflow-y-auto lg:max-h-none lg:flex-1 lg:min-h-0"
+        >
             {recentPayments.length === 0 ? (
               <EmptyState title="No payments found" description="Payment attempts and receipts will appear after checkout starts." />
             ) : (
@@ -355,16 +360,13 @@ const VendorDashboard = () => {
                 </div>
               ))
             )}
-          </div>
-        </div>
+        </Panel>
 
         {/* Quick Actions + Security stacked */}
         <div className="flex flex-col gap-3 lg:min-h-0">
 
           {/* Quick Actions */}
-          <div className="rounded-xl border border-border/80 bg-card shadow-sm flex-1 flex flex-col lg:min-h-0">
-            <p className="font-semibold font-heading text-sm px-3 pt-3 pb-1.5 shrink-0">Quick Actions</p>
-            <div className="overflow-y-auto max-h-48 lg:max-h-none lg:flex-1 px-2 pb-2 space-y-0.5 lg:min-h-0">
+          <Panel title="Quick Actions" className="flex flex-1 flex-col lg:min-h-0" contentClassName="max-h-48 space-y-0.5 overflow-y-auto lg:max-h-none lg:flex-1 lg:min-h-0">
               {quickActions.map(a => (
                 isPendingVendor ? (
                   <div key={a.label} className="flex items-center gap-2.5 rounded-lg px-2 py-2 opacity-60">
@@ -389,20 +391,18 @@ const VendorDashboard = () => {
                   </Link>
                 )
               ))}
-            </div>
-          </div>
+          </Panel>
 
-          <div className="rounded-xl border border-border/80 bg-card shadow-sm">
-            <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-              <p className="font-semibold font-heading text-sm">Market Managers</p>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="px-3 pb-3 space-y-2">
+          <Panel
+            title="Market Managers"
+            actions={<Users className="h-4 w-4 text-muted-foreground" />}
+            contentClassName="space-y-2"
+          >
               {marketManagers.length === 0 ? (
                 <EmptyState title="No manager assigned" description="Manager contacts will appear when your market has assigned staff." />
               ) : (
                 marketManagers.map((manager) => (
-                  <div key={manager.id} className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                  <RecordCard key={manager.id}>
                     <p className="text-xs font-semibold">{manager.name}</p>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                       <a href={`tel:${manager.phone}`} className="inline-flex items-center gap-1 hover:text-foreground">
@@ -414,14 +414,13 @@ const VendorDashboard = () => {
                         {manager.email}
                       </a>
                     </div>
-                  </div>
+                  </RecordCard>
                 ))
               )}
-            </div>
-          </div>
+          </Panel>
         </div>
       </div>
-    </div>
+    </ConsolePage>
   );
 };
 

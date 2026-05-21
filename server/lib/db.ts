@@ -10,7 +10,7 @@ import { config } from "../config.ts";
 import { rolePermissions } from "./permissions.ts";
 import { hashPassword, nowIso } from "./security.ts";
 import { syncSeedUserToSupabase } from "./supabase.ts";
-import type { AuthUser, LocationType, MarketManagerSummary, NotificationType, Role } from "../types.ts";
+import type { AuthUser, LocationType, MarketManagerSummary, NotificationType, Permission, Role } from "../types.ts";
 
 const { Pool, types } = pg;
 
@@ -210,6 +210,30 @@ const isoFromMonthOffset = (months: number, day = 5) => {
 };
 
 const dateFromDayOffset = (days: number) => isoFromDayOffset(days, 12).slice(0, 10);
+const knownPermissions = new Set<Permission>(Object.values(rolePermissions).flat());
+
+const parsePermissionScope = (role: Role, value?: string | null) => {
+  if (!value || role === "admin" || role === "vendor") {
+    return rolePermissions[role];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) {
+      return rolePermissions[role];
+    }
+
+    const roleScope = new Set(rolePermissions[role]);
+    const scopedPermissions = parsed.filter(
+      (permission): permission is Permission =>
+        typeof permission === "string" && knownPermissions.has(permission as Permission) && roleScope.has(permission as Permission),
+    );
+
+    return scopedPermissions.length > 0 ? scopedPermissions : rolePermissions[role];
+  } catch {
+    return rolePermissions[role];
+  }
+};
 
 export const mapMarket = (row: {
   id: string;
@@ -425,6 +449,7 @@ export const serializeAuthUser = (row: {
   profile_image_path: string | null;
   profile_image_mime_type: string | null;
   profile_image_size: number | null;
+  permission_scope_json?: string | null;
 }): AuthUser => {
   return {
     id: row.id,
@@ -447,7 +472,7 @@ export const serializeAuthUser = (row: {
           createdAt: row.created_at,
         }
       : null,
-    permissions: rolePermissions[row.role],
+    permissions: parsePermissionScope(row.role, row.permission_scope_json),
   };
 };
 
@@ -470,10 +495,12 @@ export const getUserRecordById = async (userId: string) => {
     profile_image_path: string | null;
     profile_image_mime_type: string | null;
     profile_image_size: number | null;
+    permission_scope_json: string | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name, staff_profiles.permission_scope_json
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
+     LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id
      LEFT JOIN markets ON markets.id = users.market_id
      WHERE users.id = ?`,
     [userId],
@@ -499,10 +526,12 @@ export const getUserRecordByPhone = async (phone: string) => {
     profile_image_path: string | null;
     profile_image_mime_type: string | null;
     profile_image_size: number | null;
+    permission_scope_json: string | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name, staff_profiles.permission_scope_json
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
+     LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id
      LEFT JOIN markets ON markets.id = users.market_id
      WHERE users.phone = ?`,
     [phone],

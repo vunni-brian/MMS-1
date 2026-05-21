@@ -1,6 +1,7 @@
 import fs from "node:fs";
 
 import {
+  all,
   createId,
   get,
   getManagerForMarket,
@@ -15,6 +16,7 @@ import {
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { getOtpNotificationMessage } from "../lib/otp-messages.ts";
 import { applyUserPassword, revokeUserSessions, validatePasswordStrength } from "../lib/passwords.ts";
+import { rolePermissions } from "../lib/permissions.ts";
 import { assertMarketAccess, createSessionForUser, destroySession, requireAuth } from "../lib/session.ts";
 import {
   addMinutes,
@@ -32,7 +34,7 @@ import {
 } from "../lib/security.ts";
 import { createSupabaseAuthUser, deleteSupabaseAuthUser, downloadSupabaseStorageObject, findSupabaseAuthUser, updateSupabaseAuthUser, verifySupabaseCredentials } from "../lib/supabase.ts";
 import { persistFilePayload, removeStoredFile, validateFilePayload } from "../lib/storage.ts";
-import type { FilePayload } from "../types.ts";
+import type { FilePayload, Permission, Role, StaffAccount, StaffStatus } from "../types.ts";
 
 const loadOtpChallenge = async (challengeId: string) => {
   return await get<{
@@ -171,7 +173,355 @@ const issueRegistrationChallenge = async ({
   };
 };
 
+type StaffRole = Extract<Role, "manager" | "official">;
+
+interface StaffAccountRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: Role;
+  market_id: string | null;
+  market_name: string | null;
+  department: string | null;
+  assigned_region: string | null;
+  staff_identifier: string | null;
+  access_level: string | null;
+  staff_status: StaffStatus | null;
+  permission_scope_json: string | null;
+  responsibilities_json: string | null;
+  vendor_status: string | null;
+  created_at: string;
+  last_active_at: string | null;
+}
+
+const staffAccountSelect = `
+  SELECT users.id,
+         users.name,
+         users.email,
+         users.phone,
+         users.role,
+         users.market_id,
+         markets.name AS market_name,
+         staff_profiles.department,
+         staff_profiles.assigned_region,
+         staff_profiles.staff_identifier,
+         staff_profiles.access_level,
+         staff_profiles.status AS staff_status,
+         staff_profiles.permission_scope_json,
+         staff_profiles.responsibilities_json,
+         vendor_profiles.approval_status AS vendor_status,
+         users.created_at,
+         (
+           SELECT MAX(audit_events.created_at)
+           FROM audit_events
+           WHERE audit_events.actor_user_id = users.id
+              OR (audit_events.actor_name = users.name AND audit_events.actor_role = users.role)
+         ) AS last_active_at
+  FROM users
+  LEFT JOIN markets ON markets.id = users.market_id
+  LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id
+  LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
+`;
+
+const knownPermissions = new Set<Permission>(Object.values(rolePermissions).flat());
+
+const parseStringArray = (value: string | null) => {
+  if (!value) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim())
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const sanitizePermissionScope = (role: StaffRole, permissions?: unknown) => {
+  if (!Array.isArray(permissions)) {
+    return rolePermissions[role];
+  }
+
+  const defaultScope = new Set(rolePermissions[role]);
+  const scopedPermissions = permissions.filter(
+    (permission): permission is Permission =>
+      typeof permission === "string" && knownPermissions.has(permission as Permission) && defaultScope.has(permission as Permission),
+  );
+  const uniquePermissions = [...new Set(scopedPermissions)];
+  return uniquePermissions.length > 0 ? uniquePermissions : rolePermissions[role];
+};
+
+const getAccountPermissions = (row: StaffAccountRow): Permission[] => {
+  if (row.role !== "manager" && row.role !== "official") {
+    return rolePermissions[row.role];
+  }
+
+  return sanitizePermissionScope(row.role, parseStringArray(row.permission_scope_json));
+};
+
+const getAccountStatus = (row: StaffAccountRow): StaffStatus => {
+  if (row.staff_status === "active" || row.staff_status === "pending" || row.staff_status === "suspended") {
+    return row.staff_status;
+  }
+
+  if (row.role === "vendor") {
+    if (row.vendor_status === "approved") return "active";
+    if (row.vendor_status === "rejected") return "suspended";
+    return "pending";
+  }
+
+  return "active";
+};
+
+const mapStaffAccount = (row: StaffAccountRow): StaffAccount => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  phone: row.phone,
+  role: row.role,
+  department: row.department,
+  assignedRegion: row.assigned_region,
+  staffIdentifier: row.staff_identifier,
+  accessLevel: row.access_level || (row.role === "admin" ? "full" : "standard"),
+  status: getAccountStatus(row),
+  permissions: getAccountPermissions(row),
+  responsibilities: parseStringArray(row.responsibilities_json),
+  marketId: row.market_id,
+  marketName: row.market_name,
+  createdAt: row.created_at,
+  lastActiveAt: row.last_active_at,
+  vendorStatus: row.vendor_status as StaffAccount["vendorStatus"],
+});
+
+const listStaffAccounts = async () =>
+  (
+    await all<StaffAccountRow>(
+      `${staffAccountSelect}
+       ORDER BY CASE users.role
+                  WHEN 'admin' THEN 1
+                  WHEN 'manager' THEN 2
+                  WHEN 'official' THEN 3
+                  WHEN 'vendor' THEN 4
+                  ELSE 5
+                END,
+                users.created_at DESC`,
+    )
+  ).map(mapStaffAccount);
+
+const getStaffAccountById = async (userId: string) => {
+  const row = await get<StaffAccountRow>(
+    `${staffAccountSelect}
+     WHERE users.id = ?`,
+    [userId],
+  );
+  return row ? mapStaffAccount(row) : null;
+};
+
+const assertCanManageUsers = (user: { permissions: Permission[] }) => {
+  if (!user.permissions.includes("auth:manage")) {
+    throw new HttpError(403, "User administration requires auth management permission.");
+  }
+};
+
 export const authRoutes: RouteDefinition[] = [
+  {
+    method: "GET",
+    path: "/auth/users",
+    handler: async ({ res, auth }) => {
+      const session = requireAuth(auth);
+      assertCanManageUsers(session.user);
+
+      sendJson(res, 200, {
+        users: await listStaffAccounts(),
+      });
+    },
+  },
+  {
+    method: "POST",
+    path: "/auth/staff",
+    handler: async ({ req, res, auth, config }) => {
+      const session = requireAuth(auth);
+      assertCanManageUsers(session.user);
+
+      const body = await readJsonBody<{
+        firstName?: string;
+        lastName?: string;
+        name?: string;
+        email?: string;
+        phone?: string;
+        role?: Role;
+        marketId?: string | null;
+        department?: string;
+        assignedRegion?: string;
+        staffIdentifier?: string;
+        accessLevel?: string;
+        status?: StaffStatus;
+        permissions?: Permission[];
+        responsibilities?: string[];
+        temporaryPassword?: string;
+      }>(req);
+
+      if (body.role !== "manager" && body.role !== "official") {
+        throw new HttpError(400, "Role must be manager or official.");
+      }
+
+      const role = body.role;
+      const firstName = body.firstName?.trim();
+      const lastName = body.lastName?.trim();
+      const name = body.name?.trim() || [firstName, lastName].filter(Boolean).join(" ").trim();
+      const email = body.email?.trim().toLowerCase();
+      const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
+      const department = body.department?.trim();
+      const assignedRegion = body.assignedRegion?.trim();
+      const staffIdentifier = body.staffIdentifier?.trim() || null;
+      const accessLevel = body.accessLevel?.trim() || (role === "official" ? "regional_compliance" : "market_supervision");
+      const status: StaffStatus =
+        body.status === "pending" || body.status === "suspended" || body.status === "active" ? body.status : "active";
+      const marketId = body.marketId?.trim() || null;
+
+      if (!name || !email || !phone || !department || !assignedRegion) {
+        throw new HttpError(400, "Name, email, phone, department, and assigned region are required.");
+      }
+      if (role === "manager" && !marketId) {
+        throw new HttpError(400, "Managers must be assigned to a market.");
+      }
+      if (role === "official" && !staffIdentifier) {
+        throw new HttpError(400, "Officials must have a government or staff identifier.");
+      }
+      if (!isValidEmailAddress(email)) {
+        throw new HttpError(400, "A valid email address is required.");
+      }
+      if (!isValidPhoneNumber(phone)) {
+        throw new HttpError(400, "A valid international phone number is required.");
+      }
+
+      const market = marketId ? await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [marketId]) : null;
+      if (marketId && !market) {
+        throw new HttpError(400, "Selected market is invalid.");
+      }
+
+      const existingPhone = await get<{ id: string }>(`SELECT id FROM users WHERE phone = ? LIMIT 1`, [phone]);
+      const existingEmail = await get<{ id: string }>(`SELECT id FROM users WHERE lower(email) = ? LIMIT 1`, [email]);
+      if (existingPhone || existingEmail) {
+        throw new HttpError(409, "A user with that phone or email already exists.");
+      }
+
+      if (config.supabaseAuthEnabled) {
+        const matchingSupabaseUser = await findSupabaseAuthUser({ phone, email });
+        if (matchingSupabaseUser) {
+          throw new HttpError(409, "A Supabase Auth user with that phone or email already exists.");
+        }
+      }
+
+      const userId = createId("user");
+      const temporaryPassword = body.temporaryPassword?.trim() || createTemporaryPassword();
+      validatePasswordStrength(temporaryPassword);
+      const timestamp = nowIso();
+      const permissionScope = sanitizePermissionScope(role, body.permissions);
+      const responsibilities =
+        Array.isArray(body.responsibilities) && body.responsibilities.some((item) => item.trim())
+          ? body.responsibilities.map((item) => item.trim()).filter(Boolean)
+          : role === "official"
+            ? ["Vendor Compliance", "Utility Monitoring", "Complaints Oversight"]
+            : ["Workflow Supervision", "Vendor Approvals", "Operational Monitoring"];
+
+      let authUserId: string | null = null;
+      try {
+        if (config.supabaseAuthEnabled) {
+          const authUser = await createSupabaseAuthUser({
+            email,
+            phone,
+            password: temporaryPassword,
+            localUserId: userId,
+            name,
+            role,
+            marketId: market?.id || null,
+          });
+          authUserId = authUser?.id || null;
+        }
+
+        await transaction(async () => {
+          await run(
+            `INSERT INTO users (id, auth_user_id, name, email, phone, password_hash, role, market_id, mfa_enabled, phone_verified_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+            [userId, authUserId, name, email, phone, hashPassword(temporaryPassword), role, market?.id || null, timestamp, timestamp, timestamp],
+          );
+          await run(
+            `INSERT INTO staff_profiles (
+               user_id,
+               department,
+               assigned_region,
+               staff_identifier,
+               access_level,
+               status,
+               permission_scope_json,
+               responsibilities_json,
+               created_by,
+               created_at,
+               updated_at
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              userId,
+              department,
+              assignedRegion,
+              staffIdentifier,
+              accessLevel,
+              status,
+              JSON.stringify(permissionScope),
+              JSON.stringify(responsibilities),
+              session.user.id,
+              timestamp,
+              timestamp,
+            ],
+          );
+        });
+      } catch (error) {
+        if (authUserId) {
+          await deleteSupabaseAuthUser(authUserId);
+        }
+        throw error;
+      }
+
+      await queueNotification({
+        userId,
+        type: "system",
+        message: `You have been invited as ${role} for ${market?.name || assignedRegion}. Temporary password: ${temporaryPassword}. Sign in at ${config.appUrl} and complete MFA to activate your workspace.`,
+        channels: ["system", "sms", "email"],
+        destinationPhone: phone,
+        destinationEmail: email,
+      });
+
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: market?.id || null,
+        action: "INVITE_STAFF_ACCOUNT",
+        entityType: "user",
+        entityId: userId,
+        details: {
+          role,
+          department,
+          assignedRegion,
+          accessLevel,
+          status,
+          permissions: permissionScope,
+        },
+      });
+
+      const account = await getStaffAccountById(userId);
+      if (!account) {
+        throw new HttpError(500, "Unable to load invited staff account.");
+      }
+
+      sendJson(res, 201, {
+        user: account,
+        message: `Invite and role assignment were sent to ${phone}.`,
+      });
+    },
+  },
   {
     method: "POST",
     path: "/auth/register-vendor",
@@ -448,7 +798,7 @@ export const authRoutes: RouteDefinition[] = [
         throw new HttpError(400, "A valid international phone number is required.");
       }
 
-      const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [marketId]);
+      const market = await get<{ id: string; name: string; location: string | null }>(`SELECT id, name, location FROM markets WHERE id = ?`, [marketId]);
       if (!market) {
         throw new HttpError(400, "Selected market is invalid.");
       }
@@ -549,6 +899,39 @@ export const authRoutes: RouteDefinition[] = [
             [managerUserId, authUserId, name, email, phone, hashPassword(temporaryPassword), market.id, timestamp, timestamp, timestamp],
           );
         }
+        await run(
+          `INSERT INTO staff_profiles (
+             user_id,
+             department,
+             assigned_region,
+             staff_identifier,
+             access_level,
+             status,
+             permission_scope_json,
+             responsibilities_json,
+             created_by,
+             created_at,
+             updated_at
+           )
+           VALUES (?, 'Market Operations', ?, NULL, 'market_supervision', 'active', ?, ?, ?, ?, ?)
+           ON CONFLICT (user_id) DO UPDATE
+           SET department = EXCLUDED.department,
+               assigned_region = EXCLUDED.assigned_region,
+               access_level = EXCLUDED.access_level,
+               status = EXCLUDED.status,
+               permission_scope_json = COALESCE(staff_profiles.permission_scope_json, EXCLUDED.permission_scope_json),
+               responsibilities_json = EXCLUDED.responsibilities_json,
+               updated_at = EXCLUDED.updated_at`,
+          [
+            managerUserId,
+            market.location || market.name,
+            JSON.stringify(rolePermissions.manager),
+            JSON.stringify(["Workflow Supervision", "Vendor Approvals", "Operational Monitoring"]),
+            session.user.id,
+            timestamp,
+            timestamp,
+          ],
+        );
       });
 
       await queueNotification({

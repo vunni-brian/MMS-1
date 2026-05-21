@@ -16,6 +16,7 @@ import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/uti
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import {
+  ConsolePage,
   EmptyState,
   KpiStrip,
   LoadingState,
@@ -425,7 +426,7 @@ const ManagerDashboard = () => {
         : "/manager/vendors";
 
   return (
-    <div className="space-y-3">
+    <ConsolePage>
       <PageHeader
         eyebrow="Manager workspace"
         title={getTimeAwareGreeting(firstName)}
@@ -664,7 +665,7 @@ const ManagerDashboard = () => {
           </Panel>
         </DashboardErrorBoundary>
       </div>
-    </div>
+    </ConsolePage>
   );
 };
 

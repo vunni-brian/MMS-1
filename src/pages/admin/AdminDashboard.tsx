@@ -10,7 +10,7 @@ import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
+import { ConsolePage, DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import type { AuditEvent, ChargeTypeName, Market, Payment, Role, Ticket } from "@/types";
 
@@ -491,7 +491,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-3">
+    <ConsolePage>
       <PageHeader
         eyebrow="Admin workspace"
         title="System Administration"
@@ -744,7 +744,7 @@ const AdminDashboard = () => {
         )}
       </DetailSheet>
       </DashboardErrorBoundary>
-    </div>
+    </ConsolePage>
   );
 };
 

@@ -1,0 +1,191 @@
+[
+  {
+    "group": "Admin",
+    "title": "Admin Dashboard - System Stats",
+    "file": "admin-01-dashboard-overview.png",
+    "description": "Overview of system statistics, operational health, payments, compliance, and admin-level intelligence.",
+    "status": "captured"
+  },
+  {
+    "group": "Admin",
+    "title": "User Management - Create and Disable Users",
+    "file": "admin-02-user-management-create-disable-users.png",
+    "description": "User administration screen for staff/vendor accounts, statuses, role filters, and access governance. Existing-user disable controls are not exposed as a dedicated action in the current UI.",
+    "status": "captured"
+  },
+  {
+    "group": "Admin",
+    "title": "Create User - Invite and Assign Role",
+    "file": "admin-03-create-user-invite-form.png",
+    "description": "Admin-controlled onboarding form for creating a manager or official with department, region, status, and scoped permissions.",
+    "status": "captured"
+  },
+  {
+    "group": "Admin",
+    "title": "Role Management - RBAC",
+    "file": "admin-04-role-management-rbac.png",
+    "description": "Role and permission matrix for assigning vendor, manager, official, and admin access scopes.",
+    "status": "captured"
+  },
+  {
+    "group": "Admin",
+    "title": "System Settings - Configuration Panel",
+    "file": "admin-05-system-settings-configuration.png",
+    "description": "Settings/configuration workspace for account preferences and operational configuration available through the system settings module.",
+    "status": "captured"
+  },
+  {
+    "group": "Admin",
+    "title": "Audit Logs and Activity Logs",
+    "file": "admin-06-audit-activity-logs.png",
+    "description": "Audit trail screen showing system events, actor activity, evidence payloads, and traceable operational records.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Manager Dashboard - Key Overview",
+    "file": "manager-01-dashboard-overview.png",
+    "description": "Manager overview for approvals, complaints, payments, stalls, and daily operational priorities.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Vendor Approval and Rejection Screen",
+    "file": "manager-02-vendor-approval-rejection-screen.png",
+    "description": "Vendor application review sheet with submitted details, documents, manager notes, and approval/rejection actions.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Stall Allocation Interface",
+    "file": "manager-03-stall-allocation-interface.png",
+    "description": "Stall management workspace for inventory, occupancy, availability, assignment, and allocation decisions.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Complaints Management Page",
+    "file": "manager-04-complaints-management-page.png",
+    "description": "Complaint queue for supervisors to review, prioritize, update status, and resolve market issues.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Payment and Fees Overview",
+    "file": "manager-05-payment-fees-overview.png",
+    "description": "Payment records and fee status workspace for manager-level financial monitoring.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Coordination and Announcement Posting",
+    "file": "manager-06-coordination-announcement-posting.png",
+    "description": "Coordination module with message history and a posting panel for operational updates or announcements.",
+    "status": "captured"
+  },
+  {
+    "group": "Manager",
+    "title": "Market Reports and Analytics View",
+    "file": "manager-07-market-reports-analytics.png",
+    "description": "Reports and analytics page for market performance, revenue, occupancy, and financial audit summaries.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Vendor Dashboard",
+    "file": "vendor-01-dashboard.png",
+    "description": "Vendor self-service dashboard with payment obligations, stall status, complaints, and recent activity.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Vendor Registration Form",
+    "file": "vendor-02-registration-form.png",
+    "description": "Vendor onboarding form for account details, identity data, market selection, product section, and verification documents.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Login Screen",
+    "file": "vendor-03-login-screen.png",
+    "description": "Authentication screen used by vendors and staff to access the role-based platform.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Stall Details and Allocation View",
+    "file": "vendor-04-stall-details-allocation-view.png",
+    "description": "Vendor-facing stall allocation page showing stall availability, current allocations, and application actions.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Payment Initiation Screen",
+    "file": "vendor-05-payment-initiation-screen.png",
+    "description": "Payment summary dialog used before opening Pesapal checkout for a documented sample utility charge.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Complaint Submission Form",
+    "file": "vendor-06-complaint-submission-form.png",
+    "description": "Vendor complaint form for submitting market service issues with category, subject, description, and optional attachment.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Notifications and Messages View",
+    "file": "vendor-07-notifications-messages-view.png",
+    "description": "Notification center for alerts, unread messages, payment updates, complaint updates, and delivery preferences.",
+    "status": "captured"
+  },
+  {
+    "group": "Vendor",
+    "title": "Profile Settings Page",
+    "file": "vendor-08-profile-settings-page.png",
+    "description": "Vendor profile settings screen for contact details, market assignment, business section, and account information.",
+    "status": "captured"
+  },
+  {
+    "group": "Official",
+    "title": "Official Dashboard",
+    "file": "official-01-dashboard.png",
+    "description": "Official oversight dashboard for government operations, inspections, compliance, complaints, and regional market risk.",
+    "status": "captured"
+  },
+  {
+    "group": "Official",
+    "title": "Market Overview Reports",
+    "file": "official-02-market-overview-reports.png",
+    "description": "Official reports workspace for market-level financial, occupancy, and operational summaries.",
+    "status": "captured"
+  },
+  {
+    "group": "Official",
+    "title": "Revenue and Payment Tracking View",
+    "file": "official-04-revenue-payment-tracking-view.png",
+    "description": "Billing and obligation oversight screen used for payment tracking and utility charge visibility.",
+    "status": "captured"
+  },
+  {
+    "group": "Official",
+    "title": "Inspection or Compliance Monitoring Page",
+    "file": "official-05-inspection-compliance-monitoring-page.png",
+    "description": "Audit and inspection evidence view for compliance monitoring and traceable government oversight.",
+    "status": "captured"
+  },
+  {
+    "group": "Official",
+    "title": "Analytics and Summary Reports",
+    "file": "official-06-analytics-summary-reports.png",
+    "description": "Financial audit and analytics section showing summary reporting for official oversight.",
+    "status": "captured"
+  },
+  {
+    "group": "Official",
+    "title": "Vendor Listings - Read-only View",
+    "file": null,
+    "description": "Missing as a separate official screen. The current route map does not include /official/vendors; vendor listings are available to managers through /manager/vendors.",
+    "status": "missing"
+  }
+]

@@ -33,6 +33,7 @@ export type Permission =
   | "fallback:query";
 
 export type VendorApprovalStatus = "pending" | "approved" | "rejected";
+export type StaffStatus = "active" | "pending" | "suspended";
 export type StallStatus = "active" | "inactive" | "maintenance";
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled";
@@ -107,6 +108,26 @@ export interface AuthUser {
   marketId: string | null;
   marketName: string | null;
   profileImage: Attachment | null;
+}
+
+export interface StaffAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: Role;
+  department: string | null;
+  assignedRegion: string | null;
+  staffIdentifier: string | null;
+  accessLevel: string;
+  status: StaffStatus;
+  permissions: Permission[];
+  responsibilities: string[];
+  marketId: string | null;
+  marketName: string | null;
+  createdAt: string;
+  lastActiveAt: string | null;
+  vendorStatus: VendorApprovalStatus | null;
 }
 
 export interface SessionAuth {

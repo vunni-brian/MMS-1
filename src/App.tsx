@@ -17,6 +17,7 @@ const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const ManagerDashboard = lazy(() => import("./pages/manager/ManagerDashboard"));
 const OfficialDashboard = lazy(() => import("./pages/official/OfficialDashboard"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const StallsPage = lazy(() => import("./pages/shared/StallsPage"));
 const PaymentsPage = lazy(() => import("./pages/shared/PaymentsPage"));
 const ComplaintsPage = lazy(() => import("./pages/shared/ComplaintsPage"));
@@ -127,6 +128,7 @@ const App = () => (
               }
             >
               <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<UserManagementPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />

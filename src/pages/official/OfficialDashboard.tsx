@@ -13,6 +13,7 @@ import { formatCurrency, formatHumanDate } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import {
+  ConsolePage,
   EmptyState,
   KpiStrip,
   LoadingState,
@@ -268,7 +269,7 @@ const OfficialDashboard = () => {
     .slice(0, DASHBOARD_CONFIG.UTILITY_PREVIEW_LIMIT);
 
   return (
-    <div className="space-y-3">
+    <ConsolePage>
       <PageHeader
         eyebrow="Official workspace"
         title="Oversight Desk"
@@ -447,8 +448,7 @@ const OfficialDashboard = () => {
           </Table>
         )}
       </Panel>
-      </DashboardErrorBoundary>
-    </div>
+    </ConsolePage>
   );
 };
 

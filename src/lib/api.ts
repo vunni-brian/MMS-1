@@ -16,7 +16,11 @@ import type {
   ResourceRequest,
   ResourceRequestCategory,
   RevenueReportRow,
+  Permission,
+  Role,
   Stall,
+  StaffAccount,
+  StaffStatus,
   Ticket,
   TicketCategory,
   TicketStatus,
@@ -197,6 +201,26 @@ export const api = {
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }),
   getMe: () => apiRequest<{ user: AuthUser }>("/auth/me"),
   getMarkets: () => apiRequest<{ markets: Market[] }>("/markets"),
+  getUsers: () => apiRequest<{ users: StaffAccount[] }>("/auth/users"),
+  inviteStaffUser: (input: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    role: Extract<Role, "manager" | "official">;
+    marketId?: string | null;
+    department: string;
+    assignedRegion: string;
+    staffIdentifier?: string | null;
+    accessLevel: string;
+    status: StaffStatus;
+    permissions: Permission[];
+    responsibilities: string[];
+  }) =>
+    apiRequest<{ user: StaffAccount; message: string }>("/auth/staff", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
   getMarketManagers: (marketId: string) => apiRequest<{ managers: MarketManagerSummary[] }>(`/markets/${marketId}/managers`),
   getChargeTypes: (marketId?: string) =>
     apiRequest<{ chargeTypes: ChargeType[] }>(`/billing/charge-types${buildQuery({ marketId })}`),
