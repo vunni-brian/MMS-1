@@ -62,37 +62,36 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    title: "Dashboard",
+    items: [{ label: "Overview", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] }],
+  },
+  {
     title: "Operations",
     items: [
-      { label: "Dashboard", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
-      { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager"] },
-      { label: "Vendors", path: "vendors", icon: Users, roles: ["manager"] },
-      { label: "Stalls", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
-      { label: "Requests", path: "coordination", icon: MessagesSquare, roles: ["manager", "official", "admin"] },
+      { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager", "official", "admin"] },
+      { label: "Vendors", path: "vendors", icon: Users, roles: ["manager", "official", "admin"] },
       { label: "Utilities", path: "billing", icon: Gauge, roles: ["manager", "official", "admin"] },
-      { label: "User Management", path: "users", icon: Users, roles: ["admin"] },
+      { label: "Markets", path: "stalls", icon: Grid3X3, roles: ["manager", "official", "admin"] },
     ],
   },
   {
     title: "Financial",
     items: [
       { label: "Payments", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
-      { label: "Revenue", path: "reports", icon: CircleDollarSign, roles: ["manager", "official", "admin"] },
-      { label: "Billing", path: "billing", icon: ReceiptText, roles: ["manager", "official", "admin"] },
+      { label: "Reports", path: "reports", icon: CircleDollarSign, roles: ["manager", "official", "admin"] },
     ],
   },
   {
-    title: "Intelligence",
+    title: "Administration",
     items: [
-      { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official", "admin"] },
-      { label: "Audit Log", path: "audit", icon: ScrollText, roles: ["manager", "official", "admin"] },
+      { label: "Users", path: "users", icon: Users, roles: ["admin"] },
+      { label: "Settings", path: "profile", icon: Settings, roles: ["vendor", "manager", "official", "admin"] },
     ],
   },
   {
     title: "System",
     items: [
       { label: "Notifications", path: "profile", query: "tab=notifications", icon: Bell, roles: ["vendor", "manager", "official", "admin"] },
-      { label: "Settings", path: "profile", icon: Settings, roles: ["vendor", "manager", "official", "admin"] },
       { label: "Support", path: "profile", query: "tab=security", icon: Headphones, roles: ["vendor", "manager", "official", "admin"] },
     ],
   },

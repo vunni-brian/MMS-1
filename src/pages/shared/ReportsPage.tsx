@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BarChart3, Download, ReceiptText, Wallet } from "lucide-react";
+import { Download } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { ConsolePage, DataTableFrame, KpiStrip, PageHeader, Panel, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
+import { ConsolePage, DataTableFrame, EmptyState, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -35,30 +35,12 @@ const ReportsPage = () => {
     queryKey: ["reports", "dues", dateFrom, dateTo, marketId || "all"],
     queryFn: () => api.getDuesReport(dateFrom, dateTo, marketId),
   });
-  const { data: financialAuditReport } = useQuery({
-    queryKey: ["reports", "financial-audit", dateFrom, dateTo, marketId || "all"],
-    queryFn: () => api.getFinancialAudit(dateFrom, dateTo, marketId),
-  });
 
-  const auditSummary = financialAuditReport?.summary || {
-    collectedTotal: 0,
-    depositedTotal: 0,
-    variance: 0,
+  const verificationStatus = (status: string) => {
+    if (status === "completed") return "Verified";
+    if (status === "failed") return "Rejected";
+    return "Pending";
   };
-  const varianceToneClass =
-    auditSummary.variance === 0 ? "text-foreground" : auditSummary.variance > 0 ? "text-warning" : "text-destructive";
-  const variancePanelClass =
-    auditSummary.variance === 0
-      ? "border-border/70 bg-muted/20 text-muted-foreground"
-      : auditSummary.variance > 0
-        ? "border-warning/30 bg-warning/5 text-warning"
-        : "border-destructive/30 bg-destructive/5 text-destructive";
-  const varianceMessage =
-    auditSummary.variance === 0
-      ? "Collections and recorded bank deposits are balanced for the selected period."
-      : auditSummary.variance > 0
-        ? `Collections exceed recorded deposits by ${formatCurrency(auditSummary.variance)}.`
-        : `Recorded deposits exceed collections by ${formatCurrency(Math.abs(auditSummary.variance))}.`;
 
   const exportCSV = () => {
     const header = "Date,Market,Vendor,Amount,Method,Transaction ID,Status\n";
@@ -76,43 +58,13 @@ const ReportsPage = () => {
       description: "Revenue rows for the selected period are being downloaded.",
     });
   };
-  const reportKpis = [
-    {
-      label: "Total Revenue",
-      value: formatCurrency(revenueReport?.summary.totalRevenue || 0),
-      detail: "Completed payments in selected period",
-      icon: Wallet,
-      tone: "success" as const,
-    },
-    {
-      label: "Outstanding Dues",
-      value: formatCurrency(duesReport?.summary.outstandingTotal || 0),
-      detail: "Unsettled booking obligations",
-      icon: AlertTriangle,
-      tone: (duesReport?.summary.outstandingTotal || 0) > 0 ? "warning" as const : "success" as const,
-    },
-    {
-      label: "Transactions",
-      value: revenueReport?.summary.transactionCount || 0,
-      detail: "Payment rows in scope",
-      icon: ReceiptText,
-      tone: "info" as const,
-    },
-    {
-      label: "Audit Variance",
-      value: formatCurrency(auditSummary.variance),
-      detail: "Collected vs deposited",
-      icon: BarChart3,
-      tone: auditSummary.variance === 0 ? "success" as const : "destructive" as const,
-    },
-  ];
 
   return (
     <ConsolePage>
       <PageHeader
         eyebrow="Reports and reconciliation"
-        title="Reports"
-        description="Revenue, dues, deposits, and payment evidence."
+        title="Reports & Reconciliation"
+        description="Review submitted receipts and verify payment records."
         actions={
           <Button onClick={exportCSV} variant="outline">
           <Download className="w-4 h-4 mr-1" />
@@ -153,49 +105,29 @@ const ReportsPage = () => {
         )}
       </ScopeBar>
 
-      <KpiStrip items={reportKpis} />
-
-      <Panel title="Financial Audit" description="Collected payments compared with recorded deposits." contentClassName="space-y-3">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Collected Total</p>
-              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(auditSummary.collectedTotal)}</p>
-            </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Deposited Total</p>
-              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(auditSummary.depositedTotal)}</p>
-            </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Variance</p>
-              <p className={`mt-1 text-lg font-bold font-heading ${varianceToneClass}`}>{formatCurrency(auditSummary.variance)}</p>
-            </div>
-          </div>
-          <div className={`rounded-md border px-3 py-2.5 text-sm ${variancePanelClass}`}>{varianceMessage}</div>
-      </Panel>
-
-      <DataTableFrame title="Payment Details">
+      <DataTableFrame title="Payment Records">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Market</TableHead>
                   <TableHead>Vendor</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Receipt Number</TableHead>
+                  <TableHead>Receipt Image</TableHead>
+                  <TableHead>Verification Status</TableHead>
+                  <TableHead>Submitted Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(revenueReport?.rows || []).map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="text-muted-foreground">{formatDateTime(row.createdAt)}</TableCell>
-                    <TableCell>{row.marketName || "Unassigned"}</TableCell>
                     <TableCell className="font-medium">{row.vendorName}</TableCell>
                     <TableCell>{formatCurrency(row.amount)}</TableCell>
-                    <TableCell>{row.method.toUpperCase()}</TableCell>
-                    <TableCell className="font-mono text-xs">{row.transactionId || "Awaiting confirmation"}</TableCell>
-                    <TableCell><StatusBadge status={row.status} context="payment" /></TableCell>
+                    <TableCell className="font-medium">{row.reference || `RCPT-${row.id.slice(0, 6).toUpperCase()}`}</TableCell>
+                    <TableCell><Button variant="ghost" size="sm">Download</Button></TableCell>
+                    <TableCell><StatusBadge status={verificationStatus(row.status)} label={verificationStatus(row.status)} context="payment" /></TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateTime(row.createdAt)}</TableCell>
+                    <TableCell className="space-x-2"><Button size="sm" variant="outline">Verify</Button><Button size="sm" variant="ghost">Reject</Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -222,43 +154,15 @@ const ReportsPage = () => {
                     <TableCell>{row.stallName}</TableCell>
                     <TableCell>{formatCurrency(row.amount)}</TableCell>
                     <TableCell>{formatCurrency(row.paidAmount)}</TableCell>
-                    <TableCell>{formatCurrency(row.outstandingAmount)}</TableCell>
+                    <TableCell>{row.outstandingAmount > 0 ? formatCurrency(row.outstandingAmount) : "No payments due"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
       </DataTableFrame>
-
-      <DataTableFrame title="Bank Deposits">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Deposited At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(financialAuditReport?.rows || []).length > 0 ? (
-                  (financialAuditReport?.rows || []).map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.marketName || "Unassigned"}</TableCell>
-                      <TableCell className="font-medium">{row.reference}</TableCell>
-                      <TableCell>{formatCurrency(row.amount)}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDateTime(row.depositedAt)}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                      No bank deposits were recorded for the selected filters.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-      </DataTableFrame>
+      {(revenueReport?.rows || []).length === 0 && (
+        <EmptyState title="No transactions recorded" description="Try adjusting filters to locate submitted receipts." />
+      )}
     </ConsolePage>
   );
 };

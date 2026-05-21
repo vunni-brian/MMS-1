@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import {
   ConsolePage,
   EmptyState,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -131,6 +130,7 @@ const VendorDashboard = () => {
 
   const approvedBookings   = myBookings.filter(b => b.status === "approved");
   const pendingApplications = myBookings.filter(b => b.status === "pending");
+  const hasActiveStall = myStalls.length > 0;
   const unreadAlerts       = myNotifications.filter(n => !n.read);
 
   const awaitingTotal      = approvedBookings.reduce((s, b) => s + b.amount, 0);
@@ -141,13 +141,6 @@ const VendorDashboard = () => {
   const recentPayments = [...myPayments]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, DASHBOARD_CONFIG.PAYMENT_PREVIEW_LIMIT);
-
-  const kpiItems = [
-    { label: "Active Stalls", value: myStalls.length, detail: myStalls.length === 1 ? "1 stall" : `${myStalls.length} stalls`, icon: Store, tone: "success" as const },
-    { label: "Pending Applications", value: pendingApplications.length, detail: pendingApplications.length > 0 ? "Under review" : "None pending", icon: Grid3X3, tone: "warning" as const },
-    { label: "Awaiting Payment", value: approvedBookings.length, detail: awaitingTotal > 0 ? `${formatCurrency(awaitingTotal)} due` : "Nothing due", icon: ReceiptText, tone: "info" as const },
-    { label: "Unread Alerts", value: unreadAlerts.length, detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up", icon: MessageSquare, tone: unreadAlerts.length > 0 ? "destructive" as const : "default" as const },
-  ];
 
   const quickActions = [
     { label: "Apply for Stall", path: "/vendor/stalls", icon: Store, desc: isPendingVendor ? "Available after manager approval" : "Browse available stalls" },
@@ -238,9 +231,6 @@ const VendorDashboard = () => {
         <ApprovalProgress steps={approvalSteps} marketName={user?.marketName} />
       )}
 
-      {/* KPI Strip */}
-      <KpiStrip items={kpiItems} columns="grid-cols-2 lg:grid-cols-4" />
-
       {/* Operational status */}
       <div className="grid shrink-0 gap-3 lg:grid-cols-2">
         <Panel
@@ -271,7 +261,7 @@ const VendorDashboard = () => {
           </Button>
         </Panel>
 
-        <Panel
+        {!hasActiveStall && <Panel
           title="Application Status"
           description="Recent stall applications and allocation decisions."
           actions={<p className="text-sm font-bold font-heading">{pendingApplications.length} pending</p>}
@@ -292,7 +282,7 @@ const VendorDashboard = () => {
                 </RecordCard>
               ))
             )}
-        </Panel>
+        </Panel>}
       </div>
 
       {/* Stalls, payments, actions, and contacts */}
