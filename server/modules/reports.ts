@@ -16,6 +16,12 @@ const appendMarketScope = (clauses: string[], params: Array<string | null>, colu
   }
 };
 
+const hoursBetween = (from: string | null, to: string | null) => {
+  if (!from || !to) return null;
+  const diff = new Date(to).getTime() - new Date(from).getTime();
+  return Number.isFinite(diff) && diff >= 0 ? diff / (1000 * 60 * 60) : null;
+};
+
 export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -250,6 +256,161 @@ export const reportRoutes: RouteDefinition[] = [
           entityId: row.entity_id,
           details: row.details_json ? JSON.parse(row.details_json) : null,
           createdAt: row.created_at,
+        })),
+      });
+    },
+  },
+  {
+    method: "GET",
+    path: "/reports/tickets",
+    handler: async ({ res, auth, url }) => {
+      const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
+      const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
+      const clauses = ["tickets.created_at::date BETWEEN ?::date AND ?::date"];
+      const params: Array<string | null> = [range.from, range.to];
+      appendMarketScope(clauses, params, "tickets.market_id", marketId);
+
+      const rows = await all<{
+        id: string;
+        ticket_number: string;
+        market_id: string | null;
+        market_name: string | null;
+        vendor_name: string;
+        assigned_to_name: string | null;
+        category: string;
+        priority: string;
+        status: string;
+        subject: string;
+        created_at: string;
+        sla_due_at: string | null;
+        first_response_at: string | null;
+        resolved_at: string | null;
+        closed_at: string | null;
+        escalated_at: string | null;
+        breached_sla: boolean;
+        comment_count: number;
+      }>(
+        `SELECT tickets.id,
+                tickets.ticket_number,
+                tickets.market_id,
+                markets.name AS market_name,
+                vendors.name AS vendor_name,
+                assignees.name AS assigned_to_name,
+                tickets.category,
+                tickets.priority,
+                tickets.status,
+                tickets.subject,
+                tickets.created_at,
+                tickets.sla_due_at,
+                tickets.first_response_at,
+                tickets.resolved_at,
+                tickets.closed_at,
+                tickets.escalated_at,
+                tickets.breached_sla,
+                COUNT(ticket_updates.id)::INT AS comment_count
+         FROM tickets
+         INNER JOIN users AS vendors ON vendors.id = tickets.vendor_id
+         LEFT JOIN users AS assignees ON assignees.id = tickets.assigned_to
+         LEFT JOIN markets ON markets.id = tickets.market_id
+         LEFT JOIN ticket_updates ON ticket_updates.ticket_id = tickets.id
+         WHERE ${clauses.join(" AND ")}
+         GROUP BY tickets.id,
+                  tickets.ticket_number,
+                  tickets.market_id,
+                  markets.name,
+                  vendors.name,
+                  assignees.name,
+                  tickets.category,
+                  tickets.priority,
+                  tickets.status,
+                  tickets.subject,
+                  tickets.created_at,
+                  tickets.sla_due_at,
+                  tickets.first_response_at,
+                  tickets.resolved_at,
+                  tickets.closed_at,
+                  tickets.escalated_at,
+                  tickets.breached_sla
+         ORDER BY tickets.created_at DESC`,
+        params,
+      );
+
+      const byCategory = new Map<string, number>();
+      const byPriority = new Map<string, number>();
+      const byStatus = new Map<string, number>();
+      const responseHours: number[] = [];
+      const resolutionHours: number[] = [];
+
+      for (const row of rows) {
+        byCategory.set(row.category, (byCategory.get(row.category) || 0) + 1);
+        byPriority.set(row.priority, (byPriority.get(row.priority) || 0) + 1);
+        byStatus.set(row.status, (byStatus.get(row.status) || 0) + 1);
+
+        const response = hoursBetween(row.created_at, row.first_response_at);
+        const resolution = hoursBetween(row.created_at, row.resolved_at || row.closed_at);
+        if (response !== null) responseHours.push(response);
+        if (resolution !== null) resolutionHours.push(resolution);
+      }
+
+      const average = (values: number[]) =>
+        values.length ? Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2)) : null;
+      const toBreakdown = (map: Map<string, number>) =>
+        Array.from(map.entries())
+          .map(([key, count]) => ({
+            key,
+            count,
+            percentage: rows.length ? Number(((count / rows.length) * 100).toFixed(1)) : 0,
+          }))
+          .sort((left, right) => right.count - left.count);
+
+      const generatedAt = new Date();
+      const reportId = `RPT-${generatedAt.getFullYear()}-${String(generatedAt.getMonth() + 1).padStart(2, "0")}-${String(
+        generatedAt.getTime() % 1000,
+      ).padStart(3, "0")}`;
+
+      sendJson(res, 200, {
+        reportId,
+        generatedAt: generatedAt.toISOString(),
+        dateRange: range,
+        summary: {
+          totalTickets: rows.length,
+          openTickets: byStatus.get("open") || 0,
+          inProgressTickets: byStatus.get("in_progress") || 0,
+          resolvedTickets: byStatus.get("resolved") || 0,
+          closedTickets: byStatus.get("closed") || 0,
+          escalatedTickets: rows.filter((row) => row.escalated_at).length,
+          slaBreaches: rows.filter(
+            (row) =>
+              row.breached_sla ||
+              (row.sla_due_at &&
+                !["resolved", "closed"].includes(row.status) &&
+                new Date(row.sla_due_at).getTime() < Date.now()),
+          ).length,
+          averageFirstResponseHours: average(responseHours),
+          averageResolutionHours: average(resolutionHours),
+        },
+        byCategory: toBreakdown(byCategory),
+        byPriority: toBreakdown(byPriority),
+        byStatus: toBreakdown(byStatus),
+        rows: rows.map((row) => ({
+          id: row.id,
+          ticketNumber: row.ticket_number,
+          marketId: row.market_id,
+          marketName: row.market_name,
+          vendorName: row.vendor_name,
+          assignedToName: row.assigned_to_name,
+          category: row.category,
+          priority: row.priority,
+          status: row.status,
+          subject: row.subject,
+          commentCount: row.comment_count,
+          breachedSla: row.breached_sla,
+          slaDueAt: row.sla_due_at,
+          escalatedAt: row.escalated_at,
+          createdAt: row.created_at,
+          firstResponseAt: row.first_response_at,
+          resolvedAt: row.resolved_at,
+          closedAt: row.closed_at,
         })),
       });
     },

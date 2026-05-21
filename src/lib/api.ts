@@ -23,6 +23,7 @@ import type {
   StaffStatus,
   Ticket,
   TicketCategory,
+  TicketPriority,
   TicketStatus,
   UtilityCalculationMethod,
   UtilityCharge,
@@ -407,8 +408,29 @@ export const api = {
   markAllNotificationsRead: () => apiRequest<{ ok: true; updated: number }>("/notifications/read-all", { method: "PATCH" }),
 
   getTickets: (marketId?: string) => apiRequest<{ tickets: Ticket[] }>(`/tickets${buildQuery({ marketId })}`),
+  searchTickets: (input?: {
+    q?: string;
+    marketId?: string;
+    status?: TicketStatus | "all";
+    category?: TicketCategory | "all";
+    priority?: TicketPriority | "all";
+    escalated?: boolean;
+    sla?: "breached";
+  }) =>
+    apiRequest<{ tickets: Ticket[] }>(
+      `/tickets/search${buildQuery({
+        q: input?.q,
+        marketId: input?.marketId,
+        status: input?.status,
+        category: input?.category,
+        priority: input?.priority,
+        escalated: input?.escalated ? "true" : undefined,
+        sla: input?.sla,
+      })}`,
+    ),
   async createTicket(input: {
     category: TicketCategory;
+    priority?: TicketPriority;
     subject: string;
     description: string;
     attachment?: File | null;
@@ -419,10 +441,20 @@ export const api = {
       body: JSON.stringify({ ...input, attachment }),
     });
   },
-  updateTicket: (ticketId: string, input: { status?: TicketStatus; resolutionNote?: string; note?: string }) =>
-    apiRequest<{ ticket: Ticket }>(`/tickets/${ticketId}`, {
-      method: "PATCH",
+  updateTicket: (ticketNumber: string, input: { status?: TicketStatus; resolutionNote?: string; note?: string; internal?: boolean }) =>
+    apiRequest<{ ticket: Ticket }>(`/tickets/${ticketNumber}/status`, {
+      method: "PUT",
       body: JSON.stringify(input),
+    }),
+  addTicketComment: (ticketNumber: string, input: { message: string; internal?: boolean }) =>
+    apiRequest<{ ticket: Ticket }>(`/tickets/${ticketNumber}/comments`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  escalateTicket: (ticketNumber: string, reason: string) =>
+    apiRequest<{ ticket: Ticket }>(`/tickets/${ticketNumber}/escalate`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
     }),
 
   getRevenueReport: (from: string, to: string, marketId?: string) =>

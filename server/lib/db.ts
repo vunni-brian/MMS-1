@@ -450,6 +450,7 @@ export const serializeAuthUser = (row: {
   profile_image_mime_type: string | null;
   profile_image_size: number | null;
   permission_scope_json?: string | null;
+  product_section?: string | null;
 }): AuthUser => {
   return {
     id: row.id,
@@ -473,6 +474,7 @@ export const serializeAuthUser = (row: {
         }
       : null,
     permissions: parsePermissionScope(row.role, row.permission_scope_json),
+    productSection: row.product_section,
   };
 };
 
@@ -496,8 +498,9 @@ export const getUserRecordById = async (userId: string) => {
     profile_image_mime_type: string | null;
     profile_image_size: number | null;
     permission_scope_json: string | null;
+    product_section: string | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name, staff_profiles.permission_scope_json
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, vendor_profiles.product_section AS product_section, markets.name AS market_name, staff_profiles.permission_scope_json
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id
@@ -527,8 +530,9 @@ export const getUserRecordByPhone = async (phone: string) => {
     profile_image_mime_type: string | null;
     profile_image_size: number | null;
     permission_scope_json: string | null;
+    product_section: string | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, markets.name AS market_name, staff_profiles.permission_scope_json
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, vendor_profiles.product_section AS product_section, markets.name AS market_name, staff_profiles.permission_scope_json
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id
@@ -1407,61 +1411,94 @@ export const seedDatabase = async () => {
     [createdAt],
   );
 
+  const ticketSeedYear = new Date(createdAt).getFullYear();
+  const seedTicketNumber = (sequence: number) => `TKT-${ticketSeedYear}-${String(sequence).padStart(5, "0")}`;
+
   run(
-    `INSERT OR IGNORE INTO tickets (id, market_id, vendor_id, category, subject, description, status, resolution_note, created_at, updated_at)
-     VALUES (?, 'market_kampala', ?, 'maintenance', 'Leaking roof in stall A-01', 'The roof has been leaking since last week when it rains.', 'open', NULL, ?, ?)`,
-    ["ticket_1", "user_vendor_amina", createdAt, createdAt],
+    `INSERT OR IGNORE INTO tickets (id, ticket_number, market_id, vendor_id, category, subject, description, status, priority, resolution_note, sla_due_at, created_at, updated_at)
+     VALUES (?, ?, 'market_kampala', ?, 'maintenance', 'Leaking roof in stall A-01', 'The roof has been leaking since last week when it rains.', 'open', 'medium', NULL, ?, ?, ?)`,
+    ["ticket_1", seedTicketNumber(1), "user_vendor_amina", isoFromDayOffset(3), createdAt, createdAt],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'open', 'Ticket created by vendor.', ?)`,
-    ["ticket_update_1", "ticket_1", "user_vendor_amina", createdAt],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'vendor', 'open', 'Ticket created by vendor.', FALSE, ?)`,
+    ["ticket_update_1", "ticket_1", `${seedTicketNumber(1)}-C1`, "user_vendor_amina", createdAt],
   );
 
   run(
-    `INSERT OR IGNORE INTO tickets (id, market_id, vendor_id, category, subject, description, status, resolution_note, created_at, updated_at)
-     VALUES (?, 'market_kampala', ?, 'billing', 'Receipt mismatch on February payment', 'The receipt total did not match the cashier confirmation.', 'resolved', 'Cashier ledger reconciled and receipt reissued.', ?, ?)`,
-    ["ticket_2", "user_vendor_amina", isoFromDayOffset(-18), isoFromDayOffset(-16)],
+    `INSERT OR IGNORE INTO tickets (id, ticket_number, market_id, vendor_id, category, subject, description, status, priority, resolution_note, sla_due_at, first_response_at, resolved_at, resolution_reference, created_at, updated_at)
+     VALUES (?, ?, 'market_kampala', ?, 'billing', 'Receipt mismatch on February payment', 'The receipt total did not match the cashier confirmation.', 'resolved', 'medium', 'Cashier ledger reconciled and receipt reissued.', ?, ?, ?, ?, ?, ?)`,
+    [
+      "ticket_2",
+      seedTicketNumber(2),
+      "user_vendor_amina",
+      isoFromDayOffset(-15),
+      isoFromDayOffset(-16),
+      isoFromDayOffset(-16),
+      `${seedTicketNumber(2)}-RES`,
+      isoFromDayOffset(-18),
+      isoFromDayOffset(-16),
+    ],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'open', 'Ticket created by vendor.', ?)`,
-    ["ticket_update_2a", "ticket_2", "user_vendor_amina", isoFromDayOffset(-18)],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'vendor', 'open', 'Ticket created by vendor.', FALSE, ?)`,
+    ["ticket_update_2a", "ticket_2", `${seedTicketNumber(2)}-C1`, "user_vendor_amina", isoFromDayOffset(-18)],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'resolved', 'Receipt reconciled and replacement issued.', ?)`,
-    ["ticket_update_2b", "ticket_2", "user_manager_sarah", isoFromDayOffset(-16)],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'manager', 'resolved', 'Receipt reconciled and replacement issued.', FALSE, ?)`,
+    ["ticket_update_2b", "ticket_2", `${seedTicketNumber(2)}-C2`, "user_manager_sarah", isoFromDayOffset(-16)],
   );
   run(
-    `INSERT OR IGNORE INTO tickets (id, market_id, vendor_id, category, subject, description, status, resolution_note, created_at, updated_at)
-     VALUES (?, 'market_kampala', ?, 'dispute', 'Neighboring stall blocked walkway', 'The neighboring stall extended its display into the shared path.', 'resolved', 'Manager issued a compliance warning and cleared the passage.', ?, ?)`,
-    ["ticket_3", "user_vendor_grace", isoFromDayOffset(-9), isoFromDayOffset(-8)],
+    `INSERT OR IGNORE INTO tickets (id, ticket_number, market_id, vendor_id, category, subject, description, status, priority, resolution_note, sla_due_at, first_response_at, resolved_at, resolution_reference, created_at, updated_at)
+     VALUES (?, ?, 'market_kampala', ?, 'dispute', 'Neighboring stall blocked walkway', 'The neighboring stall extended its display into the shared path.', 'resolved', 'high', 'Manager issued a compliance warning and cleared the passage.', ?, ?, ?, ?, ?, ?)`,
+    [
+      "ticket_3",
+      seedTicketNumber(3),
+      "user_vendor_grace",
+      isoFromDayOffset(-8),
+      isoFromDayOffset(-8),
+      isoFromDayOffset(-8),
+      `${seedTicketNumber(3)}-RES`,
+      isoFromDayOffset(-9),
+      isoFromDayOffset(-8),
+    ],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'open', 'Ticket created by vendor.', ?)`,
-    ["ticket_update_3a", "ticket_3", "user_vendor_grace", isoFromDayOffset(-9)],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'vendor', 'open', 'Ticket created by vendor.', FALSE, ?)`,
+    ["ticket_update_3a", "ticket_3", `${seedTicketNumber(3)}-C1`, "user_vendor_grace", isoFromDayOffset(-9)],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'resolved', 'Walkway restored and warning logged.', ?)`,
-    ["ticket_update_3b", "ticket_3", "user_manager_sarah", isoFromDayOffset(-8)],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'manager', 'resolved', 'Walkway restored and warning logged.', FALSE, ?)`,
+    ["ticket_update_3b", "ticket_3", `${seedTicketNumber(3)}-C2`, "user_manager_sarah", isoFromDayOffset(-8)],
   );
   run(
-    `INSERT OR IGNORE INTO tickets (id, market_id, vendor_id, category, subject, description, status, resolution_note, created_at, updated_at)
-     VALUES (?, 'market_jinja', ?, 'maintenance', 'Water drainage near J-01', 'Drainage backs up after heavy rain and affects customer access near J-01.', 'resolved', 'Drainage trench cleared and gravel replaced.', ?, ?)`,
-    ["ticket_4", "user_vendor_mary", isoFromDayOffset(-14), isoFromDayOffset(-12)],
+    `INSERT OR IGNORE INTO tickets (id, ticket_number, market_id, vendor_id, category, subject, description, status, priority, resolution_note, sla_due_at, first_response_at, resolved_at, resolution_reference, created_at, updated_at)
+     VALUES (?, ?, 'market_jinja', ?, 'maintenance', 'Water drainage near J-01', 'Drainage backs up after heavy rain and affects customer access near J-01.', 'resolved', 'medium', 'Drainage trench cleared and gravel replaced.', ?, ?, ?, ?, ?, ?)`,
+    [
+      "ticket_4",
+      seedTicketNumber(4),
+      "user_vendor_mary",
+      isoFromDayOffset(-11),
+      isoFromDayOffset(-12),
+      isoFromDayOffset(-12),
+      `${seedTicketNumber(4)}-RES`,
+      isoFromDayOffset(-14),
+      isoFromDayOffset(-12),
+    ],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'open', 'Ticket created by vendor.', ?)`,
-    ["ticket_update_4a", "ticket_4", "user_vendor_mary", isoFromDayOffset(-14)],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'vendor', 'open', 'Ticket created by vendor.', FALSE, ?)`,
+    ["ticket_update_4a", "ticket_4", `${seedTicketNumber(4)}-C1`, "user_vendor_mary", isoFromDayOffset(-14)],
   );
   run(
-    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, actor_user_id, status, note, created_at)
-     VALUES (?, ?, ?, 'resolved', 'Drainage route cleared and monitored after inspection.', ?)`,
-    ["ticket_update_4b", "ticket_4", "user_manager_brian", isoFromDayOffset(-12)],
+    `INSERT OR IGNORE INTO ticket_updates (id, ticket_id, comment_number, actor_user_id, author_role, status, note, is_internal, created_at)
+     VALUES (?, ?, ?, ?, 'manager', 'resolved', 'Drainage route cleared and monitored after inspection.', FALSE, ?)`,
+    ["ticket_update_4b", "ticket_4", `${seedTicketNumber(4)}-C2`, "user_manager_brian", isoFromDayOffset(-12)],
   );
 
   [

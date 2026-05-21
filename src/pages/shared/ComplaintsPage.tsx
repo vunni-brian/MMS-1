@@ -2,11 +2,16 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowUpRight,
   CheckCircle2,
   Clock3,
   Filter,
+  Lock,
+  MessageSquare,
   Plus,
   Search,
+  ShieldAlert,
+  TimerReset,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,45 +50,119 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Ticket, TicketCategory, TicketStatus } from "@/types";
+import type { Ticket, TicketCategory, TicketPriority, TicketStatus } from "@/types";
 
 type StatusFilter = "all" | TicketStatus;
 type CategoryFilter = "all" | TicketCategory;
+type PriorityFilter = "all" | TicketPriority;
 
 const categoryLabels: Record<TicketCategory, string> = {
   billing: "Billing",
   maintenance: "Maintenance",
   dispute: "Dispute",
+  payment: "Payment",
+  stall: "Stall",
+  sanitation: "Sanitation",
+  harassment: "Harassment",
   other: "Other",
 };
 
-const complaintSteps = ["Submitted", "Pending", "In Progress", "Resolved"];
+const priorityLabels: Record<TicketPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent",
+};
+
+const complaintSteps = ["Submitted", "In Progress", "Resolved", "Closed"];
 
 const getComplaintStepIndex = (status: TicketStatus) => {
-  if (status === "resolved") return 3;
-  if (status === "in_progress") return 2;
-  return 1;
+  if (status === "closed") return 3;
+  if (status === "resolved") return 2;
+  if (status === "in_progress") return 1;
+  return 0;
 };
 
 const getComplaintStatusLabel = (status: TicketStatus) =>
-  status === "open" ? "Pending" : undefined;
+  status === "open" ? "Open" : undefined;
 
-const getPriority = (ticket: Ticket) => {
-  if (ticket.category === "dispute") return "High";
-  if (ticket.category === "billing" || ticket.category === "maintenance") return "Medium";
-  return "Normal";
+const priorityToneClasses: Record<TicketPriority, string> = {
+  urgent: "border-destructive/30 bg-destructive/10 text-destructive",
+  high: "border-destructive/20 bg-destructive/10 text-destructive",
+  medium: "border-warning/20 bg-warning/10 text-warning-foreground",
+  low: "border-border bg-muted text-muted-foreground",
 };
 
 const ticketStatusOptions: Array<{ value: TicketStatus; label: string }> = [
-  { value: "open", label: "Pending" },
+  { value: "open", label: "Open" },
   { value: "in_progress", label: "In Progress" },
   { value: "resolved", label: "Resolved" },
+  { value: "closed", label: "Closed" },
 ];
 
 const nextTicketStatusOptions = (status: TicketStatus) => {
-  if (status === "open") return ticketStatusOptions.filter((option) => option.value !== "resolved");
-  if (status === "in_progress") return ticketStatusOptions.filter((option) => option.value !== "open");
-  return ticketStatusOptions.filter((option) => option.value === "resolved");
+  if (status === "open") return ticketStatusOptions.filter((option) => ["open", "in_progress", "closed"].includes(option.value));
+  if (status === "in_progress") return ticketStatusOptions.filter((option) => ["in_progress", "resolved", "closed"].includes(option.value));
+  if (status === "resolved") return ticketStatusOptions.filter((option) => ["resolved", "closed"].includes(option.value));
+  return ticketStatusOptions.filter((option) => option.value === "closed");
+};
+
+const formatSla = (ticket: Ticket) => {
+  if (!ticket.slaDueAt) return "No SLA";
+  if (ticket.status === "resolved" || ticket.status === "closed") return "Completed";
+
+  const diff = new Date(ticket.slaDueAt).getTime() - Date.now();
+  const absHours = Math.ceil(Math.abs(diff) / (1000 * 60 * 60));
+  if (diff < 0) return `${absHours}h overdue`;
+  if (absHours < 24) return `${absHours}h left`;
+  return `${Math.ceil(absHours / 24)}d left`;
+};
+
+const buildTicketTimeline = (ticket: Ticket) => {
+  const events = [
+    {
+      id: `${ticket.id}-created`,
+      label: "Ticket Created",
+      detail: `${ticket.ticketNumber} was submitted by ${ticket.vendorName}.`,
+      actor: ticket.vendorName,
+      timestamp: ticket.createdAt,
+      internal: false,
+    },
+    ...ticket.updates.map((update) => ({
+      id: update.id,
+      label: update.internal ? "Internal Note Added" : update.status === ticket.status ? "Ticket Update" : "Status Update",
+      detail: update.note,
+      actor: update.actorName,
+      timestamp: update.createdAt,
+      internal: update.internal,
+    })),
+    ...(ticket.escalatedAt
+      ? [
+          {
+            id: `${ticket.id}-escalated`,
+            label: "Escalated",
+            detail: `${ticket.escalationReference || `${ticket.ticketNumber}-ESC`}: ${ticket.escalationReason || "Senior review required."}`,
+            actor: ticket.assignedToName || "System",
+            timestamp: ticket.escalatedAt,
+            internal: true,
+          },
+        ]
+      : []),
+    ...(ticket.resolvedAt
+      ? [
+          {
+            id: `${ticket.id}-resolved`,
+            label: "Resolved",
+            detail: ticket.resolutionReference || `${ticket.ticketNumber}-RES`,
+            actor: ticket.assignedToName || "Manager",
+            timestamp: ticket.resolvedAt,
+            internal: false,
+          },
+        ]
+      : []),
+  ];
+
+  return events.sort((left, right) => new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime());
 };
 
 const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
@@ -119,14 +198,17 @@ const ComplaintsPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
 
   const [newTicket, setNewTicket] = useState<{
     category: TicketCategory;
+    priority: TicketPriority;
     subject: string;
     description: string;
     attachment: File | null;
   }>({
     category: "maintenance",
+    priority: "medium",
     subject: "",
     description: "",
     attachment: null,
@@ -136,10 +218,12 @@ const ComplaintsPage = () => {
     status: TicketStatus;
     resolutionNote: string;
     note: string;
+    internal: boolean;
   }>({
     status: "in_progress",
     resolutionNote: "",
     note: "",
+    internal: false,
   });
 
   const { data, isPending, isError } = useQuery({
@@ -155,13 +239,14 @@ const ComplaintsPage = () => {
       setShowNew(false);
       setNewTicket({
         category: "maintenance",
+        priority: "medium",
         subject: "",
         description: "",
         attachment: null,
       });
       setError(null);
       toast.success("Complaint submitted", {
-        description: "The ticket is now in the complaint register for review.",
+        description: "A trackable ticket number has been created in the complaint register.",
       });
     },
     onError: (mutationError) => {
@@ -173,7 +258,7 @@ const ComplaintsPage = () => {
   });
 
   const updateTicket = useMutation({
-    mutationFn: () => api.updateTicket(selected!.id, managerUpdate),
+    mutationFn: () => api.updateTicket(selected!.ticketNumber, managerUpdate),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tickets"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -189,6 +274,27 @@ const ComplaintsPage = () => {
     },
   });
 
+  const escalateTicket = useMutation({
+    mutationFn: () =>
+      api.escalateTicket(
+        selected!.ticketNumber,
+        managerUpdate.note.trim() || "SLA or operational risk requires official review.",
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      setSelected(null);
+      setError(null);
+      toast.success("Ticket escalated");
+    },
+    onError: (mutationError) => {
+      const message =
+        mutationError instanceof ApiError ? mutationError.message : "Unable to escalate ticket.";
+      setError(message);
+      toast.error("Ticket was not escalated", { description: message });
+    },
+  });
+
   const tickets = data?.tickets || [];
 
   const filteredTickets = tickets.filter((ticket) => {
@@ -196,12 +302,15 @@ const ComplaintsPage = () => {
     const matchesSearch =
       !term ||
       [
+        ticket.ticketNumber,
         ticket.id,
         ticket.subject,
         ticket.description,
         ticket.vendorName,
         categoryLabels[ticket.category],
         ticket.status,
+        ticket.priority,
+        ticket.assignedToName || "",
       ]
         .join(" ")
         .toLowerCase()
@@ -209,50 +318,59 @@ const ComplaintsPage = () => {
 
     const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
     const matchesCategory = categoryFilter === "all" || ticket.category === categoryFilter;
+    const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter;
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus && matchesCategory && matchesPriority;
   });
 
   const openTickets = tickets.filter((ticket) => ticket.status === "open");
   const inProgressTickets = tickets.filter((ticket) => ticket.status === "in_progress");
-  const resolvedTickets = tickets.filter((ticket) => ticket.status === "resolved");
-  const highPriorityTickets = tickets.filter((ticket) => getPriority(ticket) === "High");
+  const resolvedTickets = tickets.filter((ticket) => ticket.status === "resolved" || ticket.status === "closed");
+  const highPriorityTickets = tickets.filter((ticket) => ticket.priority === "high" || ticket.priority === "urgent");
+  const slaBreaches = tickets.filter((ticket) => ticket.breachedSla);
+  const escalatedTickets = tickets.filter((ticket) => Boolean(ticket.escalatedAt));
   const canSubmitComplaint = Boolean(
     newTicket.category &&
       newTicket.subject.trim() &&
       newTicket.description.trim(),
   );
-  const canUpdateSelectedTicket =
-    Boolean(selected) &&
-    (managerUpdate.status !== "resolved" || Boolean(managerUpdate.resolutionNote.trim()));
+  const requiresResolution = managerUpdate.status === "resolved" || managerUpdate.status === "closed";
+  const canUpdateSelectedTicket = Boolean(selected) && (!requiresResolution || Boolean(managerUpdate.resolutionNote.trim()));
   const complaintKpis = [
     {
-      label: "Total Tickets",
+      label: "Ticket Register",
       value: tickets.length,
-      detail: "All complaint records",
+      detail: "Unique complaint references",
       icon: AlertCircle,
       tone: "default" as const,
     },
     {
-      label: "Pending",
-      value: openTickets.length,
-      detail: "Awaiting manager action",
-      icon: Clock3,
-      tone: openTickets.length ? ("warning" as const) : ("default" as const),
+      label: "SLA Breaches",
+      value: slaBreaches.length,
+      detail: "Past due response or resolution",
+      icon: TimerReset,
+      tone: slaBreaches.length ? ("destructive" as const) : ("success" as const),
     },
     {
-      label: "In Progress",
-      value: inProgressTickets.length,
-      detail: "Currently being handled",
+      label: "Active Queue",
+      value: openTickets.length + inProgressTickets.length,
+      detail: `${openTickets.length} open, ${inProgressTickets.length} in progress`,
       icon: Clock3,
       tone: "info" as const,
     },
     {
       label: "High Priority",
       value: highPriorityTickets.length,
-      detail: "Dispute-related cases",
+      detail: "High and urgent severity",
       icon: AlertCircle,
       tone: highPriorityTickets.length ? ("destructive" as const) : ("success" as const),
+    },
+    {
+      label: "Escalations",
+      value: escalatedTickets.length,
+      detail: `${resolvedTickets.length} resolved or closed`,
+      icon: ShieldAlert,
+      tone: escalatedTickets.length ? ("warning" as const) : ("default" as const),
     },
   ];
 
@@ -305,7 +423,7 @@ const ComplaintsPage = () => {
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="pl-9"
-                      placeholder="Search tickets..."
+                      placeholder="Search TKT number, vendor, subject..."
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                     />
@@ -334,6 +452,21 @@ const ComplaintsPage = () => {
                       <SelectItem value="open">Pending</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="resolved">Resolved</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={priorityFilter} onValueChange={(value: PriorityFilter) => setPriorityFilter(value)}>
+                    <SelectTrigger className="w-full sm:w-[140px]">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priority</SelectItem>
+                      {Object.entries(priorityLabels).map(([key, value]) => (
+                        <SelectItem key={key} value={key}>
+                          {value}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
@@ -348,6 +481,7 @@ const ComplaintsPage = () => {
                       setSearch("");
                       setCategoryFilter("all");
                       setStatusFilter("all");
+                      setPriorityFilter("all");
                     }}
                   >
                     <Filter className="mr-1 h-4 w-4" />
@@ -373,6 +507,7 @@ const ComplaintsPage = () => {
                         <TableHead className="text-xs">Category</TableHead>
                         <TableHead className="text-xs">Priority</TableHead>
                         <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">SLA</TableHead>
                         <TableHead className="text-xs">Created</TableHead>
                         <TableHead className="text-right text-xs">Action</TableHead>
                       </TableRow>
@@ -380,17 +515,9 @@ const ComplaintsPage = () => {
 
                     <TableBody>
                       {filteredTickets.map((ticket) => {
-                        const priority = getPriority(ticket);
-                        const priorityClasses =
-                          priority === "High"
-                            ? "border-destructive/20 bg-destructive/10 text-destructive"
-                            : priority === "Medium"
-                              ? "border-warning/20 bg-warning/10 text-warning-foreground"
-                              : "border-border bg-muted text-muted-foreground";
-
                         return (
                           <TableRow key={ticket.id} className="text-xs">
-                            <TableCell className="font-mono text-xs">#{ticket.id}</TableCell>
+                            <TableCell className="whitespace-nowrap font-mono text-xs">{ticket.ticketNumber}</TableCell>
 
                             {role !== "vendor" && (
                               <TableCell className="whitespace-nowrap text-xs font-medium">
@@ -409,8 +536,8 @@ const ComplaintsPage = () => {
                             </TableCell>
 
                             <TableCell>
-                              <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${priorityClasses}`}>
-                                {priority}
+                              <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${priorityToneClasses[ticket.priority]}`}>
+                                {priorityLabels[ticket.priority]}
                               </span>
                             </TableCell>
 
@@ -419,6 +546,10 @@ const ComplaintsPage = () => {
                                 status={ticket.status}
                                 label={getComplaintStatusLabel(ticket.status)}
                               />
+                            </TableCell>
+
+                            <TableCell className={ticket.breachedSla ? "whitespace-nowrap text-xs font-medium text-destructive" : "whitespace-nowrap text-xs text-muted-foreground"}>
+                              {formatSla(ticket)}
                             </TableCell>
 
                             <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
@@ -435,6 +566,7 @@ const ComplaintsPage = () => {
                                     status: ticket.status,
                                     resolutionNote: ticket.resolution || "",
                                     note: "",
+                                    internal: false,
                                   });
                                 }}
                               >
@@ -471,6 +603,27 @@ const ComplaintsPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(categoryLabels).map(([key, value]) => (
+                    <SelectItem key={key} value={key}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="complaint-priority">Severity</Label>
+              <Select
+                value={newTicket.priority}
+                onValueChange={(value: TicketPriority) =>
+                  setNewTicket((current) => ({ ...current, priority: value }))
+                }
+              >
+                <SelectTrigger id="complaint-priority">
+                  <SelectValue placeholder="Select severity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(priorityLabels).map(([key, value]) => (
                     <SelectItem key={key} value={key}>
                       {value}
                     </SelectItem>
@@ -525,12 +678,18 @@ const ComplaintsPage = () => {
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="font-heading">Ticket #{selected?.id}</DialogTitle>
+            <DialogTitle className="font-heading">
+              {selected ? `${selected.ticketNumber} - ${selected.subject}` : "Ticket Detail"}
+            </DialogTitle>
           </DialogHeader>
 
           {selected && (
             <div className="space-y-4">
               <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Reference</span>
+                  <span className="font-mono text-xs font-semibold">{selected.ticketNumber}</span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Vendor</span>
                   <span className="font-medium">{selected.vendorName}</span>
@@ -540,12 +699,30 @@ const ComplaintsPage = () => {
                   <span>{categoryLabels[selected.category]}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Priority</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${priorityToneClasses[selected.priority]}`}>
+                    {priorityLabels[selected.priority]}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Status</span>
                   <StatusBadge
                     status={selected.status}
                     label={getComplaintStatusLabel(selected.status)}
                   />
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">SLA</span>
+                  <span className={selected.breachedSla ? "font-medium text-destructive" : ""}>
+                    {formatSla(selected)}
+                  </span>
+                </div>
+                {selected.assignedToName && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Assigned To</span>
+                    <span>{selected.assignedToName}</span>
+                  </div>
+                )}
               </div>
 
               <ComplaintProgress status={selected.status} />
@@ -566,12 +743,26 @@ const ComplaintsPage = () => {
               )}
 
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                <p className="mb-2 font-medium">Update History</p>
-                <div className="space-y-2">
-                  {selected.updates.map((update) => (
-                    <div key={update.id}>
-                      <p className="font-medium">{update.actorName}</p>
-                      <p className="text-muted-foreground">{update.note}</p>
+                <p className="mb-2 font-medium">Operational Timeline</p>
+                <div className="space-y-3">
+                  {buildTicketTimeline(selected).map((event) => (
+                    <div key={event.id} className="flex gap-3">
+                      <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-background">
+                        {event.internal ? <Lock className="h-3 w-3 text-muted-foreground" /> : <MessageSquare className="h-3 w-3 text-muted-foreground" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium">{event.label}</p>
+                          {event.internal && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+                              Internal
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground">{formatHumanDateTime(event.timestamp)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{event.actor}</p>
+                        <p className="mt-1 text-muted-foreground">{event.detail}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -599,12 +790,12 @@ const ComplaintsPage = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Complaints move from Pending to In Progress before they can be resolved.
+                      Lifecycle changes are written to the audit log and linked to this ticket reference.
                     </p>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="ticket-resolution-note">Resolution Note</Label>
+                    <Label htmlFor="ticket-resolution-note">Resolution / Closure Note</Label>
                     <Textarea
                       id="ticket-resolution-note"
                       value={managerUpdate.resolutionNote}
@@ -619,7 +810,7 @@ const ComplaintsPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="ticket-manager-note">Manager Note</Label>
+                    <Label htmlFor="ticket-manager-note">Operational Note</Label>
                     <Textarea
                       id="ticket-manager-note"
                       value={managerUpdate.note}
@@ -630,13 +821,37 @@ const ComplaintsPage = () => {
                     />
                   </div>
 
-                  <Button
-                    className="w-full"
-                    onClick={() => updateTicket.mutate()}
-                    disabled={updateTicket.isPending || !canUpdateSelectedTicket}
-                  >
-                    Update Ticket
-                  </Button>
+                  <label className="flex items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={managerUpdate.internal}
+                      onChange={(event) =>
+                        setManagerUpdate((current) => ({ ...current, internal: event.target.checked }))
+                      }
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <span>Mark note as internal</span>
+                  </label>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      className="flex-1"
+                      onClick={() => updateTicket.mutate()}
+                      disabled={updateTicket.isPending || !canUpdateSelectedTicket}
+                    >
+                      Update Ticket
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => escalateTicket.mutate()}
+                      disabled={escalateTicket.isPending || selected.status === "closed"}
+                    >
+                      <ArrowUpRight className="mr-1 h-4 w-4" />
+                      Escalate
+                    </Button>
+                  </div>
                 </>
               ) : (
                 selected.resolution && (

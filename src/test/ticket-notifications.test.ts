@@ -58,4 +58,18 @@ describe("ticket notification rules", () => {
       message: 'Your ticket "THEFT" is now open.',
     });
   });
+
+  it("includes the enterprise ticket number when one is available", () => {
+    expect(
+      getVendorTicketNotification({
+        previousStatus: "open",
+        nextStatus: "in_progress",
+        subject: "Stall roof leaking",
+        ticketNumber: "TKT-2026-00123",
+      }),
+    ).toEqual({
+      channels: ["system", "sms"],
+      message: 'TKT-2026-00123: Your complaint "Stall roof leaking" is now in progress.',
+    });
+  });
 });

@@ -44,8 +44,17 @@ export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "
 export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
 export type UtilityChargeStatus = "unpaid" | "pending" | "pending_payment" | "paid" | "overdue" | "cancelled";
 export type PenaltyStatus = "unpaid" | "pending" | "pending_payment" | "paid" | "cancelled";
-export type TicketStatus = "open" | "in_progress" | "resolved";
-export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+export type TicketPriority = "low" | "medium" | "high" | "urgent";
+export type TicketCategory =
+  | "billing"
+  | "maintenance"
+  | "dispute"
+  | "payment"
+  | "stall"
+  | "sanitation"
+  | "harassment"
+  | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
 export type NotificationPriority = "low" | "normal" | "high";
 export type NotificationChannel = "system" | "sms" | "email";
@@ -108,6 +117,7 @@ export interface AuthUser {
   marketId: string | null;
   marketName: string | null;
   profileImage: Attachment | null;
+  productSection?: string | null;
 }
 
 export interface StaffAccount {

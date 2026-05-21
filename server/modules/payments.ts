@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import type { ServerResponse } from "node:http";
+
 import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, readRawBody, sendJson, type RouteDefinition } from "../lib/http.ts";
@@ -6,8 +9,11 @@ import { getPenaltyDisplayName } from "../lib/penalties.ts";
 import { getPesapalPaymentOutcome, getPesapalTransactionStatus, submitPesapalOrder } from "../lib/pesapal.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
 import { nowIso } from "../lib/security.ts";
+import { persistFilePayload, validateFilePayload } from "../lib/storage.ts";
+import { downloadSupabaseStorageObject } from "../lib/supabase.ts";
 import { getUtilityChargeDisplayName, getUtilityChargeResetStatus } from "../lib/utilities.ts";
 import { config } from "../config.ts";
+import type { FilePayload } from "../types.ts";
 
 const paymentSelect = `
   SELECT payments.id,
@@ -31,6 +37,11 @@ const paymentSelect = `
          payments.phone,
          payments.receipt_id,
          payments.receipt_message,
+         payments.receipt_file_name,
+         payments.receipt_file_path,
+         payments.receipt_file_mime_type,
+         payments.receipt_file_size,
+         payments.verification_note,
          payments.created_at,
          payments.updated_at,
          payments.completed_at,
@@ -76,6 +87,11 @@ const mapPayment = (row: {
   phone: string;
   receipt_id: string | null;
   receipt_message: string | null;
+  receipt_file_name: string | null;
+  receipt_file_path: string | null;
+  receipt_file_mime_type: string | null;
+  receipt_file_size: number | null;
+  verification_note: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -115,6 +131,11 @@ const mapPayment = (row: {
   phone: row.phone,
   receiptId: row.receipt_id,
   receiptMessage: row.receipt_message,
+  receiptFileName: row.receipt_file_name,
+  receiptFilePath: row.receipt_file_path,
+  receiptFileMimeType: row.receipt_file_mime_type,
+  receiptFileSize: row.receipt_file_size,
+  verificationNote: row.verification_note,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   completedAt: row.completed_at,
@@ -139,6 +160,11 @@ const getPaymentById = async (paymentId: string) => {
     phone: string;
     receipt_id: string | null;
     receipt_message: string | null;
+    receipt_file_name: string | null;
+    receipt_file_path: string | null;
+    receipt_file_mime_type: string | null;
+    receipt_file_size: number | null;
+    verification_note: string | null;
     created_at: string;
     updated_at: string;
     completed_at: string | null;
@@ -248,12 +274,14 @@ const completePayment = async ({
   providerReference,
   status,
   gatewayResponse,
+  receiptMessage: receiptMessageOverride,
 }: {
   paymentId: string;
   transactionId: string;
   providerReference?: string | null;
   status: "completed" | "failed";
   gatewayResponse?: unknown;
+  receiptMessage?: string | null;
 }) => {
   const payment = await get<{
     id: string;
@@ -267,6 +295,8 @@ const completePayment = async ({
     amount: number;
     phone: string;
     external_reference: string;
+    receipt_id: string | null;
+    receipt_message: string | null;
     vendor_name: string;
     stall_name: string | null;
     utility_charge_description: string | null;
@@ -286,6 +316,8 @@ const completePayment = async ({
             payments.amount,
             payments.phone,
             payments.external_reference,
+            payments.receipt_id,
+            payments.receipt_message,
             users.name AS vendor_name,
             COALESCE(booking_stalls.name, utility_booking_stalls.name) AS stall_name,
             utility_charges.description AS utility_charge_description,
@@ -324,17 +356,19 @@ const completePayment = async ({
     : payment.penalty_id
       ? getPenaltyDisplayName(payment.penalty_reason)
     : null;
-  const receiptId = status === "completed" ? `RCPT-${paymentId.slice(-6).toUpperCase()}` : null;
+  const receiptId = status === "completed" ? payment.receipt_id || `RCPT-${paymentId.slice(-6).toUpperCase()}` : payment.receipt_id;
   const receiptMessage =
     status === "completed"
-      ? getPaymentSuccessMessage({
+      ? receiptMessageOverride ||
+        payment.receipt_message ||
+        getPaymentSuccessMessage({
           amount: payment.amount,
           chargeType: payment.charge_type,
           itemLabel,
           reference,
           completedAt: timestamp,
         })
-      : `Payment for ${getPaymentItemLabel({ chargeType: payment.charge_type, itemLabel })} failed. Reference: ${reference}.`;
+      : receiptMessageOverride || `Receipt for ${getPaymentItemLabel({ chargeType: payment.charge_type, itemLabel })} was rejected. Reference: ${reference}.`;
 
   let statusUpdated = false;
   await transaction(async () => {
@@ -579,6 +613,143 @@ const applyPesapalStatus = async ({
   return await getPaymentById(payment.id);
 };
 
+const allowedReceiptTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+
+const generateReceiptReference = () => {
+  const now = new Date();
+  return `RCPT-${now.getFullYear()}-${String(now.getTime() % 100000).padStart(5, "0")}`;
+};
+
+const getManualPaymentTarget = async ({
+  bookingId,
+  utilityChargeId,
+  penaltyId,
+  vendorId,
+  marketId,
+}: {
+  bookingId?: string | null;
+  utilityChargeId?: string | null;
+  penaltyId?: string | null;
+  vendorId: string;
+  marketId: string;
+}) => {
+  if (bookingId) {
+    const booking = await get<{
+      id: string;
+      market_id: string;
+      vendor_id: string;
+      status: string;
+      amount: number;
+    }>(`SELECT id, market_id, vendor_id, status, amount FROM bookings WHERE id = ?`, [bookingId]);
+    if (!booking || booking.vendor_id !== vendorId || booking.market_id !== marketId) {
+      throw new HttpError(404, "Booking not found.");
+    }
+    if (booking.status !== "approved") {
+      throw new HttpError(409, "This booking is not eligible for receipt upload.");
+    }
+    await assertChargeEnabled("booking_fee", booking.market_id);
+    return {
+      marketId: booking.market_id,
+      amount: booking.amount,
+      chargeType: "booking_fee",
+      bookingId: booking.id,
+      utilityChargeId: null,
+      utilityDueDate: null,
+      penaltyId: null,
+      duplicateClause: "booking_id",
+      duplicateId: booking.id,
+    };
+  }
+
+  if (utilityChargeId) {
+    const utilityCharge = await get<{
+      id: string;
+      market_id: string;
+      vendor_id: string;
+      status: string;
+      amount: number;
+      due_date: string;
+    }>(`SELECT id, market_id, vendor_id, status, amount, due_date::text AS due_date FROM utility_charges WHERE id = ?`, [utilityChargeId]);
+    if (!utilityCharge || utilityCharge.vendor_id !== vendorId || utilityCharge.market_id !== marketId) {
+      throw new HttpError(404, "Utility charge not found.");
+    }
+    if (!["unpaid", "overdue"].includes(utilityCharge.status)) {
+      throw new HttpError(409, "This utility charge is not eligible for receipt upload.");
+    }
+    await assertChargeEnabled("utilities", utilityCharge.market_id);
+    return {
+      marketId: utilityCharge.market_id,
+      amount: utilityCharge.amount,
+      chargeType: "utilities",
+      bookingId: null,
+      utilityChargeId: utilityCharge.id,
+      utilityDueDate: utilityCharge.due_date,
+      penaltyId: null,
+      duplicateClause: "utility_charge_id",
+      duplicateId: utilityCharge.id,
+    };
+  }
+
+  const penalty = await get<{
+    id: string;
+    market_id: string;
+    vendor_id: string;
+    status: string;
+    amount: number;
+  }>(`SELECT id, market_id, vendor_id, status, amount FROM penalties WHERE id = ?`, [penaltyId]);
+  if (!penalty || penalty.vendor_id !== vendorId || penalty.market_id !== marketId) {
+    throw new HttpError(404, "Penalty not found.");
+  }
+  if (penalty.status !== "unpaid") {
+    throw new HttpError(409, "This penalty is not eligible for receipt upload.");
+  }
+  await assertChargeEnabled("penalties", penalty.market_id);
+  return {
+    marketId: penalty.market_id,
+    amount: penalty.amount,
+    chargeType: "penalties",
+    bookingId: null,
+    utilityChargeId: null,
+    utilityDueDate: null,
+    penaltyId: penalty.id,
+    duplicateClause: "penalty_id",
+    duplicateId: penalty.id,
+  };
+};
+
+const servePaymentReceiptFile = async ({
+  res,
+  payment,
+}: {
+  res: ServerResponse;
+  payment: { receiptFilePath: string | null; receiptFileMimeType: string | null; receiptFileName: string | null };
+}) => {
+  if (!payment.receiptFilePath) {
+    throw new HttpError(404, "Receipt file not found.");
+  }
+
+  res.setHeader("Content-Type", payment.receiptFileMimeType || "application/octet-stream");
+  res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(payment.receiptFileName || "receipt")}"`);
+  res.setHeader("Cache-Control", "private, max-age=60");
+
+  if (payment.receiptFilePath.startsWith("supabase://")) {
+    const buffer = await downloadSupabaseStorageObject(payment.receiptFilePath);
+    if (!buffer) {
+      throw new HttpError(404, "Receipt file not found.");
+    }
+    res.writeHead(200);
+    res.end(buffer);
+    return;
+  }
+
+  if (!fs.existsSync(payment.receiptFilePath)) {
+    throw new HttpError(404, "Receipt file is missing from storage.");
+  }
+
+  res.writeHead(200);
+  fs.createReadStream(payment.receiptFilePath).pipe(res);
+};
+
 export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -616,6 +787,11 @@ export const paymentRoutes: RouteDefinition[] = [
         phone: string;
         receipt_id: string | null;
         receipt_message: string | null;
+        receipt_file_name: string | null;
+        receipt_file_path: string | null;
+        receipt_file_mime_type: string | null;
+        receipt_file_size: number | null;
+        verification_note: string | null;
         created_at: string;
         updated_at: string;
         completed_at: string | null;
@@ -644,7 +820,14 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(503, "Payments are currently disabled.");
       }
 
-      const body = await readJsonBody<{ bookingId?: string | null; utilityChargeId?: string | null; penaltyId?: string | null }>(req);
+      const body = await readJsonBody<{
+        bookingId?: string | null;
+        utilityChargeId?: string | null;
+        penaltyId?: string | null;
+        receiptNumber?: string | null;
+        receiptNote?: string | null;
+        receiptFile?: FilePayload | null;
+      }>(req);
       const bookingId = body.bookingId?.trim() || null;
       const utilityChargeId = body.utilityChargeId?.trim() || null;
       const penaltyId = body.penaltyId?.trim() || null;
@@ -652,6 +835,119 @@ export const paymentRoutes: RouteDefinition[] = [
       const targetCount = [bookingId, utilityChargeId, penaltyId].filter(Boolean).length;
       if (targetCount !== 1) {
         throw new HttpError(400, "Provide exactly one booking, utility charge, or penalty to pay.");
+      }
+
+      if (body.receiptFile) {
+        validateFilePayload(body.receiptFile, allowedReceiptTypes, true);
+        const target = await getManualPaymentTarget({
+          bookingId,
+          utilityChargeId,
+          penaltyId,
+          vendorId: session.user.id,
+          marketId,
+        });
+        if (target.amount <= 0) {
+          throw new HttpError(409, "There is no payment due for this record.");
+        }
+
+        const existingPending = await get<{ id: string }>(
+          `SELECT id FROM payments WHERE ${target.duplicateClause} = ? AND status = 'pending'`,
+          [target.duplicateId],
+        );
+        if (existingPending) {
+          throw new HttpError(409, "A receipt is already awaiting verification for this record.");
+        }
+
+        const paymentId = createId("payment");
+        const receiptReference = body.receiptNumber?.trim() || generateReceiptReference();
+        const receiptMessage = body.receiptNote?.trim() || "Receipt uploaded and awaiting verification.";
+        const timestamp = nowIso();
+        const file = await persistFilePayload("payment-receipts", paymentId, body.receiptFile);
+
+        await transaction(async () => {
+          await run(
+            `INSERT INTO payments (
+               id, market_id, booking_id, utility_charge_id, penalty_id, vendor_id, provider, charge_type,
+               amount, status, transaction_id, provider_reference, external_reference, phone,
+               receipt_id, receipt_message, receipt_file_name, receipt_file_path, receipt_file_mime_type,
+               receipt_file_size, verification_note, gateway_response_json, created_at, updated_at, completed_at
+             )
+             VALUES (?, ?, ?, ?, ?, ?, 'receipt', ?, ?, 'pending', NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, NULL)`,
+            [
+              paymentId,
+              target.marketId,
+              target.bookingId,
+              target.utilityChargeId,
+              target.penaltyId,
+              session.user.id,
+              target.chargeType,
+              target.amount,
+              receiptReference,
+              paymentId,
+              session.user.phone,
+              receiptReference,
+              receiptMessage,
+              file.name,
+              file.storagePath,
+              file.mimeType,
+              file.size,
+              timestamp,
+              timestamp,
+            ],
+          );
+          await run(
+            `INSERT INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
+             VALUES (?, ?, 'receipt', 'pending', ?, ?)`,
+            [createId("attempt"), paymentId, timestamp, timestamp],
+          );
+
+          if (target.utilityChargeId) {
+            await run(
+              `UPDATE utility_charges
+               SET status = 'pending',
+                   updated_at = ?,
+                   paid_at = NULL
+               WHERE id = ?`,
+              [timestamp, target.utilityChargeId],
+            );
+          }
+          if (target.penaltyId) {
+            await run(
+              `UPDATE penalties
+               SET status = 'pending',
+                   updated_at = ?,
+                   paid_at = NULL
+               WHERE id = ?`,
+              [timestamp, target.penaltyId],
+            );
+          }
+        });
+
+        await logAuditEvent({
+          actorUserId: session.user.id,
+          actorName: session.user.name,
+          actorRole: session.user.role,
+          marketId: target.marketId,
+          action: "UPLOAD_RECEIPT",
+          entityType: "payment",
+          entityId: paymentId,
+          details: {
+            receiptReference,
+            bookingId,
+            utilityChargeId,
+            penaltyId,
+          },
+        });
+
+        sendJson(res, 201, {
+          payment: await getPaymentById(paymentId),
+          status: "pending",
+          redirectUrl: "",
+          orderTrackingId: "",
+          iframe: false,
+          message: "Receipt uploaded for verification.",
+        });
+        return;
       }
 
       const paymentId = createId("payment");

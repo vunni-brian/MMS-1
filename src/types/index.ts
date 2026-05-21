@@ -42,11 +42,20 @@ export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "
 export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
 export type UtilityChargeStatus = "unpaid" | "pending" | "pending_payment" | "paid" | "overdue" | "cancelled";
 export type PenaltyStatus = "unpaid" | "pending" | "pending_payment" | "paid" | "cancelled";
-export type TicketStatus = "open" | "in_progress" | "resolved";
-export type TicketCategory = "billing" | "maintenance" | "dispute" | "other";
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+export type TicketPriority = "low" | "medium" | "high" | "urgent";
+export type TicketCategory =
+  | "billing"
+  | "maintenance"
+  | "dispute"
+  | "payment"
+  | "stall"
+  | "sanitation"
+  | "harassment"
+  | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
 export type NotificationPriority = "low" | "normal" | "high";
-export type PaymentMethod = "mtn" | "airtel" | "pesapal";
+export type PaymentMethod = "mtn" | "airtel" | "pesapal" | "receipt";
 export type ResourceRequestCategory = "budget" | "structural";
 export type ResourceRequestStatus = "pending" | "approved" | "rejected";
 export type LocationType = "region" | "city" | "district" | "division" | "municipality" | "subcounty" | "market";
@@ -105,6 +114,7 @@ export interface AuthUser {
   marketId: string | null;
   marketName: string | null;
   profileImage: Attachment | null;
+  productSection?: string | null;
 }
 
 export interface StaffAccount {
@@ -225,6 +235,11 @@ export interface Payment {
   phone: string;
   receiptId: string | null;
   receiptMessage: string | null;
+  receiptFileName: string | null;
+  receiptFilePath: string | null;
+  receiptFileMimeType: string | null;
+  receiptFileSize: number | null;
+  verificationNote: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -325,28 +340,57 @@ export interface VendorActivityEvent {
 
 export interface TicketUpdate {
   id: string;
+  commentNumber: string;
   actorUserId: string;
   actorName: string;
+  authorRole: Role;
   status: TicketStatus;
   note: string;
+  internal: boolean;
   createdAt: string;
+}
+
+export interface TicketAuditLog {
+  id: string;
+  logNumber: string;
+  action: string;
+  previousValue: string | null;
+  newValue: string | null;
+  performedBy: string;
+  performedByName: string;
+  performedAt: string;
+  details: Record<string, unknown> | null;
 }
 
 export interface Ticket {
   id: string;
+  ticketNumber: string;
   marketId: string | null;
   marketName: string | null;
   vendorId: string;
   vendorName: string;
+  assignedTo: string | null;
+  assignedToName: string | null;
+  priority: TicketPriority;
   category: TicketCategory;
   subject: string;
   description: string;
   status: TicketStatus;
   resolution: string | null;
+  slaDueAt: string | null;
+  firstResponseAt: string | null;
+  breachedSla: boolean;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  escalatedAt: string | null;
+  escalationReason: string | null;
+  escalationReference: string | null;
+  resolutionReference: string | null;
   createdAt: string;
   updatedAt: string;
   attachments: Attachment[];
   updates: TicketUpdate[];
+  auditLog: TicketAuditLog[];
 }
 
 export interface RevenueReportRow {
