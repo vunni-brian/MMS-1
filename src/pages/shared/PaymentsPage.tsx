@@ -2,15 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
-  AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
-  Clock3,
-  ExternalLink,
   ReceiptText,
-  ShieldCheck,
+  Upload,
   Wallet,
-  XCircle,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,7 +29,6 @@ import {
   DetailSheet,
   EmptyState,
   EvidenceField,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -57,7 +50,8 @@ type OutstandingTab = "bookings" | "utilities" | "penalties";
 const paymentMethodMeta: Record<PaymentMethod, { label: string; className: string }> = {
   mtn: { label: "MTN", className: "bg-muted text-muted-foreground" },
   airtel: { label: "AIRTEL", className: "bg-muted text-muted-foreground" },
-  pesapal: { label: "PESAPAL", className: "bg-muted text-muted-foreground" },
+  pesapal: { label: "Receipt", className: "bg-muted text-muted-foreground" },
+  receipt: { label: "Receipt", className: "bg-muted text-muted-foreground" },
 };
 
 const utilityTypeLabels: Record<UtilityType, string> = {
@@ -94,7 +88,7 @@ const getUtilityStatusLabel = (status: UtilityCharge["status"]) =>
 
 const getPaymentChannelDescription = (payment: Payment) => {
   const methodLabel = paymentMethodMeta[payment.method].label;
-  if (payment.bookingId) return `${methodLabel} payment for booking ${payment.bookingId}`;
+  if (payment.bookingId) return `${methodLabel} payment for stall booking`;
   if (payment.utilityChargeId) return `${methodLabel} utility payment`;
   if (payment.penaltyId) return `${methodLabel} penalty payment`;
   return `${methodLabel} payment`;
@@ -139,7 +133,9 @@ const PaymentsPage = () => {
     };
   } | null>(null);
   const [selectedReceiptPaymentId, setSelectedReceiptPaymentId] = useState<string | null>(null);
-  const [checkoutSession, setCheckoutSession] = useState<{ redirectUrl: string } | null>(null);
+  const [receiptNumber, setReceiptNumber] = useState("");
+  const [receiptNote, setReceiptNote] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [statusFilter, setStatusFilter] = useState<PaymentHistoryStatusFilter>("all");
   const [yearFilter, setYearFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -197,6 +193,9 @@ const PaymentsPage = () => {
       bookingId?: string | null;
       utilityChargeId?: string | null;
       penaltyId?: string | null;
+      receiptNumber?: string | null;
+      receiptNote?: string | null;
+      receiptFile?: File | null;
     }) => api.initiatePayment(payload),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: ["payments"] });
@@ -205,19 +204,15 @@ const PaymentsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["penalties"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
-      toast.success("Checkout session prepared", {
-        description: "Complete the Pesapal checkout to confirm the payment.",
+      toast.success("Receipt uploaded", {
+        description: "A manager will review the receipt and update the payment status.",
       });
 
       setError(null);
       setPaymentIntent(null);
-
-      if (response.iframe) {
-        setCheckoutSession({ redirectUrl: response.redirectUrl });
-        return;
-      }
-
-      window.location.assign(response.redirectUrl);
+      setReceiptNumber("");
+      setReceiptNote("");
+      setReceiptFile(null);
     },
     onError: (mutationError) => {
       const message =
@@ -274,17 +269,9 @@ const PaymentsPage = () => {
     receiptQuery.data?.receipt.receiptId ||
     selectedReceiptPayment?.receiptId ||
     "Pending receipt generation";
-  const paymentTransactionId =
-    receiptQuery.data?.receipt.transactionId ||
-    selectedReceiptPayment?.transactionId ||
-    "Awaiting confirmation";
   const paymentAmount = receiptQuery.data?.receipt.amount || selectedReceiptPayment?.amount || 0;
   const paymentCompletedAt =
     receiptQuery.data?.receipt.createdAt || selectedReceiptPayment?.completedAt || null;
-
-  const completedPayments = payments.filter((payment) => payment.status === "completed");
-  const pendingConfirmationPayments = payments.filter((payment) => payment.status === "pending");
-  const failedPayments = payments.filter((payment) => payment.status === "failed");
 
   const payableUtilityCharges = utilityCharges.filter(
     (charge) => charge.status === "unpaid" || charge.status === "overdue" || charge.status === "pending",
@@ -293,83 +280,6 @@ const PaymentsPage = () => {
   const payablePenalties = penalties.filter(
     (penalty: Penalty) => penalty.status === "unpaid" || penalty.status === "pending",
   );
-
-  const vendorObligationTotal =
-    pendingBookings.reduce((sum, booking) => sum + booking.amount, 0) +
-    utilityCharges
-      .filter((charge) => charge.status === "unpaid" || charge.status === "overdue")
-      .reduce((sum, charge) => sum + charge.amount, 0) +
-    penalties
-      .filter((penalty: Penalty) => penalty.status === "unpaid")
-      .reduce((sum, penalty: Penalty) => sum + penalty.amount, 0);
-
-  const completedPaymentTotal = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-
-  const pageKpis =
-    role === "vendor"
-      ? [
-        {
-          label: "Open Obligations",
-          value: formatCurrency(vendorObligationTotal),
-          detail: "Bookings, utilities, and penalties still requiring payment",
-          icon: Wallet,
-          tone: vendorObligationTotal > 0 ? ("warning" as const) : ("success" as const),
-        },
-        {
-          label: "Pending Confirmation",
-          value: pendingConfirmationPayments.length,
-          detail: "Pesapal attempt awaiting gateway status",
-          icon: Clock3,
-          tone: "info" as const,
-        },
-        {
-          label: "Completed Payments",
-          value: completedPayments.length,
-          detail: formatCurrency(completedPaymentTotal),
-          icon: CheckCircle2,
-          tone: "success" as const,
-        },
-        {
-          label: "Failed Attempts",
-          value: failedPayments.length,
-          detail: failedPayments.length
-            ? "Retry from the original obligation"
-            : "No failed attempts",
-          icon: XCircle,
-          tone: failedPayments.length ? ("destructive" as const) : ("default" as const),
-        },
-      ]
-      : [
-        {
-          label: "Collections Confirmed",
-          value: formatCurrency(completedPaymentTotal),
-          detail: `${completedPayments.length} completed payment${completedPayments.length === 1 ? "" : "s"
-            }`,
-          icon: CheckCircle2,
-          tone: "success" as const,
-        },
-        {
-          label: "Pending Confirmation",
-          value: pendingConfirmationPayments.length,
-          detail: "Gateway attempts still processing",
-          icon: Clock3,
-          tone: "info" as const,
-        },
-        {
-          label: "Failed Attempts",
-          value: failedPayments.length,
-          detail: "Failed Pesapal or legacy attempts",
-          icon: AlertTriangle,
-          tone: failedPayments.length ? ("destructive" as const) : ("default" as const),
-        },
-        {
-          label: "Payment Records",
-          value: payments.length,
-          detail: "Evidence rows in the current scope",
-          icon: ReceiptText,
-          tone: "default" as const,
-        },
-      ];
 
   const outstandingTabs: Array<{ key: OutstandingTab; label: string; count: number }> = [
     { key: "bookings", label: "Bookings", count: pendingBookings.length },
@@ -382,11 +292,10 @@ const PaymentsPage = () => {
       <PageHeader
         eyebrow="Payments and evidence"
         title="Payments"
-        description={role === "vendor" ? "Obligations, checkout status, and receipts." : "Payment status, references, and gateway evidence."}
+        description={role === "vendor" ? "Obligations, receipt upload, and verification status." : "Receipt status, references, and verification evidence."}
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">Role: {role}</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">Gateway: Pesapal</span>
             {user?.marketName && (
               <span className="rounded-full bg-muted px-2.5 py-1">
                 Market: {user.marketName}
@@ -482,8 +391,6 @@ const PaymentsPage = () => {
         <LoadingState rows={role === "vendor" ? 7 : 5} itemClassName="h-28 rounded-xl" />
       ) : (
         <>
-          <KpiStrip items={pageKpis} />
-
           {role === "vendor" && (
             <Panel
               title="Outstanding Payments"
@@ -550,10 +457,10 @@ const PaymentsPage = () => {
                                 >
                                   <Wallet className="mr-1 h-4 w-4" />
                                   {feeDisabled
-                                    ? "Fee Disabled"
+                                    ? "No payments due"
                                     : pendingPayment
-                                      ? "Awaiting Confirmation"
-                                      : "Proceed to Payment"}
+                                      ? "Pending"
+                                      : "Upload Receipt"}
                                 </Button>
                               </div>
                             </div>
@@ -582,8 +489,8 @@ const PaymentsPage = () => {
                           charge.status === "paid" && Boolean(charge.latestPaymentId);
                         const actionLabel =
                           pendingPayment || charge.status === "pending"
-                            ? "Awaiting Confirmation"
-                            : "Proceed to Payment";
+                            ? "Pending"
+                            : "Upload Receipt";
 
                         return (
                           <div
@@ -654,7 +561,7 @@ const PaymentsPage = () => {
                               {amountDisabled && ["unpaid", "overdue"].includes(charge.status) && (
                                 <Button disabled>
                                   <Wallet className="mr-1 h-4 w-4" />
-                                  Fee Disabled
+                                  No payments due
                                 </Button>
                               )}
 
@@ -663,7 +570,7 @@ const PaymentsPage = () => {
                                 (pendingPayment || charge.status === "pending") && (
                                   <Button disabled>
                                     <Wallet className="mr-1 h-4 w-4" />
-                                    Awaiting Confirmation
+                                    Pending
                                   </Button>
                                 )}
 
@@ -702,8 +609,8 @@ const PaymentsPage = () => {
                           penalty.status === "paid" && Boolean(penalty.latestPaymentId);
                         const actionLabel =
                           pendingPayment || penalty.status === "pending"
-                            ? "Awaiting Confirmation"
-                            : "Proceed to Payment";
+                            ? "Pending"
+                            : "Upload Receipt";
 
                         return (
                           <div
@@ -782,7 +689,7 @@ const PaymentsPage = () => {
                               {amountDisabled && penalty.status === "unpaid" && (
                                 <Button disabled>
                                   <Wallet className="mr-1 h-4 w-4" />
-                                  Fee Disabled
+                                  No payments due
                                 </Button>
                               )}
 
@@ -791,7 +698,7 @@ const PaymentsPage = () => {
                                 (pendingPayment || penalty.status === "pending") && (
                                   <Button disabled>
                                     <Wallet className="mr-1 h-4 w-4" />
-                                    Awaiting Confirmation
+                                    Pending
                                   </Button>
                                 )}
 
@@ -818,7 +725,7 @@ const PaymentsPage = () => {
 
           <DataTableFrame
             title={role === "vendor" ? "Payment History & Evidence" : "Payment Records"}
-            description="Gateway evidence, references, and receipt access."
+            description="Receipt references, verification status, and review evidence."
             actions={
               role === "vendor" && (
                 <p className="text-xs text-muted-foreground">
@@ -854,10 +761,9 @@ const PaymentsPage = () => {
                         <TableHead>Purpose</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Reference</TableHead>
-                        <TableHead>Transaction ID</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created At</TableHead>
-                        <TableHead>Completed At</TableHead>
+                        <TableHead>Reviewed At</TableHead>
                         <TableHead>Receipt</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -898,10 +804,6 @@ const PaymentsPage = () => {
                             {getPaymentReference(payment)}
                           </TableCell>
 
-                          <TableCell className="min-w-[180px] font-mono text-xs">
-                            {payment.transactionId || "Awaiting confirmation"}
-                          </TableCell>
-
                           <TableCell>
                             <StatusBadge
                               status={payment.status}
@@ -915,11 +817,11 @@ const PaymentsPage = () => {
                           </TableCell>
 
                           <TableCell className="min-w-[160px] text-sm text-muted-foreground">
-                            {formatDateTime(payment.completedAt, "Awaiting confirmation")}
+                            {formatDateTime(payment.completedAt, "Pending review")}
                           </TableCell>
 
                           <TableCell className="min-w-[190px]">
-                            {payment.status === "completed" ? (
+                            {payment.receiptFileName || payment.status === "completed" ? (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -930,7 +832,7 @@ const PaymentsPage = () => {
                               </Button>
                             ) : (
                               <span className="text-xs text-muted-foreground">
-                                Available after success
+                                No receipt uploaded
                               </span>
                             )}
                           </TableCell>
@@ -946,7 +848,7 @@ const PaymentsPage = () => {
       <Dialog open={Boolean(paymentIntent)} onOpenChange={(open) => !open && setPaymentIntent(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-heading">Payment Summary</DialogTitle>
+            <DialogTitle className="font-heading">Upload Receipt</DialogTitle>
           </DialogHeader>
 
           {paymentIntent && (
@@ -959,65 +861,42 @@ const PaymentsPage = () => {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                <div className="flex items-start gap-3">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                  <div className="space-y-2">
-                    <p>
-                      Pesapal will open a secure checkout where the customer can complete payment.
-                    </p>
-                    <p>
-                      {user?.email
-                        ? `The current checkout will use ${user.email} and ${user.phone}.`
-                        : "The current checkout will use the phone number attached to the signed-in vendor account."}
-                    </p>
-                  </div>
-                </div>
+              <div className="space-y-3">
+                <Input
+                  value={receiptNumber}
+                  onChange={(event) => setReceiptNumber(event.target.value)}
+                  placeholder="Receipt number, for example RCPT-2026-00451"
+                />
+                <Input
+                  value={receiptNote}
+                  onChange={(event) => setReceiptNote(event.target.value)}
+                  placeholder="Optional note"
+                />
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload a clear image or PDF of the receipt. Status remains Pending until staff verify it.
+                </p>
               </div>
 
               <Button
                 className="w-full"
-                onClick={() => initiatePayment.mutate(paymentIntent.payload)}
-                disabled={initiatePayment.isPending}
+                onClick={() =>
+                  initiatePayment.mutate({
+                    ...paymentIntent.payload,
+                    receiptNumber: receiptNumber || null,
+                    receiptNote: receiptNote || null,
+                    receiptFile,
+                  })
+                }
+                disabled={initiatePayment.isPending || !receiptFile}
               >
-                <ArrowUpRight className="mr-2 h-4 w-4" />
-                {initiatePayment.isPending ? "Opening Pesapal..." : "Proceed to Payment"}
+                <Upload className="mr-2 h-4 w-4" />
+                {initiatePayment.isPending ? "Uploading..." : "Submit Receipt"}
               </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(checkoutSession)} onOpenChange={(open) => !open && setCheckoutSession(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="font-heading">Pesapal Checkout</DialogTitle>
-          </DialogHeader>
-
-          {checkoutSession && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                Complete the payment in the secure Pesapal frame below. After checkout, Pesapal
-                will return the user to the callback page and the app will verify the final status.
-              </div>
-
-              <iframe
-                title="Pesapal Checkout"
-                src={checkoutSession.redirectUrl}
-                className="h-[640px] w-full rounded-xl border border-border/70 bg-white"
-              />
-
-              <div className="flex justify-end">
-                <a
-                  href={checkoutSession.redirectUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open checkout in a new tab
-                </a>
-              </div>
             </div>
           )}
         </DialogContent>
@@ -1026,8 +905,8 @@ const PaymentsPage = () => {
       <DetailSheet
         open={Boolean(selectedReceiptPaymentId)}
         onOpenChange={(open) => !open && setSelectedReceiptPaymentId(null)}
-        title="Payment Receipt & Evidence"
-        description="Confirmed payment evidence, references, transaction identifiers, and receipt message."
+        title="Payment Receipt"
+        description="Receipt reference, verification status, and review message."
       >
         {selectedReceiptPayment ? (
           <div className="space-y-3 text-sm">
@@ -1047,11 +926,10 @@ const PaymentsPage = () => {
               <EvidenceField label="Purpose" value={paymentPurpose || "Payment"} />
               <EvidenceField label="Amount" value={formatCurrency(paymentAmount)} />
               <EvidenceField label="Reference" value={paymentReference || "Awaiting reference"} mono />
-              <EvidenceField label="Transaction ID" value={paymentTransactionId} mono />
               <EvidenceField label="Created At" value={formatDateTime(selectedReceiptPayment.createdAt)} />
               <EvidenceField
-                label="Completed At"
-                value={formatDateTime(paymentCompletedAt, "Awaiting confirmation")}
+                label="Reviewed At"
+                value={formatDateTime(paymentCompletedAt, "Pending review")}
               />
             </div>
 

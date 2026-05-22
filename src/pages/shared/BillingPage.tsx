@@ -12,7 +12,6 @@ import {
   EmptyState,
   EvidenceField,
   FormSection,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -206,7 +205,7 @@ const BillingPage = () => {
       }));
       setError(null);
       toast.success("Utility charge created", {
-        description: "The vendor can now review the obligation and pay through Pesapal.",
+        description: "The vendor can now review the obligation and upload a receipt.",
       });
     },
     onError: (mutationError) => {
@@ -254,50 +253,6 @@ const BillingPage = () => {
       : utilityChargesError instanceof ApiError
         ? utilityChargesError.message
         : null;
-
-  const outstandingUtilityTotal = utilityCharges
-    .filter((charge) => charge.status === "unpaid" || charge.status === "overdue")
-    .reduce((sum, charge) => sum + charge.amount, 0);
-
-  const pendingUtilityCount = utilityCharges.filter(
-    (charge) => charge.status === "pending" || charge.status === "pending_payment",
-  ).length;
-
-  const overdueUtilityCount = utilityCharges.filter((charge) => charge.status === "overdue").length;
-  const enabledChargeTypes = chargeTypes.filter((chargeType) => chargeType.isEnabled).length;
-
-  const billingKpis = [
-    {
-      label: "Enabled Charge Types",
-      value: `${enabledChargeTypes}/${chargeTypes.length || 0}`,
-      detail: canManageChargeTypes
-        ? "Admin-governed billing switches"
-        : "Visible under your role permissions",
-      icon: SlidersHorizontal,
-      tone: "info" as const,
-    },
-    {
-      label: "Open Utility Obligations",
-      value: formatCurrency(outstandingUtilityTotal),
-      detail: "Unpaid and overdue utility charges",
-      icon: PlusCircle,
-      tone: outstandingUtilityTotal > 0 ? ("warning" as const) : ("success" as const),
-    },
-    {
-      label: "Pending Payment",
-      value: pendingUtilityCount,
-      detail: "Vendor started payment; waiting for gateway confirmation",
-      icon: ShieldCheck,
-      tone: "info" as const,
-    },
-    {
-      label: "Overdue",
-      value: overdueUtilityCount,
-      detail: overdueUtilityCount ? "Needs manager follow-up" : "No overdue utility charges",
-      icon: ShieldCheck,
-      tone: overdueUtilityCount ? ("destructive" as const) : ("success" as const),
-    },
-  ];
 
   return (
     <ConsolePage>
@@ -362,8 +317,6 @@ const BillingPage = () => {
         <LoadingState rows={5} itemClassName="h-32 rounded-xl" />
       ) : (
         <>
-          <KpiStrip items={billingKpis} />
-
           <Panel
             title="Billing Switches"
             description="Charge type availability and policy state."

@@ -4,14 +4,11 @@ import {
   AlertCircle,
   ArrowUpRight,
   CheckCircle2,
-  Clock3,
   Filter,
   Lock,
   MessageSquare,
   Plus,
   Search,
-  ShieldAlert,
-  TimerReset,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +20,6 @@ import {
   DataTableFrame,
   EmptyState,
   FileUploadCard,
-  KpiStrip,
   PageHeader,
 } from "@/components/console/ConsolePage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -323,12 +319,6 @@ const ComplaintsPage = () => {
     return matchesSearch && matchesStatus && matchesCategory && matchesPriority;
   });
 
-  const openTickets = tickets.filter((ticket) => ticket.status === "open");
-  const inProgressTickets = tickets.filter((ticket) => ticket.status === "in_progress");
-  const resolvedTickets = tickets.filter((ticket) => ticket.status === "resolved" || ticket.status === "closed");
-  const highPriorityTickets = tickets.filter((ticket) => ticket.priority === "high" || ticket.priority === "urgent");
-  const slaBreaches = tickets.filter((ticket) => ticket.breachedSla);
-  const escalatedTickets = tickets.filter((ticket) => Boolean(ticket.escalatedAt));
   const canSubmitComplaint = Boolean(
     newTicket.category &&
       newTicket.subject.trim() &&
@@ -336,43 +326,6 @@ const ComplaintsPage = () => {
   );
   const requiresResolution = managerUpdate.status === "resolved" || managerUpdate.status === "closed";
   const canUpdateSelectedTicket = Boolean(selected) && (!requiresResolution || Boolean(managerUpdate.resolutionNote.trim()));
-  const complaintKpis = [
-    {
-      label: "Ticket Register",
-      value: tickets.length,
-      detail: "Unique complaint references",
-      icon: AlertCircle,
-      tone: "default" as const,
-    },
-    {
-      label: "SLA Breaches",
-      value: slaBreaches.length,
-      detail: "Past due response or resolution",
-      icon: TimerReset,
-      tone: slaBreaches.length ? ("destructive" as const) : ("success" as const),
-    },
-    {
-      label: "Active Queue",
-      value: openTickets.length + inProgressTickets.length,
-      detail: `${openTickets.length} open, ${inProgressTickets.length} in progress`,
-      icon: Clock3,
-      tone: "info" as const,
-    },
-    {
-      label: "High Priority",
-      value: highPriorityTickets.length,
-      detail: "High and urgent severity",
-      icon: AlertCircle,
-      tone: highPriorityTickets.length ? ("destructive" as const) : ("success" as const),
-    },
-    {
-      label: "Escalations",
-      value: escalatedTickets.length,
-      detail: `${resolvedTickets.length} resolved or closed`,
-      icon: ShieldAlert,
-      tone: escalatedTickets.length ? ("warning" as const) : ("default" as const),
-    },
-  ];
 
   return (
     <ConsolePage>
@@ -412,8 +365,6 @@ const ComplaintsPage = () => {
         </div>
       ) : (
         <>
-          <KpiStrip items={complaintKpis} />
-
           <DataTableFrame
             title="Ticket Register"
             description="Operational queue for complaint handling."

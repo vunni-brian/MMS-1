@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Grid3X3, Store, Wrench, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -11,7 +11,6 @@ import {
   DetailSheet,
   EmptyState,
   EvidenceField,
-  KpiStrip,
   PageHeader,
 } from "@/components/console/ConsolePage";
 import {
@@ -129,40 +128,6 @@ const StallsPage = () => {
     .filter((stall) => (role === "vendor" ? stall.status === "inactive" : true));
 
   const availableStalls = stalls.filter((stall) => stall.status === "inactive").length;
-  const occupiedStalls = stalls.filter((stall) => stall.status === "active").length;
-  const maintenanceStalls = stalls.filter((stall) => stall.status === "maintenance").length;
-  const visibleInventoryValue = filtered.reduce((sum, stall) => sum + stall.pricePerMonth, 0);
-
-  const stallKpis = [
-    {
-      label: "Available",
-      value: availableStalls,
-      detail: "Open for vendor application",
-      icon: CheckCircle2,
-      tone: "success" as const,
-    },
-    {
-      label: "Occupied",
-      value: occupiedStalls,
-      detail: "Currently assigned stalls",
-      icon: Store,
-      tone: "info" as const,
-    },
-    {
-      label: "Maintenance",
-      value: maintenanceStalls,
-      detail: "Not available for booking",
-      icon: Wrench,
-      tone: maintenanceStalls ? ("warning" as const) : ("default" as const),
-    },
-    {
-      label: "Visible Monthly Value",
-      value: formatCurrency(visibleInventoryValue),
-      detail: "Based on current filter",
-      icon: Grid3X3,
-      tone: "default" as const,
-    },
-  ];
 
   const statusColors: Record<string, string> = {
     inactive: "border-success/30 bg-card",
@@ -239,8 +204,6 @@ const StallsPage = () => {
         </div>
       ) : (
         <>
-          <KpiStrip items={stallKpis} />
-
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {filtered.length === 0 ? (
               <div className="col-span-full">

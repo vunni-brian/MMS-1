@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Landmark, Store, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Landmark, Store, Users } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -46,7 +46,7 @@ const chargeTypeLabels: Record<ChargeTypeName, string> = {
   utilities: "Utilities",
   penalties: "Penalties",
   booking_fee: "Booking fee",
-  payment_gateway: "Payment gateway",
+  payment_gateway: "Payment service",
 };
 
 const riskStatuses = new Set(["unpaid", "pending", "pending_payment", "overdue"]);
@@ -216,9 +216,7 @@ const AdminDashboard = () => {
     );
   }
 
-  const completedPayments = payments.filter((payment) => payment.status === "completed");
   const failedPayments = payments.filter((payment) => payment.status === "failed");
-  const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const activeStalls = stalls.filter((stall) => stall.status === "active");
   const openTickets = tickets.filter((ticket) => ticket.status !== "resolved");
   const unpaidUtilities = utilityCharges.filter((charge) => riskStatuses.has(charge.status));
@@ -357,7 +355,7 @@ const AdminDashboard = () => {
       ? [
         {
           id: "gateway-disabled",
-          alert: "Payment gateway is disabled",
+          alert: "Payment service is disabled",
           type: "Infrastructure",
           severity: "High" as AlertSeverity,
           action: "Enable",
@@ -426,40 +424,34 @@ const AdminDashboard = () => {
 
   const kpis = [
     {
-      label: "Total Users",
+      label: "Active Users",
       value: totalUserCount.toLocaleString(),
-      detail: "Known platform users and actors",
+      detail: "Platform accounts",
       icon: Users,
     },
     {
-      label: "Total Markets",
+      label: "Active Markets",
       value: markets.length.toLocaleString(),
       detail: "Across all regions",
-      icon: Store,
-    },
-    {
-      label: "Total Active Stalls",
-      value: activeStalls.length.toLocaleString(),
-      detail: `${stalls.length.toLocaleString()} total registered stalls`,
       icon: Landmark,
     },
     {
-      label: "Total Revenue",
-      value: formatCurrency(totalRevenue),
-      detail: "Confirmed payments across all markets",
-      icon: Wallet,
+      label: "Pending Actions",
+      value: alerts.length.toLocaleString(),
+      detail: "Operational items awaiting review",
+      icon: AlertTriangle,
     },
     {
-      label: "System Alerts",
-      value: alerts.length.toLocaleString(),
-      detail: "Require attention",
-      icon: AlertTriangle,
+      label: "System Health",
+      value: alerts.length ? "Review" : "Stable",
+      detail: alerts.length ? "Attention required" : "No critical alerts",
+      icon: Store,
     },
   ];
 
   const systemHealth = [
     {
-      label: "Payment gateway",
+      label: "Payment service",
       value: paymentGateway?.isEnabled === false ? "Disabled" : "Online",
       detail: paymentGateway?.isEnabled === false ? "Collections paused" : "Collections available",
       tone: paymentGateway?.isEnabled === false ? "destructive" : "success",
@@ -504,7 +496,7 @@ const AdminDashboard = () => {
         }
       />
 
-      <KpiStrip items={kpis} columns="grid-cols-2 md:grid-cols-3 xl:grid-cols-5" />
+      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
       <section className="grid gap-3 xl:grid-cols-[1.45fr_0.75fr]">
         <DashboardErrorBoundary>

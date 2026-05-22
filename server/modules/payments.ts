@@ -1485,6 +1485,89 @@ export const paymentRoutes: RouteDefinition[] = [
   },
   {
     method: "GET",
+    path: "/payments/:id/receipt-file",
+    handler: async ({ res, auth, params }) => {
+      const { session } = resolveScopedMarket(auth, "payment:read");
+      const payment = await getPaymentById(params.id);
+      if (!payment) {
+        throw new HttpError(404, "Payment not found.");
+      }
+      if (session.user.role === "vendor" && payment.vendorId !== session.user.id) {
+        throw new HttpError(403, "You may only view your own receipts.");
+      }
+      assertMarketAccess(session, payment.marketId);
+      await servePaymentReceiptFile({ res, payment });
+    },
+  },
+  {
+    method: "POST",
+    path: "/payments/:id/verify",
+    handler: async ({ req, res, auth, params }) => {
+      const { session } = resolveScopedMarket(auth, "payment:read");
+      if (!["manager", "official", "admin"].includes(session.user.role)) {
+        throw new HttpError(403, "Only staff can verify payment receipts.");
+      }
+
+      const payment = await getPaymentById(params.id);
+      if (!payment) {
+        throw new HttpError(404, "Payment not found.");
+      }
+      assertMarketAccess(session, payment.marketId);
+      if (payment.method !== "receipt" || !payment.receiptFilePath) {
+        throw new HttpError(409, "Only uploaded receipt payments can be manually verified.");
+      }
+      if (payment.status !== "pending") {
+        throw new HttpError(409, "This receipt has already been reviewed.");
+      }
+
+      const body = await readJsonBody<{ status?: "verified" | "rejected"; reason?: string | null }>(req);
+      if (!body.status || !["verified", "rejected"].includes(body.status)) {
+        throw new HttpError(400, "Use verified or rejected as the receipt review status.");
+      }
+      const reason = body.reason?.trim() || null;
+      if (body.status === "rejected" && !reason) {
+        throw new HttpError(400, "A rejection reason is required.");
+      }
+
+      await completePayment({
+        paymentId: payment.id,
+        transactionId: payment.receiptId || payment.externalReference,
+        providerReference: payment.receiptId,
+        status: body.status === "verified" ? "completed" : "failed",
+        receiptMessage:
+          body.status === "verified"
+            ? `Receipt ${payment.receiptId || payment.externalReference} was verified.`
+            : `Receipt ${payment.receiptId || payment.externalReference} was rejected: ${reason}.`,
+      });
+
+      const timestamp = nowIso();
+      await run(
+        `UPDATE payments
+         SET verification_note = ?,
+             updated_at = ?
+         WHERE id = ?`,
+        [body.status === "verified" ? "Verified by staff review." : reason, timestamp, payment.id],
+      );
+
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: payment.marketId,
+        action: body.status === "verified" ? "VERIFY_RECEIPT" : "REJECT_RECEIPT",
+        entityType: "payment",
+        entityId: payment.id,
+        details: {
+          receiptReference: payment.receiptId,
+          reason,
+        },
+      });
+
+      sendJson(res, 200, { payment: await getPaymentById(payment.id) });
+    },
+  },
+  {
+    method: "GET",
     path: "/payments/:id/receipt",
     handler: async ({ res, auth, params }) => {
       const { session } = resolveScopedMarket(auth, "payment:read");

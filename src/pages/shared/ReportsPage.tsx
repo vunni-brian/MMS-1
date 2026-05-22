@@ -1,129 +1,115 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, BarChart3, Download, ReceiptText, Wallet } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Download, Eye, XCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ConsolePage, DataTableFrame, KpiStrip, PageHeader, Panel, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
+import { ConsolePage, DataTableFrame, EmptyState, PageHeader, ScopeBar, ScopeItem } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
+import type { Payment } from "@/types";
 
-const formatCurrency = (value: number) => `UGX ${value.toLocaleString()}`;
-const formatDateTime = (value: string) => new Date(value).toLocaleString();
+const paymentStatus = (status: Payment["status"] | "all") =>
+  status === "completed" ? "Verified" : status === "failed" ? "Rejected" : status === "pending" ? "Pending" : "All";
 
 const ReportsPage = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState("2026-01-01");
   const [dateTo, setDateTo] = useState("2026-12-31");
   const [selectedMarketId, setSelectedMarketId] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<Payment["status"] | "all">("all");
+  const [rejectionPayment, setRejectionPayment] = useState<Payment | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
   const canScopeMarkets = user?.role === "official" || user?.role === "admin";
   const marketId = canScopeMarkets && selectedMarketId !== "all" ? selectedMarketId : undefined;
+
   const { data: marketsData } = useQuery({
     queryKey: ["markets", "reports"],
     queryFn: () => api.getMarkets(),
     enabled: canScopeMarkets,
   });
-  const { data: revenueReport } = useQuery({
-    queryKey: ["reports", "revenue", dateFrom, dateTo, marketId || "all"],
-    queryFn: () => api.getRevenueReport(dateFrom, dateTo, marketId),
-  });
-  const { data: duesReport } = useQuery({
-    queryKey: ["reports", "dues", dateFrom, dateTo, marketId || "all"],
-    queryFn: () => api.getDuesReport(dateFrom, dateTo, marketId),
-  });
-  const { data: financialAuditReport } = useQuery({
-    queryKey: ["reports", "financial-audit", dateFrom, dateTo, marketId || "all"],
-    queryFn: () => api.getFinancialAudit(dateFrom, dateTo, marketId),
+  const paymentsQuery = useQuery({
+    queryKey: ["payments", "reports", marketId || "all"],
+    queryFn: () => api.getPayments(marketId),
   });
 
-  const auditSummary = financialAuditReport?.summary || {
-    collectedTotal: 0,
-    depositedTotal: 0,
-    variance: 0,
+  const reviewReceipt = useMutation({
+    mutationFn: ({ payment, status, reason }: { payment: Payment; status: "verified" | "rejected"; reason?: string }) =>
+      api.verifyPaymentReceipt(payment.id, { status, reason }),
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["payments"] });
+      toast.success(variables.status === "verified" ? "Receipt verified" : "Receipt rejected");
+      setRejectionPayment(null);
+      setRejectionReason("");
+    },
+    onError: (error) => {
+      const message = error instanceof ApiError ? error.message : "Unable to review receipt.";
+      toast.error("Receipt review failed", { description: message });
+    },
+  });
+
+  const payments = (paymentsQuery.data?.payments || []).filter((payment) => {
+    const created = new Date(payment.createdAt);
+    const fromOk = !dateFrom || created >= new Date(`${dateFrom}T00:00:00`);
+    const toOk = !dateTo || created <= new Date(`${dateTo}T23:59:59`);
+    const statusOk = statusFilter === "all" || payment.status === statusFilter;
+    return fromOk && toOk && statusOk;
+  });
+
+  const openReceipt = async (payment: Payment) => {
+    try {
+      const url = await api.getReceiptFileUrl(payment.id);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Unable to open receipt image.";
+      toast.error("Receipt unavailable", { description: message });
+    }
   };
-  const varianceToneClass =
-    auditSummary.variance === 0 ? "text-foreground" : auditSummary.variance > 0 ? "text-warning" : "text-destructive";
-  const variancePanelClass =
-    auditSummary.variance === 0
-      ? "border-border/70 bg-muted/20 text-muted-foreground"
-      : auditSummary.variance > 0
-        ? "border-warning/30 bg-warning/5 text-warning"
-        : "border-destructive/30 bg-destructive/5 text-destructive";
-  const varianceMessage =
-    auditSummary.variance === 0
-      ? "Collections and recorded bank deposits are balanced for the selected period."
-      : auditSummary.variance > 0
-        ? `Collections exceed recorded deposits by ${formatCurrency(auditSummary.variance)}.`
-        : `Recorded deposits exceed collections by ${formatCurrency(Math.abs(auditSummary.variance))}.`;
 
   const exportCSV = () => {
-    const header = "Date,Market,Vendor,Amount,Method,Transaction ID,Status\n";
-    const rows = (revenueReport?.rows || [])
-      .map((row) => `${row.createdAt},${row.marketName || ""},${row.vendorName},${row.amount},${row.method},${row.transactionId || ""},${row.status}`)
+    const header = "Vendor,Amount,Receipt Number,Verification Status,Submitted Date,Market\n";
+    const rows = payments
+      .map((payment) =>
+        [
+          payment.vendorName,
+          payment.amount,
+          payment.receiptId || payment.externalReference,
+          paymentStatus(payment.status),
+          payment.createdAt,
+          payment.marketName || "",
+        ].join(","),
+      )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `revenue_report_${dateFrom}_${dateTo}.csv`;
+    link.download = `payment_reconciliation_${dateFrom}_${dateTo}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV export started", {
-      description: "Revenue rows for the selected period are being downloaded.",
-    });
+    toast.success("CSV export started");
   };
-  const reportKpis = [
-    {
-      label: "Total Revenue",
-      value: formatCurrency(revenueReport?.summary.totalRevenue || 0),
-      detail: "Completed payments in selected period",
-      icon: Wallet,
-      tone: "success" as const,
-    },
-    {
-      label: "Outstanding Dues",
-      value: formatCurrency(duesReport?.summary.outstandingTotal || 0),
-      detail: "Unsettled booking obligations",
-      icon: AlertTriangle,
-      tone: (duesReport?.summary.outstandingTotal || 0) > 0 ? "warning" as const : "success" as const,
-    },
-    {
-      label: "Transactions",
-      value: revenueReport?.summary.transactionCount || 0,
-      detail: "Payment rows in scope",
-      icon: ReceiptText,
-      tone: "info" as const,
-    },
-    {
-      label: "Audit Variance",
-      value: formatCurrency(auditSummary.variance),
-      detail: "Collected vs deposited",
-      icon: BarChart3,
-      tone: auditSummary.variance === 0 ? "success" as const : "destructive" as const,
-    },
-  ];
 
   return (
     <ConsolePage>
       <PageHeader
         eyebrow="Reports and reconciliation"
-        title="Reports"
-        description="Revenue, dues, deposits, and payment evidence."
+        title="Reports & Reconciliation"
+        description="Receipt submissions, verification status, and exportable payment records."
         actions={
           <Button onClick={exportCSV} variant="outline">
-          <Download className="w-4 h-4 mr-1" />
-          Export CSV
+            <Download className="mr-1 h-4 w-4" />
+            Export CSV
           </Button>
-        }
-        meta={
-          <>
-            <span className="rounded-full bg-muted px-2.5 py-1">From {dateFrom}</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">To {dateTo}</span>
-          </>
         }
       />
 
@@ -143,122 +129,107 @@ const ReportsPage = () => {
               <SelectContent>
                 <SelectItem value="all">All Markets</SelectItem>
                 {(marketsData?.markets || []).map((market) => (
-                  <SelectItem key={market.id} value={market.id}>
-                    {market.name}
-                  </SelectItem>
+                  <SelectItem key={market.id} value={market.id}>{market.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </ScopeItem>
         )}
+        <ScopeItem label="Status" className="w-full sm:w-[180px]">
+          <Select value={statusFilter} onValueChange={(value: Payment["status"] | "all") => setStatusFilter(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="completed">Verified</SelectItem>
+              <SelectItem value="failed">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </ScopeItem>
       </ScopeBar>
 
-      <KpiStrip items={reportKpis} />
-
-      <Panel title="Financial Audit" description="Collected payments compared with recorded deposits." contentClassName="space-y-3">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Collected Total</p>
-              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(auditSummary.collectedTotal)}</p>
-            </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Deposited Total</p>
-              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(auditSummary.depositedTotal)}</p>
-            </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Variance</p>
-              <p className={`mt-1 text-lg font-bold font-heading ${varianceToneClass}`}>{formatCurrency(auditSummary.variance)}</p>
-            </div>
+      <DataTableFrame title="Payment Records">
+        {payments.length === 0 ? (
+          <div className="p-3">
+            <EmptyState title="No transactions recorded" description="Receipt submissions matching the selected filters will appear here." />
           </div>
-          <div className={`rounded-md border px-3 py-2.5 text-sm ${variancePanelClass}`}>{varianceMessage}</div>
-      </Panel>
-
-      <DataTableFrame title="Payment Details">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Status</TableHead>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vendor</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Receipt Number</TableHead>
+                <TableHead>Receipt Image</TableHead>
+                <TableHead>Verification Status</TableHead>
+                <TableHead>Submitted Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell className="font-medium">{payment.vendorName}</TableCell>
+                  <TableCell>{payment.amount > 0 ? formatCurrency(payment.amount) : "No payments due"}</TableCell>
+                  <TableCell className="font-medium">{payment.receiptId || payment.externalReference}</TableCell>
+                  <TableCell>
+                    {payment.receiptFileName ? (
+                      <Button variant="outline" size="sm" onClick={() => openReceipt(payment)}>
+                        <Eye className="mr-1 h-4 w-4" />
+                        View
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No receipt uploaded</span>
+                    )}
+                  </TableCell>
+                  <TableCell><StatusBadge status={payment.status} context="payment" /></TableCell>
+                  <TableCell className="text-muted-foreground">{formatHumanDateTime(payment.createdAt)}</TableCell>
+                  <TableCell>
+                    {payment.status === "pending" && payment.receiptFileName ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" onClick={() => reviewReceipt.mutate({ payment, status: "verified" })} disabled={reviewReceipt.isPending}>
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          Verify
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setRejectionPayment(payment)} disabled={reviewReceipt.isPending}>
+                          <XCircle className="mr-1 h-4 w-4" />
+                          Reject
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Reviewed</span>
+                    )}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(revenueReport?.rows || []).map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="text-muted-foreground">{formatDateTime(row.createdAt)}</TableCell>
-                    <TableCell>{row.marketName || "Unassigned"}</TableCell>
-                    <TableCell className="font-medium">{row.vendorName}</TableCell>
-                    <TableCell>{formatCurrency(row.amount)}</TableCell>
-                    <TableCell>{row.method.toUpperCase()}</TableCell>
-                    <TableCell className="font-mono text-xs">{row.transactionId || "Awaiting confirmation"}</TableCell>
-                    <TableCell><StatusBadge status={row.status} context="payment" /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </DataTableFrame>
 
-      <DataTableFrame title="Outstanding Dues">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Stall</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Outstanding</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(duesReport?.rows || []).map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>{row.marketName || "Unassigned"}</TableCell>
-                    <TableCell className="font-medium">{row.vendorName}</TableCell>
-                    <TableCell>{row.stallName}</TableCell>
-                    <TableCell>{formatCurrency(row.amount)}</TableCell>
-                    <TableCell>{formatCurrency(row.paidAmount)}</TableCell>
-                    <TableCell>{formatCurrency(row.outstandingAmount)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-      </DataTableFrame>
-
-      <DataTableFrame title="Bank Deposits">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Deposited At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(financialAuditReport?.rows || []).length > 0 ? (
-                  (financialAuditReport?.rows || []).map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{row.marketName || "Unassigned"}</TableCell>
-                      <TableCell className="font-medium">{row.reference}</TableCell>
-                      <TableCell>{formatCurrency(row.amount)}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDateTime(row.depositedAt)}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                      No bank deposits were recorded for the selected filters.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-      </DataTableFrame>
+      <Dialog open={Boolean(rejectionPayment)} onOpenChange={(open) => !open && setRejectionPayment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading">Reject Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={rejectionReason}
+              onChange={(event) => setRejectionReason(event.target.value)}
+              placeholder="Reason, for example unreadable receipt image"
+            />
+            <Button
+              className="w-full"
+              disabled={!rejectionReason.trim() || reviewReceipt.isPending || !rejectionPayment}
+              onClick={() => rejectionPayment && reviewReceipt.mutate({ payment: rejectionPayment, status: "rejected", reason: rejectionReason })}
+            >
+              Reject Receipt
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </ConsolePage>
   );
 };

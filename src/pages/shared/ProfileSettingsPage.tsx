@@ -4,22 +4,16 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   Bell,
-  Building2,
-  CheckCircle2,
   CheckCheck,
-  Clock3,
   CreditCard,
-  FileText,
   Info,
   KeyRound,
   Mail,
-  MapPin,
   Phone,
   Shield,
   SlidersHorizontal,
   Trash2,
   UserCircle,
-  Users,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,13 +74,14 @@ const SettingToggle = ({
   </div>
 );
 
-const ReadOnlyMetric = ({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) => (
-  <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background px-4 py-3">
-    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-    <div className="min-w-0">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="mt-0.5 truncate font-medium">{value}</div>
-    </div>
+const ReadOnlyRows = ({ rows }: { rows: Array<{ label: string; value: React.ReactNode }> }) => (
+  <div className="divide-y divide-border/70 rounded-md border border-border/70 bg-background">
+    {rows.map((row) => (
+      <div key={row.label} className="grid gap-1 px-3 py-2.5 sm:grid-cols-[180px_1fr] sm:items-center">
+        <p className="text-xs font-medium text-muted-foreground">{row.label}</p>
+        <div className="min-w-0 text-sm font-medium">{row.value}</div>
+      </div>
+    ))}
   </div>
 );
 
@@ -630,15 +625,16 @@ const ProfileSettingsPage = () => {
         </Button>
       </div>
       <div className="border-t border-border/70" />
-      <div className="grid gap-3 md:grid-cols-3">
-        <ReadOnlyMetric icon={Bell} label="Unread alerts" value={unreadNotifications.length} />
-        <ReadOnlyMetric
-          icon={AlertCircle}
-          label="High priority"
-          value={notifications.filter((notification) => notification.priority === "high" && !notification.read).length}
-        />
-        <ReadOnlyMetric icon={Clock3} label="Latest update" value={formatHumanDateTime(notifications[0]?.createdAt)} />
-      </div>
+      <ReadOnlyRows
+        rows={[
+          { label: "Unread alerts", value: unreadNotifications.length },
+          {
+            label: "High priority",
+            value: notifications.filter((notification) => notification.priority === "high" && !notification.read).length,
+          },
+          { label: "Latest update", value: formatHumanDateTime(notifications[0]?.createdAt) },
+        ]}
+      />
       <div className="rounded-lg border border-border/70 bg-background">
         <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
           <div>
@@ -728,19 +724,23 @@ const ProfileSettingsPage = () => {
         <p className="mt-1 text-sm text-muted-foreground">Identity, access, and submitted records.</p>
       </div>
       <div className="border-t border-border/70" />
-      <div className="grid gap-3 md:grid-cols-2">
-        <ReadOnlyMetric icon={UserCircle} label="Account holder" value={user.name} />
-        <ReadOnlyMetric icon={Shield} label="Access role" value={roleLabel(user.role)} />
-        <ReadOnlyMetric icon={MapPin} label="Market scope" value={user.marketName || "System-wide"} />
-        <ReadOnlyMetric icon={CheckCircle2} label="Phone verification" value={user.phoneVerifiedAt ? "Verified" : "Pending"} />
-        <ReadOnlyMetric icon={Building2} label="Created" value={formatHumanDate(user.createdAt)} />
-        <ReadOnlyMetric icon={Users} label="Status" value={user.vendorStatus ? <StatusBadge status={user.vendorStatus} /> : "Active"} />
-      </div>
+      <ReadOnlyRows
+        rows={[
+          { label: "Account holder", value: user.name },
+          { label: "Access role", value: roleLabel(user.role) },
+          { label: "Market scope", value: user.marketName || "System-wide" },
+          { label: "Phone verification", value: user.phoneVerifiedAt ? "Verified" : "Pending" },
+          { label: "Created", value: formatHumanDate(user.createdAt) },
+          { label: "Status", value: user.vendorStatus ? <StatusBadge status={user.vendorStatus} /> : "Active" },
+        ]}
+      />
       {isVendor && (
-        <div className="grid gap-3 md:grid-cols-2">
-          <ReadOnlyMetric icon={FileText} label="National ID" value={formatAttachmentLabel(vendor?.idDocument || null)} />
-          <ReadOnlyMetric icon={FileText} label="LC Letter" value={formatAttachmentLabel(vendor?.lcLetter || null)} />
-        </div>
+        <ReadOnlyRows
+          rows={[
+            { label: "National ID", value: formatAttachmentLabel(vendor?.idDocument || null) },
+            { label: "LC Letter", value: formatAttachmentLabel(vendor?.lcLetter || null) },
+          ]}
+        />
       )}
     </div>
   );
@@ -752,10 +752,12 @@ const ProfileSettingsPage = () => {
         <p className="mt-1 text-sm text-muted-foreground">Payments, receipts, and market charges.</p>
       </div>
       <div className="border-t border-border/70" />
-      <div className="grid gap-3 md:grid-cols-2">
-        <ReadOnlyMetric icon={CreditCard} label="Payment channel" value="Pesapal checkout" />
-        <ReadOnlyMetric icon={FileText} label="Receipts" value={user.role === "vendor" || user.role === "manager" ? "Available in payments" : "Available in reports"} />
-      </div>
+      <ReadOnlyRows
+        rows={[
+          { label: "Payment channel", value: "Receipt upload" },
+          { label: "Receipts", value: user.role === "vendor" || user.role === "manager" ? "Available in payments" : "Available in reports" },
+        ]}
+      />
       <Button
         variant="outline"
         onClick={() => navigate(user.role === "vendor" || user.role === "manager" ? `/${user.role}/payments` : `/${user.role}/billing`)}

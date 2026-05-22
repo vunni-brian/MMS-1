@@ -184,49 +184,49 @@ const OfficialDashboard = () => {
   const scopedResourceRequests = resourceRequests.filter((request) => inScope(request.marketId));
 
   const openComplaints = scopedTickets.filter((ticket) => ticket.status !== "resolved");
-  const highPriorityComplaints = openComplaints.filter((ticket) => getComplaintPriority(ticket) === "High");
+  const activeComplaints = scopedTickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
   const pendingResourceRequests = scopedResourceRequests.filter((request) => request.status === "pending");
-  const overdueUtilityCharges = scopedUtilityCharges.filter((charge) => charge.status === "overdue");
-  const openPenalties = scopedPenalties.filter((penalty) => obligationStatuses.has(penalty.status));
-  const failedPayments = scopedPayments.filter((payment) => payment.status === "failed");
-  const completedPayments = scopedPayments.filter((payment) => payment.status === "completed");
+  const completedPayments = scopedPayments.filter((payment) => {
+    const paidAt = payment.completedAt ? new Date(payment.completedAt) : null;
+    const now = new Date();
+    return (
+      payment.status === "completed" &&
+      paidAt &&
+      paidAt.getFullYear() === now.getFullYear() &&
+      paidAt.getMonth() === now.getMonth()
+    );
+  });
 
   const totalRevenue = completedPayments.reduce((total, payment) => total + payment.amount, 0);
-  const overdueTotal =
-    overdueUtilityCharges.reduce((total, charge) => total + charge.amount, 0) +
-    openPenalties.reduce((total, penalty) => total + penalty.amount, 0);
-  const occupancyRate = scopedStalls.length
-    ? Math.round((scopedStalls.filter((stall) => stall.status === "active").length / scopedStalls.length) * 100)
-    : 0;
 
   const kpis = [
     {
-      label: "Pending Reviews",
-      value: pendingResourceRequests.length,
-      detail: "Resource requests awaiting decision",
+      label: "Active Markets",
+      value: markets.length,
+      detail: "Markets in current scope",
+      icon: Landmark,
+      tone: "info" as const,
+    },
+    {
+      label: "Total Vendors",
+      value: scopedVendors.length,
+      detail: "Registered vendors",
       icon: ClipboardList,
-      tone: pendingResourceRequests.length ? ("warning" as const) : ("default" as const),
+      tone: "default" as const,
+    },
+    {
+      label: "Monthly Revenue",
+      value: formatCurrency(totalRevenue),
+      detail: "Verified receipts this month",
+      icon: Landmark,
+      tone: "success" as const,
     },
     {
       label: "Open Complaints",
-      value: openComplaints.length,
-      detail: `${highPriorityComplaints.length} high priority`,
+      value: activeComplaints.length,
+      detail: "Tickets awaiting closure",
       icon: MessageSquare,
-      tone: highPriorityComplaints.length ? ("destructive" as const) : ("default" as const),
-    },
-    {
-      label: "Overdue Obligations",
-      value: formatCurrency(overdueTotal),
-      detail: `${overdueUtilityCharges.length + openPenalties.length} active cases`,
-      icon: AlertCircle,
-      tone: overdueTotal > 0 ? ("warning" as const) : ("default" as const),
-    },
-    {
-      label: "Markets Monitored",
-      value: markets.length,
-      detail: `${occupancyRate}% stall occupancy`,
-      icon: Landmark,
-      tone: "info" as const,
+      tone: activeComplaints.length ? ("warning" as const) : ("default" as const),
     },
   ];
 
@@ -263,17 +263,14 @@ const OfficialDashboard = () => {
   });
 
   const priorityResourceRows = sortByCreatedAtDesc(pendingResourceRequests).slice(0, DASHBOARD_CONFIG.RESOURCE_REQUEST_PREVIEW_LIMIT);
-  const priorityComplaintRows = sortByCreatedAtDesc(openComplaints).slice(0, DASHBOARD_CONFIG.COMPLAINT_PREVIEW_LIMIT);
-  const priorityUtilityRows = [...overdueUtilityCharges]
-    .sort((left, right) => Number(right.amount) - Number(left.amount))
-    .slice(0, DASHBOARD_CONFIG.UTILITY_PREVIEW_LIMIT);
+  const priorityComplaintRows = sortByCreatedAtDesc(activeComplaints).slice(0, DASHBOARD_CONFIG.COMPLAINT_PREVIEW_LIMIT);
 
   return (
     <ConsolePage>
       <PageHeader
         eyebrow="Official workspace"
-        title="Oversight Desk"
-        description="Review requests, market risk, complaints, and payment exceptions across active markets."
+        title="Market Oversight"
+        description="Pending reviews and complaint oversight across active markets."
         actions={
           <Button asChild>
             <Link to="/official/coordination">Open Requests</Link>
@@ -282,17 +279,17 @@ const OfficialDashboard = () => {
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">{pendingResourceRequests.length} requests</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">{openComplaints.length} complaints</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{activeComplaints.length} complaints</span>
           </>
         }
       />
 
       <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
-      <div className="grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-3 xl:grid-cols-2">
         <Panel
-          title="Priority Review Queue"
-          description="Request decisions, complaint escalation, and overdue obligations."
+          title="Pending Reviews"
+          description="Repair requests, escalations, inspections, and approvals awaiting action."
           className="min-h-[340px]"
           actions={
             <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
@@ -312,11 +309,10 @@ const OfficialDashboard = () => {
         >
           <div className="space-y-3">
             {priorityResourceRows.length === 0 &&
-            priorityComplaintRows.length === 0 &&
-            priorityUtilityRows.length === 0 ? (
+            priorityComplaintRows.length === 0 ? (
               <EmptyState
                 title="No priority actions"
-                description="Requests, escalated complaints, and overdue obligations will appear here."
+                description="Requests and escalated complaints will appear here."
               />
             ) : (
               <>
@@ -345,30 +341,13 @@ const OfficialDashboard = () => {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="status-badge border-info/20 bg-info/15 text-info">Complaint</span>
-                          <p className="truncate text-sm font-semibold">{ticket.subject}</p>
+                          <p className="truncate text-sm font-semibold">{ticket.ticketNumber}</p>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {ticket.marketName || "Assigned market"} - {ticket.vendorName} - {formatHumanDate(ticket.createdAt)}
+                          {ticket.subject} - {ticket.marketName || "Assigned market"} - {formatHumanDate(ticket.createdAt)}
                         </p>
                       </div>
                       <StatusBadge status={ticket.status} context="ticket" />
-                    </div>
-                  </RecordCard>
-                ))}
-
-                {priorityUtilityRows.map((charge: UtilityCharge) => (
-                  <RecordCard key={charge.id}>
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="status-badge border-destructive/20 bg-destructive/15 text-destructive">Overdue</span>
-                          <p className="truncate text-sm font-semibold">{charge.vendorName}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {charge.marketName || "Assigned market"} - {charge.description}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold">{formatCurrency(charge.amount)}</p>
                     </div>
                   </RecordCard>
                 ))}
@@ -378,76 +357,41 @@ const OfficialDashboard = () => {
         </Panel>
 
         <Panel
-          title="Financial & Occupancy Snapshot"
-          description="Operational health indicators across monitored markets."
+          title="Open Complaints"
+          description="Ticket references, type, market, submission date, and status."
           className="min-h-[340px]"
+          contentClassName="max-h-[340px] overflow-auto p-0"
         >
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Confirmed Revenue</p>
-              <p className="mt-1 text-lg font-bold font-heading">{formatCurrency(totalRevenue)}</p>
+          {priorityComplaintRows.length === 0 ? (
+            <div className="p-3">
+              <EmptyState title="No open complaints" description="Complaint tickets awaiting action will appear here." />
             </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Occupancy</p>
-              <p className="mt-1 text-lg font-bold font-heading">{occupancyRate}%</p>
-            </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Failed Payments</p>
-              <p className="mt-1 text-lg font-bold font-heading">{failedPayments.length}</p>
-            </div>
-            <div className="rounded-md border border-border/70 bg-background p-3">
-              <p className="text-xs text-muted-foreground">Active Vendors</p>
-              <p className="mt-1 text-lg font-bold font-heading">{scopedVendors.length}</p>
-            </div>
-          </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ticket</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Market</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {priorityComplaintRows.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
+                    <TableCell className="capitalize">{ticket.category}</TableCell>
+                    <TableCell>{ticket.marketName || "Assigned market"}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatHumanDate(ticket.createdAt)}</TableCell>
+                    <TableCell><StatusBadge status={ticket.status} context="ticket" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </Panel>
       </div>
-
-      <Panel
-        title="Market Risk Register"
-        description="A compact operating view for deciding where official attention is needed."
-        contentClassName="max-h-[320px] overflow-auto p-0"
-      >
-        {marketRows.length === 0 ? (
-          <div className="p-3">
-            <EmptyState
-              title="No markets available"
-              description="Registered markets will appear here after setup."
-            />
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Market</TableHead>
-                <TableHead>Manager</TableHead>
-                <TableHead className="text-right">Vendors</TableHead>
-                <TableHead className="text-right">Occupancy</TableHead>
-                <TableHead className="text-right">Complaints</TableHead>
-                <TableHead className="text-right">Overdue</TableHead>
-                <TableHead className="text-right">Requests</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {marketRows.map((market) => (
-                <TableRow key={market.id}>
-                  <TableCell className="font-medium">{market.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{market.manager}</TableCell>
-                  <TableCell className="text-right">{market.vendors}</TableCell>
-                  <TableCell className="text-right">{market.occupancy}%</TableCell>
-                  <TableCell className="text-right">{market.complaints}</TableCell>
-                  <TableCell className="text-right">{market.overdue}</TableCell>
-                  <TableCell className="text-right">{market.requests}</TableCell>
-                  <TableCell>
-                    <span className={riskClassName(market.risk)}>{market.risk}</span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Panel>
     </ConsolePage>
   );
 };

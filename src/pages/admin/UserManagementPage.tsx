@@ -9,7 +9,6 @@ import {
   Plus,
   Search,
   ShieldCheck,
-  UserCog,
   Users,
 } from "lucide-react";
 
@@ -43,7 +42,6 @@ import {
   ConsolePage,
   DataTableFrame,
   EmptyState,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -196,7 +194,6 @@ const UserManagementPage = () => {
     [users],
   );
 
-  const pendingCount = users.filter((account) => account.status === "pending").length;
   const managerCount = users.filter((account) => account.role === "manager").length;
   const officialCount = users.filter((account) => account.role === "official").length;
   const vendorCount = users.filter((account) => account.role === "vendor").length;
@@ -209,37 +206,6 @@ const UserManagementPage = () => {
     permissions: undefined,
     activity: activityRows.length,
   };
-
-  const kpis = [
-    {
-      label: "Total Accounts",
-      value: users.length.toLocaleString(),
-      detail: "Admin-governed identities",
-      icon: Users,
-      tone: "info" as const,
-    },
-    {
-      label: "Managers",
-      value: managerCount.toLocaleString(),
-      detail: "Operational supervisors",
-      icon: UserCog,
-      tone: "success" as const,
-    },
-    {
-      label: "Officials",
-      value: officialCount.toLocaleString(),
-      detail: "Inspection and compliance roles",
-      icon: ShieldCheck,
-      tone: "info" as const,
-    },
-    {
-      label: "Pending Invites",
-      value: pendingCount.toLocaleString(),
-      detail: "Awaiting activation",
-      icon: KeyRound,
-      tone: pendingCount ? ("warning" as const) : ("success" as const),
-    },
-  ];
 
   const setInviteRole = (role: StaffRole) => {
     setInviteForm((current) => ({
@@ -313,8 +279,6 @@ const UserManagementPage = () => {
           </Button>
         }
       />
-
-      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
       <Panel contentClassName="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

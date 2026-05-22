@@ -62,7 +62,7 @@ const chargeTypeLabels: Record<ChargeTypeName, string> = {
   utilities: "Utility charge",
   penalties: "Penalty",
   booking_fee: "Booking fee",
-  payment_gateway: "Payment gateway",
+  payment_gateway: "Payment service",
 };
 
 type ActiveTaskTab = "approvals" | "payments" | "complaints";

@@ -14,7 +14,7 @@ const chargeTypeLabels: Record<ChargeTypeName, string> = {
   utilities: "Utilities Payment",
   penalties: "Penalty Payment",
   booking_fee: "Stall Booking",
-  payment_gateway: "Payment Gateway Charge",
+  payment_gateway: "Payment service charge",
 };
 
 const getSafeTimestamp = (value: string | null) => {
@@ -41,8 +41,8 @@ export const getPaymentPurpose = (payment: Pick<Payment, "chargeType" | "stallNa
   return chargeTypeLabel;
 };
 
-export const getPaymentReference = (payment: Pick<Payment, "providerReference" | "externalReference">) =>
-  payment.providerReference || payment.externalReference;
+export const getPaymentReference = (payment: Pick<Payment, "providerReference" | "externalReference" | "receiptId">) =>
+  payment.receiptId || payment.providerReference || "Receipt pending";
 
 export const getPaymentTimelineDate = (payment: Pick<Payment, "completedAt" | "createdAt">) => payment.completedAt || payment.createdAt;
 

@@ -25,6 +25,8 @@ export type Permission =
   | "payment:create"
   | "notification:read"
   | "notification:update"
+  | "announcement:read"
+  | "announcement:write"
   | "ticket:read"
   | "ticket:create"
   | "ticket:update"

@@ -18,6 +18,7 @@ const ManagerDashboard = lazy(() => import("./pages/manager/ManagerDashboard"));
 const OfficialDashboard = lazy(() => import("./pages/official/OfficialDashboard"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
+const SystemSettingsPage = lazy(() => import("./pages/admin/SystemSettingsPage"));
 const StallsPage = lazy(() => import("./pages/shared/StallsPage"));
 const PaymentsPage = lazy(() => import("./pages/shared/PaymentsPage"));
 const ComplaintsPage = lazy(() => import("./pages/shared/ComplaintsPage"));
@@ -25,6 +26,7 @@ const ReportsPage = lazy(() => import("./pages/shared/ReportsPage"));
 const AuditPage = lazy(() => import("./pages/shared/AuditPage"));
 const BillingPage = lazy(() => import("./pages/shared/BillingPage"));
 const CoordinationPage = lazy(() => import("./pages/shared/CoordinationPage"));
+const AnnouncementsPage = lazy(() => import("./pages/shared/AnnouncementsPage"));
 const ProfileSettingsPage = lazy(() => import("./pages/shared/ProfileSettingsPage"));
 const VendorsPage = lazy(() => import("./pages/manager/VendorsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -78,6 +80,7 @@ const App = () => (
               <Route path="stalls" element={<VendorApprovalGuard><StallsPage /></VendorApprovalGuard>} />
               <Route path="payments" element={<VendorApprovalGuard><PaymentsPage /></VendorApprovalGuard>} />
               <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
+              <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
@@ -99,6 +102,7 @@ const App = () => (
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
+              <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
@@ -116,6 +120,7 @@ const App = () => (
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
+              <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
@@ -129,10 +134,12 @@ const App = () => (
             >
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<UserManagementPage />} />
+              <Route path="settings" element={<SystemSettingsPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
+              <Route path="announcements" element={<AnnouncementsPage />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 

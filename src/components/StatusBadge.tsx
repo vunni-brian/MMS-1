@@ -37,9 +37,9 @@ type StatusContext = "default" | "booking" | "payment" | "obligation" | "vendor"
 
 const contextLabels: Partial<Record<StatusContext, Record<string, string>>> = {
   payment: {
-    pending: "Pending Confirmation",
-    completed: "Completed",
-    failed: "Failed",
+    pending: "Pending",
+    completed: "Verified",
+    failed: "Rejected",
     cancelled: "Cancelled",
   },
   obligation: {

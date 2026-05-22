@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  AlertTriangle,
   Check,
-  CheckCircle2,
   Clock3,
   CreditCard,
   FileText,
@@ -13,8 +11,6 @@ import {
   MapPin,
   Phone,
   Search,
-  UserX,
-  Users,
   X,
 } from "lucide-react";
 
@@ -27,7 +23,6 @@ import {
   DetailSheet,
   EmptyState,
   EvidenceField,
-  KpiStrip,
   LoadingState,
   PageHeader,
   ScopeBar,
@@ -544,41 +539,6 @@ const VendorsPage = () => {
 
   const selectedRow = allVendorRows.find((row) => row.vendor.id === selectedVendorId) || null;
 
-  const vendorKpis = [
-    {
-      label: "Active Vendors",
-      value: vendorRows.filter((row) => row.operationalStatus === "active").length,
-      detail: "Approved and currently in good standing",
-      icon: CheckCircle2,
-      tone: "success" as const,
-    },
-    {
-      label: "Late Payment",
-      value: vendorRows.filter((row) => row.operationalStatus === "late_payment").length,
-      detail: "Outstanding booking or permit balance",
-      icon: AlertTriangle,
-      tone: vendorRows.some((row) => row.operationalStatus === "late_payment")
-        ? ("warning" as const)
-        : ("default" as const),
-    },
-    {
-      label: "Suspended",
-      value: vendorRows.filter((row) => row.operationalStatus === "suspended").length,
-      detail: "Rejected or not approved for operations",
-      icon: UserX,
-      tone: "destructive" as const,
-    },
-    {
-      label: "Pending Approval",
-      value: vendors.filter((vendor) => vendor.status === "pending").length,
-      detail: "Needs manager review",
-      icon: Users,
-      tone: vendors.some((vendor) => vendor.status === "pending")
-        ? ("info" as const)
-        : ("default" as const),
-    },
-  ];
-
   return (
     <ConsolePage>
       <PageHeader
@@ -623,8 +583,6 @@ const VendorsPage = () => {
         />
       ) : (
         <>
-          <KpiStrip items={vendorKpis} />
-
           {vendorRows.length === 0 ? (
             <EmptyState
               title="No vendors found"

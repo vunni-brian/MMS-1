@@ -24,6 +24,8 @@ export type Permission =
   | "payment:create"
   | "notification:read"
   | "notification:update"
+  | "announcement:read"
+  | "announcement:write"
   | "ticket:read"
   | "ticket:create"
   | "ticket:update"
@@ -55,6 +57,8 @@ export type TicketCategory =
   | "other";
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
 export type NotificationPriority = "low" | "normal" | "high";
+export type AnnouncementPriority = "low" | "normal" | "high";
+export type AnnouncementAudience = "all" | "vendors" | "staff";
 export type PaymentMethod = "mtn" | "airtel" | "pesapal" | "receipt";
 export type ResourceRequestCategory = "budget" | "structural";
 export type ResourceRequestStatus = "pending" | "approved" | "rejected";
@@ -336,6 +340,24 @@ export interface VendorActivityEvent {
   priority: NotificationPriority;
   metadata: Record<string, unknown> | null;
   createdAt: string;
+}
+
+export interface Announcement {
+  id: string;
+  marketId: string | null;
+  marketName: string | null;
+  title: string;
+  body: string;
+  priority: AnnouncementPriority;
+  audience: AnnouncementAudience;
+  createdBy: string | null;
+  createdByName: string;
+  createdByRole: Extract<Role, "manager" | "official" | "admin">;
+  expiresAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  active: boolean;
 }
 
 export interface TicketUpdate {

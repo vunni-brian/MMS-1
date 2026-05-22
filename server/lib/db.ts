@@ -1396,6 +1396,73 @@ export const seedDatabase = async () => {
   );
 
   run(
+    `INSERT OR IGNORE INTO announcements (
+       id,
+       market_id,
+       title,
+       body,
+       priority,
+       audience,
+       created_by,
+       created_by_name,
+       created_by_role,
+       expires_at,
+       archived_at,
+       created_at,
+       updated_at
+     )
+     VALUES (
+       'announcement_seed_1',
+       'market_kampala',
+       'Sanitation inspection this Friday',
+       'All vendors in Kampala Central Market should keep stall frontages clear for the scheduled sanitation inspection.',
+       'high',
+       'vendors',
+       'user_manager_sarah',
+       'Sarah Namutebi',
+       'manager',
+       ?,
+       NULL,
+       ?,
+       ?
+     )`,
+    [isoFromDayOffset(14), isoFromDayOffset(-1), isoFromDayOffset(-1)],
+  );
+  run(
+    `INSERT OR IGNORE INTO announcements (
+       id,
+       market_id,
+       title,
+       body,
+       priority,
+       audience,
+       created_by,
+       created_by_name,
+       created_by_role,
+       expires_at,
+       archived_at,
+       created_at,
+       updated_at
+     )
+     VALUES (
+       'announcement_seed_2',
+       NULL,
+       'Receipt uploads now require verification',
+       'Manual payment receipts can be uploaded from the payments workspace and will be verified by authorized staff before settlement.',
+       'normal',
+       'all',
+       'user_admin_ruth',
+       'Ruth Nansubuga',
+       'admin',
+       ?,
+       NULL,
+       ?,
+       ?
+     )`,
+    [isoFromDayOffset(30), isoFromDayOffset(-2), isoFromDayOffset(-2)],
+  );
+
+  run(
     `INSERT OR IGNORE INTO coordination_messages (id, sender_user_id, sender_name, sender_role, market_id, subject, body, created_at)
      VALUES ('coord_seed_1', 'user_official_david', 'David Lubega', 'official', 'market_kampala', 'Weekly oversight request', 'Please share the current occupancy and payment exception summary before Friday.', ?)`,
     [createdAt],

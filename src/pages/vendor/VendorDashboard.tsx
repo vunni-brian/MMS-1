@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Grid3X3,
   MessageSquare,
+  Megaphone,
   ReceiptText,
   Shield,
   Store,
@@ -22,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import {
   ConsolePage,
   EmptyState,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -107,6 +107,7 @@ const VendorDashboard = () => {
   const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
   const paymentsQuery      = useQuery({ queryKey: ["payments"],          queryFn: () => api.getPayments(), refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
   const notificationsQuery = useQuery({ queryKey: ["notifications", 5], queryFn: () => api.getNotifications(5), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+  const announcementsQuery = useQuery({ queryKey: ["announcements", "vendor-dashboard"], queryFn: () => api.getAnnouncements({ active: true }), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
   const managersQuery      = useQuery({ queryKey: ["market-managers", user?.marketId], queryFn: () => api.getMarketManagers(user!.marketId!), enabled: Boolean(user?.marketId), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
 
   const isPending =
@@ -114,19 +115,22 @@ const VendorDashboard = () => {
     bookingsQuery.isPending ||
     paymentsQuery.isPending ||
     notificationsQuery.isPending ||
+    announcementsQuery.isPending ||
     (Boolean(user?.marketId) && managersQuery.isPending);
-  const isError = stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError || notificationsQuery.isError || managersQuery.isError;
+  const isError = stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError || notificationsQuery.isError || announcementsQuery.isError || managersQuery.isError;
 
   const stallsData = stallsQuery.data;
   const bookingsData = bookingsQuery.data;
   const paymentsData = paymentsQuery.data;
   const notificationsData = notificationsQuery.data;
+  const announcementsData = announcementsQuery.data;
   const managersData = managersQuery.data;
 
   const myStalls        = (stallsData?.stalls  || []).filter(s => s.vendorId === user?.id && s.status === "active");
   const myBookings      = bookingsData?.bookings      || [];
   const myPayments      = paymentsData?.payments      || [];
   const myNotifications = notificationsData?.notifications || [];
+  const marketAnnouncements = announcementsData?.announcements || [];
   const marketManagers = managersData?.managers || [];
 
   const approvedBookings   = myBookings.filter(b => b.status === "approved");
@@ -141,18 +145,16 @@ const VendorDashboard = () => {
   const recentPayments = [...myPayments]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, DASHBOARD_CONFIG.PAYMENT_PREVIEW_LIMIT);
-
-  const kpiItems = [
-    { label: "Active Stalls", value: myStalls.length, detail: myStalls.length === 1 ? "1 stall" : `${myStalls.length} stalls`, icon: Store, tone: "success" as const },
-    { label: "Pending Applications", value: pendingApplications.length, detail: pendingApplications.length > 0 ? "Under review" : "None pending", icon: Grid3X3, tone: "warning" as const },
-    { label: "Awaiting Payment", value: approvedBookings.length, detail: awaitingTotal > 0 ? `${formatCurrency(awaitingTotal)} due` : "Nothing due", icon: ReceiptText, tone: "info" as const },
-    { label: "Unread Alerts", value: unreadAlerts.length, detail: unreadAlerts.length > 0 ? "Needs attention" : "All caught up", icon: MessageSquare, tone: unreadAlerts.length > 0 ? "destructive" as const : "default" as const },
-  ];
+  const activeStall = myStalls[0] || null;
+  const activeStallBooking = activeStall
+    ? myBookings.find((booking) => booking.stallId === activeStall.id && (booking.status === "approved" || booking.status === "paid"))
+    : null;
 
   const quickActions = [
     { label: "Apply for Stall", path: "/vendor/stalls", icon: Store, desc: isPendingVendor ? "Available after manager approval" : "Browse available stalls" },
-    { label: "Pay Bills", path: "/vendor/payments", icon: ReceiptText, desc: isPendingVendor ? "Available after manager approval" : "Settle approved charges" },
-    { label: "Raise Complaint", path: "/vendor/complaints", icon: MessageSquare, desc: isPendingVendor ? "Available after manager approval" : "Report billing or maintenance issues" },
+    { label: "Upload Receipt", path: "/vendor/payments", icon: ReceiptText, desc: isPendingVendor ? "Available after manager approval" : "Submit proof of payment" },
+    { label: "File Complaint", path: "/vendor/complaints", icon: MessageSquare, desc: isPendingVendor ? "Available after manager approval" : "Report a market issue" },
+    { label: "View Notices", path: "/vendor/announcements", icon: Mail, desc: "Read market updates", availableWhenPending: true },
   ];
 
   const approvalSteps: ApprovalStep[] = [
@@ -238,188 +240,139 @@ const VendorDashboard = () => {
         <ApprovalProgress steps={approvalSteps} marketName={user?.marketName} />
       )}
 
-      {/* KPI Strip */}
-      <KpiStrip items={kpiItems} columns="grid-cols-2 lg:grid-cols-4" />
-
-      {/* Operational status */}
-      <div className="grid shrink-0 gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
         <Panel
-          title="Payment Obligations"
-          description="Approved charges that need payment before stall access or renewal."
-          actions={<p className="text-sm font-bold font-heading">{formatCurrency(awaitingTotal)}</p>}
-          contentClassName="space-y-2"
+          title="Stall Information"
+          description="Your current market allocation."
+          contentClassName="space-y-3"
         >
-            {approvedBookings.length === 0 ? (
-              <EmptyState title="No payments due" description="Approved stall charges will appear here." />
+            {!activeStall ? (
+              <EmptyState title="No active stall" description="Approved stall allocation details will appear here." />
             ) : (
-              approvedBookings.slice(0, DASHBOARD_CONFIG.DASHBOARD_PREVIEW_LIMIT).map((booking) => (
-                <RecordCard key={booking.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">Stall {booking.stallName}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{fmtRange(booking.startDate, booking.endDate)}</p>
-                    </div>
-                    <p className="shrink-0 text-xs font-bold font-heading">
-                      {formatCurrency(booking.amount)}
-                    </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <RecordCard>
+                  <p className="text-xs text-muted-foreground">Stall Number</p>
+                  <p className="mt-1 text-sm font-semibold">{activeStall.name}</p>
+                </RecordCard>
+                <RecordCard>
+                  <p className="text-xs text-muted-foreground">Section</p>
+                  <p className="mt-1 text-sm font-semibold">{activeStall.zone || "Section not recorded"}</p>
+                </RecordCard>
+                <RecordCard>
+                  <p className="text-xs text-muted-foreground">Allocation Date</p>
+                  <p className="mt-1 text-sm font-semibold">{fmtDate(activeStallBooking?.confirmedAt || activeStallBooking?.createdAt)}</p>
+                </RecordCard>
+                <RecordCard>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <div className="mt-1">
+                    <StatusBadge status="active" label="Active" />
                   </div>
                 </RecordCard>
-              ))
+              </div>
             )}
-          <Button asChild size="sm" className="mt-3 h-8 w-full">
-            <Link to="/vendor/payments">Open Payments</Link>
-          </Button>
         </Panel>
 
+        <Panel
+          title="Quick Actions"
+          description="Common vendor tasks."
+          contentClassName="grid gap-2 sm:grid-cols-2"
+        >
+          {quickActions.map(a => (
+            isPendingVendor && !a.availableWhenPending ? (
+              <div key={a.label} className="flex items-center gap-2.5 rounded-md border border-border/70 bg-muted/25 px-3 py-2 opacity-60">
+                <a.icon className="h-4 w-4 text-muted-foreground"/>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{a.label}</p>
+                  <p className="text-xs text-muted-foreground">{a.desc}</p>
+                </div>
+              </div>
+            ) : (
+              <Link key={a.label} to={a.path} className="flex items-center gap-2.5 rounded-md border border-border/70 bg-background px-3 py-2 transition-colors hover:bg-muted/50">
+                <a.icon className="h-4 w-4 text-muted-foreground"/>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{a.label}</p>
+                  <p className="text-xs text-muted-foreground">{a.desc}</p>
+                </div>
+                <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground"/>
+              </Link>
+            )
+          ))}
+        </Panel>
+      </div>
+
+      {!activeStall && (
         <Panel
           title="Application Status"
           description="Recent stall applications and allocation decisions."
-          actions={<p className="text-sm font-bold font-heading">{pendingApplications.length} pending</p>}
           contentClassName="space-y-2"
         >
-            {recentBookings.length === 0 ? (
-              <EmptyState title="No applications yet" description="Apply for a stall to start an allocation request." />
-            ) : (
-              recentBookings.map((booking) => (
-                <RecordCard key={booking.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">Stall {booking.stallName}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{fmtRange(booking.startDate, booking.endDate)}</p>
-                    </div>
-                    <StatusBadge status={booking.status} context="booking" className="shrink-0" />
+          {recentBookings.length === 0 ? (
+            <EmptyState title="No applications yet" description="Apply for a stall to start an allocation request." />
+          ) : (
+            recentBookings.map((booking) => (
+              <RecordCard key={booking.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">Stall {booking.stallName}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{fmtRange(booking.startDate, booking.endDate)}</p>
                   </div>
-                </RecordCard>
-              ))
-            )}
-        </Panel>
-      </div>
-
-      {/* Stalls, payments, actions, and contacts */}
-      <div className="grid gap-3 lg:grid-cols-3 lg:flex-1 lg:min-h-0">
-
-        {/* My Active Stalls */}
-        <Panel
-          title="My Active Stalls"
-          className="flex flex-col lg:min-h-0"
-          actions={
-            <Button asChild variant="ghost" size="sm" className="h-auto px-0 text-xs text-muted-foreground">
-              <Link to="/vendor/stalls">View all <ArrowRight className="ml-1 h-3 w-3"/></Link>
-            </Button>
-          }
-          contentClassName="max-h-64 space-y-1.5 overflow-y-auto lg:max-h-none lg:flex-1 lg:min-h-0"
-        >
-            {myStalls.length === 0 ? (
-              <EmptyState title="No active stalls yet" description="Approved stall allocations will appear here after manager review." />
-            ) : (
-              myStalls.slice(0, DASHBOARD_CONFIG.STALL_PREVIEW_LIMIT).map(stall => {
-                const exp = getLeaseExpiry(stall.id);
-                return (
-                  <RecordCard key={stall.id}>
-                    <div className="flex justify-between items-start">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold leading-tight">{stall.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{stall.zone} - {stall.size}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                          {formatCurrency(stall.pricePerMonth)}/mo
-                          {exp ? ` - Exp: ${exp}` : ""}
-                        </p>
-                      </div>
-                      <StatusBadge status="active" label="Active" className="shrink-0 scale-90 origin-top-right" />
-                    </div>
-                  </RecordCard>
-                );
-              })
-            )}
-        </Panel>
-
-        {/* Recent Payments */}
-        <Panel
-          title="Recent Payments"
-          className="flex flex-col lg:min-h-0"
-          actions={
-            <Button asChild variant="ghost" size="sm" className="h-auto px-0 text-xs text-muted-foreground">
-              <Link to="/vendor/payments">View all <ArrowRight className="ml-1 h-3 w-3"/></Link>
-            </Button>
-          }
-          contentClassName="max-h-64 space-y-0.5 overflow-y-auto lg:max-h-none lg:flex-1 lg:min-h-0"
-        >
-            {recentPayments.length === 0 ? (
-              <EmptyState title="No payments found" description="Payment attempts and receipts will appear after checkout starts." />
-            ) : (
-              recentPayments.map(payment => (
-                <div key={payment.id} className="flex items-center gap-2.5 border-b border-border/40 py-2 last:border-0">
-                  <StatusBadge status={payment.status} context="payment" className="shrink-0 scale-90" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium leading-tight truncate capitalize">{payment.description || payment.chargeType.replace(/_/g, ' ')}</p>
-                    <p className="text-[11px] text-muted-foreground">{fmtAlert(payment.createdAt)}</p>
-                  </div>
-                  <span className="shrink-0 text-xs font-bold font-heading">
-                    {formatCurrency(payment.amount)}
-                  </span>
+                  <StatusBadge status={booking.status} context="booking" className="shrink-0" />
                 </div>
-              ))
-            )}
+              </RecordCard>
+            ))
+          )}
         </Panel>
+      )}
 
-        {/* Quick Actions + Security stacked */}
-        <div className="flex flex-col gap-3 lg:min-h-0">
-
-          {/* Quick Actions */}
-          <Panel title="Quick Actions" className="flex flex-1 flex-col lg:min-h-0" contentClassName="max-h-48 space-y-0.5 overflow-y-auto lg:max-h-none lg:flex-1 lg:min-h-0">
-              {quickActions.map(a => (
-                isPendingVendor ? (
-                  <div key={a.label} className="flex items-center gap-2.5 rounded-lg px-2 py-2 opacity-60">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                      <a.icon className="h-3.5 w-3.5"/>
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold">{a.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{a.desc}</p>
-                    </div>
+      <Panel
+        title="Market Announcements"
+        description="Active notices from market operations."
+        actions={
+          <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+            <Link to="/vendor/announcements">View all</Link>
+          </Button>
+        }
+        contentClassName="space-y-2"
+      >
+        {marketAnnouncements.length === 0 ? (
+          <EmptyState title="No active announcements" description="Inspection notices, deadline updates, and market broadcasts will appear here." />
+        ) : (
+          marketAnnouncements.slice(0, 4).map((announcement) => (
+            <RecordCard key={announcement.id} className={announcement.priority === "high" ? "border-destructive/25 bg-destructive/5" : undefined}>
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${announcement.priority === "high" ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-info/20 bg-info/10 text-info"}`}>
+                  <Megaphone className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-semibold">{announcement.title}</p>
+                    {announcement.priority === "high" && (
+                      <span className="status-badge border-destructive/20 bg-destructive/15 text-destructive">High</span>
+                    )}
                   </div>
-                ) : (
-                  <Link key={a.label} to={a.path} className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-muted/50 transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                      <a.icon className="h-3.5 w-3.5"/>
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold">{a.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{a.desc}</p>
-                    </div>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5"/>
-                  </Link>
-                )
-              ))}
-          </Panel>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{announcement.body}</p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(announcement.createdAt)}</span>
+              </div>
+            </RecordCard>
+          ))
+        )}
+      </Panel>
 
-          <Panel
-            title="Market Managers"
-            actions={<Users className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="space-y-2"
-          >
-              {marketManagers.length === 0 ? (
-                <EmptyState title="No manager assigned" description="Manager contacts will appear when your market has assigned staff." />
-              ) : (
-                marketManagers.map((manager) => (
-                  <RecordCard key={manager.id}>
-                    <p className="text-xs font-semibold">{manager.name}</p>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                      <a href={`tel:${manager.phone}`} className="inline-flex items-center gap-1 hover:text-foreground">
-                        <Phone className="h-3 w-3" />
-                        {manager.phone}
-                      </a>
-                      <a href={`mailto:${manager.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
-                        <Mail className="h-3 w-3" />
-                        {manager.email}
-                      </a>
-                    </div>
-                  </RecordCard>
-                ))
-              )}
-          </Panel>
-        </div>
-      </div>
+      <Panel title="Notifications" description="Recent account and market updates." contentClassName="space-y-2">
+        {myNotifications.length === 0 ? (
+          <EmptyState title="No notifications" description="Application, receipt, and complaint updates will appear here." />
+        ) : (
+          myNotifications.slice(0, 6).map((notification) => (
+            <RecordCard key={notification.id}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm">{notification.message}</p>
+                <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(notification.createdAt)}</span>
+              </div>
+            </RecordCard>
+          ))
+        )}
+      </Panel>
     </ConsolePage>
   );
 };

@@ -1,13 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Activity,
-  Database,
   Download,
   Lock,
-  LogIn,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +15,6 @@ import {
   DataTableFrame,
   DetailSheet,
   EvidenceField,
-  KpiStrip,
   PageHeader,
 } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
@@ -92,52 +87,6 @@ const AuditPage = () => {
   const selectedEvent =
     events.find((event) => event.id === selectedEventId) || null;
 
-  const loginEvents = filteredEvents.filter((event) =>
-    event.action.includes("LOGIN"),
-  ).length;
-
-  const actorCount = new Set(
-    filteredEvents.map((event) => event.actorUserId || event.actorName),
-  ).size;
-
-  const marketCount = new Set(
-    filteredEvents.map((event) => event.marketId || "all"),
-  ).size;
-
-  const auditKpis = [
-    {
-      label: "Audit Events",
-      value: filteredEvents.length,
-      detail: "Filtered records in this scope",
-      icon: Database,
-      tone: "default" as const,
-    },
-    {
-      label: "Login Events",
-      value: loginEvents,
-      detail: "Successful sign-ins captured",
-      icon: LogIn,
-      tone: "info" as const,
-    },
-    {
-      label: "Actors",
-      value: actorCount,
-      detail: "People or system actors recorded",
-      icon: Activity,
-      tone: "default" as const,
-    },
-    {
-      label: "Market Scopes",
-      value: marketCount,
-      detail:
-        selectedMarketId === "all"
-          ? "Across all accessible markets"
-          : "Selected market only",
-      icon: ShieldCheck,
-      tone: "success" as const,
-    },
-  ];
-
   const exportCsv = () => {
     const headers = [
       "Timestamp",
@@ -198,8 +147,6 @@ const AuditPage = () => {
           </>
         }
       />
-
-      <KpiStrip items={auditKpis} />
 
       <DataTableFrame
         title="Audit Events"

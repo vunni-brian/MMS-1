@@ -1,5 +1,8 @@
 import type {
   AppNotification,
+  Announcement,
+  AnnouncementAudience,
+  AnnouncementPriority,
   Attachment,
   AuditEvent,
   AuthUser,
@@ -326,7 +329,45 @@ export const api = {
       body: JSON.stringify({ transactionId }),
     }),
 
-  initiatePayment: (input: { bookingId?: string | null; utilityChargeId?: string | null; penaltyId?: string | null }) =>
+  async initiatePayment(input: {
+    bookingId?: string | null;
+    utilityChargeId?: string | null;
+    penaltyId?: string | null;
+    receiptNumber?: string | null;
+    receiptNote?: string | null;
+    receiptFile?: File | null;
+  }) {
+    const { receiptFile, ...payload } = input;
+    return apiRequest<{
+      payment: Payment;
+      status: string;
+      message: string;
+      redirectUrl: string;
+      orderTrackingId: string;
+      iframe: boolean;
+    }>("/payments/initiate", {
+      method: "POST",
+      body: JSON.stringify({
+        ...payload,
+        receiptFile: receiptFile ? await toFilePayload(receiptFile) : null,
+      }),
+    });
+  },
+  verifyPaymentReceipt: (paymentId: string, input: { status: "verified" | "rejected"; reason?: string | null }) =>
+    apiRequest<{ payment: Payment }>(`/payments/${paymentId}/verify`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  async getReceiptFileUrl(paymentId: string) {
+    const response = await fetch(`${API_BASE_URL}/payments/${paymentId}/receipt-file`, {
+      headers: createHeaders(undefined, false),
+    });
+    if (!response.ok) {
+      await parseResponse(response);
+    }
+    return URL.createObjectURL(await response.blob());
+  },
+  initiateGatewayPayment: (input: { bookingId?: string | null; utilityChargeId?: string | null; penaltyId?: string | null }) =>
     apiRequest<{
       payment: Payment;
       status: string;
@@ -480,6 +521,29 @@ export const api = {
     apiRequest<{ message: CoordinationMessage }>("/coordination/messages", {
       method: "POST",
       body: JSON.stringify({ subject, body, marketId: marketId ?? null }),
+    }),
+  getAnnouncements: (options?: { marketId?: string; active?: boolean }) =>
+    apiRequest<{ announcements: Announcement[] }>(
+      `/announcements${buildQuery({
+        marketId: options?.marketId,
+        active: typeof options?.active === "boolean" ? String(options.active) : undefined,
+      })}`,
+    ),
+  createAnnouncement: (input: {
+    title: string;
+    body: string;
+    priority: AnnouncementPriority;
+    audience: AnnouncementAudience;
+    marketId?: string | null;
+    expiresAt?: string | null;
+  }) =>
+    apiRequest<{ announcement: Announcement; delivery: { announcementId: string; recipientCount: number } }>("/announcements", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  archiveAnnouncement: (announcementId: string) =>
+    apiRequest<{ announcement: Announcement }>(`/announcements/${announcementId}/archive`, {
+      method: "POST",
     }),
   getResourceRequests: (marketId?: string) =>
     apiRequest<{ requests: ResourceRequest[] }>(`/resource-requests${buildQuery({ marketId })}`),

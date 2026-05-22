@@ -18,6 +18,7 @@ import { coordinationRoutes } from "./modules/coordination.ts";
 import { resourceRequestRoutes } from "./modules/resources.ts";
 import { utilityChargeRoutes } from "./modules/utilities.ts";
 import { penaltyRoutes } from "./modules/penalties.ts";
+import { announcementRoutes } from "./modules/announcements.ts";
 
 const routes: RouteDefinition[] = [
   ...authRoutes,
@@ -30,6 +31,7 @@ const routes: RouteDefinition[] = [
   ...ticketRoutes,
   ...reportRoutes,
   ...coordinationRoutes,
+  ...announcementRoutes,
   ...resourceRequestRoutes,
   ...utilityChargeRoutes,
   ...penaltyRoutes,

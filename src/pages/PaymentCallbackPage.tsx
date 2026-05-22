@@ -51,7 +51,7 @@ const PaymentCallbackPage = () => {
         <div>
           <h1 className="text-2xl font-bold font-heading">Payment Result</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            This page confirms the latest payment state after Pesapal redirects the customer back to the app.
+            This page confirms the latest payment state after returning to the app.
           </p>
         </div>
 
@@ -64,13 +64,13 @@ const PaymentCallbackPage = () => {
         ) : isLoading ? (
           <Card className="card-warm">
             <CardContent className="p-6 text-sm text-muted-foreground">
-              Checking the latest transaction status with Pesapal...
+              Checking the latest payment status...
             </CardContent>
           </Card>
         ) : error ? (
           <Card className="card-warm">
             <CardContent className="p-6 text-sm text-destructive">
-              {error instanceof Error ? error.message : "Unable to confirm the Pesapal payment status."}
+              {error instanceof Error ? error.message : "Unable to confirm the payment status."}
             </CardContent>
           </Card>
         ) : (
@@ -114,7 +114,7 @@ const PaymentCallbackPage = () => {
                     {payment.status === "completed"
                       ? "Payment confirmed. You can now return to the payments page and open the receipt."
                       : payment.status === "failed"
-                        ? "Pesapal marked this payment as failed. You can return to the payments page and start a new checkout session."
+                        ? "This payment was not verified. You can return to the payments page and upload a valid receipt."
                         : "The transaction is still pending. Return to the payments page to refresh the latest status."}
                   </div>
                 </>

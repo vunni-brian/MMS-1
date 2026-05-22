@@ -17,6 +17,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Megaphone,
   MessagesSquare,
   Plus,
   ReceiptText,
@@ -62,38 +63,36 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    title: "Dashboard",
+    items: [
+      { label: "Overview", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
+    ],
+  },
+  {
     title: "Operations",
     items: [
-      { label: "Dashboard", path: "", icon: LayoutDashboard, roles: ["vendor", "manager", "official", "admin"] },
       { label: "Complaints", path: "complaints", icon: MessageSquare, roles: ["vendor", "manager"] },
       { label: "Vendors", path: "vendors", icon: Users, roles: ["manager"] },
-      { label: "Stalls", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
-      { label: "Requests", path: "coordination", icon: MessagesSquare, roles: ["manager", "official", "admin"] },
       { label: "Utilities", path: "billing", icon: Gauge, roles: ["manager", "official", "admin"] },
-      { label: "User Management", path: "users", icon: Users, roles: ["admin"] },
+      { label: "Markets", path: "stalls", icon: Grid3X3, roles: ["vendor", "manager"] },
+      { label: "Announcements", path: "announcements", icon: Megaphone, roles: ["vendor", "manager", "official", "admin"] },
+      { label: "Requests", path: "coordination", icon: MessagesSquare, roles: ["manager", "official", "admin"] },
     ],
   },
   {
     title: "Financial",
     items: [
       { label: "Payments", path: "payments", icon: CreditCard, roles: ["vendor", "manager"] },
-      { label: "Revenue", path: "reports", icon: CircleDollarSign, roles: ["manager", "official", "admin"] },
-      { label: "Billing", path: "billing", icon: ReceiptText, roles: ["manager", "official", "admin"] },
+      { label: "Reports", path: "reports", icon: CircleDollarSign, roles: ["manager", "official", "admin"] },
     ],
   },
   {
-    title: "Intelligence",
+    title: "Administration",
     items: [
-      { label: "Reports", path: "reports", icon: BarChart3, roles: ["manager", "official", "admin"] },
+      { label: "Users", path: "users", icon: Users, roles: ["admin"] },
+      { label: "System Settings", path: "settings", icon: Settings, roles: ["admin"] },
+      { label: "Profile", path: "profile", icon: UserCircle, roles: ["vendor", "manager", "official", "admin"] },
       { label: "Audit Log", path: "audit", icon: ScrollText, roles: ["manager", "official", "admin"] },
-    ],
-  },
-  {
-    title: "System",
-    items: [
-      { label: "Notifications", path: "profile", query: "tab=notifications", icon: Bell, roles: ["vendor", "manager", "official", "admin"] },
-      { label: "Settings", path: "profile", icon: Settings, roles: ["vendor", "manager", "official", "admin"] },
-      { label: "Support", path: "profile", query: "tab=security", icon: Headphones, roles: ["vendor", "manager", "official", "admin"] },
     ],
   },
 ];
@@ -130,6 +129,7 @@ const getQuickActions = (role: Role, isPendingVendor: boolean) => {
         { label: "Apply for stall", path: "/vendor/stalls", icon: Store },
         { label: "Pay bills", path: "/vendor/payments", icon: CreditCard },
         { label: "Raise complaint", path: "/vendor/complaints", icon: MessageSquare },
+        { label: "Market notices", path: "/vendor/announcements", icon: Megaphone },
       ];
   }
 
@@ -137,6 +137,7 @@ const getQuickActions = (role: Role, isPendingVendor: boolean) => {
     return [
       { label: "Review vendors", path: "/manager/vendors", icon: Users },
       { label: "Open complaints", path: "/manager/complaints", icon: MessageSquare },
+      { label: "Post announcement", path: "/manager/announcements", icon: Megaphone },
       { label: "Payment records", path: "/manager/payments", icon: CreditCard },
     ];
   }
@@ -144,6 +145,7 @@ const getQuickActions = (role: Role, isPendingVendor: boolean) => {
   if (role === "official") {
     return [
       { label: "Review requests", path: "/official/coordination", icon: ClipboardList },
+      { label: "Post announcement", path: "/official/announcements", icon: Megaphone },
       { label: "Reports", path: "/official/reports", icon: BarChart3 },
       { label: "Audit log", path: "/official/audit", icon: ScrollText },
     ];
@@ -151,6 +153,8 @@ const getQuickActions = (role: Role, isPendingVendor: boolean) => {
 
   return [
     { label: "Invite staff", path: "/admin/users", icon: Users },
+    { label: "System settings", path: "/admin/settings", icon: Settings },
+    { label: "Post announcement", path: "/admin/announcements", icon: Megaphone },
     { label: "Billing controls", path: "/admin/billing", icon: ReceiptText },
     { label: "Reports", path: "/admin/reports", icon: BarChart3 },
     { label: "Audit log", path: "/admin/audit", icon: ScrollText },
@@ -468,7 +472,7 @@ const AppLayout = () => {
           items: group.items.filter((item) => {
             if (!user) return false;
             if (!item.roles.includes(user.role)) return false;
-            if (isPendingVendor) return item.path === "" || item.path === "profile";
+            if (isPendingVendor) return item.path === "" || item.path === "profile" || item.path === "announcements";
             return true;
           }),
         }))
@@ -750,7 +754,6 @@ const AppLayout = () => {
             <Outlet />
           </main>
 
-          <RoleInsightsRail user={user} isPendingVendor={Boolean(isPendingVendor)} notifications={notifications} />
         </div>
       </div>
     </div>
