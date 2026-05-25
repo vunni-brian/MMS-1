@@ -1,6 +1,6 @@
 import type { ChargeTypeName, Payment, PaymentStatus } from "@/types";
 
-export type PaymentHistoryStatusFilter = "all" | PaymentStatus | "cancelled";
+export type PaymentHistoryStatusFilter = "all" | PaymentStatus;
 
 export type PaymentHistoryFilters = {
   dateFrom: string;
@@ -41,8 +41,9 @@ export const getPaymentPurpose = (payment: Pick<Payment, "chargeType" | "stallNa
   return chargeTypeLabel;
 };
 
+// Provider references are the best reconciliation handle; uploaded receipt IDs are secondary evidence.
 export const getPaymentReference = (payment: Pick<Payment, "providerReference" | "externalReference" | "receiptId">) =>
-  payment.receiptId || payment.providerReference || "Receipt pending";
+  payment.providerReference || payment.externalReference || payment.receiptId || "Receipt pending";
 
 export const getPaymentTimelineDate = (payment: Pick<Payment, "completedAt" | "createdAt">) => payment.completedAt || payment.createdAt;
 

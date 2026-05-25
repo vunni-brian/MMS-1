@@ -6,6 +6,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +39,10 @@ const CoordinationPage = () => {
   const [selectedMarketId, setSelectedMarketId] = useState("all");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [confirmReview, setConfirmReview] = useState<{
+    request: ResourceRequest;
+    action: "approved" | "rejected";
+  } | null>(null);
   const canScopeMarkets = user?.role === "official" || user?.role === "admin";
   const canCreateResourceRequest = user?.role === "manager";
   const canReviewResourceRequest = user?.role === "official" || user?.role === "admin";
@@ -66,7 +78,7 @@ const CoordinationPage = () => {
     },
     onError: (error) => {
       setSuccess(null);
-      setError(error instanceof ApiError ? error.message : "Unable to send coordination message.");
+      setError(error instanceof ApiError ? error.message : "Unable to send request update.");
     },
   });
 
@@ -101,7 +113,7 @@ const CoordinationPage = () => {
         reviewNote:
           status === "approved"
             ? "Approved for operational follow-up."
-            : "Rejected from coordination review.",
+            : "Rejected from request review.",
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["resource-requests"] });
@@ -123,9 +135,9 @@ const CoordinationPage = () => {
   return (
     <ConsolePage>
       <PageHeader
-        eyebrow="Operations channel"
-        title="Coordination"
-        description="Resource requests and market updates."
+        eyebrow="Operations queue"
+        title="Requests"
+        description="Review resource requests and market updates."
         actions={
           canScopeMarkets && (
             <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
@@ -152,10 +164,12 @@ const CoordinationPage = () => {
         }
       />
 
-      {showResourceRequests && (
+      <div className="requests-workspace-grid">
+        {showResourceRequests && (
         <Panel
+          className="requests-primary-panel workspace-dominant-panel"
           title="Resource Requests"
-          description="Budget and structural requests requiring review."
+          description="Budget and structural requests that need review or follow-up."
           actions={
             <span className="status-badge border-warning/25 bg-warning/15 text-warning">
               {pendingResourceRequests.length} pending
@@ -198,7 +212,7 @@ const CoordinationPage = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="resource-description">Operational need</Label>
+                  <Label htmlFor="resource-description">Need</Label>
                   <Textarea
                     id="resource-description"
                     value={requestDescription}
@@ -251,7 +265,7 @@ const CoordinationPage = () => {
                           <div className="mt-3 flex flex-wrap gap-2 md:justify-end">
                             <Button
                               size="sm"
-                              onClick={() => reviewResourceRequest.mutate({ request, status: "approved" })}
+                              onClick={() => setConfirmReview({ request, action: "approved" })}
                               disabled={reviewResourceRequest.isPending}
                             >
                               Approve
@@ -259,7 +273,7 @@ const CoordinationPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => reviewResourceRequest.mutate({ request, status: "rejected" })}
+                              onClick={() => setConfirmReview({ request, action: "rejected" })}
                               disabled={reviewResourceRequest.isPending}
                             >
                               Reject
@@ -273,12 +287,11 @@ const CoordinationPage = () => {
               )}
             </div>
         </Panel>
-      )}
+        )}
 
-      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-        <Panel title="Shared Channel" description="Latest operational coordination messages." contentClassName="space-y-2">
+        <Panel className="workspace-secondary-panel" title="Updates" description="Latest request updates." contentClassName="space-y-2">
             {messages.length === 0 ? (
-              <EmptyState title="No coordination messages yet" />
+              <EmptyState title="No request updates yet" />
             ) : (
               messages.map((message) => {
                 const Icon = message.senderRole === "manager" ? UserCog : Shield;
@@ -312,14 +325,14 @@ const CoordinationPage = () => {
             )}
         </Panel>
 
-        <Panel title="Post Update" description="Send a concise operational note." contentClassName="space-y-3">
+        <Panel className="workspace-secondary-panel" title="Send Update" description="Post a concise note." contentClassName="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="coordination-subject">Subject</Label>
               <Input
                 id="coordination-subject"
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
-                placeholder="Weekly update, oversight note, action request..."
+                placeholder="Weekly update, monitoring note, action request..."
               />
             </div>
             <div className="space-y-1.5">
@@ -345,10 +358,45 @@ const CoordinationPage = () => {
             )}
             <Button className="w-full" onClick={() => postMessage.mutate()} disabled={postMessage.isPending}>
               <Send className="w-4 h-4 mr-2" />
-              Send Message
+              Send Update
             </Button>
         </Panel>
       </div>
+
+      {/* Confirmation dialog for resource request approve / reject */}
+      <Dialog open={Boolean(confirmReview)} onOpenChange={(open) => !open && setConfirmReview(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading">
+              {confirmReview?.action === "approved" ? "Approve Request" : "Reject Request"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmReview?.action === "approved"
+                ? `Approve "${confirmReview.request.title}" from ${confirmReview.request.managerName} for ${formatCurrency(confirmReview.request.amountRequested)}? This will notify the manager and mark the request as approved.`
+                : `Reject "${confirmReview?.request.title}" from ${confirmReview?.request.managerName}? The manager will be notified of the decision.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmReview(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={confirmReview?.action === "approved" ? "default" : "destructive"}
+              disabled={reviewResourceRequest.isPending}
+              onClick={() => {
+                if (!confirmReview) return;
+                reviewResourceRequest.mutate({
+                  request: confirmReview.request,
+                  status: confirmReview.action,
+                });
+                setConfirmReview(null);
+              }}
+            >
+              {confirmReview?.action === "approved" ? "Yes, Approve" : "Yes, Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ConsolePage>
   );
 };

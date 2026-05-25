@@ -3,15 +3,15 @@ import type { Permission, Role } from "@/types";
 export const permissionLabels: Record<Permission, string> = {
   "auth:manage": "Manage users and roles",
   "billing:read": "View billing",
-  "billing:manage": "Manage billing controls",
+  "billing:manage": "Manage billing",
   "utility:read": "View utilities",
   "utility:manage": "Manage utility charges",
   "penalty:read": "View penalties",
   "penalty:manage": "Issue and manage penalties",
   "vendor:read": "View vendors",
   "vendor:review": "Review vendor applications",
-  "coordination:read": "View coordination",
-  "coordination:write": "Post coordination updates",
+  "coordination:read": "View requests",
+  "coordination:write": "Post request updates",
   "resource:read": "View resource requests",
   "resource:create": "Create resource requests",
   "resource:review": "Review resource requests",
@@ -24,13 +24,13 @@ export const permissionLabels: Record<Permission, string> = {
   "payment:create": "Create payments",
   "notification:read": "View notifications",
   "notification:update": "Update notifications",
-  "announcement:read": "View announcements",
-  "announcement:write": "Publish announcements",
+  "announcement:read": "View notices",
+  "announcement:write": "Publish notices",
   "ticket:read": "View complaints",
   "ticket:create": "Create complaints",
   "ticket:update": "Update complaints",
   "report:read": "Generate reports",
-  "audit:read": "View audit trail",
+  "audit:read": "View activity log",
   "fallback:query": "Use fallback assistant",
 };
 
@@ -136,6 +136,6 @@ export const permissionGroups: Array<{ title: string; permissions: Permission[] 
   },
   {
     title: "System",
-    permissions: ["notification:read", "notification:update", "fallback:query"],
+    permissions: ["notification:read", "notification:update"],
   },
 ];

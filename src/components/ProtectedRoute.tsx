@@ -14,7 +14,9 @@ export const ProtectedRoute = ({
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  // Only block on the very first session restore (no user yet and still loading).
+  // Once a user is known, navigate immediately without a loading flash.
+  if (isLoading && !user) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading session...</div>;
   }
 
@@ -32,7 +34,7 @@ export const ProtectedRoute = ({
 export const VendorApprovalGuard = ({ children }: { children: ReactNode }) => {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading session...</div>;
   }
 

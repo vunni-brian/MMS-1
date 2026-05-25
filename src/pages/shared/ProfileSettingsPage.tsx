@@ -6,6 +6,8 @@ import {
   Bell,
   CheckCheck,
   CreditCard,
+  Eye,
+  EyeOff,
   Info,
   KeyRound,
   Mail,
@@ -18,11 +20,11 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
-import { formatHumanDate, formatHumanDateTime } from "@/lib/utils";
+import { cn, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ConsolePage, FileUploadCard, FormSection, LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { ConsolePage, EmptyState, FileUploadCard, FormSection, LoadingState, PageHeader } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -123,11 +125,26 @@ const ProfileSettingsPage = () => {
     newPassword: "",
     confirmPassword: "",
   });
-  const [preferences, setPreferences] = useState({
-    denseTables: true,
-    showReceipts: true,
-    rememberFilters: true,
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
   });
+  const [preferences, setPreferences] = useState(() => {
+    try {
+      const stored = localStorage.getItem("mms.preferences");
+      if (stored) return JSON.parse(stored) as { denseTables: boolean; showReceipts: boolean; rememberFilters: boolean };
+    } catch { /* ignore */ }
+    return { denseTables: true, showReceipts: true, rememberFilters: true };
+  });
+
+  const updatePreference = (key: keyof typeof preferences, value: boolean) => {
+    setPreferences((current) => {
+      const next = { ...current, [key]: value };
+      try { localStorage.setItem("mms.preferences", JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [notificationSettings, setNotificationSettings] = useState({
     inApp: true,
     sms: true,
@@ -524,19 +541,19 @@ const ProfileSettingsPage = () => {
           label="Dense tables"
           detail="Show more market rows in each table view."
           checked={preferences.denseTables}
-          onCheckedChange={(checked) => setPreferences((current) => ({ ...current, denseTables: checked }))}
+          onCheckedChange={(checked) => updatePreference("denseTables", checked)}
         />
         <SettingToggle
           label="Receipt-first payments"
           detail="Keep receipts visible in payment history."
           checked={preferences.showReceipts}
-          onCheckedChange={(checked) => setPreferences((current) => ({ ...current, showReceipts: checked }))}
+          onCheckedChange={(checked) => updatePreference("showReceipts", checked)}
         />
         <SettingToggle
           label="Remember filters"
           detail="Keep market filters between visits."
           checked={preferences.rememberFilters}
-          onCheckedChange={(checked) => setPreferences((current) => ({ ...current, rememberFilters: checked }))}
+          onCheckedChange={(checked) => updatePreference("rememberFilters", checked)}
         />
       </div>
     </div>
@@ -557,33 +574,69 @@ const ProfileSettingsPage = () => {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="current-password">Current Password</Label>
-            <Input
-              id="current-password"
-              type="password"
-              autoComplete="current-password"
-              value={passwordForm.currentPassword}
-              onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
-            />
+            <div className="relative">
+              <Input
+                id="current-password"
+                type={showPasswords.current ? "text" : "password"}
+                autoComplete="current-password"
+                className="pr-10"
+                value={passwordForm.currentPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
+              />
+              <button
+                type="button"
+                aria-label={showPasswords.current ? "Hide password" : "Show password"}
+                onClick={() => setShowPasswords((s) => ({ ...s, current: !s.current }))}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none"
+              >
+                {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="new-password">New Password</Label>
-            <Input
-              id="new-password"
-              type="password"
-              autoComplete="new-password"
-              value={passwordForm.newPassword}
-              onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
-            />
+            <div className="relative">
+              <Input
+                id="new-password"
+                type={showPasswords.new ? "text" : "password"}
+                autoComplete="new-password"
+                className="pr-10"
+                value={passwordForm.newPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+              />
+              <button
+                type="button"
+                aria-label={showPasswords.new ? "Hide password" : "Show password"}
+                onClick={() => setShowPasswords((s) => ({ ...s, new: !s.new }))}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none"
+              >
+                {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm-password">Confirm New Password</Label>
-            <Input
-              id="confirm-password"
-              type="password"
-              autoComplete="new-password"
-              value={passwordForm.confirmPassword}
-              onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-            />
+            <div className="relative">
+              <Input
+                id="confirm-password"
+                type={showPasswords.confirm ? "text" : "password"}
+                autoComplete="new-password"
+                className="pr-10"
+                value={passwordForm.confirmPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+              />
+              <button
+                type="button"
+                aria-label={showPasswords.confirm ? "Hide password" : "Show password"}
+                onClick={() => setShowPasswords((s) => ({ ...s, confirm: !s.confirm }))}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none"
+              >
+                {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
+              <p className="text-xs text-destructive">Passwords do not match.</p>
+            )}
           </div>
         </div>
 
@@ -612,7 +665,7 @@ const ProfileSettingsPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold font-heading">Notifications</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Operational alerts, approvals, reminders, and delivery channels.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Alerts, approvals, reminders, and delivery channels.</p>
         </div>
         <Button
           variant="outline"
@@ -651,7 +704,13 @@ const ProfileSettingsPage = () => {
               <LoadingState rows={4} itemClassName="h-16 rounded-lg" />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">No operational notifications yet.</div>
+            <div className="p-4">
+              <EmptyState
+                title="No operational notifications"
+                description="Security, payment, approval, and complaint updates will appear here when they require attention."
+                icon={Bell}
+              />
+            </div>
           ) : (
             notifications.slice(0, 12).map((notification) => (
               <button
@@ -805,19 +864,44 @@ const ProfileSettingsPage = () => {
           <LoadingState rows={5} itemClassName="h-28 rounded-xl" />
         </div>
       ) : (
-        <div className="grid gap-3 rounded-lg border border-border/70 bg-card p-3 shadow-sm lg:grid-cols-[220px_1fr]">
-          <aside className="border-b border-border/70 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-3">
-            <nav className="grid gap-1">
+        <div className="profile-settings-shell">
+          <aside className="profile-rail">
+            <div className="profile-summary-card">
+              <div className="flex items-start gap-3">
+                <Avatar className="profile-summary-avatar">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={user.name} />}
+                  <AvatarFallback className="bg-muted text-lg font-semibold text-foreground">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold font-heading">{user.name}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{roleLabel(user.role)}</p>
+                  <span className="mt-2 inline-flex rounded-full border border-border/70 bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {user.marketName || "System access"}
+                  </span>
+                </div>
+              </div>
+              <div className="profile-signal-grid">
+                <div className="profile-signal">
+                  <p className="text-[11px] text-muted-foreground">Phone</p>
+                  <p className="mt-0.5 text-sm font-semibold">{user.phoneVerifiedAt ? "Verified" : "Pending"}</p>
+                </div>
+                <div className="profile-signal">
+                  <p className="text-[11px] text-muted-foreground">Unread alerts</p>
+                  <p className="mt-0.5 text-sm font-semibold">{unreadNotifications.length}</p>
+                </div>
+                <div className="profile-signal">
+                  <p className="text-[11px] text-muted-foreground">Created</p>
+                  <p className="mt-0.5 text-sm font-semibold">{formatHumanDate(user.createdAt)}</p>
+                </div>
+              </div>
+            </div>
+            <nav className="profile-tab-nav" aria-label="Profile settings sections">
               {settingsTabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`}
+                  className={cn("profile-tab-button", activeTab === tab.id && "is-active")}
                 >
                   <tab.icon className="h-4 w-4 shrink-0" />
                   <span className="min-w-0 truncate">{tab.label}</span>
@@ -825,7 +909,7 @@ const ProfileSettingsPage = () => {
               ))}
             </nav>
           </aside>
-          <main className="min-w-0">{tabContent[activeTab]}</main>
+          <main className="profile-content-surface">{tabContent[activeTab]}</main>
         </div>
       )}
     </ConsolePage>

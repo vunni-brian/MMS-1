@@ -395,6 +395,7 @@ const VendorsPage = () => {
   const [resetReason, setResetReason] = useState("");
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [error, setError] = useState<string | null>(null);
 
   const { data: vendorsData, isPending: vendorsPending } = useQuery({
@@ -530,12 +531,21 @@ const VendorsPage = () => {
 
   const vendorRows = allVendorRows.filter(({ vendor }) => {
     const term = search.trim().toLowerCase();
-    if (!term) return true;
-
-    return [vendor.name, vendor.phone, vendor.email].some((value) =>
-      value.toLowerCase().includes(term),
-    );
+    const matchesSearch =
+      !term ||
+      [vendor.name, vendor.phone, vendor.email].some((value) =>
+        value.toLowerCase().includes(term),
+      );
+    const matchesStatus = statusFilter === "all" || vendor.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
+
+  const statusCounts = {
+    all: allVendorRows.length,
+    pending: allVendorRows.filter((r) => r.vendor.status === "pending").length,
+    approved: allVendorRows.filter((r) => r.vendor.status === "approved").length,
+    rejected: allVendorRows.filter((r) => r.vendor.status === "rejected").length,
+  };
 
   const selectedRow = allVendorRows.find((row) => row.vendor.id === selectedVendorId) || null;
 
@@ -543,8 +553,8 @@ const VendorsPage = () => {
     <ConsolePage>
       <PageHeader
         eyebrow="Vendor operations"
-        title="Vendor Directory"
-        description="Vendor status, approval evidence, permits, and payment risk."
+        title="Vendors"
+        description="Vendor status, applications, documents, and payment follow-up."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">
@@ -567,6 +577,29 @@ const VendorsPage = () => {
             />
           </div>
         </ScopeItem>
+        <ScopeItem label="Status filter">
+          <div className="flex flex-wrap gap-1 rounded-md bg-muted p-1" role="tablist" aria-label="Filter by vendor status">
+            {(["all", "pending", "approved", "rejected"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === s}
+                onClick={() => setStatusFilter(s)}
+                className={`inline-flex h-8 items-center gap-1.5 rounded px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  statusFilter === s
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${statusFilter === s ? "bg-muted" : "bg-background/70"}`}>
+                  {statusCounts[s]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </ScopeItem>
       </ScopeBar>
 
       {error && (
@@ -582,14 +615,14 @@ const VendorsPage = () => {
           itemClassName="h-[180px] rounded-xl"
         />
       ) : (
-        <>
+        <section className="vendor-directory-surface">
           {vendorRows.length === 0 ? (
             <EmptyState
               title="No vendors found"
               description="Try another name, phone number, or email address."
             />
           ) : (
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="vendor-directory-grid">
               {vendorRows.map((row) => (
                 <VendorProfileCard
                   key={row.vendor.id}
@@ -597,9 +630,9 @@ const VendorsPage = () => {
                   onOpen={() => setSelectedVendorId(row.vendor.id)}
                 />
               ))}
-            </section>
+            </div>
           )}
-        </>
+        </section>
       )}
 
       <DetailSheet
@@ -654,7 +687,7 @@ const VendorsPage = () => {
                 value={<StatusBadge status={selectedRow.vendor.status} />}
               />
               <EvidenceField
-                label="Operational Status"
+                label="Follow-up Status"
                 value={<StatusBadge status={selectedRow.operationalStatus} />}
               />
               <EvidenceField label="Outstanding" value={formatCurrency(selectedRow.totalOutstanding)} />

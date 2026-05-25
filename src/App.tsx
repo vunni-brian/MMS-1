@@ -17,8 +17,11 @@ const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const ManagerDashboard = lazy(() => import("./pages/manager/ManagerDashboard"));
 const OfficialDashboard = lazy(() => import("./pages/official/OfficialDashboard"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
-const SystemSettingsPage = lazy(() => import("./pages/admin/SystemSettingsPage"));
+const AdminUsersPage = lazy(() => import("./pages/admin/UserManagementPage"));
+const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
+const AdminAlertsPage = lazy(() => import("./pages/admin/AdminAlertsPage"));
+const AdminIntegrationsPage = lazy(() => import("./pages/admin/AdminIntegrationsPage"));
+const AdminSettingsPage = lazy(() => import("./pages/admin/SystemSettingsPage"));
 const StallsPage = lazy(() => import("./pages/shared/StallsPage"));
 const PaymentsPage = lazy(() => import("./pages/shared/PaymentsPage"));
 const ComplaintsPage = lazy(() => import("./pages/shared/ComplaintsPage"));
@@ -133,8 +136,11 @@ const App = () => (
               }
             >
               <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<UserManagementPage />} />
-              <Route path="settings" element={<SystemSettingsPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="markets" element={<AdminMarketsPage />} />
+              <Route path="alerts" element={<AdminAlertsPage />} />
+              <Route path="integrations" element={<AdminIntegrationsPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="billing" element={<BillingPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditPage />} />

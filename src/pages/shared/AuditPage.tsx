@@ -123,7 +123,7 @@ const AuditPage = () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.download = `mms-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `mms-activity-log-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
 
     URL.revokeObjectURL(url);
@@ -132,9 +132,9 @@ const AuditPage = () => {
   return (
     <ConsolePage>
       <PageHeader
-        eyebrow="Evidence layer"
-        title="Audit Trail"
-        description="Read-only evidence for system actions and governance events."
+        eyebrow="Activity record"
+        title="Activity Log"
+        description="Read-only record of system activity and important changes."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">
@@ -149,8 +149,9 @@ const AuditPage = () => {
       />
 
       <DataTableFrame
-        title="Audit Events"
-        description="Who did what, when, and in which market scope."
+        className="workspace-primary-frame"
+        title="Activity Records"
+        description={`Who changed what, when, and in which market scope. Showing ${filteredEvents.length} of ${events.length} records.`}
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-end">
             {canScopeMarkets && (
@@ -176,7 +177,7 @@ const AuditPage = () => {
 
             <div className="w-full sm:w-[180px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Date From
+                From
               </label>
               <Input
                 type="datetime-local"
@@ -187,7 +188,7 @@ const AuditPage = () => {
 
             <div className="w-full sm:w-[180px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Date To
+                To
               </label>
               <Input
                 type="datetime-local"
@@ -198,7 +199,7 @@ const AuditPage = () => {
 
             <div className="w-full sm:w-[240px]">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Search Logs
+                Search
               </label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -224,7 +225,7 @@ const AuditPage = () => {
 
             <Button onClick={exportCsv}>
               <Download className="mr-2 h-4 w-4" />
-              Download CSV
+              Export CSV
             </Button>
           </div>
         }
@@ -239,7 +240,7 @@ const AuditPage = () => {
                     <TableHead className="text-xs">Action</TableHead>
                     <TableHead className="text-xs">Entity</TableHead>
                     <TableHead className="text-xs">Details</TableHead>
-                    <TableHead className="text-right text-xs">Inspect</TableHead>
+                    <TableHead className="text-right text-xs">Action</TableHead>
                   </TableRow>
                 </TableHeader>
 
@@ -250,7 +251,7 @@ const AuditPage = () => {
                         colSpan={8}
                         className="h-32 text-center text-sm text-muted-foreground"
                       >
-                        No audit events match the selected filters.
+                        No activity records match the selected filters.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -284,8 +285,15 @@ const AuditPage = () => {
                           {event.entityType} #{event.entityId}
                         </TableCell>
 
-                        <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">
-                          {event.details ? "View payload" : "-"}
+                        <TableCell className="max-w-[220px] text-xs text-muted-foreground">
+                          {event.details ? (
+                            <span className="block truncate font-mono text-[11px]" title={JSON.stringify(event.details)}>
+                              {JSON.stringify(event.details).slice(0, 60)}
+                              {JSON.stringify(event.details).length > 60 ? "…" : ""}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/50">—</span>
+                          )}
                         </TableCell>
 
                         <TableCell className="text-right">
@@ -294,7 +302,7 @@ const AuditPage = () => {
                             variant="outline"
                             onClick={() => setSelectedEventId(event.id)}
                           >
-                            Inspect
+                            View
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -307,8 +315,8 @@ const AuditPage = () => {
       <DetailSheet
         open={Boolean(selectedEventId)}
         onOpenChange={(open) => !open && setSelectedEventId(null)}
-        title="Audit Event Evidence"
-        description="Detailed record of who changed what, where it happened, and the captured evidence payload."
+        title="Activity Detail"
+        description="Detailed record of who changed what and where it happened."
       >
         {selectedEvent && (
           <div className="space-y-4">
@@ -332,7 +340,7 @@ const AuditPage = () => {
             </div>
 
             <div className="rounded-md border border-border/70 bg-muted/20 p-4">
-              <p className="text-xs text-muted-foreground">Evidence Payload</p>
+              <p className="text-xs text-muted-foreground">Recorded Details</p>
               <pre className="mt-3 max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-background p-3 text-xs">
                 {selectedEvent.details
                   ? JSON.stringify(selectedEvent.details, null, 2)

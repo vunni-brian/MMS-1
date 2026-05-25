@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Shield, Store } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff, Shield, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
@@ -13,8 +13,12 @@ import { Label } from "@/components/ui/label";
 const LoginPage = () => {
   const { user, login, verifyPrivilegedMfa, pendingMfa, clearPendingMfa, isLoading, authError, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // If ProtectedRoute redirected here, it saved the intended path in state
+  const from = (location.state as { from?: string } | null)?.from;
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [pageError, setPageError] = useState<string | null>(null);
   const [pendingVendorVerification, setPendingVendorVerification] = useState<{
@@ -27,9 +31,10 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (user) {
-      navigate(`/${user.role}`, { replace: true });
+      // Redirect to the page the user was trying to visit, or their role dashboard
+      navigate(from || `/${user.role}`, { replace: true });
     }
-  }, [navigate, user]);
+  }, [navigate, user, from]);
 
   const handlePrimaryAction = async () => {
     setPageError(null);
@@ -124,22 +129,33 @@ const LoginPage = () => {
                       id="phone"
                       placeholder="+256 7XX XXX XXX"
                       value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
+                      onChange={(event) => { setPhone(event.target.value); setPageError(null); }}
                       autoComplete="tel"
                       required
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      autoComplete="current-password"
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(event) => { setPassword(event.target.value); setPageError(null); }}
+                        autoComplete="current-password"
+                        className="pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                 </>
               ) : isMfaStep ? (

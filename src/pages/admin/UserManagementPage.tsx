@@ -41,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ConsolePage,
   DataTableFrame,
+  DetailSheet,
   EmptyState,
   LoadingState,
   PageHeader,
@@ -69,8 +70,8 @@ interface InviteFormState {
 }
 
 const defaultResponsibilities: Record<StaffRole, string[]> = {
-  manager: ["Workflow Supervision", "Vendor Approvals", "Operational Monitoring"],
-  official: ["Vendor Compliance", "Utility Monitoring", "Complaints Oversight"],
+  manager: ["Market workflows", "Vendor approvals", "Payment follow-up"],
+  official: ["Vendor compliance", "Utility monitoring", "Complaints review"],
 };
 
 const createInviteForm = (role: StaffRole = "manager"): InviteFormState => ({
@@ -95,7 +96,7 @@ const tabOptions: Array<{ value: UserTab; label: string }> = [
   { value: "official", label: "Officials" },
   { value: "vendor", label: "Vendors" },
   { value: "permissions", label: "Roles & Permissions" },
-  { value: "activity", label: "Activity Logs" },
+  { value: "activity", label: "Activity Log" },
 ];
 
 const statusClassName = (status: StaffStatus) => {
@@ -275,12 +276,12 @@ const UserManagementPage = () => {
         actions={
           <Button onClick={() => setInviteOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
-            Invite + Assign Role
+            Invite Staff
           </Button>
         }
       />
 
-      <Panel contentClassName="space-y-3">
+      <Panel className="workspace-toolbar-panel" contentClassName="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <SegmentedControl
             value={activeTab}
@@ -311,9 +312,9 @@ const UserManagementPage = () => {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Invite + Assign Role</DialogTitle>
+            <DialogTitle>Invite Staff</DialogTitle>
             <DialogDescription>
-              Admin-created staff accounts receive scoped permissions and an invite with temporary credentials.
+              Staff accounts receive scoped permissions and temporary sign-in details.
             </DialogDescription>
           </DialogHeader>
 
@@ -386,9 +387,12 @@ const UserManagementPage = () => {
                   id="staff-phone"
                   value={inviteForm.phone}
                   onChange={(event) => setInviteForm((current) => ({ ...current, phone: event.target.value }))}
-                  placeholder="+256..."
+                  placeholder="+256 7XX XXX XXX"
                   required
                 />
+                {inviteForm.phone.length > 0 && !/^\+?\d{9,15}$/.test(inviteForm.phone.replace(/\s/g, "")) && (
+                  <p className="text-xs text-destructive">Enter a valid phone number (e.g. +256 7XX XXX XXX).</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -494,7 +498,7 @@ const UserManagementPage = () => {
 
                     return (
                       <div key={group.title}>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        <p className="section-eyebrow mb-1.5">
                           {group.title}
                         </p>
                         <div className="grid gap-1.5">
@@ -537,7 +541,88 @@ const UserManagementPage = () => {
   );
 };
 
+const UserScopeSheet = ({
+  user,
+  onClose,
+}: {
+  user: StaffAccount | null;
+  onClose: () => void;
+}) => (
+  <DetailSheet
+    open={Boolean(user)}
+    onOpenChange={(open) => !open && onClose()}
+    title={user?.name || "User scope"}
+    description={user ? `${formatRole(user.role)} — ${user.marketName || user.assignedRegion || "Platform scope"}` : undefined}
+  >
+    {user && (
+      <div className="space-y-4 text-sm">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
+            <p className="text-xs text-muted-foreground">Role</p>
+            <div className="mt-1"><span className={roleClassName(user.role)}>{formatRole(user.role)}</span></div>
+          </div>
+          <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
+            <p className="text-xs text-muted-foreground">Status</p>
+            <div className="mt-1"><span className={statusClassName(user.status)}>{user.status.charAt(0).toUpperCase() + user.status.slice(1)}</span></div>
+          </div>
+          <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
+            <p className="text-xs text-muted-foreground">Email</p>
+            <p className="mt-1 break-all font-medium">{user.email}</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
+            <p className="text-xs text-muted-foreground">Phone</p>
+            <p className="mt-1 font-medium">{user.phone}</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
+            <p className="text-xs text-muted-foreground">Department</p>
+            <p className="mt-1 font-medium">{user.department || "—"}</p>
+          </div>
+          <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
+            <p className="text-xs text-muted-foreground">Last Active</p>
+            <p className="mt-1 font-medium">{getLastActiveLabel(user)}</p>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/70 bg-muted/10 p-3">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold font-heading">Granted Permissions</p>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+              {user.permissions.length}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {user.permissions.map((permission) => (
+              <span
+                key={permission}
+                className="rounded-full border border-border/70 bg-background px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+              >
+                {permission}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {user.responsibilities.length > 0 && (
+          <div className="rounded-lg border border-border/70 bg-muted/10 p-3">
+            <p className="mb-2 text-sm font-semibold font-heading">Responsibilities</p>
+            <ul className="space-y-1">
+              {user.responsibilities.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    )}
+  </DetailSheet>
+);
+
 const UsersTable = ({ rows }: { rows: StaffAccount[] }) => {
+  const [selectedUser, setSelectedUser] = useState<StaffAccount | null>(null);
+
   if (!rows.length) {
     return (
       <EmptyState
@@ -548,60 +633,70 @@ const UsersTable = ({ rows }: { rows: StaffAccount[] }) => {
   }
 
   return (
-    <DataTableFrame>
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/40">
-            <TableHead>Name</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Last Active</TableHead>
-            <TableHead className="text-right">Permissions</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((account) => (
-            <TableRow key={account.id} className="text-xs">
-              <TableCell>
-                <div className="min-w-[180px]">
-                  <p className="font-medium">{account.name}</p>
-                  <p className="mt-0.5 text-muted-foreground">{account.email}</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className={roleClassName(account.role)}>{formatRole(account.role)}</span>
-              </TableCell>
-              <TableCell>
-                <div className="min-w-[150px]">
-                  <p className="font-medium">{account.department || (account.role === "vendor" ? "Vendor account" : "System")}</p>
-                  <p className="mt-0.5 text-muted-foreground">{account.marketName || account.assignedRegion || "Platform scope"}</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className={statusClassName(account.status)}>{account.status.charAt(0).toUpperCase() + account.status.slice(1)}</span>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{getLastActiveLabel(account)}</TableCell>
-              <TableCell className="text-right font-medium">{account.permissions.length}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                  View Scope
-                </Button>
-              </TableCell>
+    <>
+      <DataTableFrame className="workspace-primary-frame">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40">
+              <TableHead>Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Active</TableHead>
+              <TableHead className="text-right">Permissions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </DataTableFrame>
+          </TableHeader>
+          <TableBody>
+            {rows.map((account) => (
+              <TableRow key={account.id} className="text-xs">
+                <TableCell>
+                  <div className="min-w-[180px]">
+                    <p className="font-medium">{account.name}</p>
+                    <p className="mt-0.5 text-muted-foreground">{account.email}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className={roleClassName(account.role)}>{formatRole(account.role)}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="min-w-[150px]">
+                    <p className="font-medium">{account.department || (account.role === "vendor" ? "Vendor account" : "System")}</p>
+                    <p className="mt-0.5 text-muted-foreground">{account.marketName || account.assignedRegion || "Platform scope"}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className={statusClassName(account.status)}>{account.status.charAt(0).toUpperCase() + account.status.slice(1)}</span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{getLastActiveLabel(account)}</TableCell>
+                <TableCell className="text-right font-medium">{account.permissions.length}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setSelectedUser(account)}
+                  >
+                    View Scope
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DataTableFrame>
+
+      {/* User scope detail sheet */}
+      <UserScopeSheet user={selectedUser} onClose={() => setSelectedUser(null)} />
+    </>
   );
 };
 
 const RolesPermissionsPanel = () => (
   <div className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr]">
     <Panel
-      title="Enterprise Access Architecture"
-      description="Authentication resolves a user, the role engine loads defaults, and permission scope determines module access."
+      title="Access Model"
+      description="How roles and permissions decide what each staff member can access."
       contentClassName="space-y-2"
     >
       {[
@@ -623,7 +718,7 @@ const RolesPermissionsPanel = () => (
       ))}
     </Panel>
 
-    <DataTableFrame title="Role Permission Matrix" description="Current default scopes used by the invite workflow.">
+    <DataTableFrame className="workspace-primary-frame" title="Role Permission Matrix" description="Current default scopes used by the invite workflow.">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40">

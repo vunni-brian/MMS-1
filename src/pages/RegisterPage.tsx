@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Store } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
@@ -14,6 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type RegistrationStep = "details" | "documents" | "otp";
+type DetailField = "name" | "nationalIdNumber" | "phone" | "email" | "password" | "marketId" | "productSection" | "district";
+
+const detailFields: DetailField[] = ["name", "nationalIdNumber", "phone", "email", "password", "marketId", "productSection", "district"];
 
 const formatFileLabel = (file: File | null) => {
   if (!file) {
@@ -29,6 +32,33 @@ const registrationSteps: Array<{ id: RegistrationStep; label: string; descriptio
   { id: "otp", label: "Verify", description: "Phone ownership confirmation" },
 ];
 
+// Keep registration validation client-side so vendors get guidance before an OTP is issued.
+const validatePhone = (phone: string) => {
+  const cleaned = phone.replace(/\s/g, "");
+  if (!cleaned) return "Phone number is required.";
+  if (!/^\+?\d{9,15}$/.test(cleaned)) return "Enter a valid phone number (e.g. +256 7XX XXX XXX).";
+  return null;
+};
+
+const validateEmail = (email: string) => {
+  if (!email.trim()) return "Email address is required.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
+  return null;
+};
+
+const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+  if (!password) return { score: 0, label: "", color: "" };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (score <= 1) return { score, label: "Weak", color: "bg-destructive" };
+  if (score <= 3) return { score, label: "Fair", color: "bg-warning" };
+  return { score, label: "Strong", color: "bg-success" };
+};
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
@@ -36,6 +66,9 @@ const RegisterPage = () => {
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<DetailField, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<DetailField, boolean>>>({});
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -58,6 +91,7 @@ const RegisterPage = () => {
   useEffect(() => {
     if (!form.marketId && marketsData?.markets.length) {
       setForm((current) => ({ ...current, marketId: marketsData.markets[0].id }));
+      setFieldErrors((prev) => ({ ...prev, marketId: undefined }));
     }
   }, [form.marketId, marketsData?.markets]);
 
@@ -65,6 +99,7 @@ const RegisterPage = () => {
     const selectedMarket = marketsData?.markets.find((market) => market.id === form.marketId);
     if (selectedMarket && !form.district.trim()) {
       setForm((current) => ({ ...current, district: selectedMarket.location }));
+      setFieldErrors((prev) => ({ ...prev, district: undefined }));
     }
   }, [form.district, form.marketId, marketsData?.markets]);
 
@@ -72,11 +107,39 @@ const RegisterPage = () => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const touch = (field: DetailField) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+  const validateDetails = () => {
+    const errors: Partial<Record<DetailField, string>> = {};
+    const phoneErr = validatePhone(form.phone);
+    if (phoneErr) errors.phone = phoneErr;
+    const emailErr = validateEmail(form.email);
+    if (emailErr) errors.email = emailErr;
+    if (!form.password) errors.password = "Password is required.";
+    else if (form.password.length < 8) errors.password = "Password must be at least 8 characters.";
+    if (!form.name.trim()) errors.name = "Full name is required.";
+    if (!form.nationalIdNumber.trim()) errors.nationalIdNumber = "NIN / ID number is required.";
+    if (!form.marketId) errors.marketId = "Market is required.";
+    if (!form.district.trim()) errors.district = "Operating district is required.";
+    if (!form.productSection) errors.productSection = "Product section is required.";
+    setFieldErrors(errors);
+    const isValid = Object.keys(errors).length === 0;
+    if (!isValid) {
+      setTouched((prev) => detailFields.reduce((next, field) => ({ ...next, [field]: true }), prev));
+    }
+    return isValid;
+  };
+
   const handlePrimaryAction = async () => {
     setError(null);
     setIsSubmitting(true);
     try {
       if (step === "details") {
+        if (!validateDetails()) {
+          setIsSubmitting(false);
+          return;
+        }
         setStep("documents");
         return;
       }
@@ -128,16 +191,7 @@ const RegisterPage = () => {
 
   const canSubmit =
     step === "details"
-      ? Boolean(
-          form.name.trim() &&
-            form.email.trim() &&
-            form.phone.trim() &&
-            form.password &&
-            form.marketId &&
-            form.nationalIdNumber.trim() &&
-            form.district.trim() &&
-            form.productSection,
-        )
+      ? true
       : step === "documents"
       ? Boolean(
           form.idFile &&
@@ -168,7 +222,7 @@ const RegisterPage = () => {
               {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
             </CardTitle>
             <CardDescription>Step {step === "details" ? "1" : step === "documents" ? "2" : "3"} of 3</CardDescription>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="mt-4 grid gap-2 grid-cols-3">
               {registrationSteps.map((item, index) => {
                 const activeIndex = registrationSteps.findIndex((candidate) => candidate.id === step);
                 const isComplete = index < activeIndex;
@@ -193,7 +247,7 @@ const RegisterPage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <form className="space-y-5" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit} noValidate>
               {step === "details" ? (
                 <FormSection
                   title="Account & Market Details"
@@ -207,8 +261,13 @@ const RegisterPage = () => {
                         id="name"
                         value={form.name}
                         onChange={(event) => updateField("name", event.target.value)}
+                        onBlur={() => touch("name")}
+                        aria-invalid={touched.name && Boolean(fieldErrors.name)}
                         required
                       />
+                      {touched.name && fieldErrors.name && (
+                        <p className="text-xs text-destructive">{fieldErrors.name}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="national-id-number">NIN / ID Number</Label>
@@ -216,8 +275,13 @@ const RegisterPage = () => {
                         id="national-id-number"
                         value={form.nationalIdNumber}
                         onChange={(event) => updateField("nationalIdNumber", event.target.value)}
+                        onBlur={() => touch("nationalIdNumber")}
+                        aria-invalid={touched.nationalIdNumber && Boolean(fieldErrors.nationalIdNumber)}
                         required
                       />
+                      {touched.nationalIdNumber && fieldErrors.nationalIdNumber && (
+                        <p className="text-xs text-destructive">{fieldErrors.nationalIdNumber}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="phone">Phone Number</Label>
@@ -225,10 +289,25 @@ const RegisterPage = () => {
                         id="phone"
                         placeholder="+256 7XX XXX XXX"
                         value={form.phone}
-                        onChange={(event) => updateField("phone", event.target.value)}
+                        onChange={(event) => {
+                          updateField("phone", event.target.value);
+                          if (touched.phone) {
+                            const err = validatePhone(event.target.value);
+                            setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
+                          }
+                        }}
+                        onBlur={() => {
+                          touch("phone");
+                          const err = validatePhone(form.phone);
+                          setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
+                        }}
+                        aria-invalid={touched.phone && Boolean(fieldErrors.phone)}
                         autoComplete="tel"
                         required
                       />
+                      {touched.phone && fieldErrors.phone && (
+                        <p className="text-xs text-destructive">{fieldErrors.phone}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="email">Email Address</Label>
@@ -236,26 +315,92 @@ const RegisterPage = () => {
                         id="email"
                         type="email"
                         value={form.email}
-                        onChange={(event) => updateField("email", event.target.value)}
+                        onChange={(event) => {
+                          updateField("email", event.target.value);
+                          if (touched.email) {
+                            const err = validateEmail(event.target.value);
+                            setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
+                          }
+                        }}
+                        onBlur={() => {
+                          touch("email");
+                          const err = validateEmail(form.email);
+                          setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
+                        }}
+                        aria-invalid={touched.email && Boolean(fieldErrors.email)}
                         autoComplete="email"
                         required
                       />
+                      {touched.email && fieldErrors.email && (
+                        <p className="text-xs text-destructive">{fieldErrors.email}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={form.password}
-                        onChange={(event) => updateField("password", event.target.value)}
-                        autoComplete="new-password"
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={form.password}
+                          onChange={(event) => {
+                            updateField("password", event.target.value);
+                            if (touched.password) {
+                              const err = event.target.value.length < 8 ? "Password must be at least 8 characters." : undefined;
+                              setFieldErrors((prev) => ({ ...prev, password: err }));
+                            }
+                          }}
+                          onBlur={() => {
+                            touch("password");
+                            const err = form.password.length < 8 ? "Password must be at least 8 characters." : undefined;
+                            setFieldErrors((prev) => ({ ...prev, password: err }));
+                          }}
+                          aria-invalid={touched.password && Boolean(fieldErrors.password)}
+                          autoComplete="new-password"
+                          className="pr-10"
+                          required
+                        />
+                        <button
+                          type="button"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {form.password && (() => {
+                        const strength = getPasswordStrength(form.password);
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex h-1.5 gap-1">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <div
+                                  key={i}
+                                  className={`h-full flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : "bg-muted"}`}
+                                />
+                              ))}
+                            </div>
+                            <p className={`text-xs font-medium ${strength.score <= 1 ? "text-destructive" : strength.score <= 3 ? "text-warning" : "text-success"}`}>
+                              {strength.label} password
+                            </p>
+                          </div>
+                        );
+                      })()}
+                      {touched.password && fieldErrors.password && (
+                        <p className="text-xs text-destructive">{fieldErrors.password}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="market">Market</Label>
-                      <Select value={form.marketId} onValueChange={(value) => updateField("marketId", value)}>
-                        <SelectTrigger id="market">
+                      <Select
+                        value={form.marketId}
+                        onValueChange={(value) => {
+                          updateField("marketId", value);
+                          touch("marketId");
+                          setFieldErrors((prev) => ({ ...prev, marketId: undefined }));
+                        }}
+                      >
+                        <SelectTrigger id="market" aria-invalid={touched.marketId && Boolean(fieldErrors.marketId)}>
                           <SelectValue placeholder="Select your market" />
                         </SelectTrigger>
                         <SelectContent>
@@ -266,11 +411,21 @@ const RegisterPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      {touched.marketId && fieldErrors.marketId && (
+                        <p className="text-xs text-destructive">{fieldErrors.marketId}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="product-section">Product Section</Label>
-                      <Select value={form.productSection} onValueChange={(value) => updateField("productSection", value)}>
-                        <SelectTrigger id="product-section">
+                      <Select
+                        value={form.productSection}
+                        onValueChange={(value) => {
+                          updateField("productSection", value);
+                          touch("productSection");
+                          setFieldErrors((prev) => ({ ...prev, productSection: undefined }));
+                        }}
+                      >
+                        <SelectTrigger id="product-section" aria-invalid={touched.productSection && Boolean(fieldErrors.productSection)}>
                           <SelectValue placeholder="Select product section" />
                         </SelectTrigger>
                         <SelectContent>
@@ -281,15 +436,28 @@ const RegisterPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      {touched.productSection && fieldErrors.productSection && (
+                        <p className="text-xs text-destructive">{fieldErrors.productSection}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label htmlFor="district">Operating District</Label>
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <Label htmlFor="district">Operating District</Label>
+                        {form.district && (
+                          <span className="text-[11px] text-muted-foreground">Auto-filled from market - you can edit this</span>
+                        )}
+                      </div>
                       <Input
                         id="district"
                         value={form.district}
                         onChange={(event) => updateField("district", event.target.value)}
+                        onBlur={() => touch("district")}
+                        aria-invalid={touched.district && Boolean(fieldErrors.district)}
                         required
                       />
+                      {touched.district && fieldErrors.district && (
+                        <p className="text-xs text-destructive">{fieldErrors.district}</p>
+                      )}
                     </div>
                   </div>
                 </FormSection>

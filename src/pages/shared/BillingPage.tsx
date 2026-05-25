@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { PlusCircle, ShieldCheck, SlidersHorizontal } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -67,9 +68,13 @@ const BillingPage = () => {
   const canManageChargeTypes = user?.role === "admin";
   const canManageUtilities = user?.role === "manager";
 
-  const [selectedMarketId, setSelectedMarketId] = useState(
-    isManager ? user?.marketId || "" : "all",
-  );
+  const [searchParams] = useSearchParams();
+
+  const [selectedMarketId, setSelectedMarketId] = useState(() => {
+    if (isManager) return user?.marketId || "";
+    const fromUrl = searchParams.get("market");
+    return fromUrl || "all";
+  });
 
   const [form, setForm] = useState({
     marketId: isManager ? user?.marketId || "" : "",
@@ -205,7 +210,7 @@ const BillingPage = () => {
       }));
       setError(null);
       toast.success("Utility charge created", {
-        description: "The vendor can now review the obligation and upload a receipt.",
+        description: "The vendor can now review the payment due and upload a receipt.",
       });
     },
     onError: (mutationError) => {
@@ -258,13 +263,13 @@ const BillingPage = () => {
     <ConsolePage>
       <PageHeader
         eyebrow="Billing and utilities"
-        title="Billing Controls"
-        description="Charge policy, utility obligations, and settlement evidence."
+        title="Billing"
+        description="Market fees, payments due, and payment records."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">Role: {user?.role}</span>
             <span className="rounded-full bg-muted px-2.5 py-1">
-              Obligation first, payment attempt second
+              Fees, utilities, and payment due records
             </span>
           </>
         }
@@ -302,7 +307,7 @@ const BillingPage = () => {
             <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
             <div>
               This view is read-only for your role. Utility charges and switches are shown for
-              oversight only.
+              monitoring only.
             </div>
         </div>
       )}
@@ -316,8 +321,9 @@ const BillingPage = () => {
       {isPageLoading ? (
         <LoadingState rows={5} itemClassName="h-32 rounded-xl" />
       ) : (
-        <>
+        <div className="billing-workspace-grid">
           <Panel
+            className="billing-switches-panel workspace-secondary-panel"
             title="Billing Switches"
             description="Charge type availability and policy state."
             actions={<SlidersHorizontal className="h-4 w-4 text-muted-foreground" />}
@@ -376,8 +382,9 @@ const BillingPage = () => {
 
           {canManageUtilities && (
             <FormSection
+              className="billing-form-panel workspace-secondary-panel"
               title="Create Utility Charge"
-              description="Assign a metered, estimated, or fixed utility obligation to an approved vendor."
+              description="Assign a metered, estimated, or fixed utility payment due to an approved vendor."
               actions={<PlusCircle className="h-5 w-5 text-muted-foreground" />}
             >
               <div className="grid gap-4 lg:grid-cols-2">
@@ -561,6 +568,29 @@ const BillingPage = () => {
                   />
                 </div>
 
+                {/* Live amount preview */}
+                {(() => {
+                  const qty = parseFloat(form.usageQuantity);
+                  const rate = parseFloat(form.ratePerUnit);
+                  const manual = parseFloat(form.amount);
+                  const calculated = form.calculationMethod !== "fixed" && !isNaN(qty) && !isNaN(rate) ? qty * rate : null;
+                  const preview = !isNaN(manual) && manual > 0 ? manual : calculated;
+                  if (!preview) return null;
+                  return (
+                    <div className="lg:col-span-2 flex items-center gap-2 rounded-md border border-success/25 bg-success/5 px-3 py-2 text-sm">
+                      <span className="text-muted-foreground">
+                        {!isNaN(manual) && manual > 0 ? "Manual amount:" : "Calculated amount:"}
+                      </span>
+                      <span className="font-semibold text-success">{formatCurrency(preview)}</span>
+                      {calculated && !isNaN(manual) && manual > 0 && Math.abs(manual - calculated) > 0.01 && (
+                        <span className="ml-auto text-xs text-warning">
+                          Auto-calc would be {formatCurrency(calculated)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="lg:col-span-2">
                   <Button
                     className="w-full lg:w-auto"
@@ -582,14 +612,15 @@ const BillingPage = () => {
           )}
 
           <DataTableFrame
+            className="billing-primary-frame workspace-primary-frame"
             title="Utility Charge Register"
-            description="Obligations, due dates, payment attempts, and references."
+            description="Payments due, due dates, payment attempts, and references."
           >
             <div className="space-y-3 p-3">
               {utilityCharges.length === 0 ? (
                 <EmptyState
                   title="No utility charges recorded"
-                  description="Create metered, estimated, or fixed utility obligations for vendors in the selected market."
+                  description="Create metered, estimated, or fixed utility payments due for vendors in the selected market."
                 />
               ) : (
                 utilityCharges.map((charge) => (
@@ -653,7 +684,7 @@ const BillingPage = () => {
               )}
             </div>
           </DataTableFrame>
-        </>
+        </div>
       )}
     </ConsolePage>
   );

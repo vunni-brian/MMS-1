@@ -130,16 +130,16 @@ const StallsPage = () => {
   const availableStalls = stalls.filter((stall) => stall.status === "inactive").length;
 
   const statusColors: Record<string, string> = {
-    inactive: "border-success/30 bg-card",
-    active: "border-border bg-card",
-    maintenance: "border-warning/30 bg-muted/30",
+    inactive: "border-success/30 bg-success/5",   // available — green makes sense here
+    active:   "border-primary/25 bg-primary/5",   // occupied — blue/primary, not plain
+    maintenance: "border-warning/30 bg-warning/5", // maintenance — amber
   };
 
   return (
     <ConsolePage>
       <PageHeader
         eyebrow={role === "vendor" ? "Stall marketplace" : "Market inventory"}
-        title="Stall Management"
+        title="Stalls"
         description={role === "vendor" ? "Available stalls, pricing, and application status." : "Inventory, allocation, and availability controls."}
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -187,12 +187,6 @@ const StallsPage = () => {
         </Alert>
       ) : isPending ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Skeleton className="h-[90px] w-full rounded-xl" />
-            <Skeleton className="h-[90px] w-full rounded-xl" />
-            <Skeleton className="h-[90px] w-full rounded-xl" />
-            <Skeleton className="h-[90px] w-full rounded-xl" />
-          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             <Skeleton className="h-32 w-full rounded-xl" />
             <Skeleton className="h-32 w-full rounded-xl" />
@@ -203,8 +197,8 @@ const StallsPage = () => {
           </div>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        <section className="stall-inventory-surface">
+          <div className="stall-inventory-grid">
             {filtered.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState
@@ -261,7 +255,7 @@ const StallsPage = () => {
               ))
             )}
           </div>
-        </>
+        </section>
       )}
 
       <DetailSheet
@@ -399,15 +393,38 @@ const StallsPage = () => {
               />
             </div>
 
-            <div className="space-y-1.5">
+          <div className="space-y-1.5">
               <Label htmlFor="stallZone">Zone</Label>
-              <Input
-                id="stallZone"
-                value={stallForm.zone}
-                onChange={(event) =>
-                  setStallForm((current) => ({ ...current, zone: event.target.value }))
-                }
-              />
+              {zones.length > 0 ? (
+                <Select
+                  value={stallForm.zone}
+                  onValueChange={(value) =>
+                    setStallForm((current) => ({ ...current, zone: value === "__new__" ? "" : value }))
+                  }
+                >
+                  <SelectTrigger id="stallZone">
+                    <SelectValue placeholder="Select or type a zone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {zones.map((zone) => (
+                      <SelectItem key={zone} value={zone}>
+                        {zone}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__new__">+ New zone…</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {(zones.length === 0 || stallForm.zone === "" || !zones.includes(stallForm.zone)) && (
+                <Input
+                  id={zones.length > 0 ? "stallZoneNew" : "stallZone"}
+                  placeholder={zones.length > 0 ? "Type new zone name" : "e.g. Zone A"}
+                  value={stallForm.zone}
+                  onChange={(event) =>
+                    setStallForm((current) => ({ ...current, zone: event.target.value }))
+                  }
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

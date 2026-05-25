@@ -5,6 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Currency symbol used across the entire app. Change here to update everywhere. */
+export const CURRENCY_SYMBOL = "UGX";
+
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",
@@ -26,7 +29,7 @@ const parseDate = (value?: string | Date | null) => {
 };
 
 export function formatCurrency(amount?: number | null) {
-  return `UGX ${(amount || 0).toLocaleString("en-US")}`;
+  return `${CURRENCY_SYMBOL} ${(amount || 0).toLocaleString("en-US")}`;
 }
 
 export function formatHumanDate(value?: string | Date | null, fallback = "Not available") {
@@ -53,10 +56,10 @@ export function formatHumanDateRange(start?: string | Date | null, end?: string 
       month: "short",
     }).format(startDate);
 
-    return `${compactStart} -> ${dateFormatter.format(endDate)}`;
+    return `${compactStart} – ${dateFormatter.format(endDate)}`;
   }
 
-  return `${dateFormatter.format(startDate)} -> ${dateFormatter.format(endDate)}`;
+  return `${dateFormatter.format(startDate)} – ${dateFormatter.format(endDate)}`;
 }
 
 export function getTimeAwareGreeting(name?: string | null) {

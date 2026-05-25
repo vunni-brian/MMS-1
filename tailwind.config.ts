@@ -2,8 +2,44 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
-  darkMode: ["class"],
+  // Dark mode is not currently implemented — no dark CSS variables are defined.
+  // Remove this comment and add dark: variant variables to index.css to enable it.
+  // darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  safelist: [
+    "console-accent-blue",
+    "console-accent-teal",
+    "console-accent-green",
+    "console-accent-amber",
+    "console-accent-rose",
+    "console-accent-slate",
+    "console-accent-cyan",
+    "nav-accent-blue",
+    "nav-accent-teal",
+    "nav-accent-green",
+    "nav-accent-amber",
+    "nav-accent-rose",
+    "nav-accent-slate",
+    "nav-accent-cyan",
+    "console-page-dashboard",
+    "console-page-operations",
+    "console-page-data",
+    "console-page-finance",
+    "console-page-reports",
+    "console-page-governance",
+    "console-page-settings",
+    "console-page-communications",
+    "console-page-profile",
+    "page-header-dashboard",
+    "page-header-operations",
+    "page-header-data",
+    "page-header-finance",
+    "page-header-reports",
+    "page-header-governance",
+    "page-header-settings",
+    "page-header-communications",
+    "page-header-profile",
+  ],
   prefix: "",
   theme: {
     container: {

@@ -1,9 +1,10 @@
+import type { ElementType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
-  Grid3X3,
+  ClipboardList,
   MessageSquare,
   Megaphone,
   ReceiptText,
@@ -12,19 +13,17 @@ import {
   AlertCircle,
   Mail,
   Phone,
-  Users,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
+import { cn, formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import {
   ConsolePage,
   EmptyState,
   LoadingState,
-  PageHeader,
   Panel,
   RecordCard,
 } from "@/components/console/ConsolePage";
@@ -75,7 +74,7 @@ const ApprovalProgress = ({ steps, marketName }: { steps: ApprovalStep[]; market
       </div>
       <StatusBadge status="pending" context="vendor" />
     </div>
-    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="mt-4 grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
       {steps.map((step) => (
         <div key={step.label} className="rounded-lg border border-border/70 bg-background px-3 py-3">
           <div className="flex items-center gap-2">
@@ -99,25 +98,102 @@ const ApprovalProgress = ({ steps, marketName }: { steps: ApprovalStep[]; market
   </div>
 );
 
+const VendorStatusTile = ({
+  label,
+  value,
+  detail,
+  icon: Icon,
+  tone = "default",
+  actionLabel,
+  to,
+}: {
+  label: string;
+  value: string | number;
+  detail: string;
+  icon: ElementType;
+  tone?: "default" | "success" | "warning" | "danger" | "info";
+  actionLabel?: string;
+  to?: string;
+}) => (
+  <div className={cn("vendor-status-card", `vendor-status-${tone}`)}>
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+        <p className="mt-2 truncate text-2xl font-bold leading-none font-heading">{value}</p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>
+      </div>
+      <span className="vendor-status-icon" aria-hidden="true">
+        <Icon className="h-4 w-4" />
+      </span>
+    </div>
+    {to && actionLabel && (
+      <Button asChild variant="ghost" size="sm" className="mt-3 h-auto px-0 text-xs font-semibold">
+        <Link to={to}>{actionLabel}</Link>
+      </Button>
+    )}
+  </div>
+);
+
+const VendorTaskAction = ({
+  label,
+  detail,
+  icon: Icon,
+  to,
+  disabled,
+}: {
+  label: string;
+  detail: string;
+  icon: ElementType;
+  to: string;
+  disabled?: boolean;
+}) => {
+  const content = (
+    <>
+      <span className="vendor-task-icon" aria-hidden="true">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold">{label}</span>
+        <span className="block truncate text-xs text-muted-foreground">{detail}</span>
+      </span>
+      <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+    </>
+  );
+
+  if (disabled) {
+    return <div className="vendor-task-action is-disabled">{content}</div>;
+  }
+
+  return (
+    <Link to={to} className="vendor-task-action">
+      {content}
+    </Link>
+  );
+};
+
 const VendorDashboard = () => {
   const { user } = useAuth();
   const isPendingVendor = user?.vendorStatus !== "approved";
 
-  const stallsQuery        = useQuery({ queryKey: ["stalls","mine"],    queryFn: () => api.getStalls({ scope: "mine" }), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
-  const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
-  const paymentsQuery      = useQuery({ queryKey: ["payments"],          queryFn: () => api.getPayments(), refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
+  const stallsQuery        = useQuery({ queryKey: ["stalls","mine"],    queryFn: () => api.getStalls({ scope: "mine" }), enabled: !isPendingVendor, gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const bookingsQuery      = useQuery({ queryKey: ["bookings"],          queryFn: () => api.getBookings(), enabled: !isPendingVendor, gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+  const paymentsQuery      = useQuery({ queryKey: ["payments"],          queryFn: () => api.getPayments(), enabled: !isPendingVendor, refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
   const notificationsQuery = useQuery({ queryKey: ["notifications", 5], queryFn: () => api.getNotifications(5), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
   const announcementsQuery = useQuery({ queryKey: ["announcements", "vendor-dashboard"], queryFn: () => api.getAnnouncements({ active: true }), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
-  const managersQuery      = useQuery({ queryKey: ["market-managers", user?.marketId], queryFn: () => api.getMarketManagers(user!.marketId!), enabled: Boolean(user?.marketId), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const managersQuery      = useQuery({ queryKey: ["market-managers", user?.marketId], queryFn: () => api.getMarketManagers(user!.marketId!), enabled: Boolean(user?.marketId) && !isPendingVendor, gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const ticketsQuery       = useQuery({ queryKey: ["tickets", "vendor-dashboard"], queryFn: () => api.getTickets(), enabled: !isPendingVendor, gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
 
   const isPending =
-    stallsQuery.isPending ||
-    bookingsQuery.isPending ||
-    paymentsQuery.isPending ||
+    (!isPendingVendor && (
+      stallsQuery.isPending ||
+      bookingsQuery.isPending ||
+      paymentsQuery.isPending ||
+      ticketsQuery.isPending ||
+      (Boolean(user?.marketId) && managersQuery.isPending)
+    )) ||
     notificationsQuery.isPending ||
-    announcementsQuery.isPending ||
-    (Boolean(user?.marketId) && managersQuery.isPending);
-  const isError = stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError || notificationsQuery.isError || announcementsQuery.isError || managersQuery.isError;
+    announcementsQuery.isPending;
+  const isError = stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError || notificationsQuery.isError || announcementsQuery.isError || managersQuery.isError || ticketsQuery.isError;
 
   const stallsData = stallsQuery.data;
   const bookingsData = bookingsQuery.data;
@@ -125,6 +201,7 @@ const VendorDashboard = () => {
   const notificationsData = notificationsQuery.data;
   const announcementsData = announcementsQuery.data;
   const managersData = managersQuery.data;
+  const ticketsData = ticketsQuery.data;
 
   const myStalls        = (stallsData?.stalls  || []).filter(s => s.vendorId === user?.id && s.status === "active");
   const myBookings      = bookingsData?.bookings      || [];
@@ -132,10 +209,12 @@ const VendorDashboard = () => {
   const myNotifications = notificationsData?.notifications || [];
   const marketAnnouncements = announcementsData?.announcements || [];
   const marketManagers = managersData?.managers || [];
+  const tickets = ticketsData?.tickets || [];
 
   const approvedBookings   = myBookings.filter(b => b.status === "approved");
   const pendingApplications = myBookings.filter(b => b.status === "pending");
   const unreadAlerts       = myNotifications.filter(n => !n.read);
+  const activeComplaints   = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
 
   const awaitingTotal      = approvedBookings.reduce((s, b) => s + b.amount, 0);
   const firstName          = user?.name?.split(" ")[0] || "there";
@@ -146,16 +225,6 @@ const VendorDashboard = () => {
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, DASHBOARD_CONFIG.PAYMENT_PREVIEW_LIMIT);
   const activeStall = myStalls[0] || null;
-  const activeStallBooking = activeStall
-    ? myBookings.find((booking) => booking.stallId === activeStall.id && (booking.status === "approved" || booking.status === "paid"))
-    : null;
-
-  const quickActions = [
-    { label: "Apply for Stall", path: "/vendor/stalls", icon: Store, desc: isPendingVendor ? "Available after manager approval" : "Browse available stalls" },
-    { label: "Upload Receipt", path: "/vendor/payments", icon: ReceiptText, desc: isPendingVendor ? "Available after manager approval" : "Submit proof of payment" },
-    { label: "File Complaint", path: "/vendor/complaints", icon: MessageSquare, desc: isPendingVendor ? "Available after manager approval" : "Report a market issue" },
-    { label: "View Notices", path: "/vendor/announcements", icon: Mail, desc: "Read market updates", availableWhenPending: true },
-  ];
 
   const approvalSteps: ApprovalStep[] = [
     {
@@ -182,7 +251,7 @@ const VendorDashboard = () => {
     },
     {
       label: "Access",
-      detail: user?.vendorStatus === "approved" ? "Operational routes unlocked." : "Stalls and payments are locked.",
+      detail: user?.vendorStatus === "approved" ? "Workspace pages unlocked." : "Stalls and payments are locked.",
       complete: user?.vendorStatus === "approved",
     },
   ];
@@ -192,6 +261,30 @@ const VendorDashboard = () => {
            || myBookings.find(b => b.stallId === stallId);
     return fmtDate(b?.endDate);
   };
+
+  const taskActions = [
+    {
+      label: "Pay My Dues",
+      detail: awaitingTotal > 0 ? "Make a payment for your stall." : "No payments due right now.",
+      icon: ReceiptText,
+      to: "/vendor/payments",
+      disabled: isPendingVendor,
+    },
+    {
+      label: "Track Requests",
+      detail: "Review your complaints and follow-ups.",
+      icon: ClipboardList,
+      to: "/vendor/complaints",
+      disabled: isPendingVendor,
+    },
+    {
+      label: "Stall Details",
+      detail: "View your stall information.",
+      icon: Store,
+      to: "/vendor/stalls",
+      disabled: isPendingVendor,
+    },
+  ];
 
   if (isError) {
     return (
@@ -217,88 +310,70 @@ const VendorDashboard = () => {
 
   return (
     <ConsolePage className="lg:min-h-full">
-
-      <PageHeader
-        eyebrow="Vendor operations"
-        title={getTimeAwareGreeting(firstName)}
-        description="Overview of stall access, applications, payment obligations, and market contact points."
-        actions={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-semibold text-muted-foreground">
-            <Store className="h-3 w-3" />
-            {user?.marketName || "Assigned market"}
-          </span>
-        }
-        meta={
-          <>
-            <span className="rounded-full bg-muted px-2.5 py-1">{fmtDate(new Date())}</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">{isPendingVendor ? "Approval pending" : "Operational access"}</span>
-          </>
-        }
-      />
+      <section className="vendor-dashboard-hero">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold leading-tight font-heading lg:text-3xl">{getTimeAwareGreeting(firstName)}</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Here&apos;s what&apos;s happening with your stall today.</p>
+        </div>
+        <div className="vendor-balance-card">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground">Current Balance</p>
+            <p className="mt-1 text-xl font-bold leading-none font-heading">{formatCurrency(awaitingTotal)}</p>
+          </div>
+          <Button asChild size="sm" disabled={isPendingVendor || awaitingTotal <= 0}>
+            <Link to="/vendor/payments">Pay Now</Link>
+          </Button>
+        </div>
+      </section>
 
       {isPendingVendor && (
         <ApprovalProgress steps={approvalSteps} marketName={user?.marketName} />
       )}
 
-      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-        <Panel
-          title="Stall Information"
-          description="Your current market allocation."
-          contentClassName="space-y-3"
-        >
-            {!activeStall ? (
-              <EmptyState title="No active stall" description="Approved stall allocation details will appear here." />
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <RecordCard>
-                  <p className="text-xs text-muted-foreground">Stall Number</p>
-                  <p className="mt-1 text-sm font-semibold">{activeStall.name}</p>
-                </RecordCard>
-                <RecordCard>
-                  <p className="text-xs text-muted-foreground">Section</p>
-                  <p className="mt-1 text-sm font-semibold">{activeStall.zone || "Section not recorded"}</p>
-                </RecordCard>
-                <RecordCard>
-                  <p className="text-xs text-muted-foreground">Allocation Date</p>
-                  <p className="mt-1 text-sm font-semibold">{fmtDate(activeStallBooking?.confirmedAt || activeStallBooking?.createdAt)}</p>
-                </RecordCard>
-                <RecordCard>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                  <div className="mt-1">
-                    <StatusBadge status="active" label="Active" />
-                  </div>
-                </RecordCard>
-              </div>
-            )}
-        </Panel>
+      <section className="vendor-status-grid">
+        <VendorStatusTile
+          label="Stall Status"
+          value={activeStall ? "Active" : "Pending"}
+          detail={activeStall ? `${activeStall.name} - ${activeStall.zone || "Section not recorded"}` : `${pendingApplications.length} application pending`}
+          icon={Store}
+          tone={activeStall ? "success" : "warning"}
+          actionLabel="View Details"
+          to="/vendor/stalls"
+        />
+        <VendorStatusTile
+          label="Pending Payment"
+          value={formatCurrency(awaitingTotal)}
+          detail={awaitingTotal > 0 ? `Due ${activeStall ? getLeaseExpiry(activeStall.id) : "after approval"}` : "No payments due"}
+          icon={ReceiptText}
+          tone={awaitingTotal > 0 ? "warning" : "success"}
+          actionLabel="Pay Now"
+          to="/vendor/payments"
+        />
+        <VendorStatusTile
+          label="Unread Notices"
+          value={marketAnnouncements.length}
+          detail={unreadAlerts.length ? `${unreadAlerts.length} unread account alerts` : "New updates from management"}
+          icon={Mail}
+          tone={marketAnnouncements.length ? "danger" : "info"}
+          actionLabel="View Notices"
+          to="/vendor/announcements"
+        />
+        <VendorStatusTile
+          label="Open Complaints"
+          value={activeComplaints.length}
+          detail={activeComplaints.length ? "Needs follow-up" : "You have no open complaints"}
+          icon={MessageSquare}
+          tone={activeComplaints.length ? "info" : "default"}
+          actionLabel="View Complaints"
+          to="/vendor/complaints"
+        />
+      </section>
 
-        <Panel
-          title="Quick Actions"
-          description="Common vendor tasks."
-          contentClassName="grid gap-2 sm:grid-cols-2"
-        >
-          {quickActions.map(a => (
-            isPendingVendor && !a.availableWhenPending ? (
-              <div key={a.label} className="flex items-center gap-2.5 rounded-md border border-border/70 bg-muted/25 px-3 py-2 opacity-60">
-                <a.icon className="h-4 w-4 text-muted-foreground"/>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{a.label}</p>
-                  <p className="text-xs text-muted-foreground">{a.desc}</p>
-                </div>
-              </div>
-            ) : (
-              <Link key={a.label} to={a.path} className="flex items-center gap-2.5 rounded-md border border-border/70 bg-background px-3 py-2 transition-colors hover:bg-muted/50">
-                <a.icon className="h-4 w-4 text-muted-foreground"/>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{a.label}</p>
-                  <p className="text-xs text-muted-foreground">{a.desc}</p>
-                </div>
-                <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground"/>
-              </Link>
-            )
-          ))}
-        </Panel>
-      </div>
+      <Panel title="Things to do" contentClassName="vendor-task-grid">
+        {taskActions.map((action) => (
+          <VendorTaskAction key={action.label} {...action} />
+        ))}
+      </Panel>
 
       {!activeStall && (
         <Panel
@@ -324,55 +399,75 @@ const VendorDashboard = () => {
         </Panel>
       )}
 
-      <Panel
-        title="Market Announcements"
-        description="Active notices from market operations."
-        actions={
-          <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-            <Link to="/vendor/announcements">View all</Link>
-          </Button>
-        }
-        contentClassName="space-y-2"
-      >
-        {marketAnnouncements.length === 0 ? (
-          <EmptyState title="No active announcements" description="Inspection notices, deadline updates, and market broadcasts will appear here." />
-        ) : (
-          marketAnnouncements.slice(0, 4).map((announcement) => (
-            <RecordCard key={announcement.id} className={announcement.priority === "high" ? "border-destructive/25 bg-destructive/5" : undefined}>
-              <div className="flex items-start gap-3">
-                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${announcement.priority === "high" ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-info/20 bg-info/10 text-info"}`}>
-                  <Megaphone className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-semibold">{announcement.title}</p>
-                    {announcement.priority === "high" && (
-                      <span className="status-badge border-destructive/20 bg-destructive/15 text-destructive">High</span>
-                    )}
+      <div className="vendor-dashboard-grid">
+        <Panel
+          title="Recent Notices"
+          actions={
+            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+              <Link to="/vendor/announcements">View all</Link>
+            </Button>
+          }
+          contentClassName="space-y-2"
+        >
+          {marketAnnouncements.length === 0 ? (
+            <EmptyState title="No active notices" description="Inspection notices, deadline updates, and market alerts will appear here." />
+          ) : (
+            marketAnnouncements.slice(0, 4).map((announcement) => (
+              <RecordCard key={announcement.id} className={announcement.priority === "high" ? "border-destructive/25 bg-destructive/5" : undefined}>
+                <div className="flex items-start gap-3">
+                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${announcement.priority === "high" ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-info/20 bg-info/10 text-info"}`}>
+                    <Megaphone className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{announcement.title}</p>
+                      {announcement.priority === "high" && (
+                        <span className="status-badge border-destructive/20 bg-destructive/15 text-destructive">High</span>
+                      )}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{announcement.body}</p>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{announcement.body}</p>
+                  <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(announcement.createdAt)}</span>
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(announcement.createdAt)}</span>
-              </div>
-            </RecordCard>
-          ))
-        )}
-      </Panel>
+              </RecordCard>
+            ))
+          )}
+        </Panel>
 
-      <Panel title="Notifications" description="Recent account and market updates." contentClassName="space-y-2">
-        {myNotifications.length === 0 ? (
-          <EmptyState title="No notifications" description="Application, receipt, and complaint updates will appear here." />
-        ) : (
-          myNotifications.slice(0, 6).map((notification) => (
-            <RecordCard key={notification.id}>
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm">{notification.message}</p>
-                <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(notification.createdAt)}</span>
-              </div>
-            </RecordCard>
-          ))
-        )}
-      </Panel>
+        <Panel
+          title="Recent Payments"
+          actions={
+            <Button asChild variant="ghost" size="sm" className="h-auto px-0">
+              <Link to="/vendor/payments">View all</Link>
+            </Button>
+          }
+          contentClassName="space-y-2"
+        >
+          {recentPayments.length === 0 ? (
+            <EmptyState title="No payment records" description="Receipt records will appear here after payment activity." />
+          ) : (
+            recentPayments.slice(0, 4).map((payment) => (
+              <RecordCard key={payment.id}>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/70 bg-muted text-muted-foreground">
+                    <ReceiptText className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      Receipt {payment.receiptId || payment.providerReference || payment.transactionId || payment.externalReference || payment.id}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">{formatCurrency(payment.amount)}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <StatusBadge status={payment.status} context="payment" />
+                    <p className="mt-1 text-xs text-muted-foreground">{fmtAlert(payment.createdAt)}</p>
+                  </div>
+                </div>
+              </RecordCard>
+            ))
+          )}
+        </Panel>
+      </div>
     </ConsolePage>
   );
 };

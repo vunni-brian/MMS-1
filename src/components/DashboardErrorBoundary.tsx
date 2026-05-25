@@ -40,12 +40,16 @@ export class DashboardErrorBoundary extends Component<
         return this.props.fallback;
       }
 
+      const isDev = import.meta.env.DEV;
+
       return (
         <Alert variant="destructive" className="my-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Dashboard Section Error</AlertTitle>
+          <AlertTitle>Something went wrong</AlertTitle>
           <AlertDescription>
-            {this.state.error?.message || "An unexpected error occurred loading this section."}
+            {isDev && this.state.error?.message
+              ? this.state.error.message
+              : "This section couldn't load. Try refreshing the page or contact support if the problem persists."}
           </AlertDescription>
           <Button
             variant="outline"

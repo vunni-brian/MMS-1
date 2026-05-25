@@ -199,6 +199,20 @@ const OfficialDashboard = () => {
 
   const totalRevenue = completedPayments.reduce((total, payment) => total + payment.amount, 0);
 
+  const buildSparkline = (items: Array<{ createdAt: string }>, windowDays = 7): number[] => {
+    const now = Date.now();
+    const buckets = Array.from({ length: windowDays }, (_, i) => {
+      const dayStart = now - (windowDays - 1 - i) * 86_400_000;
+      const dayEnd = dayStart + 86_400_000;
+      return items.filter((item) => {
+        const t = new Date(item.createdAt).getTime();
+        return t >= dayStart && t < dayEnd;
+      }).length;
+    });
+    const max = Math.max(...buckets, 1);
+    return buckets.map((v) => Math.max(v, max * 0.05));
+  };
+
   const kpis = [
     {
       label: "Active Markets",
@@ -206,6 +220,7 @@ const OfficialDashboard = () => {
       detail: "Markets in current scope",
       icon: Landmark,
       tone: "info" as const,
+      sparkline: buildSparkline(allMarkets),
     },
     {
       label: "Total Vendors",
@@ -213,6 +228,7 @@ const OfficialDashboard = () => {
       detail: "Registered vendors",
       icon: ClipboardList,
       tone: "default" as const,
+      sparkline: buildSparkline(scopedVendors),
     },
     {
       label: "Monthly Revenue",
@@ -220,6 +236,7 @@ const OfficialDashboard = () => {
       detail: "Verified receipts this month",
       icon: Landmark,
       tone: "success" as const,
+      sparkline: buildSparkline(completedPayments),
     },
     {
       label: "Open Complaints",
@@ -227,6 +244,7 @@ const OfficialDashboard = () => {
       detail: "Tickets awaiting closure",
       icon: MessageSquare,
       tone: activeComplaints.length ? ("warning" as const) : ("default" as const),
+      sparkline: buildSparkline(activeComplaints),
     },
   ];
 
@@ -269,8 +287,8 @@ const OfficialDashboard = () => {
     <ConsolePage>
       <PageHeader
         eyebrow="Official workspace"
-        title="Market Oversight"
-        description="Pending reviews and complaint oversight across active markets."
+        title="Market Monitoring"
+        description="Pending reviews and complaint monitoring across active markets."
         actions={
           <Button asChild>
             <Link to="/official/coordination">Open Requests</Link>

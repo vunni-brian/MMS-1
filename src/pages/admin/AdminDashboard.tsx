@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, Landmark, Store, Users } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -118,6 +118,7 @@ const getActorLastActive = (auditEvents: AuditEvent[]) =>
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState<UserRoleRow | null>(null);
 
   const { data: marketsData, isPending: marketsPending } = useQuery({
@@ -344,7 +345,7 @@ const AdminDashboard = () => {
         {
           id: "open-penalties",
           alert: `${formatCurrency(openPenaltyAmount)} penalties remain unresolved`,
-          type: "Audit",
+          type: "Activity",
           severity: openPenaltyAmount >= DASHBOARD_CONFIG.MARKET_RISK_THRESHOLDS.CRITICAL_UTILITIES_DUE / 2 ? ("High" as AlertSeverity) : ("Medium" as AlertSeverity),
           action: "Review",
           path: "/admin/billing",
@@ -438,7 +439,7 @@ const AdminDashboard = () => {
     {
       label: "Pending Actions",
       value: alerts.length.toLocaleString(),
-      detail: "Operational items awaiting review",
+      detail: "Items awaiting review",
       icon: AlertTriangle,
     },
     {
@@ -477,8 +478,8 @@ const AdminDashboard = () => {
   ];
 
   const quickActions = [
-    { label: "Audit trail", path: "/admin/audit" },
-    { label: "Billing controls", path: "/admin/billing" },
+    { label: "Activity Log", path: "/admin/audit" },
+    { label: "Billing", path: "/admin/billing" },
     { label: "Reports", path: "/admin/reports" },
   ];
 
@@ -486,8 +487,8 @@ const AdminDashboard = () => {
     <ConsolePage>
       <PageHeader
         eyebrow="Admin workspace"
-        title="System Administration"
-        description="Compact control center for markets, users, financial exceptions, and audit activity."
+        title="System Overview"
+        description="Monitor markets, users, payments, and activity records."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">{markets.length} markets</span>
@@ -502,17 +503,17 @@ const AdminDashboard = () => {
         <DashboardErrorBoundary>
           <Panel
             title="Attention Queue"
-            description="Critical exceptions and the latest governance actions."
+            description="Critical exceptions and the latest system actions."
             actions={
               <Button asChild variant="ghost" size="sm" className="h-auto px-0">
-                <Link to="/admin/audit">Audit trail</Link>
+                <Link to="/admin/audit">Activity log</Link>
               </Button>
             }
             contentClassName="grid gap-3 lg:grid-cols-2"
           >
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Flagged issues</p>
+              <p className="section-eyebrow">Flagged issues</p>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{alerts.length}</span>
             </div>
             {alerts.length === 0 ? (
@@ -539,11 +540,11 @@ const AdminDashboard = () => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recent activity</p>
+              <p className="section-eyebrow">Recent activity</p>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{recentAuditRows.length}</span>
             </div>
             {recentAuditRows.length === 0 ? (
-              <EmptyState title="No activity yet" description="Audit events will appear as staff use the system." />
+              <EmptyState title="No activity yet" description="Activity records will appear as staff use the system." />
             ) : (
               recentAuditRows.slice(0, DASHBOARD_CONFIG.AUDIT_PREVIEW_LIMIT).map((event) => (
                 <RecordCard key={event.id} className="p-2.5">
@@ -566,7 +567,7 @@ const AdminDashboard = () => {
           </DashboardErrorBoundary>
 
         <DashboardErrorBoundary>
-          <Panel title="System Health" description="Controls and signals administrators check first." contentClassName="space-y-3">
+          <Panel title="System Health" description="Signals administrators check first." contentClassName="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
             {systemHealth.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-2.5">
@@ -602,10 +603,10 @@ const AdminDashboard = () => {
 
       <section className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr]">
         <DashboardErrorBoundary>
-          <Panel title="Market Operating Snapshot" description="Compact market status for quick regional triage." contentClassName="max-h-[310px] overflow-auto p-0">
+          <Panel title="Market Snapshot" description="Compact market status for quick review." contentClassName="max-h-[310px] overflow-auto p-0">
           {marketRows.length === 0 ? (
             <div className="p-3">
-              <EmptyState title="No markets registered" description="Market governance indicators will appear after setup." />
+              <EmptyState title="No markets registered" description="Market status indicators will appear after setup." />
             </div>
           ) : (
             <Table>
@@ -621,7 +622,12 @@ const AdminDashboard = () => {
               </TableHeader>
               <TableBody>
                 {marketRows.map((market) => (
-                  <TableRow key={market.id} className="text-xs">
+                  <TableRow
+                    key={market.id}
+                    className="text-xs cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => navigate(`/admin/billing?market=${market.id}`)}
+                    title={`View billing for ${market.market}`}
+                  >
                     <TableCell className="font-medium">{market.market}</TableCell>
                     <TableCell className="text-muted-foreground">{market.region}</TableCell>
                     <TableCell className="text-right">{market.vendors}</TableCell>
@@ -637,10 +643,10 @@ const AdminDashboard = () => {
           )}
         </Panel>
 
-        <Panel title="People & Payments" description="Recent access actors and collection movement." contentClassName="grid gap-3">
+        <Panel title="People & Payments" description="Recent users and payment movement." contentClassName="grid gap-3">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Users</p>
+              <p className="section-eyebrow">Users</p>
               <Button asChild variant="ghost" size="sm" className="h-auto px-0 text-xs">
                 <Link to="/admin/audit">Review</Link>
               </Button>
@@ -668,7 +674,7 @@ const AdminDashboard = () => {
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recent payments</p>
+            <p className="section-eyebrow">Recent payments</p>
             {recentPayments.length === 0 ? (
               <EmptyState title="No payment records" />
             ) : (
@@ -699,7 +705,7 @@ const AdminDashboard = () => {
           if (!open) setSelectedUser(null);
         }}
         title={selectedUser?.name || "User record"}
-        description="Role, scope, and recent activity evidence for governance review."
+        description="Role, scope, and recent activity for review."
       >
         {selectedUser && (
           <div className="space-y-4">
@@ -721,14 +727,14 @@ const AdminDashboard = () => {
             </div>
 
             <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-              <p className="text-sm font-medium">Governance actions</p>
+              <p className="text-sm font-medium">System actions</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Use the audit trail for evidence review. Role changes and deactivation should stay in a dedicated user-management workflow when that surface is enabled.
+                Use the activity log for evidence review. Role changes and deactivation should stay in a dedicated user-management workflow when that surface is enabled.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button asChild size="sm">
-                  <Link to="/admin/audit">Open Audit Trail</Link>
+                  <Link to="/admin/audit">Open Activity Log</Link>
                 </Button>
               </div>
             </div>

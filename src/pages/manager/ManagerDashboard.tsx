@@ -16,6 +16,14 @@ import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/uti
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ConsolePage,
   EmptyState,
   KpiStrip,
@@ -34,7 +42,6 @@ import type {
   Payment,
   Ticket,
   UtilityCharge,
-  UtilityType,
   VendorApprovalStatus,
 } from "@/types";
 
@@ -46,15 +53,11 @@ const categoryLabels: Record<Ticket["category"], string> = {
   billing: "Billing",
   maintenance: "Maintenance",
   dispute: "Dispute",
-  other: "Other",
-};
-
-const utilityLabels: Record<UtilityType, string> = {
-  electricity: "Electricity",
-  water: "Water",
+  payment: "Payment",
+  stall: "Stall",
   sanitation: "Sanitation",
-  garbage: "Garbage",
-  other: "Utility",
+  harassment: "Harassment",
+  other: "Other",
 };
 
 const chargeTypeLabels: Record<ChargeTypeName, string> = {
@@ -122,6 +125,10 @@ const ManagerDashboard = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTaskTab, setActiveTaskTab] = useState<ActiveTaskTab>("approvals");
+  const [confirmAction, setConfirmAction] = useState<{
+    row: ApprovalRow;
+    action: "approve" | "reject";
+  } | null>(null);
 
   const { data: stallsData, isPending: stallsPending } = useQuery({
     queryKey: ["stalls"],
@@ -311,21 +318,30 @@ const ManagerDashboard = () => {
     approveVendor.isPending || rejectVendor.isPending || reviewBookingApplication.isPending;
 
   const approveRow = (row: ApprovalRow) => {
-    if (row.kind === "vendor") {
-      approveVendor.mutate(row.vendorId);
-      return;
-    }
-
-    reviewBookingApplication.mutate({ bookingId: row.bookingId, approved: true });
+    setConfirmAction({ row, action: "approve" });
   };
 
   const rejectRow = (row: ApprovalRow) => {
-    if (row.kind === "vendor") {
-      rejectVendor.mutate(row.vendorId);
-      return;
-    }
+    setConfirmAction({ row, action: "reject" });
+  };
 
-    reviewBookingApplication.mutate({ bookingId: row.bookingId, approved: false });
+  const executeConfirmedAction = () => {
+    if (!confirmAction) return;
+    const { row, action } = confirmAction;
+    setConfirmAction(null);
+    if (action === "approve") {
+      if (row.kind === "vendor") {
+        approveVendor.mutate(row.vendorId);
+      } else {
+        reviewBookingApplication.mutate({ bookingId: row.bookingId, approved: true });
+      }
+    } else {
+      if (row.kind === "vendor") {
+        rejectVendor.mutate(row.vendorId);
+      } else {
+        reviewBookingApplication.mutate({ bookingId: row.bookingId, approved: false });
+      }
+    }
   };
 
   const occupancyRate =
@@ -339,6 +355,30 @@ const ManagerDashboard = () => {
     (total, payment) => total + Number(payment.amount || 0),
     0,
   );
+
+  // Build real 7-day sparklines from actual data timestamps
+  const buildSparkline = (items: Array<{ createdAt: string }>, windowDays = 7): number[] => {
+    const now = Date.now();
+    const buckets = Array.from({ length: windowDays }, (_, i) => {
+      const dayStart = now - (windowDays - 1 - i) * 86_400_000;
+      const dayEnd = dayStart + 86_400_000;
+      return items.filter((item) => {
+        const t = new Date(item.createdAt).getTime();
+        return t >= dayStart && t < dayEnd;
+      }).length;
+    });
+    // Ensure at least a flat non-zero line so the chart renders
+    const max = Math.max(...buckets, 1);
+    return buckets.map((v) => Math.max(v, max * 0.05));
+  };
+
+  const approvalSparkline = buildSparkline([
+    ...pendingVendors.map((v) => ({ createdAt: v.createdAt })),
+    ...pendingApplications.map((b) => ({ createdAt: b.createdAt })),
+  ]);
+  const stallsSparkline = buildSparkline(bookings); // bookings as proxy for stall activity
+  const paymentsSparkline = buildSparkline(pendingPayments);
+  const complaintsSparkline = buildSparkline(openComplaints);
 
   const kpis = [
     {
@@ -354,6 +394,7 @@ const ManagerDashboard = () => {
       ),
       icon: ClipboardList,
       tone: "warning" as const,
+      sparkline: approvalSparkline,
     },
     {
       label: "Active Stalls",
@@ -368,6 +409,7 @@ const ManagerDashboard = () => {
       ),
       icon: Grid3X3,
       tone: "success" as const,
+      sparkline: stallsSparkline,
     },
     {
       label: "Pending Payments",
@@ -382,6 +424,7 @@ const ManagerDashboard = () => {
       ),
       icon: CreditCard,
       tone: "info" as const,
+      sparkline: paymentsSparkline,
     },
     {
       label: "Open Complaints",
@@ -396,6 +439,7 @@ const ManagerDashboard = () => {
       ),
       icon: AlertCircle,
       tone: highPriorityComplaints.length ? ("destructive" as const) : ("default" as const),
+      sparkline: complaintsSparkline,
     },
   ];
 
@@ -450,8 +494,8 @@ const ManagerDashboard = () => {
                 <Link to={activeTaskRoute}>View all</Link>
               </Button>
             }
-            className="h-[372px]"
-            contentClassName="max-h-[292px] space-y-2 overflow-y-auto"
+            className="xl:h-[372px]"
+            contentClassName="space-y-2 xl:max-h-[292px] xl:overflow-y-auto"
           >
           <SegmentedControl<ActiveTaskTab>
             value={activeTaskTab}
@@ -610,8 +654,8 @@ const ManagerDashboard = () => {
         <DashboardErrorBoundary>
           <Panel
             title="Market Health"
-            description="Occupancy signals and unpaid utility obligations."
-            className="h-[372px]"
+            description="Occupancy signals and unpaid utility payments due."
+            className="xl:h-[372px]"
             contentClassName="space-y-3"
           >
             <div className="rounded-md border border-border/70 bg-background p-3">
@@ -665,6 +709,33 @@ const ManagerDashboard = () => {
           </Panel>
         </DashboardErrorBoundary>
       </div>
+      {/* Confirmation dialog for approve / reject actions */}
+      <Dialog open={Boolean(confirmAction)} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading">
+              {confirmAction?.action === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction?.action === "approve"
+                ? `Approve ${confirmAction.row.kind === "vendor" ? "vendor registration" : "stall application"} for ${confirmAction.row.vendorName}? This will grant them access to the relevant workspace features.`
+                : `Reject ${confirmAction.row.kind === "vendor" ? "vendor registration" : "stall application"} for ${confirmAction.row.vendorName}? They will be notified of the decision.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={confirmAction?.action === "approve" ? "default" : "destructive"}
+              onClick={executeConfirmedAction}
+              disabled={actionDisabled}
+            >
+              {confirmAction?.action === "approve" ? "Yes, Approve" : "Yes, Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ConsolePage>
   );
 };

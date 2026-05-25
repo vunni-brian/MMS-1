@@ -322,7 +322,7 @@ const ComplaintsPage = () => {
   const canSubmitComplaint = Boolean(
     newTicket.category &&
       newTicket.subject.trim() &&
-      newTicket.description.trim(),
+      newTicket.description.trim().length >= 20,
   );
   const requiresResolution = managerUpdate.status === "resolved" || managerUpdate.status === "closed";
   const canUpdateSelectedTicket = Boolean(selected) && (!requiresResolution || Boolean(managerUpdate.resolutionNote.trim()));
@@ -331,8 +331,8 @@ const ComplaintsPage = () => {
     <ConsolePage>
       <PageHeader
         eyebrow="Ticket desk"
-        title="Complaints & Disputes"
-        description={role === "vendor" ? "Submit and track market complaints." : "Prioritize complaints and update resolution status."}
+        title="Complaints"
+        description={role === "vendor" ? "Submit and track market complaints." : "Review and resolve vendor disputes."}
         actions={
           role === "vendor" && (
             <Button onClick={() => setShowNew(true)} className="w-full sm:w-auto">
@@ -366,8 +366,9 @@ const ComplaintsPage = () => {
       ) : (
         <>
           <DataTableFrame
-            title="Ticket Register"
-            description="Operational queue for complaint handling."
+            className="workspace-primary-frame"
+            title="Complaints Register"
+            description="Queue for complaint handling."
             actions={
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                   <div className="relative w-full sm:w-[240px]">
@@ -595,7 +596,12 @@ const ComplaintsPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="complaint-description">Description</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="complaint-description">Description</Label>
+                <span className={`text-xs ${newTicket.description.length < 20 ? "text-muted-foreground" : "text-success"}`}>
+                  {newTicket.description.length} / 20 min
+                </span>
+              </div>
               <Textarea
                 id="complaint-description"
                 value={newTicket.description}
@@ -603,7 +609,11 @@ const ComplaintsPage = () => {
                   setNewTicket((current) => ({ ...current, description: event.target.value }))
                 }
                 rows={4}
+                placeholder="Describe the issue clearly — include the location, what happened, and when. The more detail you provide, the faster the manager can act."
               />
+              {newTicket.description.length > 0 && newTicket.description.length < 20 && (
+                <p className="text-xs text-warning">Please add a bit more detail so the manager can understand the issue.</p>
+              )}
             </div>
 
             <FileUploadCard
@@ -694,7 +704,7 @@ const ComplaintsPage = () => {
               )}
 
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                <p className="mb-2 font-medium">Operational Timeline</p>
+                <p className="mb-2 font-medium">Timeline</p>
                 <div className="space-y-3">
                   {buildTicketTimeline(selected).map((event) => (
                     <div key={event.id} className="flex gap-3">
@@ -761,7 +771,7 @@ const ComplaintsPage = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="ticket-manager-note">Operational Note</Label>
+                    <Label htmlFor="ticket-manager-note">Staff Note</Label>
                     <Textarea
                       id="ticket-manager-note"
                       value={managerUpdate.note}

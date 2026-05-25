@@ -21,8 +21,9 @@ const paymentStatus = (status: Payment["status"] | "all") =>
 const ReportsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [dateFrom, setDateFrom] = useState("2026-01-01");
-  const [dateTo, setDateTo] = useState("2026-12-31");
+  const currentYear = new Date().getFullYear();
+  const [dateFrom, setDateFrom] = useState(`${currentYear}-01-01`);
+  const [dateTo, setDateTo] = useState(`${currentYear}-12-31`);
   const [selectedMarketId, setSelectedMarketId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<Payment["status"] | "all">("all");
   const [rejectionPayment, setRejectionPayment] = useState<Payment | null>(null);
@@ -63,6 +64,10 @@ const ReportsPage = () => {
     const statusOk = statusFilter === "all" || payment.status === statusFilter;
     return fromOk && toOk && statusOk;
   });
+  const verifiedPayments = payments.filter((payment) => payment.status === "completed");
+  const pendingPayments = payments.filter((payment) => payment.status === "pending");
+  const rejectedPayments = payments.filter((payment) => payment.status === "failed");
+  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   const openReceipt = async (payment: Payment) => {
     try {
@@ -102,9 +107,16 @@ const ReportsPage = () => {
   return (
     <ConsolePage>
       <PageHeader
-        eyebrow="Reports and reconciliation"
-        title="Reports & Reconciliation"
-        description="Receipt submissions, verification status, and exportable payment records."
+        eyebrow="Payment reports"
+        title="Reports"
+        description="View and export payment records."
+        meta={
+          <>
+            <span className="rounded-full bg-muted px-2.5 py-1">Payment period: {dateFrom} to {dateTo}</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{payments.length} records</span>
+            <span className="rounded-full bg-muted px-2.5 py-1">{pendingPayments.length} pending</span>
+          </>
+        }
         actions={
           <Button onClick={exportCSV} variant="outline">
             <Download className="mr-1 h-4 w-4" />
@@ -150,17 +162,39 @@ const ReportsPage = () => {
         </ScopeItem>
       </ScopeBar>
 
-      <DataTableFrame title="Payment Records">
+      <DataTableFrame
+        className="workspace-primary-frame"
+        title="Payment Records"
+        description={`${verifiedPayments.length} verified, ${pendingPayments.length} pending, ${rejectedPayments.length} rejected. Total value ${formatCurrency(totalAmount)}.`}
+        actions={<span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">{payments.length} visible rows</span>}
+      >
         {payments.length === 0 ? (
           <div className="p-3">
-            <EmptyState title="No transactions recorded" description="Receipt submissions matching the selected filters will appear here." />
+            <EmptyState
+              title="No transactions recorded"
+              description="Receipt submissions matching the selected filters will appear here."
+              action={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setDateFrom(`${currentYear}-01-01`);
+                    setDateTo(`${currentYear}-12-31`);
+                    setSelectedMarketId("all");
+                    setStatusFilter("all");
+                  }}
+                >
+                  Reset filters
+                </Button>
+              }
+            />
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Vendor</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Receipt Number</TableHead>
                 <TableHead>Receipt Image</TableHead>
                 <TableHead>Verification Status</TableHead>
@@ -172,7 +206,7 @@ const ReportsPage = () => {
               {payments.map((payment) => (
                 <TableRow key={payment.id}>
                   <TableCell className="font-medium">{payment.vendorName}</TableCell>
-                  <TableCell>{payment.amount > 0 ? formatCurrency(payment.amount) : "No payments due"}</TableCell>
+                  <TableCell className="text-right font-medium tabular-nums">{payment.amount > 0 ? formatCurrency(payment.amount) : "No payments due"}</TableCell>
                   <TableCell className="font-medium">{payment.receiptId || payment.externalReference}</TableCell>
                   <TableCell>
                     {payment.receiptFileName ? (
@@ -185,7 +219,7 @@ const ReportsPage = () => {
                     )}
                   </TableCell>
                   <TableCell><StatusBadge status={payment.status} context="payment" /></TableCell>
-                  <TableCell className="text-muted-foreground">{formatHumanDateTime(payment.createdAt)}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{formatHumanDateTime(payment.createdAt)}</TableCell>
                   <TableCell>
                     {payment.status === "pending" && payment.receiptFileName ? (
                       <div className="flex flex-wrap gap-2">

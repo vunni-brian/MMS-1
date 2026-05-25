@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -13,9 +13,11 @@ import { StatusBadge } from "@/components/StatusBadge";
 
 const PaymentCallbackPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const orderTrackingId = searchParams.get("OrderTrackingId");
   const merchantReference = searchParams.get("OrderMerchantReference");
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const returnPath = useMemo(() => {
     if (!user) {
@@ -44,6 +46,23 @@ const PaymentCallbackPage = () => {
 
   const payment = data?.payment || null;
   const paymentStatus = payment?.status || "pending";
+
+  // Auto-redirect to payments page after a successful payment
+  useEffect(() => {
+    if (paymentStatus !== "completed") return;
+    setCountdown(5);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          navigate(returnPath);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [paymentStatus, navigate, returnPath]);
 
   return (
     <div className="min-h-screen bg-muted/30 px-4 py-10">
@@ -112,7 +131,7 @@ const PaymentCallbackPage = () => {
 
                   <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-muted-foreground">
                     {payment.status === "completed"
-                      ? "Payment confirmed. You can now return to the payments page and open the receipt."
+                      ? <>Payment confirmed. You can now return to the payments page and open the receipt.{countdown !== null && <span className="ml-1 font-medium text-foreground">Redirecting in {countdown}s…</span>}</>
                       : payment.status === "failed"
                         ? "This payment was not verified. You can return to the payments page and upload a valid receipt."
                         : "The transaction is still pending. Return to the payments page to refresh the latest status."}

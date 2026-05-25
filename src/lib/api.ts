@@ -35,6 +35,11 @@ import type {
   VendorProfile,
 } from "@/types";
 
+/**
+ * Base URL for all API requests.
+ * Set VITE_API_BASE_URL in your .env file to override.
+ * Defaults to localhost:3001 for local development.
+ */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 const SESSION_TOKEN_KEY = "mms.session.token";
 

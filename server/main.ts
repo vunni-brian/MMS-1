@@ -46,11 +46,35 @@ if (config.seedOnBoot) {
   await seedDatabase();
 }
 
+const backgroundTaskState = new Map<string, { running: boolean; failures: number; nextRunAt: number }>();
+
 const runBackgroundTask = (label: string, task: () => Promise<void>) => {
-  void task().catch((error) => {
-    const message = error instanceof Error ? error.stack || error.message : String(error);
-    console.error(`[background:${label}]`, message);
-  });
+  const state = backgroundTaskState.get(label) || { running: false, failures: 0, nextRunAt: 0 };
+
+  // Avoid overlapping retries and back off when infrastructure is temporarily unavailable.
+  if (state.running || Date.now() < state.nextRunAt) {
+    backgroundTaskState.set(label, state);
+    return;
+  }
+
+  state.running = true;
+  backgroundTaskState.set(label, state);
+
+  void task()
+    .then(() => {
+      backgroundTaskState.set(label, { running: false, failures: 0, nextRunAt: 0 });
+    })
+    .catch((error) => {
+      const failures = state.failures + 1;
+      const retryDelayMs = Math.min(60_000, 2_000 * 2 ** Math.min(failures, 5));
+      const message = error instanceof Error ? error.stack || error.message : String(error);
+      console.error(`[background:${label}]`, message);
+      backgroundTaskState.set(label, {
+        running: false,
+        failures,
+        nextRunAt: Date.now() + retryDelayMs,
+      });
+    });
 };
 
 setInterval(() => {

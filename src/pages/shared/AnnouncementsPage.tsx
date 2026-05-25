@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Bell, Megaphone, Send, ShieldCheck } from "lucide-react";
+import { Archive, Send } from "lucide-react";
 
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import {
@@ -8,7 +8,6 @@ import {
   EmptyState,
   EvidenceField,
   FormSection,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -178,13 +177,13 @@ const AnnouncementsPage = () => {
         audience: "vendors",
         expiresAt: "",
       }));
-      toast.success("Announcement published", {
+      toast.success("Notice published", {
         description: `${result.delivery.recipientCount} notification recipient(s) queued.`,
       });
     },
     onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Unable to publish announcement.";
-      toast.error("Announcement was not published", { description: message });
+      const message = error instanceof ApiError ? error.message : "Unable to publish notice.";
+      toast.error("Notice was not published", { description: message });
     },
   });
 
@@ -192,11 +191,11 @@ const AnnouncementsPage = () => {
     mutationFn: (announcementId: string) => api.archiveAnnouncement(announcementId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["announcements"] });
-      toast.success("Announcement archived");
+      toast.success("Notice archived");
     },
     onError: (error) => {
-      const message = error instanceof ApiError ? error.message : "Unable to archive announcement.";
-      toast.error("Announcement was not archived", { description: message });
+      const message = error instanceof ApiError ? error.message : "Unable to archive notice.";
+      toast.error("Notice was not archived", { description: message });
     },
   });
 
@@ -204,8 +203,6 @@ const AnnouncementsPage = () => {
   const markets = marketsQuery.data?.markets || [];
   const activeAnnouncements = announcements.filter((announcement) => announcement.active);
   const historicalAnnouncements = announcements.filter((announcement) => !announcement.active);
-  const highPriorityCount = activeAnnouncements.filter((announcement) => announcement.priority === "high").length;
-  const globalCount = activeAnnouncements.filter((announcement) => !announcement.marketId).length;
 
   const pageLoading = announcementsQuery.isPending || (!isManager && !isVendor && marketsQuery.isPending);
   const canSubmit =
@@ -213,40 +210,6 @@ const AnnouncementsPage = () => {
     form.title.trim().length > 0 &&
     form.body.trim().length > 0 &&
     (!isManager || Boolean(user?.marketId));
-
-  const kpis = useMemo(
-    () => [
-      {
-        label: "Active Notices",
-        value: activeAnnouncements.length.toLocaleString(),
-        detail: "Visible now",
-        icon: Megaphone,
-        tone: "info" as const,
-      },
-      {
-        label: "High Priority",
-        value: highPriorityCount.toLocaleString(),
-        detail: highPriorityCount ? "Needs attention" : "None active",
-        icon: Bell,
-        tone: highPriorityCount ? ("warning" as const) : ("success" as const),
-      },
-      {
-        label: "Global Notices",
-        value: globalCount.toLocaleString(),
-        detail: "All markets",
-        icon: ShieldCheck,
-        tone: "default" as const,
-      },
-      {
-        label: "Archived/Expired",
-        value: historicalAnnouncements.length.toLocaleString(),
-        detail: isVendor ? "Hidden from vendors" : "Retained for review",
-        icon: Archive,
-        tone: "default" as const,
-      },
-    ],
-    [activeAnnouncements.length, globalCount, highPriorityCount, historicalAnnouncements.length, isVendor],
-  );
 
   if (pageLoading) {
     return (
@@ -261,12 +224,12 @@ const AnnouncementsPage = () => {
   return (
     <ConsolePage>
       <PageHeader
-        eyebrow={isVendor ? "Vendor notices" : "Operations broadcast"}
-        title="Announcements"
+        eyebrow={isVendor ? "Vendor notices" : "News and alerts"}
+        title="Notices"
         description={
           isVendor
-            ? "Active market notices, deadlines, inspections, and operational changes."
-            : "Publish and monitor market-wide notices for vendors and staff."
+            ? "Active market notices, deadlines, inspections, and changes."
+            : "Publish and monitor market-wide news and alerts for vendors and staff."
         }
         meta={
           <>
@@ -306,12 +269,12 @@ const AnnouncementsPage = () => {
         </ScopeBar>
       )}
 
-      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
-
+      <div className="notices-workspace-grid">
       {canManage && (
         <DashboardErrorBoundary>
           <FormSection
-            title="Publish Announcement"
+            className="notices-compose-panel workspace-secondary-panel"
+            title="Publish Notice"
             description="Send an active notice to vendors, staff, or the whole market network."
             actions={<Send className="h-5 w-5 text-muted-foreground" />}
           >
@@ -396,7 +359,12 @@ const AnnouncementsPage = () => {
               )}
 
               <div className={cn("space-y-1.5", isManager ? "lg:col-span-2" : "")}>
-                <Label htmlFor="announcement-body">Message</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="announcement-body">Message</Label>
+                  <span className={`text-xs ${form.body.length > 1800 ? "text-warning" : "text-muted-foreground"}`}>
+                    {form.body.length} / 2000
+                  </span>
+                </div>
                 <Textarea
                   id="announcement-body"
                   rows={4}
@@ -414,7 +382,7 @@ const AnnouncementsPage = () => {
                   onClick={() => createAnnouncement.mutate()}
                 >
                   <Send className="h-4 w-4" />
-                  {createAnnouncement.isPending ? "Publishing..." : "Publish Announcement"}
+                  {createAnnouncement.isPending ? "Publishing..." : "Publish Notice"}
                 </Button>
               </div>
             </div>
@@ -423,9 +391,9 @@ const AnnouncementsPage = () => {
       )}
 
       <DashboardErrorBoundary>
-        <Panel title="Active Announcements" description="Currently visible notices." contentClassName="space-y-3">
+        <Panel className="notices-primary-panel workspace-dominant-panel" title="Active Notices" description="Currently visible notices." contentClassName="space-y-3">
           {activeAnnouncements.length === 0 ? (
-            <EmptyState title="No active announcements" description="Important notices will appear here when published." />
+            <EmptyState title="No active notices" description="Important notices will appear here when published." />
           ) : (
             activeAnnouncements.map((announcement) => (
               <AnnouncementCard
@@ -442,9 +410,9 @@ const AnnouncementsPage = () => {
 
       {!isVendor && (
         <DashboardErrorBoundary>
-          <Panel title="Archived and Expired" description="Retained notices that are no longer active." contentClassName="space-y-3">
+          <Panel className="workspace-secondary-panel" title="Archived Notices" description="Notices that are no longer active." contentClassName="space-y-3">
             {historicalAnnouncements.length === 0 ? (
-              <EmptyState title="No historical announcements" />
+              <EmptyState title="No historical notices" />
             ) : (
               historicalAnnouncements.map((announcement) => (
                 <AnnouncementCard
@@ -459,6 +427,7 @@ const AnnouncementsPage = () => {
           </Panel>
         </DashboardErrorBoundary>
       )}
+      </div>
     </ConsolePage>
   );
 };

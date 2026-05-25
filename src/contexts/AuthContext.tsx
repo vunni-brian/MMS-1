@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (phone: string, password: string): Promise<LoginResult> => {
     setIsLoading(true);
+    setAuthError(null); // clear immediately so stale errors don't persist while the request is in flight
     try {
       const response = await api.login(phone, password);
       if ("token" in response) {
@@ -108,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoading(true);
+    setAuthError(null);
     try {
       const response = await api.verifyPrivilegedMfa(pendingMfa.challengeId, code);
       setSessionToken(response.token);

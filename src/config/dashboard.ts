@@ -20,14 +20,14 @@ export const DASHBOARD_CONFIG = {
   UTILITY_PREVIEW_LIMIT: 3,
 
   // Refresh intervals (milliseconds)
-  PAYMENTS_REFRESH_INTERVAL: 10_000,
-  UTILITIES_REFRESH_INTERVAL: 10_000,
+  PAYMENTS_REFRESH_INTERVAL: 30_000,
+  UTILITIES_REFRESH_INTERVAL: 30_000,
   NOTIFICATIONS_REFRESH_INTERVAL: 30_000,
 
   // Cache times (milliseconds)
-  DEFAULT_CACHE_TIME: 5 * 60 * 1000, // 5 minutes
-  STATIC_DATA_CACHE_TIME: 30 * 60 * 1000, // 30 minutes
-  REALTIME_DATA_CACHE_TIME: 0, // No cache for real-time data
+  DEFAULT_CACHE_TIME: 5 * 60 * 1000,       // 5 minutes
+  STATIC_DATA_CACHE_TIME: 30 * 60 * 1000,  // 30 minutes
+  REALTIME_DATA_CACHE_TIME: 60 * 1000,     // 1 minute — short but not zero, avoids refetch on every mount
 
   // Risk thresholds
   MARKET_RISK_THRESHOLDS: {

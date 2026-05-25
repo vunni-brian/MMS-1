@@ -18,6 +18,7 @@ export const OtpCodeInput = ({ id, value, onChange, disabled = false }: OtpCodeI
         value={value}
         onChange={(nextValue) => onChange(nextValue.replace(/\D/g, ""))}
         disabled={disabled}
+        autoFocus
         containerClassName="justify-center sm:justify-start"
       >
         <InputOTPGroup>

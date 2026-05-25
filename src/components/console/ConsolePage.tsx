@@ -1,17 +1,90 @@
 import type { ChangeEvent, ElementType, ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Inbox } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  getPageBreadcrumbs,
+  getPageIdentity,
+  getPageType,
+  type PageAccent,
+  type PageKind,
+} from "@/config/pageIdentity";
 
 interface ConsolePageProps {
   children: ReactNode;
   className?: string;
+  kind?: PageKind;
+  accent?: PageAccent;
 }
 
-export const ConsolePage = ({ children, className }: ConsolePageProps) => (
-  <div className={cn("flex w-full flex-col gap-3 pb-4", className)}>{children}</div>
+export const ConsolePage = ({ children, className, kind, accent }: ConsolePageProps) => {
+  const location = useLocation();
+  const identity = getPageIdentity(location.pathname);
+  const pageType = getPageType(location.pathname);
+  const resolvedKind = kind || identity.kind;
+  const resolvedAccent = accent || identity.accent;
+
+  return (
+    <div
+      className={cn(
+        "console-page flex w-full flex-col gap-4 pb-5",
+        `console-page-${resolvedKind}`,
+        `console-page-type-${pageType}`,
+        `console-accent-${resolvedAccent}`,
+        className,
+      )}
+      data-page-kind={resolvedKind}
+      data-page-type={pageType}
+    >
+      {children}
+    </div>
+  );
+};
+
+interface WorkspacePageProps {
+  title: string;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+  context?: ReactNode;
+  filters?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
+
+export const WorkspacePage = ({
+  title,
+  subtitle,
+  actions,
+  context,
+  filters,
+  children,
+  className,
+}: WorkspacePageProps) => (
+  <div className={cn("workspace-page space-y-5", className)}>
+    <div className="workspace-page-hero">
+      <div className="min-w-0 space-y-1">
+        <h1 className="workspace-page-title">{title}</h1>
+        {subtitle && <p className="workspace-page-subtitle">{subtitle}</p>}
+        {context && <div className="workspace-page-context">{context}</div>}
+      </div>
+      {actions && <div className="workspace-page-actions">{actions}</div>}
+    </div>
+    {filters && <div className="workspace-filter-bar">{filters}</div>}
+    <div className="primary-surface">{children}</div>
+  </div>
+);
+
+interface DataSurfaceProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export const DataSurface = ({ children, className }: DataSurfaceProps) => (
+  <div className={cn("data-surface overflow-hidden", className)}>{children}</div>
 );
 
 interface DashboardShellProps {
@@ -37,21 +110,64 @@ interface PageHeaderProps {
   description?: ReactNode;
   actions?: ReactNode;
   meta?: ReactNode;
+  icon?: ElementType;
+  kind?: PageKind;
+  accent?: PageAccent;
+  breadcrumbs?: Array<{ label: string; path?: string }>;
 }
 
-export const PageHeader = ({ eyebrow, title, description, actions, meta }: PageHeaderProps) => (
-  <section className="console-section">
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="min-w-0 max-w-3xl">
+export const PageHeader = ({
+  eyebrow,
+  title,
+  description,
+  actions,
+  meta,
+  icon,
+  kind,
+  accent,
+  breadcrumbs,
+}: PageHeaderProps) => {
+  const location = useLocation();
+  const identity = getPageIdentity(location.pathname);
+  const resolvedKind = kind || identity.kind;
+  const resolvedAccent = accent || identity.accent;
+  const Icon = icon || identity.icon;
+  const resolvedBreadcrumbs = breadcrumbs || getPageBreadcrumbs(location.pathname);
+
+  return (
+    <section className={cn("page-identity-header", `page-header-${resolvedKind}`, `console-accent-${resolvedAccent}`)}>
+      <div className="page-header-chrome">
+        <nav className="breadcrumb-trail" aria-label="Breadcrumb">
+          {resolvedBreadcrumbs.map((item, index) => (
+            <span key={`${item.label}-${index}`} className="breadcrumb-item">
+              {item.path && index < resolvedBreadcrumbs.length - 1 ? (
+                <Link to={item.path}>{item.label}</Link>
+              ) : (
+                <span>{item.label}</span>
+              )}
+            </span>
+          ))}
+        </nav>
+
         {eyebrow && <p className="page-kicker">{eyebrow}</p>}
-        <h1 className="mt-1 text-lg font-bold leading-tight font-heading lg:text-xl">{title}</h1>
-        {description && <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{description}</p>}
-        {meta && <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">{meta}</div>}
       </div>
-      {actions && <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
-    </div>
-  </section>
-);
+
+      <div className="page-header-main">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="page-header-icon" aria-hidden="true">
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 max-w-4xl">
+            <h1 className="page-title">{title}</h1>
+            {description && <p className="page-description">{description}</p>}
+            {meta && <div className="page-meta">{meta}</div>}
+          </div>
+        </div>
+        {actions && <div className="page-actions">{actions}</div>}
+      </div>
+    </section>
+  );
+};
 
 interface ScopeBarProps {
   children: ReactNode;
@@ -59,7 +175,7 @@ interface ScopeBarProps {
 }
 
 export const ScopeBar = ({ children, className }: ScopeBarProps) => (
-  <section className={cn("console-scope-bar", className)}>{children}</section>
+  <section className={cn("console-scope-bar page-toolbar", className)}>{children}</section>
 );
 
 interface ScopeItemProps {
@@ -69,7 +185,7 @@ interface ScopeItemProps {
 }
 
 export const ScopeItem = ({ label, children, className }: ScopeItemProps) => (
-  <div className={cn("min-w-0 space-y-1.5 sm:min-w-[160px]", className)}>
+  <div className={cn("min-w-0 space-y-1.5 md:min-w-[160px]", className)}>
     <p className="text-xs font-medium text-muted-foreground">{label}</p>
     {children}
   </div>
@@ -166,42 +282,51 @@ interface KpiStripProps {
   columns?: string;
 }
 
-export const KpiStrip = ({ items, columns = "grid-cols-2 lg:grid-cols-4" }: KpiStripProps) => (
-  <section className={cn("grid gap-2.5", columns)}>
-    {items.map((item, index) => {
-      const Icon = item.icon;
-      const tone = item.tone || "default";
-      const sparkline = item.sparkline || sparklinePresets[index % sparklinePresets.length];
+export const KpiStrip = ({ items, columns = "grid-cols-2 lg:grid-cols-4" }: KpiStripProps) => {
+  const location = useLocation();
+  const pageType = getPageType(location.pathname);
 
-      return (
-        <Card key={item.label} className="stat-card min-h-[82px]">
-          <CardContent className="p-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium leading-4 text-muted-foreground">{item.label}</p>
-                <p className="mt-1 break-words text-lg font-bold leading-none font-heading tabular-nums">{item.value}</p>
-              </div>
-              {Icon && (
-                <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md border", kpiToneStyles[tone])}>
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
-              )}
-            </div>
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <div className="min-w-0">
-                <div className={cn("inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-4", kpiToneStyles[tone])}>
-                  {item.trend || kpiTrendLabels[tone]}
+  if (pageType !== "dashboard") {
+    return null;
+  }
+
+  return (
+    <section className={cn("kpi-strip grid gap-3", columns)}>
+      {items.map((item, index) => {
+        const Icon = item.icon;
+        const tone = item.tone || "default";
+        const sparkline = item.sparkline || sparklinePresets[index % sparklinePresets.length];
+
+        return (
+          <Card key={item.label} className="stat-card min-h-[82px]">
+            <CardContent className="p-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-medium leading-4 text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 break-words text-base font-bold leading-none font-heading tabular-nums sm:text-lg">{item.value}</p>
                 </div>
-                {item.detail && <div className="mt-1 text-[11px] leading-4 text-muted-foreground">{item.detail}</div>}
+                {Icon && (
+                  <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md border", kpiToneStyles[tone])}>
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
+                )}
               </div>
-              <MiniSparkline values={sparkline} className={kpiSparklineStyles[tone]} />
-            </div>
-          </CardContent>
-        </Card>
-      );
-    })}
-  </section>
-);
+              <div className="mt-2 flex items-end justify-between gap-2">
+                <div className="min-w-0">
+                  <div className={cn("inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-4", kpiToneStyles[tone])}>
+                    {item.trend || kpiTrendLabels[tone]}
+                  </div>
+                  {item.detail && <div className="mt-1 text-[11px] leading-4 text-muted-foreground">{item.detail}</div>}
+                </div>
+                <MiniSparkline values={sparkline} className={kpiSparklineStyles[tone]} />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </section>
+  );
+};
 
 interface EvidenceFieldProps {
   label: string;
@@ -221,11 +346,15 @@ interface EmptyStateProps {
   title: string;
   description?: string;
   action?: ReactNode;
+  icon?: ElementType;
 }
 
-export const EmptyState = ({ title, description, action }: EmptyStateProps) => (
-  <div className="rounded-md border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-center">
-    <p className="text-sm font-medium">{title}</p>
+export const EmptyState = ({ title, description, action, icon: Icon = Inbox }: EmptyStateProps) => (
+  <div className="empty-state rounded-md border border-dashed border-border/70 bg-muted/10 px-4 py-5 text-center">
+    <div className="empty-state-icon mx-auto mb-3">
+      <Icon className="h-5 w-5" />
+    </div>
+    <p className="text-sm font-semibold font-heading">{title}</p>
     {description && <p className="mx-auto mt-1 max-w-xl text-xs leading-5 text-muted-foreground">{description}</p>}
     {action && <div className="mt-3 flex justify-center">{action}</div>}
   </div>
@@ -254,9 +383,9 @@ interface DataTableFrameProps {
 }
 
 export const DataTableFrame = ({ title, description, actions, children, className }: DataTableFrameProps) => (
-  <section className={cn("console-table-card", className)}>
+  <section className={cn("console-table-card data-table-frame", className)}>
     {(title || description || actions) && (
-      <div className="flex flex-col gap-2 border-b border-border/70 px-3 py-2 lg:flex-row lg:items-center lg:justify-between">
+      <div className="data-table-header flex flex-col gap-2 border-b border-border/70 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           {title && <h2 className="text-sm font-semibold font-heading">{title}</h2>}
           {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
@@ -264,7 +393,7 @@ export const DataTableFrame = ({ title, description, actions, children, classNam
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
     )}
-    <div className="overflow-x-auto">{children}</div>
+    <div className="data-table-scroll overflow-x-auto">{children}</div>
   </section>
 );
 
@@ -277,8 +406,8 @@ interface FormSectionProps {
 }
 
 export const FormSection = ({ title, description, children, actions, className }: FormSectionProps) => (
-  <section className={cn("rounded-lg border border-border/70 bg-card p-3 shadow-sm", className)}>
-    <div className="flex flex-col gap-2 border-b border-border/70 pb-2.5 lg:flex-row lg:items-start lg:justify-between">
+  <section className={cn("form-section rounded-lg border border-border/70 bg-card p-3 shadow-sm", className)}>
+    <div className="flex flex-col gap-2 border-b border-border/70 pb-2.5 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <h2 className="text-sm font-semibold font-heading">{title}</h2>
         {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
@@ -310,7 +439,7 @@ export const FileUploadCard = ({ id, label, description, value, accept, capture,
       className,
     )}
   >
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex items-center justify-between gap-3">
       <div>
         <p className="text-sm font-medium">{label}</p>
         {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
@@ -342,7 +471,7 @@ interface PanelProps {
 }
 
 export const Panel = ({ title, description, actions, children, className, contentClassName }: PanelProps) => (
-  <section className={cn("dashboard-panel", className)}>
+  <section className={cn("dashboard-panel console-panel", className)}>
     {(title || description || actions) && (
       <div className="dashboard-panel-header">
         <div className="min-w-0">
@@ -365,7 +494,7 @@ interface MetricTileProps {
 }
 
 export const MetricTile = ({ label, value, detail, icon: Icon, className }: MetricTileProps) => (
-  <div className={cn("rounded-md border border-border/70 bg-background/80 p-2.5", className)}>
+  <div className={cn("metric-tile rounded-md border border-border/70 bg-background/80 p-2.5", className)}>
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="truncate text-xs text-muted-foreground">{label}</p>
@@ -387,7 +516,7 @@ interface RecordCardProps {
 }
 
 export const RecordCard = ({ children, className }: RecordCardProps) => (
-  <div className={cn("rounded-md border border-border/70 bg-background/80 p-2.5 transition-colors hover:bg-muted/25", className)}>
+  <div className={cn("record-card rounded-md border border-border/70 bg-background/80 p-2.5 transition-colors hover:bg-muted/25", className)}>
     {children}
   </div>
 );
@@ -469,6 +598,16 @@ export const DetailSheet = ({ open, onOpenChange, title, description, children, 
         {description && <SheetDescription id="detail-description">{description}</SheetDescription>}
       </SheetHeader>
       <div className="mt-4">{children}</div>
+      {/* Thumb-friendly close button — only visible on mobile */}
+      <div className="sticky bottom-0 mt-6 border-t border-border/70 bg-background pt-3 sm:hidden">
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="flex h-11 w-full items-center justify-center rounded-md border border-border/70 bg-muted/40 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+        >
+          Close
+        </button>
+      </div>
     </SheetContent>
   </Sheet>
 );

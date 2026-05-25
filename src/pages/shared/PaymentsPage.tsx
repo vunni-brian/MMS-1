@@ -229,10 +229,7 @@ const PaymentsPage = () => {
 
   const pendingBookings = bookings.filter((booking) => booking.status === "approved");
 
-  const filteredPayments =
-    role === "vendor"
-      ? filterPaymentsByHistory(payments, { status: statusFilter, year: yearFilter, dateFrom, dateTo })
-      : payments;
+  const filteredPayments = filterPaymentsByHistory(payments, { status: statusFilter, year: yearFilter, dateFrom, dateTo });
 
   const paymentHistoryYears = getPaymentHistoryYears(payments);
 
@@ -258,6 +255,8 @@ const PaymentsPage = () => {
 
   const hasHistoryFilters =
     statusFilter !== "all" || yearFilter !== "all" || Boolean(dateFrom) || Boolean(dateTo);
+  const showMarketColumn = role !== "manager";
+  const showReviewedAtColumn = role !== "manager";
 
   const paymentReference = selectedReceiptPayment ? getPaymentReference(selectedReceiptPayment) : null;
   const paymentPurpose = selectedReceiptPayment ? getPaymentPurpose(selectedReceiptPayment) : null;
@@ -292,7 +291,7 @@ const PaymentsPage = () => {
       <PageHeader
         eyebrow="Payments and evidence"
         title="Payments"
-        description={role === "vendor" ? "Obligations, receipt upload, and verification status." : "Receipt status, references, and verification evidence."}
+        description={role === "vendor" ? "Payments due, receipt upload, and verification status." : "Receipt status, references, and payment records."}
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">Role: {role}</span>
@@ -311,73 +310,71 @@ const PaymentsPage = () => {
         </div>
       )}
 
-      {role === "vendor" && (
-        <ScopeBar>
-          <ScopeItem label="Status" className="w-full sm:w-[170px]">
-            <Select value={statusFilter} onValueChange={(value: PaymentHistoryStatusFilter) => setStatusFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentStatusFilters.map((filter) => (
-                  <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ScopeItem>
+      <ScopeBar>
+        <ScopeItem label="Status" className="w-full sm:w-[170px]">
+          <Select value={statusFilter} onValueChange={(value: PaymentHistoryStatusFilter) => setStatusFilter(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {paymentStatusFilters.map((filter) => (
+                <SelectItem key={filter.value} value={filter.value}>
+                  {filter.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ScopeItem>
 
-          <ScopeItem label="Year" className="w-full sm:w-[150px]">
-            <Select value={yearFilter} onValueChange={setYearFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="All years" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All years</SelectItem>
-                {paymentHistoryYears.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ScopeItem>
+        <ScopeItem label="Year" className="w-full sm:w-[150px]">
+          <Select value={yearFilter} onValueChange={setYearFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All years" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All years</SelectItem>
+              {paymentHistoryYears.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </ScopeItem>
 
-          <ScopeItem label="From" className="w-full sm:w-[160px]">
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-              max={dateTo || undefined}
-            />
-          </ScopeItem>
+        <ScopeItem label="From" className="w-full sm:w-[160px]">
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(event) => setDateFrom(event.target.value)}
+            max={dateTo || undefined}
+          />
+        </ScopeItem>
 
-          <ScopeItem label="To" className="w-full sm:w-[160px]">
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-              min={dateFrom || undefined}
-            />
-          </ScopeItem>
+        <ScopeItem label="To" className="w-full sm:w-[160px]">
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(event) => setDateTo(event.target.value)}
+            min={dateFrom || undefined}
+          />
+        </ScopeItem>
 
-          {hasHistoryFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setStatusFilter("all");
-                setYearFilter("all");
-                setDateFrom("");
-                setDateTo("");
-              }}
-            >
-              Clear Filters
-            </Button>
-          )}
-        </ScopeBar>
-      )}
+        {hasHistoryFilters && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setStatusFilter("all");
+              setYearFilter("all");
+              setDateFrom("");
+              setDateTo("");
+            }}
+          >
+            Clear Filters
+          </Button>
+        )}
+      </ScopeBar>
 
       {isError ? (
         <Alert variant="destructive" className="mt-4">
@@ -390,12 +387,14 @@ const PaymentsPage = () => {
       ) : isPending ? (
         <LoadingState rows={role === "vendor" ? 7 : 5} itemClassName="h-28 rounded-xl" />
       ) : (
-        <>
+        <div className={`payments-workspace-stack ${role === "vendor" ? "has-dues" : ""}`}>
           {role === "vendor" && (
             <Panel
-              title="Outstanding Payments"
+              className="workspace-dominant-panel"
+              title="Payments Due"
               description="Booking fees, utilities, and penalties awaiting payment."
-              actions={
+              contentClassName="space-y-3"
+            >
                 <SegmentedControl<OutstandingTab>
                   value={outstandingTab}
                   options={outstandingTabs.map((tab) => ({
@@ -405,9 +404,6 @@ const PaymentsPage = () => {
                   }))}
                   onChange={setOutstandingTab}
                 />
-              }
-              contentClassName="space-y-3"
-            >
                 {outstandingTab === "bookings" && (
                   <>
                     {pendingBookings.length === 0 ? (
@@ -598,7 +594,7 @@ const PaymentsPage = () => {
                     {penalties.length === 0 ? (
                       <EmptyState
                         title="No penalties issued"
-                        description="Penalty obligations will appear here if issued to your account."
+                        description="Penalty payments due will appear here if issued to your account."
                       />
                     ) : (
                       penalties.map((penalty: Penalty) => {
@@ -724,8 +720,9 @@ const PaymentsPage = () => {
           )}
 
           <DataTableFrame
-            title={role === "vendor" ? "Payment History & Evidence" : "Payment Records"}
-            description="Receipt references, verification status, and review evidence."
+            className="workspace-primary-frame"
+            title="Payment Records"
+            description="Receipt references, verification status, and review notes."
             actions={
               role === "vendor" && (
                 <p className="text-xs text-muted-foreground">
@@ -757,13 +754,13 @@ const PaymentsPage = () => {
                     <TableHeader>
                       <TableRow>
                         {role !== "vendor" && <TableHead>Vendor</TableHead>}
-                        <TableHead>Market</TableHead>
+                        {showMarketColumn && <TableHead>Market</TableHead>}
                         <TableHead>Purpose</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Reference</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created At</TableHead>
-                        <TableHead>Reviewed At</TableHead>
+                        {showReviewedAtColumn && <TableHead>Reviewed At</TableHead>}
                         <TableHead>Receipt</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -777,9 +774,11 @@ const PaymentsPage = () => {
                             </TableCell>
                           )}
 
-                          <TableCell className="min-w-[150px] text-sm text-muted-foreground">
-                            {payment.marketName || "Unassigned"}
-                          </TableCell>
+                          {showMarketColumn && (
+                            <TableCell className="min-w-[150px] text-sm text-muted-foreground">
+                              {payment.marketName || "Unassigned"}
+                            </TableCell>
+                          )}
 
                           <TableCell className="min-w-[240px]">
                             <div>
@@ -816,9 +815,11 @@ const PaymentsPage = () => {
                             {formatDateTime(payment.createdAt)}
                           </TableCell>
 
-                          <TableCell className="min-w-[160px] text-sm text-muted-foreground">
-                            {formatDateTime(payment.completedAt, "Pending review")}
-                          </TableCell>
+                          {showReviewedAtColumn && (
+                            <TableCell className="min-w-[160px] text-sm text-muted-foreground">
+                              {formatDateTime(payment.completedAt, "Pending review")}
+                            </TableCell>
+                          )}
 
                           <TableCell className="min-w-[190px]">
                             {payment.receiptFileName || payment.status === "completed" ? (
@@ -842,7 +843,7 @@ const PaymentsPage = () => {
                   </Table>
               )}
           </DataTableFrame>
-        </>
+        </div>
       )}
 
       <Dialog open={Boolean(paymentIntent)} onOpenChange={(open) => !open && setPaymentIntent(null)}>

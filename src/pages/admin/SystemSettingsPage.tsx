@@ -1,18 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertTriangle,
   Bell,
   Clock,
   CreditCard,
   Database,
   Gauge,
-  ReceiptText,
   Server,
   Settings,
   ShieldCheck,
-  Store,
-  Users,
 } from "lucide-react";
 
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
@@ -20,7 +16,6 @@ import {
   ConsolePage,
   EmptyState,
   EvidenceField,
-  KpiStrip,
   LoadingState,
   PageHeader,
   Panel,
@@ -87,6 +82,7 @@ const getChargeTone = (chargeType: ChargeType): SettingRow["tone"] => {
 
 const SystemSettingsPage = () => {
   const { user } = useAuth();
+  const [activeSettingsSection, setActiveSettingsSection] = useState("runtime-settings");
 
   const marketsQuery = useQuery({
     queryKey: ["markets", "system-settings"],
@@ -227,8 +223,8 @@ const SystemSettingsPage = () => {
       tone: "info",
     },
     {
-      label: "Audit retention",
-      value: "Database-backed audit event trail",
+      label: "Activity retention",
+      value: "Database-backed activity record trail",
       detail: `${auditEvents.length} loaded`,
       tone: auditEvents.length ? "success" : "default",
     },
@@ -250,7 +246,7 @@ const SystemSettingsPage = () => {
     {
       label: "Multi-stall threshold",
       value: `${DASHBOARD_CONFIG.MULTI_STALL_LIMIT} active stall per vendor before admin review`,
-      detail: "Governance",
+      detail: "Review",
       tone: "warning",
     },
   ];
@@ -293,35 +289,12 @@ const SystemSettingsPage = () => {
     [],
   );
 
-  const kpis = [
-    {
-      label: "Markets Configured",
-      value: numberFormatter.format(markets.length),
-      detail: "Operational scope",
-      icon: Store,
-      tone: "info" as const,
-    },
-    {
-      label: "Staff Accounts",
-      value: numberFormatter.format(staffUsers.length),
-      detail: `${staffUsers.filter((staff) => staff.status === "active").length} active`,
-      icon: Users,
-      tone: "success" as const,
-    },
-    {
-      label: "Billing Switches",
-      value: `${enabledChargeTypes.length}/${chargeTypes.length || 0}`,
-      detail: disabledChargeTypes.length ? `${disabledChargeTypes.length} disabled` : "All enabled",
-      icon: ReceiptText,
-      tone: disabledChargeTypes.length ? ("warning" as const) : ("success" as const),
-    },
-    {
-      label: "Risk Signals",
-      value: numberFormatter.format(riskSignals),
-      detail: riskSignals ? "Review required" : "No active signals",
-      icon: AlertTriangle,
-      tone: riskSignals ? ("warning" as const) : ("success" as const),
-    },
+  const settingsNavItems = [
+    { label: "Runtime", icon: Server, target: "runtime-settings", count: runtimeRows.length },
+    { label: "Access", icon: ShieldCheck, target: "access-settings", count: pendingVendors.length },
+    { label: "Billing", icon: CreditCard, target: "billing-settings", count: chargeTypes.length },
+    { label: "Rules", icon: Settings, target: "rules-settings", count: bookingRows.length + thresholdRows.length },
+    { label: "Integrations", icon: Database, target: "integrations-settings", count: 4 },
   ];
 
   if (isLoading) {
@@ -339,7 +312,7 @@ const SystemSettingsPage = () => {
       <PageHeader
         eyebrow="Admin workspace"
         title="System Settings"
-        description="Read-only configuration view for runtime, access, billing, refresh intervals, and operational thresholds."
+        description="Read-only configuration view for runtime, access, billing, refresh intervals, and rules."
         meta={
           <>
             <span className="rounded-full bg-muted px-2.5 py-1">{markets.length} markets</span>
@@ -349,44 +322,76 @@ const SystemSettingsPage = () => {
         }
       />
 
-      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
+      <section className="settings-layout">
+        <aside className="settings-nav-panel">
+          <div className="mb-2 px-2 py-1">
+            <p className="text-xs font-semibold text-muted-foreground">Configuration areas</p>
+          </div>
+          {settingsNavItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => {
+                setActiveSettingsSection(item.target);
+                document.getElementById(item.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className={cn("settings-nav-button", item.target === activeSettingsSection && "is-active")}
+              aria-current={item.target === activeSettingsSection ? "true" : undefined}
+            >
+              <item.icon className="h-4 w-4" />
+              <span className="min-w-0 flex-1">{item.label}</span>
+              <span>{numberFormatter.format(item.count)}</span>
+            </button>
+          ))}
+          <div className="mt-3 rounded-md border border-border/70 bg-muted/20 p-3">
+            <p className="text-xs font-semibold text-muted-foreground">System summary</p>
+            <p className="mt-2 text-2xl font-bold leading-none font-heading">{riskSignals}</p>
+            <p className="mt-1 text-xs text-muted-foreground">active risk signals</p>
+          </div>
+        </aside>
 
-      <section className="grid gap-3 xl:grid-cols-[1fr_0.9fr]">
-        <DashboardErrorBoundary>
-          <Panel
-            title="Runtime Configuration"
-            description="Client-visible runtime state and backend-controlled infrastructure switches."
-            actions={<Server className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="grid gap-3 md:grid-cols-2"
-          >
-            {runtimeRows.map((row) => (
-              <SettingCard key={row.label} row={row} />
-            ))}
-          </Panel>
-        </DashboardErrorBoundary>
+        <div className="settings-content">
+          <section className="grid gap-3 xl:grid-cols-[1fr_0.9fr]">
+            <div id="runtime-settings" className="scroll-mt-24">
+              <DashboardErrorBoundary>
+              <Panel
+                title="Runtime Configuration"
+                description="Client-visible runtime state and backend-controlled infrastructure switches."
+                actions={<Server className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="grid gap-3"
+              >
+                {runtimeRows.map((row) => (
+                  <SettingCard key={row.label} row={row} />
+                ))}
+              </Panel>
+              </DashboardErrorBoundary>
+            </div>
 
-        <DashboardErrorBoundary>
-          <Panel
-            title="Access Governance"
-            description="Role controls, approval gates, and audit availability."
-            actions={<ShieldCheck className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="grid gap-3"
-          >
-            {accessRows.map((row) => (
-              <SettingCard key={row.label} row={row} />
-            ))}
-          </Panel>
-        </DashboardErrorBoundary>
-      </section>
+            <div id="access-settings" className="scroll-mt-24">
+              <DashboardErrorBoundary>
+              <Panel
+                title="Access"
+                description="Role controls, approval gates, and activity record availability."
+                actions={<ShieldCheck className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="grid gap-3"
+              >
+                {accessRows.map((row) => (
+                  <SettingCard key={row.label} row={row} />
+                ))}
+              </Panel>
+              </DashboardErrorBoundary>
+            </div>
+          </section>
 
-      <section className="grid gap-3 xl:grid-cols-[1fr_0.9fr]">
-        <DashboardErrorBoundary>
-          <Panel
-            title="Billing Configuration"
-            description="Charge availability that controls payment and obligation workflows."
-            actions={<CreditCard className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="space-y-3"
-          >
+          <section className="grid gap-3 xl:grid-cols-[1fr_0.9fr]">
+            <div id="billing-settings" className="scroll-mt-24">
+              <DashboardErrorBoundary>
+              <Panel
+                title="Billing Configuration"
+                description="Charge availability that controls payments due and receipt workflows."
+                actions={<CreditCard className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="space-y-3"
+              >
             {chargeTypes.length === 0 ? (
               <EmptyState title="No billing switches configured" description="Charge type records will appear here after seed or setup." />
             ) : (
@@ -410,64 +415,68 @@ const SystemSettingsPage = () => {
                 label="Payment gateway"
                 value={paymentGateway?.isEnabled === false ? "Disabled" : "Enabled"}
               />
-              <EvidenceField
-                label="Manual receipts"
-                value="Supported with staff verification"
-              />
+            <EvidenceField
+              label="Manual receipts"
+              value="Supported with staff verification"
+            />
+          </div>
+              </Panel>
+              </DashboardErrorBoundary>
             </div>
-          </Panel>
-        </DashboardErrorBoundary>
 
-        <DashboardErrorBoundary>
-          <Panel
-            title="Operational Rules"
-            description="Booking and market governance settings currently enforced by the app."
-            actions={<Settings className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="grid gap-3"
-          >
+            <div id="rules-settings" className="scroll-mt-24">
+              <DashboardErrorBoundary>
+              <Panel
+                title="Rules"
+                description="Booking and market review settings currently enforced by the app."
+                actions={<Settings className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="grid gap-3"
+              >
             {bookingRows.map((row) => (
               <SettingCard key={row.label} row={row} />
             ))}
-          </Panel>
-        </DashboardErrorBoundary>
-      </section>
+              </Panel>
+              </DashboardErrorBoundary>
+            </div>
+          </section>
 
-      <section className="grid gap-3 xl:grid-cols-2">
-        <DashboardErrorBoundary>
-          <Panel
-            title="Refresh and Cache Policy"
-            description="Frontend data freshness rules used by dashboards and operational pages."
-            actions={<Clock className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="grid gap-3 md:grid-cols-2"
-          >
+          <section className="grid gap-3 xl:grid-cols-2">
+            <DashboardErrorBoundary>
+              <Panel
+                title="Refresh and Cache Policy"
+                description="Frontend data freshness rules used by dashboards and operational pages."
+                actions={<Clock className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="grid gap-3 md:grid-cols-2"
+              >
             {refreshRows.map((row) => (
               <SettingCard key={row.label} row={row} />
             ))}
-          </Panel>
-        </DashboardErrorBoundary>
+              </Panel>
+            </DashboardErrorBoundary>
 
-        <DashboardErrorBoundary>
-          <Panel
-            title="Risk Thresholds"
-            description="Numeric thresholds used for market health and exception escalation."
-            actions={<Gauge className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="grid gap-3 md:grid-cols-2"
-          >
+            <DashboardErrorBoundary>
+              <Panel
+                title="Risk Thresholds"
+                description="Numeric thresholds used for market health and exception escalation."
+                actions={<Gauge className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="grid gap-3 md:grid-cols-2"
+              >
             {thresholdRows.map((row) => (
               <SettingCard key={row.label} row={row} />
             ))}
-          </Panel>
-        </DashboardErrorBoundary>
-      </section>
+              </Panel>
+            </DashboardErrorBoundary>
+          </section>
 
-      <section className="grid gap-3 xl:grid-cols-[0.9fr_1fr]">
-        <DashboardErrorBoundary>
-          <Panel
-            title="Integration Readiness"
-            description="External services and server-side features this system expects."
-            actions={<Database className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="grid gap-3"
-          >
+          <section className="grid gap-3 xl:grid-cols-[0.9fr_1fr]">
+            <div id="integrations-settings" className="scroll-mt-24">
+              <DashboardErrorBoundary>
+              <Panel
+                title="Integration Readiness"
+                description="External services and server-side features this system expects."
+                actions={<Database className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="grid gap-3"
+              >
             <SettingCard
               row={{
                 label: "Database",
@@ -500,16 +509,17 @@ const SystemSettingsPage = () => {
                 tone: "success",
               }}
             />
-          </Panel>
-        </DashboardErrorBoundary>
+              </Panel>
+              </DashboardErrorBoundary>
+            </div>
 
-        <DashboardErrorBoundary>
-          <Panel
-            title="Current Attention Snapshot"
-            description="Live records that make configuration risk visible."
-            actions={<Bell className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="space-y-3"
-          >
+            <DashboardErrorBoundary>
+              <Panel
+                title="Attention Snapshot"
+                description="Live records that make configuration risk visible."
+                actions={<Bell className="h-4 w-4 text-muted-foreground" />}
+                contentClassName="space-y-3"
+              >
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <EvidenceField label="Failed payments" value={failedPayments.length} />
               <EvidenceField label="Open tickets" value={openTickets.length} />
@@ -518,9 +528,9 @@ const SystemSettingsPage = () => {
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recent audit events</p>
+              <p className="section-eyebrow">Recent activity records</p>
               {recentAuditEvents.length === 0 ? (
-                <EmptyState title="No audit events loaded" />
+                <EmptyState title="No activity records loaded" />
               ) : (
                 recentAuditEvents.map((event) => (
                   <RecordCard key={event.id}>
@@ -543,13 +553,15 @@ const SystemSettingsPage = () => {
                 ))
               )}
             </div>
-          </Panel>
-        </DashboardErrorBoundary>
-      </section>
+              </Panel>
+            </DashboardErrorBoundary>
+          </section>
 
-      <div className="rounded-lg border border-info/20 bg-info/10 px-3 py-2 text-sm text-info">
-        This page is intentionally read-only. Change operational controls through the dedicated billing, user management, and backend environment workflows.
-      </div>
+          <div className="rounded-lg border border-info/20 bg-info/10 px-3 py-2 text-sm text-info">
+            This page is intentionally read-only. Change operational controls through the dedicated billing, user management, and backend environment workflows.
+          </div>
+        </div>
+      </section>
     </ConsolePage>
   );
 };
