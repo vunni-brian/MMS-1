@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -52,8 +52,8 @@
     --sidebar-border: 216 15% 86%;
     --sidebar-ring: 187 48% 28%;
 
-    --font-heading: 'Plus Jakarta Sans', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
+    --font-heading: 'Ubuntu', sans-serif;
+    --font-body: 'Ubuntu', sans-serif;
   }
 }
 

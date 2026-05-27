@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -84,6 +84,7 @@ const App = () => (
               <Route path="payments" element={<VendorApprovalGuard><PaymentsPage /></VendorApprovalGuard>} />
               <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
               <Route path="announcements" element={<AnnouncementsPage />} />
+              <Route path="notifications" element={<Navigate to="/vendor/profile?tab=notifications" replace />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
@@ -106,6 +107,7 @@ const App = () => (
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
               <Route path="announcements" element={<AnnouncementsPage />} />
+              <Route path="notifications" element={<Navigate to="/manager/profile?tab=notifications" replace />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
@@ -124,6 +126,7 @@ const App = () => (
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
               <Route path="announcements" element={<AnnouncementsPage />} />
+              <Route path="notifications" element={<Navigate to="/official/profile?tab=notifications" replace />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 
@@ -146,6 +149,7 @@ const App = () => (
               <Route path="audit" element={<AuditPage />} />
               <Route path="coordination" element={<CoordinationPage />} />
               <Route path="announcements" element={<AnnouncementsPage />} />
+              <Route path="notifications" element={<Navigate to="/admin/profile?tab=notifications" replace />} />
               <Route path="profile" element={<ProfileSettingsPage />} />
             </Route>
 

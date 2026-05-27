@@ -51,8 +51,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        heading: ['Plus Jakarta Sans', 'sans-serif'],
-        body: ['DM Sans', 'sans-serif'],
+        heading: ['Ubuntu', 'sans-serif'],
+        body: ['Ubuntu', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
