@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertTriangle, Landmark, Store, Users } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -10,7 +9,7 @@ import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ConsolePage, DetailSheet, EmptyState, EvidenceField, KpiStrip, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
+import { ConsolePage, DetailSheet, EmptyState, EvidenceField, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import type { AuditEvent, ChargeTypeName, Market, Payment, Role, Ticket } from "@/types";
 
@@ -423,33 +422,6 @@ const AdminDashboard = () => {
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, DASHBOARD_CONFIG.AUDIT_PREVIEW_LIMIT);
 
-  const kpis = [
-    {
-      label: "Active Users",
-      value: totalUserCount.toLocaleString(),
-      detail: "Platform accounts",
-      icon: Users,
-    },
-    {
-      label: "Active Markets",
-      value: markets.length.toLocaleString(),
-      detail: "Across all regions",
-      icon: Landmark,
-    },
-    {
-      label: "Pending Actions",
-      value: alerts.length.toLocaleString(),
-      detail: "Items awaiting review",
-      icon: AlertTriangle,
-    },
-    {
-      label: "System Health",
-      value: alerts.length ? "Review" : "Stable",
-      detail: alerts.length ? "Attention required" : "No critical alerts",
-      icon: Store,
-    },
-  ];
-
   const systemHealth = [
     {
       label: "Payment service",
@@ -491,13 +463,12 @@ const AdminDashboard = () => {
         description="Monitor markets, users, payments, and activity records."
         meta={
           <>
+            <span className="rounded-full bg-muted px-2.5 py-1">{totalUserCount.toLocaleString()} users</span>
             <span className="rounded-full bg-muted px-2.5 py-1">{markets.length} markets</span>
             <span className="rounded-full bg-muted px-2.5 py-1">{alerts.length} alerts</span>
           </>
         }
       />
-
-      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
 
       <section className="grid gap-3 xl:grid-cols-[1.45fr_0.75fr]">
         <DashboardErrorBoundary>

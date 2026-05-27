@@ -174,8 +174,7 @@
   .stat-card,
   .dashboard-panel,
   .console-table-card,
-  .admin-market-card,
-  .admin-integration-card {
+  .admin-market-card {
     box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.035), 0 12px 24px -22px hsl(var(--foreground) / 0.22);
   }
 
@@ -195,54 +194,53 @@
   }
 
   .app-role-admin {
-    --sidebar-background: 205 52% 13%;
-    --sidebar-foreground: 204 30% 96%;
-    --sidebar-accent: 187 44% 23%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 205 38% 22%;
-    --sidebar-primary: 172 58% 39%;
-    --sidebar-ring: 172 58% 39%;
+    --sidebar-background: 216 24% 98%;
+    --sidebar-foreground: 220 18% 16%;
+    --sidebar-accent: 213 20% 92%;
+    --sidebar-accent-foreground: 220 20% 14%;
+    --sidebar-border: 216 15% 86%;
+    --sidebar-primary: 187 48% 28%;
+    --sidebar-ring: 187 48% 28%;
   }
 
   .app-role-admin > aside {
-    background:
-      linear-gradient(180deg, hsl(191 70% 14%), hsl(204 78% 8%)) !important;
-    color: hsl(0 0% 100%) !important;
-    border-color: hsl(190 36% 24% / 0.82) !important;
-    box-shadow: 16px 0 34px -30px hsl(204 78% 8% / 0.9);
+    background: hsl(var(--sidebar-background)) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
+    border-color: hsl(var(--sidebar-border)) !important;
+    box-shadow: none;
   }
 
   .app-role-admin > aside > div:first-child,
   .app-role-admin > aside > div:last-child {
-    border-color: hsl(190 35% 35% / 0.38) !important;
+    border-color: hsl(var(--sidebar-border)) !important;
   }
 
   .app-role-admin > aside .bg-primary {
-    background: hsl(172 58% 39%);
-    color: white;
+    background: hsl(var(--sidebar-primary));
+    color: hsl(var(--sidebar-primary-foreground));
   }
 
   .app-role-admin > aside nav > div > p {
-    color: hsl(190 25% 82% / 0.48) !important;
+    color: hsl(var(--muted-foreground)) !important;
   }
 
   .app-role-admin .workspace-nav-link {
-    color: hsl(190 24% 90% / 0.78) !important;
+    color: hsl(var(--sidebar-foreground) / 0.72) !important;
   }
 
   .app-role-admin .workspace-nav-link:hover {
-    background: hsl(187 44% 23% / 0.58) !important;
-    color: white !important;
+    background: hsl(var(--sidebar-accent) / 0.72) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
   }
 
   .app-role-admin .workspace-nav-link.is-active {
-    background: hsl(172 58% 39% / 0.24) !important;
-    color: white !important;
-    box-shadow: inset 0 0 0 1px hsl(172 58% 58% / 0.25);
+    background: var(--nav-accent-soft) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
+    box-shadow: none;
   }
 
   .app-role-admin .workspace-nav-marker {
-    background: hsl(172 58% 54%);
+    background: var(--nav-accent);
   }
 
   .app-role-admin header {
@@ -1108,22 +1106,20 @@
   }
 
   .admin-market-card,
-  .admin-integration-card,
   .admin-quiet-panel,
   .admin-alert-side-panel {
-    @apply rounded-lg border bg-card shadow-sm;
-    border-color: hsl(var(--border) / 0.78);
-    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.035), 0 18px 36px -34px hsl(204 78% 8% / 0.26);
+    @apply rounded-lg border bg-card shadow-none;
+    border-color: hsl(var(--border) / 0.62);
+    box-shadow: none;
   }
 
-  .admin-market-card,
-  .admin-integration-card {
-    @apply p-4;
+  .admin-market-card {
+    @apply p-3.5;
   }
 
   .admin-market-metric {
-    @apply flex min-h-[70px] flex-col justify-between rounded-md border bg-background px-3 py-2;
-    border-color: hsl(var(--border) / 0.68);
+    @apply flex min-h-[64px] flex-col justify-between rounded-md border bg-muted/20 px-3 py-2;
+    border-color: hsl(var(--border) / 0.48);
   }
 
   .admin-market-metric span {
@@ -1147,17 +1143,17 @@
   }
 
   .admin-alert-layout {
-    @apply grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px];
+    @apply grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px];
   }
 
   .admin-alert-side-panel {
-    @apply space-y-3 border-t p-4 xl:border-l xl:border-t-0;
-    border-color: hsl(var(--border) / 0.72);
+    @apply space-y-3 p-3.5;
+    border-color: hsl(var(--border) / 0.56);
     box-shadow: none;
   }
 
   .admin-alert-dot {
-    @apply mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border;
+    @apply mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border;
   }
 
   .admin-alert-dot[data-severity="critical"] {
@@ -1179,15 +1175,34 @@
   }
 
   .admin-integrations-layout {
-    @apply grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_380px];
+    @apply grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_360px];
   }
 
-  .admin-integration-grid {
-    @apply grid min-w-0 content-start items-start gap-3 md:grid-cols-2 2xl:grid-cols-3;
+  .admin-integration-groups {
+    @apply min-w-0 space-y-4;
   }
 
-  .admin-integration-card {
-    @apply min-h-[230px] self-start;
+  .admin-integration-group {
+    @apply rounded-lg border bg-card;
+    border-color: hsl(var(--border) / 0.62);
+  }
+
+  .admin-integration-group-header {
+    @apply flex items-center justify-between gap-3 border-b px-4 py-3;
+    border-color: hsl(var(--border) / 0.58);
+  }
+
+  .admin-integration-row {
+    @apply grid items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/25 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center;
+  }
+
+  .admin-integration-row + .admin-integration-row {
+    border-top: 1px solid hsl(var(--border) / 0.48);
+  }
+
+  .admin-integration-row > .status-badge,
+  .admin-integration-row > button {
+    @apply w-fit justify-self-start;
   }
 
   .admin-integration-panels {
@@ -1195,14 +1210,14 @@
   }
 
   .admin-integration-icon {
-    @apply flex h-11 w-11 items-center justify-center rounded-md border;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md border;
     border-color: hsl(var(--primary) / 0.2);
     background: hsl(var(--primary) / 0.08);
     color: hsl(var(--primary));
   }
 
   .admin-quiet-panel {
-    @apply p-4;
+    @apply p-3.5;
   }
 
   .enterprise-insights-rail {
@@ -1232,55 +1247,53 @@
 }
 
 .app-role-admin > aside {
-  width: 236px !important;
-  background: linear-gradient(180deg, hsl(191 70% 14%), hsl(204 78% 8%)) !important;
-  color: hsl(0 0% 100%) !important;
-  border-color: hsl(190 36% 24% / 0.82) !important;
-  box-shadow: 16px 0 34px -30px hsl(204 78% 8% / 0.9);
+  width: 248px !important;
+  background: hsl(var(--sidebar-background)) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+  border-color: hsl(var(--sidebar-border)) !important;
+  box-shadow: none;
 }
 
 .app-role-admin .admin-brand-mark {
-  height: 42px;
-  width: 42px;
-  background: transparent !important;
-  color: hsl(175 70% 54%) !important;
+  height: 32px;
+  width: 32px;
+  background: hsl(var(--sidebar-primary)) !important;
+  color: hsl(var(--sidebar-primary-foreground)) !important;
 }
 
 .app-role-admin .admin-brand-mark svg {
-  height: 30px;
-  width: 30px;
-  stroke-width: 2.6;
+  height: 16px;
+  width: 16px;
+  stroke-width: 2.2;
 }
 
 .app-role-admin .admin-sidebar-nav {
-  padding: 24px 12px !important;
+  padding: 12px 8px !important;
 }
 
 .app-role-admin .admin-sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 2px;
 }
 
 .app-role-admin .admin-sidebar-list .workspace-nav-link {
-  height: 58px !important;
-  border-radius: 14px !important;
-  padding-inline: 18px !important;
-  color: hsl(190 24% 93% / 0.86) !important;
-  font-size: 16px;
+  height: 40px !important;
+  border-radius: 8px !important;
+  padding-inline: 12px !important;
+  color: hsl(var(--sidebar-foreground) / 0.72) !important;
+  font-size: 14px;
 }
 
 .app-role-admin .admin-sidebar-list .workspace-nav-link svg {
-  height: 24px;
-  width: 24px;
-  stroke-width: 2;
+  height: 16px;
+  width: 16px;
+  stroke-width: 2.1;
 }
 
 .app-role-admin .admin-sidebar-list .workspace-nav-link.is-active {
-  background: linear-gradient(135deg, hsl(180 64% 31% / 0.95), hsl(187 70% 24% / 0.95)) !important;
-  box-shadow:
-    inset 0 0 0 1px hsl(174 60% 58% / 0.18),
-    0 12px 24px hsl(204 78% 7% / 0.24);
+  background: var(--nav-accent-soft) !important;
+  box-shadow: none;
 }
 
 .app-role-admin .admin-collapse-control {
@@ -1290,8 +1303,8 @@
   gap: 12px;
   border: 0;
   background: transparent;
-  color: hsl(190 24% 93% / 0.9);
-  font-size: 16px;
+  color: hsl(var(--sidebar-foreground) / 0.78);
+  font-size: 14px;
 }
 
 .app-role-admin .admin-collapse-control span {
@@ -1300,37 +1313,107 @@
   width: 34px;
   align-items: center;
   justify-content: center;
-  border: 1px solid hsl(190 35% 82% / 0.5);
+  border: 1px solid hsl(var(--sidebar-border));
   border-radius: 999px;
 }
 
 .app-role-admin > aside > div:first-child,
 .app-role-admin > aside > div:last-child {
-  border-color: hsl(190 35% 35% / 0.38) !important;
+  border-color: hsl(var(--sidebar-border)) !important;
 }
 
 .app-role-admin > aside nav > div > p {
-  color: hsl(190 25% 82% / 0.48) !important;
+  color: hsl(var(--muted-foreground)) !important;
 }
 
 .app-role-admin > aside > div:first-child p:first-child {
-  color: white !important;
+  color: hsl(var(--sidebar-foreground)) !important;
 }
 
 .app-role-admin > aside > div:first-child p:last-child {
-  color: hsl(190 25% 86% / 0.62) !important;
+  color: hsl(var(--muted-foreground)) !important;
 }
 
 .app-role-admin > aside > div:last-child button {
-  color: hsl(190 25% 86% / 0.72) !important;
+  color: hsl(var(--sidebar-foreground) / 0.72) !important;
 }
 
 .app-role-admin > aside > div:last-child button:hover {
-  background: hsl(187 44% 23% / 0.58) !important;
-  color: white !important;
+  background: hsl(var(--sidebar-accent) / 0.72) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
 }
 
 .admin-portal-main {
-  background: #f6f7f9;
-  padding: 26px 28px;
+  background: hsl(var(--background));
+  padding: 16px;
+}
+
+@media (min-width: 1024px) {
+  .admin-portal-main {
+    padding: 20px;
+  }
+}
+
+.app-role-admin .console-page {
+  gap: 1.25rem;
+}
+
+.app-role-admin .page-title,
+.app-role-admin .workspace-page-title {
+  font-weight: 650;
+}
+
+.app-role-admin .dashboard-panel,
+.app-role-admin .console-table-card,
+.app-role-admin .primary-surface,
+.app-role-admin .data-surface,
+.app-role-admin .settings-nav-panel {
+  box-shadow: none;
+  border-color: hsl(var(--border) / 0.66);
+}
+
+.app-role-admin .dashboard-panel-header,
+.app-role-admin .data-table-header,
+.app-role-admin .console-page-type-workspace .dashboard-panel-header {
+  background: transparent;
+}
+
+.app-role-admin .dashboard-panel-body {
+  padding: 1rem;
+}
+
+.app-role-admin .record-card,
+.app-role-admin .metric-tile,
+.app-role-admin .admin-market-metric,
+.app-role-admin .settings-nav-panel > div:last-child,
+.app-role-admin .admin-alert-side-panel .rounded-md,
+.app-role-admin .admin-quiet-panel .rounded-md {
+  background: hsl(var(--muted) / 0.18);
+  border-color: hsl(var(--border) / 0.54);
+  box-shadow: none;
+}
+
+.app-role-admin .record-card:hover,
+.app-role-admin .admin-integration-row:hover {
+  background: hsl(var(--muted) / 0.28);
+}
+
+.app-role-admin table th {
+  height: 42px;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.app-role-admin table td {
+  height: 50px;
+  font-size: 0.875rem;
+}
+
+.app-role-admin table tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.app-role-admin table tbody tr:hover {
+  background: hsl(var(--muted) / 0.28);
 }

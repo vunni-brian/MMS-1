@@ -59,6 +59,13 @@ const statusLabel: Record<IntegrationStatus, string> = {
   inactive: "Inactive",
 };
 
+const categoryLabels: Record<Exclude<IntegrationCategory, "all">, string> = {
+  payments: "Payments",
+  messaging: "Messaging",
+  data: "Data and reporting",
+  security: "Access and security",
+};
+
 const AdminIntegrationsPage = () => {
   const navigate = useNavigate();
   const [category, setCategory] = useState<IntegrationCategory>("all");
@@ -146,6 +153,18 @@ const AdminIntegrationsPage = () => {
   }, [paymentGateway?.isEnabled]);
 
   const filteredIntegrations = integrations.filter((integration) => category === "all" || integration.category === category);
+  const groupedIntegrations = filteredIntegrations.reduce<Record<Exclude<IntegrationCategory, "all">, IntegrationCard[]>>(
+    (groups, integration) => {
+      groups[integration.category].push(integration);
+      return groups;
+    },
+    {
+      payments: [],
+      messaging: [],
+      data: [],
+      security: [],
+    },
+  );
   const openIssues = integrations.filter((integration) => integration.status === "attention").length;
   const context = `${integrations.length} integrations - ${openIssues} need review`;
 
@@ -195,39 +214,57 @@ const AdminIntegrationsPage = () => {
           </div>
         ) : (
           <div className="admin-integrations-layout">
-            <section className="admin-integration-grid">
+            <section className="admin-integration-groups">
               {filteredIntegrations.length === 0 ? (
                 <EmptyState title="No integrations found" description="Choose another category to view available connections." />
               ) : (
-                filteredIntegrations.map((integration) => {
-                  const Icon = integration.icon;
-
-                  return (
-                    <article key={integration.name} className="admin-integration-card">
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="admin-integration-icon">
-                          <Icon className="h-5 w-5" />
+                (Object.keys(groupedIntegrations) as Array<Exclude<IntegrationCategory, "all">>)
+                  .filter((groupKey) => groupedIntegrations[groupKey].length > 0)
+                  .map((groupKey) => (
+                    <section key={groupKey} className="admin-integration-group">
+                      <div className="admin-integration-group-header">
+                        <div>
+                          <h2 className="text-sm font-semibold font-heading">{categoryLabels[groupKey]}</h2>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {groupedIntegrations[groupKey].length} connection{groupedIntegrations[groupKey].length === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {groupedIntegrations[groupKey].filter((item) => item.status === "attention").length} review
                         </span>
-                        <span className={statusClassName(integration.status)}>{statusLabel[integration.status]}</span>
                       </div>
-                      <div className="mt-4">
-                        <h2 className="text-base font-semibold font-heading">{integration.name}</h2>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{integration.description}</p>
-                        <p className="mt-3 text-xs font-semibold text-muted-foreground">{integration.detail}</p>
+
+                      <div>
+                        {groupedIntegrations[groupKey].map((integration) => {
+                          const Icon = integration.icon;
+
+                          return (
+                            <article key={integration.name} className="admin-integration-row">
+                              <div className="flex min-w-0 items-start gap-3">
+                                <span className="admin-integration-icon">
+                                  <Icon className="h-4 w-4" />
+                                </span>
+                                <div className="min-w-0">
+                                  <h3 className="text-sm font-semibold font-heading">{integration.name}</h3>
+                                  <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">{integration.description}</p>
+                                  <p className="mt-1 text-xs font-medium text-muted-foreground">{integration.detail}</p>
+                                </div>
+                              </div>
+                              <span className={statusClassName(integration.status)}>{statusLabel[integration.status]}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="justify-self-start md:justify-self-end"
+                                onClick={() => navigate(integrationPaths[integration.name] || "/admin/settings")}
+                              >
+                                Manage
+                              </Button>
+                            </article>
+                          );
+                        })}
                       </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3">
-                        <span className="text-xs capitalize text-muted-foreground">{integration.category}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(integrationPaths[integration.name] || "/admin/settings")}
-                        >
-                          Manage
-                        </Button>
-                      </div>
-                    </article>
-                  );
-                })
+                    </section>
+                  ))
               )}
             </section>
 

@@ -57,7 +57,7 @@ const toneClasses: Record<NonNullable<SettingRow["tone"]>, string> = {
 };
 
 const SettingCard = ({ row }: { row: SettingRow }) => (
-  <div className="rounded-md border border-border/70 bg-background/80 p-3">
+  <div className="rounded-md bg-muted/20 p-3">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <p className="text-xs font-medium text-muted-foreground">{row.label}</p>
@@ -343,7 +343,7 @@ const SystemSettingsPage = () => {
               <span>{numberFormatter.format(item.count)}</span>
             </button>
           ))}
-          <div className="mt-3 rounded-md border border-border/70 bg-muted/20 p-3">
+          <div className="mt-3 rounded-md bg-muted/20 p-3">
             <p className="text-xs font-semibold text-muted-foreground">System summary</p>
             <p className="mt-2 text-2xl font-bold leading-none font-heading">{riskSignals}</p>
             <p className="mt-1 text-xs text-muted-foreground">active risk signals</p>
@@ -557,7 +557,7 @@ const SystemSettingsPage = () => {
             </DashboardErrorBoundary>
           </section>
 
-          <div className="rounded-lg border border-info/20 bg-info/10 px-3 py-2 text-sm text-info">
+          <div className="rounded-lg bg-info/10 px-3 py-2 text-sm text-info">
             This page is intentionally read-only. Change operational controls through the dedicated billing, user management, and backend environment workflows.
           </div>
         </div>
