@@ -1417,3 +1417,184 @@
 .app-role-admin table tbody tr:hover {
   background: hsl(var(--muted) / 0.28);
 }
+
+/* Role workspace chrome inspired by the selected mockup direction. */
+.app-role-vendor,
+.app-role-manager,
+.app-role-official,
+.app-role-admin {
+  --workspace-shell-bg: hsl(214 30% 97%);
+}
+
+.app-role-vendor > aside,
+.app-role-manager > aside,
+.app-role-official > aside,
+.app-role-admin > aside {
+  color: hsl(0 0% 100%) !important;
+  border-color: hsl(0 0% 100% / 0.12) !important;
+  box-shadow: 18px 0 44px -34px hsl(220 32% 12% / 0.62);
+}
+
+.app-role-vendor > aside {
+  background:
+    linear-gradient(180deg, hsl(161 70% 24%), hsl(163 62% 15%)) !important;
+}
+
+.app-role-manager > aside {
+  background:
+    linear-gradient(180deg, hsl(213 86% 34%), hsl(215 82% 20%)) !important;
+}
+
+.app-role-official > aside {
+  background:
+    linear-gradient(180deg, hsl(264 63% 34%), hsl(260 61% 18%)) !important;
+}
+
+.app-role-admin > aside {
+  width: 248px !important;
+  background:
+    linear-gradient(180deg, hsl(213 48% 18%), hsl(217 55% 10%)) !important;
+}
+
+.app-role-vendor > aside > div:first-child,
+.app-role-vendor > aside > div:last-child,
+.app-role-manager > aside > div:first-child,
+.app-role-manager > aside > div:last-child,
+.app-role-official > aside > div:first-child,
+.app-role-official > aside > div:last-child,
+.app-role-admin > aside > div:first-child,
+.app-role-admin > aside > div:last-child {
+  border-color: hsl(0 0% 100% / 0.13) !important;
+}
+
+.app-role-vendor > aside p,
+.app-role-manager > aside p,
+.app-role-official > aside p,
+.app-role-admin > aside p {
+  color: inherit !important;
+}
+
+.app-role-vendor > aside p + p,
+.app-role-manager > aside p + p,
+.app-role-official > aside p + p,
+.app-role-admin > aside p + p,
+.app-role-vendor > aside nav > div > p,
+.app-role-manager > aside nav > div > p,
+.app-role-official > aside nav > div > p,
+.app-role-admin > aside nav > div > p {
+  color: hsl(0 0% 100% / 0.58) !important;
+}
+
+.app-role-vendor .workspace-nav-link,
+.app-role-manager .workspace-nav-link,
+.app-role-official .workspace-nav-link,
+.app-role-admin .workspace-nav-link {
+  color: hsl(0 0% 100% / 0.78) !important;
+}
+
+.app-role-vendor .workspace-nav-link:hover,
+.app-role-manager .workspace-nav-link:hover,
+.app-role-official .workspace-nav-link:hover,
+.app-role-admin .workspace-nav-link:hover {
+  background: hsl(0 0% 100% / 0.12) !important;
+  color: hsl(0 0% 100%) !important;
+}
+
+.app-role-vendor .workspace-nav-link.is-active,
+.app-role-manager .workspace-nav-link.is-active,
+.app-role-official .workspace-nav-link.is-active,
+.app-role-admin .workspace-nav-link.is-active {
+  background: hsl(0 0% 100% / 0.16) !important;
+  color: hsl(0 0% 100%) !important;
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.08);
+}
+
+.app-role-vendor .workspace-nav-marker,
+.app-role-manager .workspace-nav-marker,
+.app-role-official .workspace-nav-marker,
+.app-role-admin .workspace-nav-marker {
+  background: hsl(0 0% 100% / 0.95);
+}
+
+.app-role-vendor > aside .bg-primary,
+.app-role-manager > aside .bg-primary,
+.app-role-official > aside .bg-primary,
+.app-role-admin > aside .bg-primary,
+.app-role-admin .admin-brand-mark {
+  background: hsl(0 0% 100% / 0.14) !important;
+  color: hsl(0 0% 100%) !important;
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.12);
+}
+
+.app-role-vendor > aside button,
+.app-role-manager > aside button,
+.app-role-official > aside button,
+.app-role-admin > aside button,
+.app-role-vendor > aside [role="button"],
+.app-role-manager > aside [role="button"],
+.app-role-official > aside [role="button"],
+.app-role-admin > aside [role="button"] {
+  color: hsl(0 0% 100% / 0.8) !important;
+}
+
+.app-role-vendor > aside button:hover,
+.app-role-manager > aside button:hover,
+.app-role-official > aside button:hover,
+.app-role-admin > aside button:hover {
+  background: hsl(0 0% 100% / 0.12) !important;
+  color: hsl(0 0% 100%) !important;
+}
+
+.app-role-vendor main,
+.app-role-manager main,
+.app-role-official main,
+.app-role-admin main {
+  background:
+    linear-gradient(180deg, hsl(214 30% 97%), hsl(210 28% 95%));
+}
+
+.app-role-vendor header,
+.app-role-manager header,
+.app-role-official header,
+.app-role-admin header {
+  border-color: hsl(var(--border) / 0.72);
+  background: hsl(0 0% 100% / 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.console-page-type-dashboard .dashboard-panel,
+.console-page-type-dashboard .stat-card,
+.console-page-type-dashboard .vendor-status-card,
+.console-page-type-dashboard .vendor-balance-card {
+  border-color: hsl(var(--border) / 0.68);
+  background: hsl(0 0% 100%);
+}
+
+.console-page-type-dashboard .dashboard-panel-header {
+  min-height: 56px;
+  background: hsl(0 0% 100%);
+}
+
+.console-page-type-dashboard .record-card,
+.console-page-type-dashboard .metric-tile {
+  background: hsl(214 30% 97% / 0.72);
+}
+
+.console-page-type-dashboard .page-title,
+.console-page-type-dashboard .workspace-page-title,
+.vendor-dashboard-hero h1 {
+  letter-spacing: 0;
+}
+
+@media (max-width: 767px) {
+  .vendor-status-grid,
+  .dashboard-kpi-grid,
+  .kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vendor-status-card,
+  .stat-card {
+    min-height: 112px;
+  }
+}

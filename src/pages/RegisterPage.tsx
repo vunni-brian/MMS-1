@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Store } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, ShieldCheck, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
@@ -200,23 +200,37 @@ const RegisterPage = () => {
       : otp.length === 6 && Boolean(challengeId);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-3xl space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-muted mb-2">
-            <Store className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold font-heading">Vendor Registration</h1>
-          <p className="text-muted-foreground text-sm">
-            {step === "details"
-              ? "Create your account and select the market where you operate"
-              : step === "documents"
-                ? "Upload required verification documents"
-                : "Verify the OTP sent to your phone"}
-          </p>
-        </div>
+    <div className="min-h-screen bg-[#f6f8fb] px-4 py-5 text-slate-950 sm:px-6 lg:px-8">
+      <header className="mx-auto flex max-w-6xl items-center justify-between">
+        <button type="button" onClick={() => navigate("/")} className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <span className="font-bold font-heading">WMMS</span>
+        </button>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
+          Login
+        </Button>
+      </header>
 
-        <Card className="card-warm">
+      <main className="mx-auto grid min-h-[calc(100vh-82px)] max-w-6xl items-center gap-6 py-8 lg:grid-cols-[0.72fr_1.28fr]">
+        <aside className="hidden overflow-hidden rounded-lg border border-white bg-slate-900 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.7)] lg:block">
+          <div className="relative min-h-[640px]">
+            <img src="/images/market-hero.jpg" alt="Market walkway" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-950/78 via-primary/52 to-transparent" />
+            <div className="absolute left-6 right-6 top-6 rounded-lg border border-white/20 bg-white/90 p-5 backdrop-blur">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Store className="h-5 w-5" />
+              </span>
+              <h1 className="mt-5 text-3xl font-bold leading-tight font-heading text-slate-950">Vendor Registration</h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Create the vendor profile, submit verification documents, and confirm phone ownership in one flow.
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <Card className="card-warm rounded-lg border-slate-200 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-heading">
               {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
@@ -535,7 +549,7 @@ const RegisterPage = () => {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 };

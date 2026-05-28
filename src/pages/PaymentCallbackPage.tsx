@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, Download, ReceiptText, ShieldCheck, XCircle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { getPaymentPurpose } from "@/lib/payment-history";
 import { formatCurrency } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/StatusBadge";
 
 const PaymentCallbackPage = () => {
   const { user } = useAuth();
@@ -20,22 +19,10 @@ const PaymentCallbackPage = () => {
   const [countdown, setCountdown] = useState<number | null>(null);
 
   const returnPath = useMemo(() => {
-    if (!user) {
-      return "/login";
-    }
-    if (user.role === "vendor") {
-      return "/vendor/payments";
-    }
-    if (user.role === "manager") {
-      return "/manager/payments";
-    }
-    if (user.role === "official") {
-      return "/official";
-    }
-    if (user.role === "admin") {
-      return "/admin";
-    }
-    return "/";
+    if (!user) return "/login";
+    if (user.role === "vendor") return "/vendor/payments";
+    if (user.role === "manager") return "/manager/payments";
+    return `/${user.role}`;
   }, [user]);
 
   const { data, isLoading, error } = useQuery({
@@ -46,8 +33,10 @@ const PaymentCallbackPage = () => {
 
   const payment = data?.payment || null;
   const paymentStatus = payment?.status || "pending";
+  const isSuccess = paymentStatus === "completed";
+  const isFailed = paymentStatus === "failed" || Boolean(error);
+  const StatusIcon = isSuccess ? CheckCircle2 : isFailed ? XCircle : Clock3;
 
-  // Auto-redirect to payments page after a successful payment
   useEffect(() => {
     if (paymentStatus !== "completed") return;
     setCountdown(5);
@@ -64,92 +53,95 @@ const PaymentCallbackPage = () => {
     return () => clearInterval(interval);
   }, [paymentStatus, navigate, returnPath]);
 
+  const bodyMessage = !orderTrackingId || !merchantReference
+    ? "Missing callback parameters. Start the payment again from the payments page."
+    : isLoading
+      ? "Checking the latest payment status..."
+      : error
+        ? error instanceof Error ? error.message : "Unable to confirm the payment status."
+        : isSuccess
+          ? "Your payment has been received successfully."
+          : paymentStatus === "failed"
+            ? "This payment was not verified."
+            : "The transaction is still pending.";
+
   return (
-    <div className="min-h-screen bg-muted/30 px-4 py-10">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold font-heading">Payment Result</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            This page confirms the latest payment state after returning to the app.
+    <div className="min-h-screen bg-[#f6f8fb] px-4 py-5 text-slate-950 sm:px-6 lg:px-8">
+      <header className="mx-auto flex max-w-5xl items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <span className="font-bold font-heading">WMMS</span>
+        </Link>
+        <Button asChild variant="ghost" size="sm">
+          <Link to={returnPath}>Dashboard</Link>
+        </Button>
+      </header>
+
+      <main className="mx-auto flex min-h-[calc(100vh-82px)] max-w-5xl items-center justify-center py-8">
+        <section className="w-full max-w-xl rounded-lg border border-slate-200 bg-white p-5 text-center shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] sm:p-8">
+          <div
+            className={
+              isSuccess
+                ? "mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success text-success-foreground"
+                : isFailed
+                  ? "mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                  : "mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-warning text-warning-foreground"
+            }
+          >
+            <StatusIcon className="h-11 w-11" />
+          </div>
+
+          <p className="mt-6 text-xs font-semibold uppercase text-primary">Payment Result</p>
+          <h1 className="mt-2 text-2xl font-bold font-heading">
+            {isSuccess ? "Payment Successful" : isFailed ? "Payment Needs Review" : "Payment Pending"}
+          </h1>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
+            {bodyMessage}
+            {countdown !== null && <span className="ml-1 font-semibold text-slate-950">Redirecting in {countdown}s.</span>}
           </p>
-        </div>
 
-        {!orderTrackingId || !merchantReference ? (
-          <Card className="card-warm">
-            <CardContent className="p-6 text-sm text-destructive">
-              Missing callback parameters. Start the payment again from the payments page.
-            </CardContent>
-          </Card>
-        ) : isLoading ? (
-          <Card className="card-warm">
-            <CardContent className="p-6 text-sm text-muted-foreground">
-              Checking the latest payment status...
-            </CardContent>
-          </Card>
-        ) : error ? (
-          <Card className="card-warm">
-            <CardContent className="p-6 text-sm text-destructive">
-              {error instanceof Error ? error.message : "Unable to confirm the payment status."}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="card-warm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-heading">
-                {paymentStatus === "completed" ? (
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                ) : paymentStatus === "failed" ? (
-                  <XCircle className="h-5 w-5 text-destructive" />
-                ) : (
-                  <Clock3 className="h-5 w-5 text-warning" />
-                )}
-                Payment Result
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex items-center gap-3">
-                <StatusBadge status={paymentStatus} label={paymentStatus === "pending" ? "Pending" : undefined} />
-                <span className="text-muted-foreground">Order tracking ID: {orderTrackingId}</span>
+          <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-left">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ReceiptText className="h-4 w-4 text-primary" />
+                <p className="text-sm font-bold font-heading">Receipt Summary</p>
               </div>
+              <StatusBadge status={paymentStatus} context="payment" />
+            </div>
 
-              {payment ? (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl bg-muted/30 p-4 sm:col-span-2">
-                      <p className="text-xs text-muted-foreground">Purpose</p>
-                      <p className="mt-1 font-medium">{getPaymentPurpose(payment)}</p>
-                    </div>
-                    <div className="rounded-xl bg-muted/30 p-4">
-                      <p className="text-xs text-muted-foreground">Amount</p>
-                      <p className="mt-1 font-medium">{formatCurrency(payment.amount)}</p>
-                    </div>
-                    <div className="rounded-xl bg-muted/30 p-4">
-                      <p className="text-xs text-muted-foreground">Reference</p>
-                      <p className="mt-1 break-all font-mono text-xs">{payment.providerReference || payment.externalReference}</p>
-                    </div>
-                  </div>
+            <dl className="grid gap-3 text-sm">
+              <div className="flex items-start justify-between gap-4">
+                <dt className="text-slate-500">Receipt Number</dt>
+                <dd className="break-all text-right font-medium">{payment?.receiptId || payment?.providerReference || merchantReference || "Unavailable"}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="text-slate-500">Amount Paid</dt>
+                <dd className="font-medium">{payment ? formatCurrency(payment.amount) : "Unavailable"}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="text-slate-500">Purpose</dt>
+                <dd className="text-right font-medium">{payment ? getPaymentPurpose(payment) : "Unavailable"}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <dt className="text-slate-500">Transaction ID</dt>
+                <dd className="break-all text-right font-mono text-xs">{orderTrackingId || "Unavailable"}</dd>
+              </div>
+            </dl>
+          </div>
 
-                  <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-muted-foreground">
-                    {payment.status === "completed"
-                      ? <>Payment confirmed. You can now return to the payments page and open the receipt.{countdown !== null && <span className="ml-1 font-medium text-foreground">Redirecting in {countdown}s…</span>}</>
-                      : payment.status === "failed"
-                        ? "This payment was not verified. You can return to the payments page and upload a valid receipt."
-                        : "The transaction is still pending. Return to the payments page to refresh the latest status."}
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-muted-foreground">
-                  No payment record was returned for this callback.
-                </div>
-              )}
-
-              <Button asChild className="w-full">
-                <Link to={returnPath}>Return to Payments</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <Button type="button" variant="outline" className="gap-2" disabled={!payment}>
+              <Download className="h-4 w-4" />
+              Download Receipt
+            </Button>
+            <Button asChild>
+              <Link to={returnPath}>Go to Dashboard</Link>
+            </Button>
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
