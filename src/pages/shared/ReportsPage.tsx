@@ -139,7 +139,7 @@ const ReportsPage = () => {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-end">
+      <div className="enterprise-filter-bar mb-4 flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-end">
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-slate-500">Market</p>
           <select
@@ -164,10 +164,10 @@ const ReportsPage = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MockupStatCard title="Total Revenue" value={formatCurrency(totals.totalRevenue || 120_450_000)} tone="blue" />
-        <MockupStatCard title="Total Collections" value={formatCurrency(totals.collections || 115_250_000)} tone="blue" />
+        <MockupStatCard title="Total Revenue" value={formatCurrency(totals.totalRevenue || 120_450_000)} tone="green" />
+        <MockupStatCard title="Total Collections" value={formatCurrency(totals.collections || 115_250_000)} tone="green" />
         <MockupStatCard title="Outstanding" value={formatCurrency(totals.outstanding || 5_200_000)} tone="slate" />
-        <MockupStatCard title="Collection Rate" value={`${collectionRate.toFixed(2)}%`} tone="blue" />
+        <MockupStatCard title="Collection Rate" value={`${collectionRate.toFixed(2)}%`} tone="green" />
       </div>
 
       <div className="mt-4">

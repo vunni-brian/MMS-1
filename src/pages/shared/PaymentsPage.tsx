@@ -188,11 +188,11 @@ const PaymentsPage = () => {
                   type="button"
                   onClick={() => setSelectedMethod(method.id)}
                   className={`flex w-full items-center justify-between rounded-md border p-4 text-left transition-colors ${
-                    selected ? "border-blue-300 bg-blue-50/60" : "border-slate-200 bg-white hover:border-slate-300"
+                    selected ? "border-emerald-300 bg-emerald-50/70" : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${selected ? "border-blue-600 bg-blue-600" : "border-slate-300"}`}>
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${selected ? "border-emerald-700 bg-emerald-700" : "border-slate-300"}`}>
                       {selected ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : null}
                     </span>
                     <Icon className="h-4 w-4 text-slate-500" />
@@ -245,7 +245,7 @@ const PaymentsPage = () => {
             </div>
             <div className="pt-8 text-center">
               <p className="text-[11px] text-slate-400">Secure payments powered by</p>
-              <p className="mt-1 text-2xl font-bold tracking-normal text-blue-600">
+              <p className="mt-1 text-2xl font-bold tracking-normal text-emerald-700">
                 pesa<span className="text-red-500">pal</span>
               </p>
             </div>

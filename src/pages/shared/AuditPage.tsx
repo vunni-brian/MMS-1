@@ -289,10 +289,10 @@ const AuditPage = () => {
                           {event.details ? (
                             <span className="block truncate font-mono text-[11px]" title={JSON.stringify(event.details)}>
                               {JSON.stringify(event.details).slice(0, 60)}
-                              {JSON.stringify(event.details).length > 60 ? "…" : ""}
+                              {JSON.stringify(event.details).length > 60 ? "..." : ""}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground/50">—</span>
+                            <span className="text-muted-foreground/50">-</span>
                           )}
                         </TableCell>
 

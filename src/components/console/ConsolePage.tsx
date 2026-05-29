@@ -31,10 +31,14 @@ export const ConsolePage = ({ children, className, kind, accent }: ConsolePagePr
   return (
     <div
       className={cn(
-        "flex-1 space-y-6 p-6 md:p-8 bg-slate-50 min-h-full",
+        "console-page enterprise-page flex-1 space-y-6 bg-transparent text-slate-950",
+        `console-accent-${resolvedAccent}`,
+        `console-page-type-${pageType}`,
+        `console-page-${resolvedKind}`,
         className,
       )}
       data-page-kind={resolvedKind}
+      data-page-accent={resolvedAccent}
       data-page-type={pageType}
     >
       {children}
@@ -124,18 +128,53 @@ export const PageHeader = ({
   accent,
   breadcrumbs,
 }: PageHeaderProps) => {
+  const location = useLocation();
+  const identity = getPageIdentity(location.pathname);
+  const pageType = getPageType(location.pathname);
+  const resolvedKind = kind || identity.kind;
+  const resolvedAccent = accent || identity.accent;
+  const trail = breadcrumbs || getPageBreadcrumbs(location.pathname);
+  const Icon = icon || identity.icon;
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div>
-        {eyebrow && <p className="text-xs font-semibold text-primary/70 uppercase tracking-wider mb-1">{eyebrow}</p>}
-        <h1 className="text-2xl font-bold tracking-tight text-primary font-heading">{title}</h1>
-        {description && <p className="text-sm text-slate-500 mt-1">{description}</p>}
+    <header
+      className={cn(
+        "page-identity-header",
+        `page-header-${resolvedKind}`,
+        `console-accent-${resolvedAccent}`,
+        `console-page-type-${pageType}`,
+      )}
+      data-page-kind={resolvedKind}
+      data-page-accent={resolvedAccent}
+    >
+      <div className="page-header-chrome">
+        {trail.length > 0 && (
+          <nav className="breadcrumb-trail" aria-label="Breadcrumb">
+            {trail.map((item) => (
+              <span key={`${item.label}-${item.path || "current"}`} className="breadcrumb-item">
+                {item.path ? <Link to={item.path}>{item.label}</Link> : <span>{item.label}</span>}
+              </span>
+            ))}
+          </nav>
+        )}
+        {eyebrow && <p className="page-kicker">{eyebrow}</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        {meta}
-        {actions}
+      <div className="page-header-main">
+        <div className="flex min-w-0 gap-3">
+          {Icon && (
+            <span className="page-header-icon">
+              <Icon className="h-5 w-5" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <h1 className="page-title">{title}</h1>
+            {description && <div className="page-description">{description}</div>}
+            {meta && <div className="page-meta">{meta}</div>}
+          </div>
+        </div>
+        {actions && <div className="page-actions">{actions}</div>}
       </div>
-    </div>
+    </header>
   );
 };
 
@@ -145,7 +184,7 @@ interface ScopeBarProps {
 }
 
 export const ScopeBar = ({ children, className }: ScopeBarProps) => (
-  <section className={cn("flex flex-wrap items-center gap-4 p-4 rounded-xl border border-slate-200 bg-white shadow-sm mb-6", className)}>{children}</section>
+  <section className={cn("console-scope-bar enterprise-filter-bar", className)}>{children}</section>
 );
 
 interface ScopeItemProps {
@@ -156,7 +195,7 @@ interface ScopeItemProps {
 
 export const ScopeItem = ({ label, children, className }: ScopeItemProps) => (
   <div className={cn("min-w-0 space-y-1.5 md:min-w-[160px]", className)}>
-    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+    <p className="text-[11px] font-semibold uppercase text-slate-500">{label}</p>
     {children}
   </div>
 );
@@ -353,12 +392,12 @@ interface DataTableFrameProps {
 }
 
 export const DataTableFrame = ({ title, description, actions, children, className }: DataTableFrameProps) => (
-  <section className={cn("rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden", className)}>
+  <section className={cn("console-table-card enterprise-panel overflow-hidden", className)}>
     {(title || description || actions) && (
-      <div className="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="data-table-header flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          {title && <h2 className="text-lg font-semibold font-heading text-slate-900">{title}</h2>}
-          {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+          {title && <h2 className="text-sm font-semibold font-heading text-slate-950">{title}</h2>}
+          {description && <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -376,7 +415,7 @@ interface FormSectionProps {
 }
 
 export const FormSection = ({ title, description, children, actions, className }: FormSectionProps) => (
-  <section className={cn("form-section rounded-lg border border-border/70 bg-card p-3 shadow-sm", className)}>
+  <section className={cn("form-section enterprise-panel p-3", className)}>
     <div className="flex flex-col gap-2 border-b border-border/70 pb-2.5 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <h2 className="text-sm font-semibold font-heading">{title}</h2>
@@ -441,17 +480,17 @@ interface PanelProps {
 }
 
 export const Panel = ({ title, description, actions, children, className, contentClassName }: PanelProps) => (
-  <section className={cn("rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden", className)}>
+  <section className={cn("dashboard-panel enterprise-panel overflow-hidden", className)}>
     {(title || description || actions) && (
-      <div className="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="dashboard-panel-header flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          {title && <h2 className="text-lg font-semibold font-heading text-slate-900">{title}</h2>}
-          {description && <div className="mt-1 text-sm text-slate-500">{description}</div>}
+          {title && <h2 className="text-sm font-semibold font-heading text-slate-950">{title}</h2>}
+          {description && <div className="mt-1 text-xs leading-5 text-slate-500">{description}</div>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </div>
     )}
-    <div className={cn("p-5", contentClassName)}>{children}</div>
+    <div className={cn("dashboard-panel-body p-4", contentClassName)}>{children}</div>
   </section>
 );
 
@@ -486,7 +525,7 @@ interface RecordCardProps {
 }
 
 export const RecordCard = ({ children, className }: RecordCardProps) => (
-  <div className={cn("rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50", className)}>
+  <div className={cn("record-card rounded-md border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50", className)}>
     {children}
   </div>
 );

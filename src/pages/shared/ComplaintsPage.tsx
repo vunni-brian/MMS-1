@@ -324,6 +324,10 @@ const ComplaintsPage = () => {
       newTicket.subject.trim() &&
       newTicket.description.trim().length >= 20,
   );
+  const openTickets = tickets.filter((ticket) => ticket.status === "open");
+  const inProgressTickets = tickets.filter((ticket) => ticket.status === "in_progress");
+  const breachedTickets = tickets.filter((ticket) => ticket.breachedSla);
+  const resolvedTickets = tickets.filter((ticket) => ticket.status === "resolved" || ticket.status === "closed");
   const requiresResolution = managerUpdate.status === "resolved" || managerUpdate.status === "closed";
   const canUpdateSelectedTicket = Boolean(selected) && (!requiresResolution || Boolean(managerUpdate.resolutionNote.trim()));
 
@@ -365,6 +369,29 @@ const ComplaintsPage = () => {
         </div>
       ) : (
         <>
+          <section className="complaints-command-strip">
+            <div className="operation-metric is-priority">
+              <span>Open complaints</span>
+              <strong>{openTickets.length}</strong>
+              <small>{openTickets.length ? "Waiting for triage" : "Queue clear"}</small>
+            </div>
+            <div className="operation-metric">
+              <span>In progress</span>
+              <strong>{inProgressTickets.length}</strong>
+              <small>Assigned or under review</small>
+            </div>
+            <div className="operation-metric">
+              <span>SLA risk</span>
+              <strong>{breachedTickets.length}</strong>
+              <small>Overdue or escalated attention</small>
+            </div>
+            <div className="operation-metric">
+              <span>Resolved / closed</span>
+              <strong>{resolvedTickets.length}</strong>
+              <small>Completed complaint lifecycle</small>
+            </div>
+          </section>
+
           <DataTableFrame
             className="workspace-primary-frame"
             title="Complaints Register"
@@ -609,7 +636,7 @@ const ComplaintsPage = () => {
                   setNewTicket((current) => ({ ...current, description: event.target.value }))
                 }
                 rows={4}
-                placeholder="Describe the issue clearly — include the location, what happened, and when. The more detail you provide, the faster the manager can act."
+                placeholder="Describe the issue clearly - include the location, what happened, and when. The more detail you provide, the faster the manager can act."
               />
               {newTicket.description.length > 0 && newTicket.description.length < 20 && (
                 <p className="text-xs text-warning">Please add a bit more detail so the manager can understand the issue.</p>

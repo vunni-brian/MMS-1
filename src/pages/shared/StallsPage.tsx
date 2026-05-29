@@ -172,7 +172,7 @@ const StallsPage = () => {
         }
       />
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="enterprise-panel rounded-md border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             {[
@@ -230,7 +230,7 @@ const StallsPage = () => {
                     <button
                       key={stall.id}
                       type="button"
-                      className={`min-h-[76px] rounded-lg border p-3 text-center transition-transform hover:-translate-y-0.5 ${statusClasses[stall.status]}`}
+                      className={`min-h-[76px] rounded-md border p-3 text-center transition-colors ${statusClasses[stall.status]}`}
                     >
                       <p className="text-sm font-bold text-slate-900">{stall.name}</p>
                       <p className="mt-1 text-xs font-semibold">{statusLabel[stall.status]}</p>

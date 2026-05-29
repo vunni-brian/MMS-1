@@ -546,6 +546,8 @@ const VendorsPage = () => {
     approved: allVendorRows.filter((r) => r.vendor.status === "approved").length,
     rejected: allVendorRows.filter((r) => r.vendor.status === "rejected").length,
   };
+  const followUpRows = allVendorRows.filter((row) => row.operationalStatus === "late_payment");
+  const outstandingTotal = allVendorRows.reduce((sum, row) => sum + row.totalOutstanding, 0);
 
   const selectedRow = allVendorRows.find((row) => row.vendor.id === selectedVendorId) || null;
 
@@ -615,6 +617,29 @@ const VendorsPage = () => {
           itemClassName="h-[180px] rounded-xl"
         />
       ) : (
+        <>
+        <section className="vendor-command-strip">
+          <div className="operation-metric is-priority">
+            <span>Pending approval</span>
+            <strong>{statusCounts.pending}</strong>
+            <small>Applications waiting for document review</small>
+          </div>
+          <div className="operation-metric">
+            <span>Approved vendors</span>
+            <strong>{statusCounts.approved}</strong>
+            <small>Active trading profiles</small>
+          </div>
+          <div className="operation-metric">
+            <span>Payment follow-up</span>
+            <strong>{followUpRows.length}</strong>
+            <small>{formatCurrency(outstandingTotal)} outstanding</small>
+          </div>
+          <div className="operation-metric">
+            <span>Current view</span>
+            <strong>{vendorRows.length}</strong>
+            <small>Filtered vendor records</small>
+          </div>
+        </section>
         <section className="vendor-directory-surface">
           {vendorRows.length === 0 ? (
             <EmptyState
@@ -633,6 +658,7 @@ const VendorsPage = () => {
             </div>
           )}
         </section>
+        </>
       )}
 
       <DetailSheet

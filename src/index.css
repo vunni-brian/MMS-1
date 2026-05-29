@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,50 +7,50 @@
 @layer base {
   :root {
     --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 142 72% 29%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 43%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 160 84% 95%;
+    --accent-foreground: 156 72% 19%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 142 71% 32%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --success: 142.1 76.2% 36.3%;
-    --success-foreground: 355.7 100% 97.3%;
+    --success: 142 71% 32%;
+    --success-foreground: 144 65% 96%;
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 89%;
-    --info: 211 58% 43%;
+    --info: 173 80% 32%;
     --info-foreground: 210 40% 98%;
 
-    --sidebar-background: 221.2 83.2% 53.3%;
+    --sidebar-background: 160 84% 12%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 224 76% 48%;
+    --sidebar-primary: 142 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 71% 45%;
+    --sidebar-accent: 158 64% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 224 71% 45%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-border: 157 44% 22%;
+    --sidebar-ring: 142 70% 45%;
 
     --font-heading: 'Inter', sans-serif;
     --font-body: 'Inter', sans-serif;
@@ -1664,5 +1664,1127 @@
   .vendor-status-card,
   .stat-card {
     min-height: 112px;
+  }
+}
+
+/* Enterprise green/slate system consolidation. These rules intentionally sit
+   last so legacy pages and newer mockup pages share one product language. */
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-feature-settings: "cv02", "cv03", "cv04", "tnum";
+}
+
+.app-content-stack {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.enterprise-page {
+  background:
+    linear-gradient(180deg, hsl(210 40% 98%), hsl(210 35% 96%));
+  color: hsl(222 47% 11%);
+}
+
+.enterprise-page,
+.console-page,
+.workspace-page {
+  letter-spacing: 0;
+}
+
+.enterprise-card,
+.enterprise-panel,
+.console-table-card,
+.dashboard-panel,
+.primary-surface,
+.data-surface,
+.stat-card,
+.metric-tile,
+.record-card,
+.form-section,
+.vendor-status-card,
+.vendor-balance-card {
+  border-radius: var(--radius) !important;
+  border-color: hsl(var(--border) / 0.76) !important;
+  background: hsl(var(--card)) !important;
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.045), 0 14px 28px -26px hsl(222 47% 11% / 0.26) !important;
+}
+
+.enterprise-card:hover,
+.enterprise-panel:hover,
+.console-table-card:hover,
+.dashboard-panel:hover,
+.record-card:hover,
+.metric-tile:hover,
+.vendor-status-card:hover {
+  border-color: hsl(var(--border)) !important;
+}
+
+.enterprise-topbar {
+  box-shadow: 0 1px 0 hsl(var(--border) / 0.72);
+}
+
+.enterprise-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  border-top: 1px solid hsl(var(--border) / 0.72);
+  padding: 12px 4px 2px;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.enterprise-footer-left,
+.enterprise-footer-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.enterprise-footer span,
+.enterprise-footer a,
+.enterprise-footer button {
+  color: inherit;
+}
+
+.enterprise-footer a,
+.enterprise-footer button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.enterprise-footer a:hover,
+.enterprise-footer button:hover {
+  color: hsl(var(--primary));
+}
+
+.enterprise-footer-left span:not(:last-child)::after,
+.enterprise-footer-right span:not(:last-child)::after,
+.enterprise-footer-right a:not(:last-child)::after,
+.enterprise-footer-right button:not(:last-child)::after {
+  content: "/";
+  margin-left: 12px;
+  color: hsl(var(--border));
+}
+
+.app-role-vendor,
+.app-role-manager,
+.app-role-official,
+.app-role-admin {
+  --primary: 142 72% 29%;
+  --sidebar-primary: 142 70% 45%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --workspace-shell-bg: hsl(210 40% 98%);
+}
+
+.console-accent-blue,
+.nav-accent-blue {
+  --page-accent: hsl(173 80% 32%);
+  --page-accent-foreground: hsl(0 0% 100%);
+  --page-accent-soft: hsl(173 80% 32% / 0.1);
+  --page-accent-border: hsl(173 80% 32% / 0.24);
+  --nav-accent: hsl(173 80% 32%);
+  --nav-accent-soft: hsl(173 80% 32% / 0.14);
+}
+
+.app-role-vendor {
+  --sidebar-background: 161 64% 15%;
+  --sidebar-accent: 160 51% 22%;
+  --sidebar-border: 160 45% 24%;
+}
+
+.app-role-manager {
+  --sidebar-background: 146 58% 17%;
+  --sidebar-accent: 146 52% 24%;
+  --sidebar-border: 146 42% 25%;
+}
+
+.app-role-official {
+  --sidebar-background: 186 44% 15%;
+  --sidebar-accent: 184 38% 22%;
+  --sidebar-border: 184 32% 25%;
+}
+
+.app-role-admin {
+  --sidebar-background: 217 43% 11%;
+  --sidebar-accent: 214 32% 18%;
+  --sidebar-border: 214 28% 22%;
+}
+
+.app-role-vendor > aside {
+  background: linear-gradient(180deg, hsl(161 62% 21%), hsl(166 66% 11%)) !important;
+}
+
+.app-role-manager > aside {
+  background: linear-gradient(180deg, hsl(146 58% 24%), hsl(150 64% 12%)) !important;
+}
+
+.app-role-official > aside {
+  background: linear-gradient(180deg, hsl(184 44% 21%), hsl(188 48% 11%)) !important;
+}
+
+.app-role-admin > aside {
+  background: linear-gradient(180deg, hsl(216 40% 17%), hsl(218 48% 8%)) !important;
+}
+
+.app-role-vendor > aside,
+.app-role-manager > aside,
+.app-role-official > aside,
+.app-role-admin > aside {
+  border-color: hsl(0 0% 100% / 0.1) !important;
+  box-shadow: 16px 0 42px -34px hsl(222 47% 11% / 0.62);
+}
+
+.app-role-vendor .workspace-nav-link,
+.app-role-manager .workspace-nav-link,
+.app-role-official .workspace-nav-link,
+.app-role-admin .workspace-nav-link {
+  border: 1px solid transparent;
+}
+
+.app-role-vendor .workspace-nav-link.is-active,
+.app-role-manager .workspace-nav-link.is-active,
+.app-role-official .workspace-nav-link.is-active,
+.app-role-admin .workspace-nav-link.is-active {
+  background: hsl(0 0% 100% / 0.14) !important;
+  border-color: hsl(0 0% 100% / 0.12);
+  box-shadow: inset 3px 0 0 hsl(142 70% 45%) !important;
+}
+
+.app-role-vendor > aside .bg-primary,
+.app-role-manager > aside .bg-primary,
+.app-role-official > aside .bg-primary,
+.app-role-admin > aside .bg-primary,
+.app-role-admin .admin-brand-mark {
+  background: hsl(142 70% 45% / 0.18) !important;
+  color: hsl(144 65% 96%) !important;
+  box-shadow: inset 0 0 0 1px hsl(142 70% 45% / 0.2) !important;
+}
+
+.app-role-vendor main,
+.app-role-manager main,
+.app-role-official main,
+.app-role-admin main {
+  background:
+    linear-gradient(180deg, hsl(210 40% 98%), hsl(210 35% 96%));
+}
+
+.console-page {
+  min-height: 100%;
+}
+
+.console-page .page-identity-header,
+.workspace-page-hero {
+  margin-bottom: 4px;
+}
+
+.page-identity-header {
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+.page-title,
+.workspace-page-title {
+  color: hsl(222 47% 11%);
+  font-size: clamp(1.35rem, 1.8vw, 1.75rem);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.page-description,
+.workspace-page-subtitle,
+.workspace-page-context {
+  color: hsl(var(--muted-foreground));
+}
+
+.page-kicker,
+.breadcrumb-trail {
+  letter-spacing: 0;
+}
+
+.console-scope-bar,
+.workspace-filter-bar,
+.enterprise-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  border: 1px solid hsl(var(--border) / 0.74);
+  border-radius: var(--radius);
+  background: hsl(0 0% 100% / 0.82);
+  padding: 12px;
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.035);
+}
+
+.dashboard-panel-header,
+.data-table-header,
+.enterprise-card > div:first-child {
+  background: hsl(210 40% 98% / 0.66) !important;
+}
+
+.enterprise-page table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.enterprise-page table thead th,
+.console-page table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  border-bottom: 1px solid hsl(var(--border) / 0.78);
+  background: hsl(210 40% 98%);
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.enterprise-page table tbody td,
+.console-page table tbody td {
+  height: 48px;
+  border-bottom: 1px solid hsl(var(--border) / 0.58);
+  color: hsl(222 47% 11%);
+  font-size: 13px;
+}
+
+.enterprise-page table tbody tr,
+.console-page table tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.enterprise-page table tbody tr:hover,
+.console-page table tbody tr:hover {
+  background: hsl(160 84% 95% / 0.42);
+}
+
+.enterprise-page input,
+.enterprise-page select,
+.enterprise-page textarea,
+.console-page input,
+.console-page select,
+.console-page textarea {
+  border-color: hsl(var(--border) / 0.86);
+  box-shadow: none;
+}
+
+.enterprise-page input:focus,
+.enterprise-page select:focus,
+.enterprise-page textarea:focus,
+.console-page input:focus,
+.console-page select:focus,
+.console-page textarea:focus {
+  border-color: hsl(var(--primary) / 0.52);
+  outline: 2px solid hsl(var(--primary) / 0.12);
+  outline-offset: 0;
+}
+
+.status-badge,
+.insight-chip,
+.enterprise-page [class*="rounded-full"][class*="border"] {
+  letter-spacing: 0;
+}
+
+.admin-progress-track span,
+.report-bar span {
+  background: hsl(var(--primary));
+}
+
+@media (max-width: 767px) {
+  .app-content-stack {
+    gap: 12px;
+  }
+
+  .enterprise-footer {
+    padding-bottom: 8px;
+  }
+
+  .enterprise-footer-left,
+  .enterprise-footer-right {
+    width: 100%;
+  }
+
+  .console-scope-bar,
+  .workspace-filter-bar,
+  .enterprise-filter-bar {
+    align-items: stretch;
+  }
+}
+
+/* Final productization layer: compact, operational, and consistent across
+   dashboard, workflow, settings, and review pages. */
+.enterprise-page,
+.console-page {
+  --surface-quiet: hsl(210 40% 98% / 0.78);
+  --surface-muted: hsl(215 28% 95% / 0.72);
+  --surface-line: hsl(var(--border) / 0.68);
+}
+
+.console-page {
+  gap: 1rem;
+}
+
+.console-page .page-identity-header {
+  display: block;
+  border: 1px solid var(--surface-line);
+  border-left: 3px solid var(--page-accent);
+  background:
+    linear-gradient(90deg, var(--page-accent-soft), transparent 36%),
+    hsl(0 0% 100% / 0.82);
+  padding: 14px 16px;
+}
+
+.console-page .page-header-chrome {
+  display: flex !important;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.console-page .page-header-icon {
+  display: flex !important;
+  height: 38px;
+  width: 38px;
+  border-radius: 8px;
+}
+
+.console-page-type-dashboard .page-header-icon {
+  display: none !important;
+}
+
+.console-page .page-title,
+.workspace-page-title {
+  font-size: 1.38rem;
+  line-height: 1.2;
+}
+
+.console-page .page-description {
+  margin-top: 4px;
+  max-width: 54rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.page-actions .rounded-full,
+.page-meta .rounded-full {
+  border: 1px solid hsl(var(--border) / 0.72);
+  background: hsl(0 0% 100% / 0.74);
+}
+
+.enterprise-page .enterprise-card,
+.console-page .enterprise-panel,
+.console-page .dashboard-panel,
+.console-page .console-table-card,
+.console-page .form-section,
+.console-page .record-card,
+.console-page .metric-tile,
+.console-page .primary-surface,
+.console-page .data-surface,
+.profile-content-surface,
+.profile-summary-card,
+.vendor-directory-surface,
+.workspace-primary-frame,
+.workspace-dominant-panel {
+  border-color: var(--surface-line) !important;
+  box-shadow: 0 1px 1px hsl(222 47% 11% / 0.035), 0 10px 24px -24px hsl(222 47% 11% / 0.28) !important;
+}
+
+.console-page .dashboard-panel-header,
+.console-page .data-table-header,
+.console-page .form-section > div:first-child {
+  min-height: auto;
+  background: var(--surface-quiet) !important;
+  padding-block: 10px;
+}
+
+.console-page .dashboard-panel-body,
+.console-page .form-section > div:last-child {
+  padding: 14px;
+}
+
+.console-page .console-scope-bar,
+.console-page .workspace-filter-bar,
+.enterprise-filter-bar {
+  margin-bottom: 0;
+  background: hsl(0 0% 100% / 0.72);
+}
+
+.enterprise-page button,
+.enterprise-page a,
+.console-page button,
+.console-page a {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.enterprise-page .h-11,
+.console-page .h-11 {
+  min-height: 2.5rem;
+}
+
+.enterprise-page .status-badge,
+.console-page .status-badge {
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.operation-metric {
+  min-width: 0;
+  border: 1px solid hsl(var(--border) / 0.68);
+  border-radius: var(--radius);
+  background: hsl(0 0% 100% / 0.84);
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.035);
+}
+
+.operation-metric.is-priority {
+  border-color: hsl(var(--primary) / 0.22);
+  background:
+    linear-gradient(135deg, hsl(var(--primary) / 0.075), transparent 48%),
+    hsl(0 0% 100%);
+}
+
+.operation-metric span {
+  display: block;
+  color: hsl(var(--muted-foreground));
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.operation-metric strong {
+  display: block;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  color: hsl(222 47% 11%);
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+}
+
+.operation-metric small {
+  display: block;
+  margin-top: 5px;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.billing-command-strip,
+.complaints-command-strip,
+.vendor-command-strip,
+.requests-command-strip,
+.profile-billing-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.billing-command-strip,
+.complaints-command-strip,
+.vendor-command-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.requests-command-strip,
+.profile-billing-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.profile-settings-shell {
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 14px;
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.profile-rail {
+  border-color: var(--surface-line);
+}
+
+.profile-summary-card {
+  background:
+    linear-gradient(180deg, hsl(210 40% 98%), hsl(0 0% 100%));
+  padding: 12px;
+}
+
+.profile-tab-nav {
+  gap: 3px;
+}
+
+.profile-tab-button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.profile-tab-button.is-active {
+  border-color: hsl(var(--primary) / 0.18);
+  background: hsl(var(--primary) / 0.08);
+  box-shadow: inset 3px 0 0 hsl(var(--primary));
+}
+
+.profile-content-surface {
+  padding: 16px;
+}
+
+.profile-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--surface-line);
+  padding-bottom: 12px;
+}
+
+.profile-section-heading h2 {
+  color: hsl(222 47% 11%);
+  font-size: 0.98rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.profile-section-heading p {
+  margin-top: 3px;
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.readonly-rows {
+  overflow: hidden;
+  background: hsl(0 0% 100% / 0.78);
+}
+
+.readonly-rows > div {
+  min-height: 42px;
+}
+
+.setting-toggle {
+  background: hsl(0 0% 100% / 0.78);
+}
+
+.profile-activity-panel {
+  overflow: hidden;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  background: hsl(0 0% 100% / 0.84);
+}
+
+.profile-activity-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--surface-line);
+  background: var(--surface-quiet);
+  padding: 10px 12px;
+}
+
+.profile-activity-panel-header p {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.profile-activity-panel-header span {
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+
+.profile-activity-list {
+  display: grid;
+}
+
+.profile-activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid hsl(var(--border) / 0.54);
+  padding: 10px 12px;
+}
+
+.profile-activity-row:last-child {
+  border-bottom: 0;
+}
+
+.profile-activity-row p {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-activity-row span {
+  display: block;
+  margin-top: 2px;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+
+.profile-activity-row strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-workspace-grid,
+.requests-workspace-grid,
+.notices-workspace-grid {
+  gap: 12px;
+}
+
+.billing-workspace-grid {
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.64fr);
+}
+
+.billing-primary-frame {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+}
+
+.billing-switches-panel,
+.billing-form-panel {
+  grid-column: 2;
+}
+
+.workspace-secondary-panel,
+.workspace-support-panel,
+.workspace-toolbar-panel {
+  background: hsl(0 0% 100% / 0.7) !important;
+}
+
+.billing-primary-frame .space-y-3 > .rounded-md,
+.requests-primary-panel .rounded-lg,
+.profile-activity-row,
+.vendor-directory-surface .rounded-lg,
+.complaints-command-strip + .console-table-card tbody tr {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.billing-primary-frame .space-y-3 > .rounded-md:hover,
+.requests-primary-panel .rounded-lg:hover,
+.vendor-directory-surface .rounded-lg:hover {
+  border-color: hsl(var(--primary) / 0.22);
+  background: hsl(160 84% 95% / 0.24);
+}
+
+.vendor-directory-surface {
+  padding: 10px;
+}
+
+.vendor-directory-grid {
+  gap: 10px;
+}
+
+.vendor-directory-grid article {
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+.console-page table th:first-child,
+.console-page table td:first-child {
+  padding-left: 14px;
+}
+
+.console-page table th:last-child,
+.console-page table td:last-child {
+  padding-right: 14px;
+}
+
+.console-page table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.console-page table .font-mono {
+  color: hsl(215 25% 27%);
+  font-size: 11px;
+}
+
+.app-role-vendor .workspace-nav-link,
+.app-role-manager .workspace-nav-link,
+.app-role-official .workspace-nav-link,
+.app-role-admin .workspace-nav-link {
+  min-height: 36px;
+}
+
+.app-role-admin .admin-sidebar-list .workspace-nav-link {
+  height: 38px !important;
+}
+
+.app-role-vendor > aside nav,
+.app-role-manager > aside nav,
+.app-role-official > aside nav,
+.app-role-admin > aside nav {
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1180px) {
+  .billing-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-primary-frame,
+  .billing-switches-panel,
+  .billing-form-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 920px) {
+  .billing-command-strip,
+  .complaints-command-strip,
+  .vendor-command-strip,
+  .requests-command-strip,
+  .profile-billing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-settings-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .console-page .page-identity-header {
+    padding: 12px;
+  }
+
+  .console-page .page-header-icon {
+    display: none !important;
+  }
+
+  .billing-command-strip,
+  .complaints-command-strip,
+  .vendor-command-strip,
+  .requests-command-strip,
+  .profile-billing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-section-heading,
+  .profile-activity-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Notion-inspired MMS product layer. This block intentionally sits last so
+   legacy enterprise rules resolve into one calm, light SaaS system. */
+:root {
+  --background: 220 23% 97%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 220 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 222 47% 11%;
+  --radius: 0.5rem;
+  --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+.app-role-vendor {
+  --primary: 160 84% 39%;
+  --role-accent: #059669;
+}
+
+.app-role-manager {
+  --primary: 221 83% 53%;
+  --role-accent: #2563eb;
+}
+
+.app-role-official {
+  --primary: 245 58% 51%;
+  --role-accent: #4338ca;
+}
+
+.app-role-admin {
+  --primary: 262 83% 58%;
+  --role-accent: #6d28d9;
+}
+
+.app-role-vendor,
+.app-role-manager,
+.app-role-official,
+.app-role-admin {
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-accent: 220 20% 96%;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: 0 0% 100%;
+}
+
+.app-role-vendor > aside,
+.app-role-manager > aside,
+.app-role-official > aside,
+.app-role-admin > aside {
+  background: hsl(var(--sidebar-background)) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+  border-color: hsl(var(--sidebar-border)) !important;
+  box-shadow: 1px 0 0 hsl(var(--border) / 0.62) !important;
+}
+
+.app-role-vendor > aside > div:first-child,
+.app-role-vendor > aside > div:last-child,
+.app-role-manager > aside > div:first-child,
+.app-role-manager > aside > div:last-child,
+.app-role-official > aside > div:first-child,
+.app-role-official > aside > div:last-child,
+.app-role-admin > aside > div:first-child,
+.app-role-admin > aside > div:last-child {
+  border-color: hsl(var(--border)) !important;
+}
+
+.app-role-vendor > aside button,
+.app-role-manager > aside button,
+.app-role-official > aside button,
+.app-role-admin > aside button,
+.app-role-vendor > aside [role="button"],
+.app-role-manager > aside [role="button"],
+.app-role-official > aside [role="button"],
+.app-role-admin > aside [role="button"] {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.app-role-vendor > aside button:hover,
+.app-role-manager > aside button:hover,
+.app-role-official > aside button:hover,
+.app-role-admin > aside button:hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.app-role-vendor > aside .bg-primary,
+.app-role-manager > aside .bg-primary,
+.app-role-official > aside .bg-primary,
+.app-role-admin > aside .bg-primary,
+.app-role-admin .admin-brand-mark {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  box-shadow: none !important;
+}
+
+.app-role-vendor .workspace-nav-link,
+.app-role-manager .workspace-nav-link,
+.app-role-official .workspace-nav-link,
+.app-role-admin .workspace-nav-link {
+  min-height: 40px;
+  border: 1px solid transparent !important;
+  color: hsl(var(--muted-foreground)) !important;
+  box-shadow: none !important;
+}
+
+.app-role-vendor .workspace-nav-link:hover,
+.app-role-manager .workspace-nav-link:hover,
+.app-role-official .workspace-nav-link:hover,
+.app-role-admin .workspace-nav-link:hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.app-role-vendor .workspace-nav-link.is-active,
+.app-role-manager .workspace-nav-link.is-active,
+.app-role-official .workspace-nav-link.is-active,
+.app-role-admin .workspace-nav-link.is-active {
+  border-color: hsl(var(--primary) / 0.14) !important;
+  background: hsl(var(--primary) / 0.09) !important;
+  color: hsl(var(--foreground)) !important;
+  box-shadow: inset 3px 0 0 hsl(var(--primary)) !important;
+}
+
+.app-role-vendor main,
+.app-role-manager main,
+.app-role-official main,
+.app-role-admin main,
+.enterprise-page,
+.console-page {
+  background: #f7f8fa !important;
+}
+
+.app-role-vendor header,
+.app-role-manager header,
+.app-role-official header,
+.app-role-admin header {
+  border-color: hsl(var(--border)) !important;
+  background: hsl(0 0% 100% / 0.86) !important;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 1px 0 hsl(var(--border) / 0.68);
+}
+
+.app-content-stack {
+  gap: 24px;
+}
+
+.enterprise-card,
+.enterprise-panel,
+.console-table-card,
+.dashboard-panel,
+.primary-surface,
+.data-surface,
+.stat-card,
+.metric-tile,
+.record-card,
+.form-section,
+.vendor-status-card,
+.vendor-balance-card,
+.profile-content-surface,
+.profile-summary-card,
+.workspace-primary-frame,
+.workspace-dominant-panel,
+.vendor-directory-surface,
+.stall-inventory-surface {
+  border-color: hsl(var(--border)) !important;
+  background: hsl(var(--card)) !important;
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.04), 0 16px 32px -30px hsl(222 47% 11% / 0.28) !important;
+}
+
+.enterprise-card:hover,
+.enterprise-panel:hover,
+.console-table-card:hover,
+.dashboard-panel:hover,
+.record-card:hover,
+.metric-tile:hover,
+.vendor-status-card:hover {
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.05), 0 18px 36px -28px hsl(222 47% 11% / 0.34) !important;
+}
+
+.console-page .page-identity-header,
+.workspace-page-hero {
+  margin-bottom: 0;
+}
+
+.console-page .page-identity-header {
+  border: 0;
+  border-left: 0;
+  background: transparent !important;
+  padding: 0;
+  box-shadow: none;
+}
+
+.console-page .page-header-chrome,
+.console-page .page-header-icon {
+  display: none !important;
+}
+
+.page-title,
+.workspace-page-title {
+  color: hsl(var(--foreground));
+  font-family: var(--font-heading);
+  font-size: clamp(1.65rem, 2vw, 1.95rem);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.page-description,
+.workspace-page-subtitle,
+.workspace-page-context {
+  max-width: 56rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.console-scope-bar,
+.workspace-filter-bar,
+.enterprise-filter-bar {
+  gap: 16px;
+  border-color: hsl(var(--border)) !important;
+  border-radius: var(--radius);
+  background: hsl(0 0% 100%) !important;
+  padding: 16px;
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.04);
+}
+
+.dashboard-panel-header,
+.data-table-header,
+.enterprise-card > div:first-child {
+  background: hsl(0 0% 100%) !important;
+}
+
+.enterprise-page table thead th,
+.console-page table thead th {
+  background: hsl(220 23% 97%);
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.enterprise-page table tbody td,
+.console-page table tbody td {
+  min-height: 48px;
+  color: hsl(var(--foreground));
+  font-size: 13px;
+}
+
+.enterprise-page table tbody tr:hover,
+.console-page table tbody tr:hover {
+  background: hsl(var(--muted) / 0.68);
+}
+
+.enterprise-page input,
+.enterprise-page select,
+.enterprise-page textarea,
+.console-page input,
+.console-page select,
+.console-page textarea {
+  border-color: hsl(var(--border));
+  background: hsl(0 0% 100%);
+  box-shadow: none;
+}
+
+.enterprise-page input:focus,
+.enterprise-page select:focus,
+.enterprise-page textarea:focus,
+.console-page input:focus,
+.console-page select:focus,
+.console-page textarea:focus {
+  border-color: hsl(var(--primary) / 0.48);
+  outline: 2px solid hsl(var(--primary) / 0.12);
+}
+
+.enterprise-footer {
+  margin-top: auto;
+  border-color: hsl(var(--border));
+  padding: 18px 2px 4px;
+  color: hsl(var(--muted-foreground));
+}
+
+@media (max-width: 767px) {
+  .app-content-stack {
+    gap: 18px;
+  }
+
+  .page-title,
+  .workspace-page-title {
+    font-size: 1.5rem;
   }
 }

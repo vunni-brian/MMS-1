@@ -20,7 +20,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
-import { cn, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
+import { cn, formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ const SettingToggle = ({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) => (
-  <div className="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-background px-3 py-2.5">
+  <div className="setting-toggle flex items-center justify-between gap-4 rounded-md border border-border/70 bg-background px-3 py-2.5">
     <div className="min-w-0">
       <p className="font-medium">{label}</p>
       <p className="text-xs text-muted-foreground">{detail}</p>
@@ -77,7 +77,7 @@ const SettingToggle = ({
 );
 
 const ReadOnlyRows = ({ rows }: { rows: Array<{ label: string; value: React.ReactNode }> }) => (
-  <div className="divide-y divide-border/70 rounded-md border border-border/70 bg-background">
+  <div className="readonly-rows divide-y divide-border/70 rounded-md border border-border/70 bg-background">
     {rows.map((row) => (
       <div key={row.label} className="grid gap-1 px-3 py-2.5 sm:grid-cols-[180px_1fr] sm:items-center">
         <p className="text-xs font-medium text-muted-foreground">{row.label}</p>
@@ -346,6 +346,18 @@ const ProfileSettingsPage = () => {
 
   const notifications = notificationsQuery.data?.notifications || [];
   const unreadNotifications = notifications.filter((notification) => !notification.read);
+  const billingQuery = useQuery({
+    queryKey: ["payments", "profile-billing"],
+    queryFn: () => api.getPayments(),
+    enabled: Boolean(user && activeTab === "billing" && ["vendor", "manager"].includes(user.role)),
+  });
+  const billingPayments = billingQuery.data?.payments || [];
+  const completedBillingPayments = billingPayments.filter((payment) => payment.status === "completed");
+  const pendingBillingPayments = billingPayments.filter((payment) => payment.status === "pending");
+  const completedBillingTotal = completedBillingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const latestBillingPayment = [...billingPayments].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )[0];
 
   if (!user) {
     return null;
@@ -805,25 +817,77 @@ const ProfileSettingsPage = () => {
   );
 
   const billingContent = (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-base font-semibold font-heading">Billing</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Payments, receipts, and market charges.</p>
+    <div className="space-y-4">
+      <div className="profile-section-heading">
+        <div>
+          <h2>Billing</h2>
+          <p>Payment access, receipt visibility, and billing follow-up.</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => navigate(user.role === "vendor" || user.role === "manager" ? `/${user.role}/payments` : `/${user.role}/billing`)}
+        >
+          <CreditCard className="mr-1 h-4 w-4" />
+          Open Billing
+        </Button>
       </div>
-      <div className="border-t border-border/70" />
+
+      <div className="profile-billing-grid">
+        <div className="operation-metric">
+          <span>Verified payments</span>
+          <strong>{completedBillingPayments.length || "0"}</strong>
+          <small>{formatCurrency(completedBillingTotal)}</small>
+        </div>
+        <div className="operation-metric">
+          <span>Pending review</span>
+          <strong>{pendingBillingPayments.length || "0"}</strong>
+          <small>Receipts or gateway records awaiting closure</small>
+        </div>
+        <div className="operation-metric">
+          <span>Latest record</span>
+          <strong>{latestBillingPayment ? formatHumanDate(latestBillingPayment.createdAt) : "None"}</strong>
+          <small>{latestBillingPayment?.description || "No recent payment activity"}</small>
+        </div>
+      </div>
+
       <ReadOnlyRows
         rows={[
-          { label: "Payment channel", value: "Receipt upload" },
+          { label: "Payment channel", value: user.role === "vendor" ? "Gateway and receipt flow" : "Receipt verification and oversight" },
           { label: "Receipts", value: user.role === "vendor" || user.role === "manager" ? "Available in payments" : "Available in reports" },
+          { label: "Billing scope", value: user.marketName || "System-wide" },
         ]}
       />
-      <Button
-        variant="outline"
-        onClick={() => navigate(user.role === "vendor" || user.role === "manager" ? `/${user.role}/payments` : `/${user.role}/billing`)}
-      >
-        <CreditCard className="mr-1 h-4 w-4" />
-        Open Billing
-      </Button>
+
+      <div className="profile-activity-panel">
+        <div className="profile-activity-panel-header">
+          <p>Recent Billing Signals</p>
+          <span>{billingPayments.length} records</span>
+        </div>
+        {billingQuery.isPending ? (
+          <LoadingState rows={3} itemClassName="h-14 rounded-md" />
+        ) : billingPayments.length === 0 ? (
+          <EmptyState
+            title="No payment records yet"
+            description="Payment receipts, gateway references, and verification status will appear here."
+            icon={CreditCard}
+          />
+        ) : (
+          <div className="profile-activity-list">
+            {billingPayments.slice(0, 5).map((payment) => (
+              <div key={payment.id} className="profile-activity-row">
+                <div>
+                  <p>{payment.description || payment.receiptId || "Payment record"}</p>
+                  <span>{formatHumanDateTime(payment.createdAt)}</span>
+                </div>
+                <div className="text-right">
+                  <strong>{formatCurrency(payment.amount)}</strong>
+                  <StatusBadge status={payment.status} context="payment" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 

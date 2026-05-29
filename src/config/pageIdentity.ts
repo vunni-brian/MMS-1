@@ -112,7 +112,7 @@ const routeIdentities: Record<string, PageIdentity> = {
     shortLabel: "Overview",
     description: "Today's priorities, status signals, and useful shortcuts.",
     kind: "dashboard",
-    accent: "blue",
+    accent: "green",
     icon: LayoutDashboard,
   },
   users: {
@@ -184,7 +184,7 @@ const routeIdentities: Record<string, PageIdentity> = {
     shortLabel: "Reports",
     description: "Payment records, exports, and performance review.",
     kind: "reports",
-    accent: "blue",
+    accent: "green",
     icon: BarChart3,
   },
   audit: {
@@ -242,7 +242,7 @@ const fallbackIdentity: PageIdentity = {
   shortLabel: "Workspace",
   description: "Role-based operating space.",
   kind: "operations",
-  accent: "blue",
+  accent: "green",
   icon: ShieldCheck,
 };
 

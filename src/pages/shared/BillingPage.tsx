@@ -258,6 +258,13 @@ const BillingPage = () => {
       : utilityChargesError instanceof ApiError
         ? utilityChargesError.message
         : null;
+  const unpaidCharges = utilityCharges.filter((charge) => ["unpaid", "overdue", "pending_payment"].includes(charge.status));
+  const overdueCharges = utilityCharges.filter((charge) => charge.status === "overdue");
+  const paidCharges = utilityCharges.filter((charge) => charge.status === "paid");
+  const outstandingUtilityTotal = unpaidCharges.reduce((sum, charge) => sum + charge.amount, 0);
+  const latestCharge = [...utilityCharges].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )[0];
 
   return (
     <ConsolePage>
@@ -321,6 +328,30 @@ const BillingPage = () => {
       {isPageLoading ? (
         <LoadingState rows={5} itemClassName="h-32 rounded-xl" />
       ) : (
+        <>
+        <section className="billing-command-strip">
+          <div className="operation-metric is-priority">
+            <span>Outstanding utilities</span>
+            <strong>{formatCurrency(outstandingUtilityTotal)}</strong>
+            <small>{unpaidCharges.length} open charge(s)</small>
+          </div>
+          <div className="operation-metric">
+            <span>Overdue</span>
+            <strong>{overdueCharges.length}</strong>
+            <small>Requires manager follow-up</small>
+          </div>
+          <div className="operation-metric">
+            <span>Paid charges</span>
+            <strong>{paidCharges.length}</strong>
+            <small>Closed in this register</small>
+          </div>
+          <div className="operation-metric">
+            <span>Latest activity</span>
+            <strong>{latestCharge ? formatHumanDate(latestCharge.createdAt) : "None"}</strong>
+            <small>{latestCharge?.description || "No utility charge activity"}</small>
+          </div>
+        </section>
+
         <div className="billing-workspace-grid">
           <Panel
             className="billing-switches-panel workspace-secondary-panel"
@@ -685,6 +716,7 @@ const BillingPage = () => {
             </div>
           </DataTableFrame>
         </div>
+        </>
       )}
     </ConsolePage>
   );

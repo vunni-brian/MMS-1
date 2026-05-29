@@ -131,6 +131,8 @@ const CoordinationPage = () => {
   const resourceRequests = resourceRequestsData?.requests || [];
   const visibleResourceRequests = resourceRequests.slice(0, 6);
   const pendingResourceRequests = resourceRequests.filter((request) => request.status === "pending");
+  const approvedResourceRequests = resourceRequests.filter((request) => request.status === "approved");
+  const requestedAmountTotal = pendingResourceRequests.reduce((sum, request) => sum + request.amountRequested, 0);
 
   return (
     <ConsolePage>
@@ -163,6 +165,26 @@ const CoordinationPage = () => {
           ) : undefined
         }
       />
+
+      {showResourceRequests && (
+        <section className="requests-command-strip">
+          <div className="operation-metric is-priority">
+            <span>Pending requests</span>
+            <strong>{pendingResourceRequests.length}</strong>
+            <small>{formatCurrency(requestedAmountTotal)} awaiting decision</small>
+          </div>
+          <div className="operation-metric">
+            <span>Approved</span>
+            <strong>{approvedResourceRequests.length}</strong>
+            <small>Ready for operational follow-up</small>
+          </div>
+          <div className="operation-metric">
+            <span>Updates</span>
+            <strong>{messages.length}</strong>
+            <small>Coordination notes in scope</small>
+          </div>
+        </section>
+      )}
 
       <div className="requests-workspace-grid">
         {showResourceRequests && (
