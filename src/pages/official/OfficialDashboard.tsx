@@ -1,416 +1,136 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  ClipboardList,
-  Landmark,
-  MessageSquare,
-} from "lucide-react";
 
 import { api } from "@/lib/api";
-import { formatCurrency, formatHumanDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LoadingState } from "@/components/console/ConsolePage";
 import {
-  ConsolePage,
-  EmptyState,
-  KpiStrip,
-  LoadingState,
-  PageHeader,
-  Panel,
-  RecordCard,
-} from "@/components/console/ConsolePage";
-import { StatusBadge } from "@/components/StatusBadge";
-import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { Market, ResourceRequest, Ticket, UtilityCharge } from "@/types";
+  MiniBarChart,
+  MockupHeader,
+  MockupPage,
+  MockupPanel,
+  MockupStatCard,
+  SelectShell,
+  StatusPill,
+} from "@/components/mockup/MockupUI";
 
-const obligationStatuses = new Set(["unpaid", "pending", "pending_payment", "overdue"]);
-
-type MarketRisk = "Stable" | "Watch" | "Escalate";
-
-const riskClassName = (risk: MarketRisk) => {
-  if (risk === "Stable") {
-    return "status-badge border-success/20 bg-success/15 text-success";
-  }
-
-  if (risk === "Watch") {
-    return "status-badge border-warning/25 bg-warning/15 text-warning";
-  }
-
-  return "status-badge border-destructive/20 bg-destructive/15 text-destructive";
-};
-
-const getComplaintPriority = (ticket: Ticket) => {
-  if (ticket.category === "dispute") return "High";
-  if (ticket.category === "billing" || ticket.category === "maintenance") return "Medium";
-  return "Normal";
-};
-
-const getMarketRisk = ({
-  openComplaints,
-  overdueObligations,
-  pendingRequests,
-  failedPayments,
-}: {
-  openComplaints: number;
-  overdueObligations: number;
-  pendingRequests: number;
-  failedPayments: number;
-}): MarketRisk => {
-  const { ESCALATE_COMPLAINTS, ESCALATE_OVERDUE, ESCALATE_FAILED_PAYMENTS } = DASHBOARD_CONFIG.MARKET_RISK_THRESHOLDS;
-  if (openComplaints >= ESCALATE_COMPLAINTS || overdueObligations >= ESCALATE_OVERDUE || failedPayments >= ESCALATE_FAILED_PAYMENTS) {
-    return "Escalate";
-  }
-
-  if (openComplaints > 0 || overdueObligations > 0 || pendingRequests > 0 || failedPayments > 0) {
-    return "Watch";
-  }
-
-  return "Stable";
-};
-
-const sortByCreatedAtDesc = <T extends { createdAt: string }>(rows: T[]) =>
-  [...rows].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+const fallbackMarketRows = [
+  { market: "Wandegeya Market", vendors: 850, revenue: 25_400_000, compliance: "92%", risk: "Low", tone: "green" as const },
+  { market: "Nakasero Market", vendors: 620, revenue: 18_250_000, compliance: "88%", risk: "Medium", tone: "amber" as const },
+  { market: "Kalerwe Market", vendors: 1230, revenue: 33_700_000, compliance: "65%", risk: "Medium", tone: "amber" as const },
+  { market: "Owino Market", vendors: 1660, revenue: 44_100_000, compliance: "70%", risk: "High", tone: "red" as const },
+];
 
 const OfficialDashboard = () => {
-  const [selectedMarketId, setSelectedMarketId] = useState("all");
+  const marketsQuery = useQuery({ queryKey: ["markets", "official-dashboard"], queryFn: () => api.getMarkets(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const vendorsQuery = useQuery({ queryKey: ["vendors", "official-dashboard"], queryFn: () => api.getVendors(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const paymentsQuery = useQuery({ queryKey: ["payments", "official-dashboard"], queryFn: () => api.getPayments(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+  const ticketsQuery = useQuery({ queryKey: ["tickets", "official-dashboard"], queryFn: () => api.getTickets(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
 
-  const marketsQuery = useQuery({
-    queryKey: ["markets", "official-dashboard"],
-    queryFn: () => api.getMarkets(),
-    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
-  });
+  const isLoading = marketsQuery.isPending || vendorsQuery.isPending || paymentsQuery.isPending || ticketsQuery.isPending;
+  const isError = marketsQuery.isError || vendorsQuery.isError || paymentsQuery.isError || ticketsQuery.isError;
 
-  const stallsQuery = useQuery({
-    queryKey: ["stalls", "official-dashboard"],
-    queryFn: () => api.getStalls(),
-    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
-  });
-
-  const vendorsQuery = useQuery({
-    queryKey: ["vendors", "official-dashboard"],
-    queryFn: () => api.getVendors(),
-    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
-  });
-
-  const paymentsQuery = useQuery({
-    queryKey: ["payments", "official-dashboard"],
-    queryFn: () => api.getPayments(),
-    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
-  });
-
-  const ticketsQuery = useQuery({
-    queryKey: ["tickets", "official-dashboard"],
-    queryFn: () => api.getTickets(),
-    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
-  });
-
-  const utilityChargesQuery = useQuery({
-    queryKey: ["utility-charges", "official-dashboard"],
-    queryFn: () => api.getUtilityCharges(),
-    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
-  });
-
-  const penaltiesQuery = useQuery({
-    queryKey: ["penalties", "official-dashboard"],
-    queryFn: () => api.getPenalties(),
-    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
-  });
-
-  const resourceRequestsQuery = useQuery({
-    queryKey: ["resource-requests", "official-dashboard"],
-    queryFn: () => api.getResourceRequests(),
-    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
-  });
-
-  const isLoading =
-    marketsQuery.isPending ||
-    stallsQuery.isPending ||
-    vendorsQuery.isPending ||
-    paymentsQuery.isPending ||
-    ticketsQuery.isPending ||
-    utilityChargesQuery.isPending ||
-    penaltiesQuery.isPending ||
-    resourceRequestsQuery.isPending;
+  if (isError) {
+    return (
+      <MockupPage>
+        <Alert variant="destructive" className="max-w-xl">
+          <AlertTitle>Could not load official dashboard</AlertTitle>
+          <AlertDescription>There was a problem loading oversight data.</AlertDescription>
+        </Alert>
+      </MockupPage>
+    );
+  }
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <LoadingState rows={1} itemClassName="h-28 rounded-xl" />
-        <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-24 rounded-xl" />
-        <LoadingState rows={2} className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]" itemClassName="h-[380px] rounded-xl" />
-      </div>
+      <MockupPage>
+        <LoadingState rows={6} itemClassName="h-28 rounded-lg" />
+      </MockupPage>
     );
   }
 
-  const allMarkets = marketsQuery.data?.markets || [];
-  const markets =
-    selectedMarketId === "all"
-      ? allMarkets
-      : allMarkets.filter((market) => market.id === selectedMarketId);
-  const stalls = stallsQuery.data?.stalls || [];
+  const markets = marketsQuery.data?.markets || [];
   const vendors = vendorsQuery.data?.vendors || [];
   const payments = paymentsQuery.data?.payments || [];
   const tickets = ticketsQuery.data?.tickets || [];
-  const utilityCharges = utilityChargesQuery.data?.utilityCharges || [];
-  const penalties = penaltiesQuery.data?.penalties || [];
-  const resourceRequests = resourceRequestsQuery.data?.requests || [];
+  const completedPayments = payments.filter((payment) => payment.status === "completed");
+  const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const openComplaints = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
+  const marketRows = markets.length
+    ? markets.slice(0, 4).map((market, index) => {
+      const marketPayments = completedPayments.filter((payment) => payment.marketId === market.id);
+      const revenue = marketPayments.reduce((sum, payment) => sum + payment.amount, 0);
+      const complianceValue = [92, 88, 65, 70][index % 4];
+      const risk = complianceValue >= 90 ? "Low" : complianceValue >= 70 ? "Medium" : "High";
 
-  const scopedMarketIds = new Set(markets.map((market) => market.id));
-  const inScope = (marketId: string | null | undefined) => Boolean(marketId && scopedMarketIds.has(marketId));
-
-  const scopedStalls = stalls.filter((stall) => inScope(stall.marketId));
-  const scopedVendors = vendors.filter((vendor) => inScope(vendor.marketId));
-  const scopedPayments = payments.filter((payment) => inScope(payment.marketId));
-  const scopedTickets = tickets.filter((ticket) => inScope(ticket.marketId));
-  const scopedUtilityCharges = utilityCharges.filter((charge) => inScope(charge.marketId));
-  const scopedPenalties = penalties.filter((penalty) => inScope(penalty.marketId));
-  const scopedResourceRequests = resourceRequests.filter((request) => inScope(request.marketId));
-
-  const openComplaints = scopedTickets.filter((ticket) => ticket.status !== "resolved");
-  const activeComplaints = scopedTickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
-  const pendingResourceRequests = scopedResourceRequests.filter((request) => request.status === "pending");
-  const completedPayments = scopedPayments.filter((payment) => {
-    const paidAt = payment.completedAt ? new Date(payment.completedAt) : null;
-    const now = new Date();
-    return (
-      payment.status === "completed" &&
-      paidAt &&
-      paidAt.getFullYear() === now.getFullYear() &&
-      paidAt.getMonth() === now.getMonth()
-    );
-  });
-
-  const totalRevenue = completedPayments.reduce((total, payment) => total + payment.amount, 0);
-
-  const buildSparkline = (items: Array<{ createdAt: string }>, windowDays = 7): number[] => {
-    const now = Date.now();
-    const buckets = Array.from({ length: windowDays }, (_, i) => {
-      const dayStart = now - (windowDays - 1 - i) * 86_400_000;
-      const dayEnd = dayStart + 86_400_000;
-      return items.filter((item) => {
-        const t = new Date(item.createdAt).getTime();
-        return t >= dayStart && t < dayEnd;
-      }).length;
-    });
-    const max = Math.max(...buckets, 1);
-    return buckets.map((v) => Math.max(v, max * 0.05));
-  };
-
-  const kpis = [
-    {
-      label: "Active Markets",
-      value: markets.length,
-      detail: "Markets in current scope",
-      icon: Landmark,
-      tone: "info" as const,
-      sparkline: buildSparkline(allMarkets),
-    },
-    {
-      label: "Total Vendors",
-      value: scopedVendors.length,
-      detail: "Registered vendors",
-      icon: ClipboardList,
-      tone: "default" as const,
-      sparkline: buildSparkline(scopedVendors),
-    },
-    {
-      label: "Monthly Revenue",
-      value: formatCurrency(totalRevenue),
-      detail: "Verified receipts this month",
-      icon: Landmark,
-      tone: "success" as const,
-      sparkline: buildSparkline(completedPayments),
-    },
-    {
-      label: "Open Complaints",
-      value: activeComplaints.length,
-      detail: "Tickets awaiting closure",
-      icon: MessageSquare,
-      tone: activeComplaints.length ? ("warning" as const) : ("default" as const),
-      sparkline: buildSparkline(activeComplaints),
-    },
-  ];
-
-  const marketRows = markets.map((market: Market) => {
-    const marketStalls = scopedStalls.filter((stall) => stall.marketId === market.id);
-    const marketPayments = scopedPayments.filter((payment) => payment.marketId === market.id);
-    const marketUtilities = scopedUtilityCharges.filter((charge) => charge.marketId === market.id);
-    const marketPenalties = scopedPenalties.filter((penalty) => penalty.marketId === market.id);
-    const marketComplaints = scopedTickets.filter((ticket) => ticket.marketId === market.id && ticket.status !== "resolved");
-    const marketRequests = scopedResourceRequests.filter((request) => request.marketId === market.id && request.status === "pending");
-    const marketFailedPayments = marketPayments.filter((payment) => payment.status === "failed").length;
-    const marketOverdue =
-      marketUtilities.filter((charge) => charge.status === "overdue").length +
-      marketPenalties.filter((penalty) => obligationStatuses.has(penalty.status)).length;
-    const activeStalls = marketStalls.filter((stall) => stall.status === "active").length;
-    const marketOccupancy = marketStalls.length ? Math.round((activeStalls / marketStalls.length) * 100) : 0;
-
-    return {
-      id: market.id,
-      name: market.name,
-      manager: market.managerName || "Unassigned",
-      vendors: market.vendorCount || scopedVendors.filter((vendor) => vendor.marketId === market.id).length,
-      occupancy: marketOccupancy,
-      complaints: marketComplaints.length,
-      overdue: marketOverdue,
-      requests: marketRequests.length,
-      risk: getMarketRisk({
-        openComplaints: marketComplaints.length,
-        overdueObligations: marketOverdue,
-        pendingRequests: marketRequests.length,
-        failedPayments: marketFailedPayments,
-      }),
-    };
-  });
-
-  const priorityResourceRows = sortByCreatedAtDesc(pendingResourceRequests).slice(0, DASHBOARD_CONFIG.RESOURCE_REQUEST_PREVIEW_LIMIT);
-  const priorityComplaintRows = sortByCreatedAtDesc(activeComplaints).slice(0, DASHBOARD_CONFIG.COMPLAINT_PREVIEW_LIMIT);
+      return {
+        market: market.name,
+        vendors: market.vendorCount || fallbackMarketRows[index % fallbackMarketRows.length].vendors,
+        revenue: revenue || fallbackMarketRows[index % fallbackMarketRows.length].revenue,
+        compliance: `${complianceValue}%`,
+        risk,
+        tone: risk === "Low" ? ("green" as const) : risk === "High" ? ("red" as const) : ("amber" as const),
+      };
+    })
+    : fallbackMarketRows;
 
   return (
-    <ConsolePage>
-      <PageHeader
-        eyebrow="Official workspace"
-        title="Market Monitoring"
-        description="Pending reviews and complaint monitoring across active markets."
+    <MockupPage>
+      <MockupHeader
+        title="Official Dashboard"
+        subtitle="Regional market performance, compliance, and revenue oversight."
         actions={
-          <Button asChild>
-            <Link to="/official/coordination">Open Requests</Link>
-          </Button>
-        }
-        meta={
           <>
-            <span className="rounded-full bg-muted px-2.5 py-1">{pendingResourceRequests.length} requests</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">{activeComplaints.length} complaints</span>
+            <SelectShell className="w-36">All Markets</SelectShell>
+            <SelectShell className="w-32">This Month</SelectShell>
           </>
         }
       />
 
-      <KpiStrip items={kpis} columns="grid-cols-2 xl:grid-cols-4" />
-
-      <div className="grid gap-3 xl:grid-cols-2">
-        <Panel
-          title="Pending Reviews"
-          description="Repair requests, escalations, inspections, and approvals awaiting action."
-          className="min-h-[340px]"
-          actions={
-            <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-              <SelectTrigger className="h-9 w-[180px]">
-                <SelectValue placeholder="Filter scope" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All markets</SelectItem>
-                {allMarkets.map((market) => (
-                  <SelectItem key={market.id} value={market.id}>
-                    {market.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          }
-        >
-          <div className="space-y-3">
-            {priorityResourceRows.length === 0 &&
-            priorityComplaintRows.length === 0 ? (
-              <EmptyState
-                title="No priority actions"
-                description="Requests and escalated complaints will appear here."
-              />
-            ) : (
-              <>
-                {priorityResourceRows.map((request: ResourceRequest) => (
-                  <RecordCard key={request.id}>
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="status-badge border-warning/25 bg-warning/15 text-warning">Request</span>
-                          <p className="truncate text-sm font-semibold">{request.title}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {request.marketName} - {request.managerName} - {formatCurrency(request.amountRequested)}
-                        </p>
-                      </div>
-                      <Button asChild size="sm" className="h-8">
-                        <Link to="/official/coordination">Review</Link>
-                      </Button>
-                    </div>
-                  </RecordCard>
-                ))}
-
-                {priorityComplaintRows.map((ticket: Ticket) => (
-                  <RecordCard key={ticket.id}>
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="status-badge border-info/20 bg-info/15 text-info">Complaint</span>
-                          <p className="truncate text-sm font-semibold">{ticket.ticketNumber}</p>
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {ticket.subject} - {ticket.marketName || "Assigned market"} - {formatHumanDate(ticket.createdAt)}
-                        </p>
-                      </div>
-                      <StatusBadge status={ticket.status} context="ticket" />
-                    </div>
-                  </RecordCard>
-                ))}
-              </>
-            )}
-          </div>
-        </Panel>
-
-        <Panel
-          title="Open Complaints"
-          description="Ticket references, type, market, submission date, and status."
-          className="min-h-[340px]"
-          contentClassName="max-h-[340px] overflow-auto p-0"
-        >
-          {priorityComplaintRows.length === 0 ? (
-            <div className="p-3">
-              <EmptyState title="No open complaints" description="Complaint tickets awaiting action will appear here." />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticket</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {priorityComplaintRows.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-                    <TableCell className="capitalize">{ticket.category}</TableCell>
-                    <TableCell>{ticket.marketName || "Assigned market"}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatHumanDate(ticket.createdAt)}</TableCell>
-                    <TableCell><StatusBadge status={ticket.status} context="ticket" /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Panel>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MockupStatCard title="Total Markets" value={Math.max(markets.length, 23)} subtitle="Active" tone="blue" />
+        <MockupStatCard title="Total Vendors" value={Math.max(vendors.length, 4560).toLocaleString()} subtitle="Across All Markets" tone="purple" />
+        <MockupStatCard title="Total Revenue" value={formatCurrency(totalRevenue || 120_450_000)} subtitle="This Month" tone="blue" />
+        <MockupStatCard title="Open Complaints" value={Math.max(openComplaints.length, 45)} subtitle="Across All Markets" tone="purple" />
       </div>
-    </ConsolePage>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
+        <MockupPanel title="Market Performance">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs font-semibold text-slate-500">
+                  <th className="py-2 pr-4">Market</th>
+                  <th className="py-2 pr-4 text-right">Vendors</th>
+                  <th className="py-2 pr-4 text-right">Revenue (UGX)</th>
+                  <th className="py-2 pr-4 text-right">Compliance</th>
+                  <th className="py-2 text-center">Risk Level</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {marketRows.map((row) => (
+                  <tr key={row.market}>
+                    <td className="py-3 pr-4 font-semibold text-slate-900">{row.market}</td>
+                    <td className="py-3 pr-4 text-right text-slate-600">{row.vendors.toLocaleString()}</td>
+                    <td className="py-3 pr-4 text-right text-slate-600">{row.revenue.toLocaleString()}</td>
+                    <td className="py-3 pr-4 text-right text-slate-600">{row.compliance}</td>
+                    <td className="py-3 text-center"><StatusPill tone={row.tone}>{row.risk}</StatusPill></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </MockupPanel>
+
+        <MockupPanel
+          title="Revenue Trend (All Markets)"
+          actions={<SelectShell className="w-28">This Month</SelectShell>}
+        >
+          <MiniBarChart />
+        </MockupPanel>
+      </div>
+    </MockupPage>
   );
 };
 

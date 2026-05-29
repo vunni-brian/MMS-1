@@ -51,8 +51,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        heading: ['Ubuntu', 'sans-serif'],
-        body: ['Ubuntu', 'sans-serif'],
+        heading: ['Inter', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

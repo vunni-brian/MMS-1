@@ -30,9 +30,8 @@ import {
 } from "lucide-react";
 
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
-import { getNavigationIdentity, getPageIdentity, getPageType, getPathSegments } from "@/config/pageIdentity";
+import { getNavigationIdentity, getPageIdentity } from "@/config/pageIdentity";
 import { getRoleExperience } from "@/config/roleExperience";
-import { RoleInsightsRail } from "@/components/RoleInsightsRail";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -112,8 +111,6 @@ const adminNavItems: NavItem[] = [
   { label: "Settings", path: "settings", icon: Settings, roles: ["admin"] },
 ];
 
-const insightRailSegments = new Set(["", "vendors", "stalls", "coordination", "announcements", "profile"]);
-
 const getNavTarget = (basePath: string, item: NavItem) => {
   const path = item.path ? `${basePath}/${item.path}` : basePath;
   return item.query ? `${path}?${item.query}` : path;
@@ -130,7 +127,7 @@ const AppLayout = () => {
   const { data: notificationsData } = useQuery({
     queryKey: ["notifications", "app-layout-badge"],
     queryFn: () => api.getNotifications(5),
-    enabled: Boolean(user),
+    enabled: Boolean(user?.permissions.includes("notification:read")),
     refetchInterval: DASHBOARD_CONFIG.NOTIFICATIONS_REFRESH_INTERVAL,
   });
 
@@ -139,8 +136,6 @@ const AppLayout = () => {
   const isPendingVendor = user?.role === "vendor" && user.vendorStatus !== "approved";
   const basePath = user ? `/${user.role}` : "/";
   const currentPage = getPageIdentity(location.pathname);
-  const currentPageType = getPageType(location.pathname);
-  const [, pageSegment = ""] = getPathSegments(location.pathname);
 
   const filteredGroups = useMemo(
     () =>
@@ -164,9 +159,6 @@ const AppLayout = () => {
   const roleLabel = user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "";
   const profilePath = `${basePath}/profile`;
   const isAdmin = user?.role === "admin";
-  const showRoleInsightsRail =
-    !isAdmin &&
-    (currentPageType === "dashboard" || insightRailSegments.has(pageSegment));
   const quickActionPath = isPendingVendor
     ? `${basePath}/announcements`
     : experience?.quickActionPath || basePath;
@@ -378,7 +370,7 @@ const AppLayout = () => {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {user.role === "admin" && (
-          <header className="flex h-[56px] shrink-0 items-center gap-3 border-b border-border/70 bg-card/95 px-3 lg:hidden">
+          <header className="flex h-[56px] shrink-0 items-center gap-3 border-b border-border/70 bg-card/95 px-3">
             <button
               type="button"
               aria-label="Open navigation"
@@ -535,13 +527,6 @@ const AppLayout = () => {
             <Outlet />
           </main>
 
-          {showRoleInsightsRail && (
-            <RoleInsightsRail
-              user={user}
-              isPendingVendor={isPendingVendor}
-              notifications={notifications}
-            />
-          )}
         </div>
       </div>
     </div>

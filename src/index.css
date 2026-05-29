@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,54 +6,54 @@
 
 @layer base {
   :root {
-    --background: 210 22% 97%;
-    --foreground: 220 22% 12%;
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 22% 12%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 22% 12%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 187 48% 28%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 214 16% 92%;
-    --secondary-foreground: 220 22% 12%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 216 18% 94%;
-    --muted-foreground: 218 10% 42%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 152 42% 33%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 216 16% 86%;
-    --input: 216 16% 86%;
-    --ring: 187 48% 28%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --success: 146 42% 36%;
-    --success-foreground: 0 0% 100%;
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 355.7 100% 97.3%;
     --warning: 38 92% 50%;
-    --warning-foreground: 20 25% 15%;
+    --warning-foreground: 48 96% 89%;
     --info: 211 58% 43%;
-    --info-foreground: 0 0% 100%;
+    --info-foreground: 210 40% 98%;
 
-    --sidebar-background: 216 24% 98%;
-    --sidebar-foreground: 220 18% 16%;
-    --sidebar-primary: 187 48% 28%;
+    --sidebar-background: 221.2 83.2% 53.3%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 224 76% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 20% 92%;
-    --sidebar-accent-foreground: 220 20% 14%;
-    --sidebar-border: 216 15% 86%;
-    --sidebar-ring: 187 48% 28%;
+    --sidebar-accent: 224 71% 45%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 224 71% 45%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --font-heading: 'Ubuntu', sans-serif;
-    --font-body: 'Ubuntu', sans-serif;
+    --font-heading: 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 }
 
@@ -194,16 +194,56 @@
   }
 
   .app-role-admin {
-    --sidebar-background: 216 24% 98%;
-    --sidebar-foreground: 220 18% 16%;
-    --sidebar-accent: 213 20% 92%;
-    --sidebar-accent-foreground: 220 20% 14%;
-    --sidebar-border: 216 15% 86%;
-    --sidebar-primary: 187 48% 28%;
-    --sidebar-ring: 187 48% 28%;
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-ring: 224 71% 45%;
+    
+    --primary: 222.2 47.4% 11.2%;
   }
 
-  .app-role-admin > aside {
+  .app-role-vendor {
+    --sidebar-background: 221.2 83.2% 53.3%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-accent: 224 71% 45%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 224 71% 45%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 221.2 83.2% 53.3%;
+    --sidebar-ring: 210 40% 98%;
+    
+    --primary: 221.2 83.2% 53.3%;
+  }
+
+  .app-role-manager {
+    --sidebar-background: 142.1 76.2% 36.3%;
+    --sidebar-foreground: 355.7 100% 97.3%;
+    --sidebar-accent: 142.1 70% 30%;
+    --sidebar-accent-foreground: 355.7 100% 97.3%;
+    --sidebar-border: 142.1 70% 30%;
+    --sidebar-primary: 142.1 76.2% 36.3%;
+    --sidebar-ring: 142.1 70% 30%;
+    
+    --primary: 142.1 76.2% 36.3%;
+  }
+
+  .app-role-official {
+    --sidebar-background: 222.2 47.4% 11.2%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-accent: 215.4 16.3% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215.4 16.3% 20%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-ring: 224 71% 45%;
+    
+    --primary: 222.2 47.4% 11.2%;
+  }
+
+  /* Make all role sidebars look like the admin one in structure */
+  .app-role-admin > aside, .app-role-manager > aside, .app-role-vendor > aside, .app-role-official > aside {
     background: hsl(var(--sidebar-background)) !important;
     color: hsl(var(--sidebar-foreground)) !important;
     border-color: hsl(var(--sidebar-border)) !important;
@@ -211,39 +251,67 @@
   }
 
   .app-role-admin > aside > div:first-child,
-  .app-role-admin > aside > div:last-child {
+  .app-role-admin > aside > div:last-child,
+  .app-role-manager > aside > div:first-child,
+  .app-role-manager > aside > div:last-child,
+  .app-role-vendor > aside > div:first-child,
+  .app-role-vendor > aside > div:last-child,
+  .app-role-official > aside > div:first-child,
+  .app-role-official > aside > div:last-child {
     border-color: hsl(var(--sidebar-border)) !important;
   }
 
-  .app-role-admin > aside .bg-primary {
+  .app-role-admin > aside .bg-primary,
+  .app-role-manager > aside .bg-primary,
+  .app-role-vendor > aside .bg-primary,
+  .app-role-official > aside .bg-primary {
     background: hsl(var(--sidebar-primary));
     color: hsl(var(--sidebar-primary-foreground));
   }
 
-  .app-role-admin > aside nav > div > p {
-    color: hsl(var(--muted-foreground)) !important;
+  .app-role-admin > aside nav > div > p,
+  .app-role-manager > aside nav > div > p,
+  .app-role-vendor > aside nav > div > p,
+  .app-role-official > aside nav > div > p {
+    color: hsl(var(--sidebar-foreground) / 0.5) !important;
   }
 
-  .app-role-admin .workspace-nav-link {
+  .app-role-admin .workspace-nav-link,
+  .app-role-manager .workspace-nav-link,
+  .app-role-vendor .workspace-nav-link,
+  .app-role-official .workspace-nav-link {
     color: hsl(var(--sidebar-foreground) / 0.72) !important;
   }
 
-  .app-role-admin .workspace-nav-link:hover {
-    background: hsl(var(--sidebar-accent) / 0.72) !important;
+  .app-role-admin .workspace-nav-link:hover,
+  .app-role-manager .workspace-nav-link:hover,
+  .app-role-vendor .workspace-nav-link:hover,
+  .app-role-official .workspace-nav-link:hover {
+    background: hsl(var(--sidebar-accent)) !important;
     color: hsl(var(--sidebar-foreground)) !important;
   }
 
-  .app-role-admin .workspace-nav-link.is-active {
-    background: var(--nav-accent-soft) !important;
+  .app-role-admin .workspace-nav-link.is-active,
+  .app-role-manager .workspace-nav-link.is-active,
+  .app-role-vendor .workspace-nav-link.is-active,
+  .app-role-official .workspace-nav-link.is-active {
+    background: hsl(var(--sidebar-accent)) !important;
     color: hsl(var(--sidebar-foreground)) !important;
+    font-weight: 600;
     box-shadow: none;
   }
 
-  .app-role-admin .workspace-nav-marker {
-    background: var(--nav-accent);
+  .app-role-admin .workspace-nav-marker,
+  .app-role-manager .workspace-nav-marker,
+  .app-role-vendor .workspace-nav-marker,
+  .app-role-official .workspace-nav-marker {
+    display: none;
   }
 
-  .app-role-admin header {
+  .app-role-admin header,
+  .app-role-manager header,
+  .app-role-vendor header,
+  .app-role-official header {
     background: hsl(var(--card) / 0.96);
   }
 
@@ -1437,12 +1505,12 @@
 
 .app-role-vendor > aside {
   background:
-    linear-gradient(180deg, hsl(161 70% 24%), hsl(163 62% 15%)) !important;
+    linear-gradient(180deg, hsl(213 86% 42%), hsl(215 82% 24%)) !important;
 }
 
 .app-role-manager > aside {
   background:
-    linear-gradient(180deg, hsl(213 86% 34%), hsl(215 82% 20%)) !important;
+    linear-gradient(180deg, hsl(146 72% 32%), hsl(150 68% 19%)) !important;
 }
 
 .app-role-official > aside {
