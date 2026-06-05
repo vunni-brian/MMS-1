@@ -1,0 +1,828 @@
+{
+  "baseUrl": "http://127.0.0.1:5173",
+  "outputRoot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z",
+  "checkedAt": "2026-06-04T17:04:00.970Z",
+  "results": [
+    {
+      "role": "public",
+      "route": "/",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\public\\home.png",
+      "title": "Market Management System",
+      "url": "http://127.0.0.1:5173/",
+      "headings": [
+        "Welcome to the Markets Portal",
+        "Featured Services",
+        "Centralized Operations"
+      ],
+      "textLength": 1615,
+      "textSample": "✓ Official Market Management Portal English Luganda Swahili KAMPALA MARKETS MANAGEMENT SYSTEM Home Services Departments Help & Support Sign In Apply for Stall Welcome to the Markets Portal Access civic services, apply for market space, pay dues, and manage your vendor profile online. Search Popular: Pay Utilities • Renew License • Check Occupancy Featured Se",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "public",
+      "route": "/login",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\public\\login.png",
+      "title": "Market Management System",
+      "url": "http://127.0.0.1:5173/login",
+      "headings": [
+        "Sign In to Your Account"
+      ],
+      "textLength": 282,
+      "textSample": "✓ Secure Government Login Back to Portal Sign In to Your Account Access the Kampala Market Management System CREDENTIALS VERIFICATION (OTP) Phone Number Password Forgot password? Sign In Securely Need an account? Register as a Vendor Terms of Service • Privacy Policy • Security",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "public",
+      "route": "/register",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\public\\register.png",
+      "title": "Market Management System",
+      "url": "http://127.0.0.1:5173/register",
+      "headings": [
+        "Vendor Registration",
+        "Account & Market Details"
+      ],
+      "textLength": 825,
+      "textSample": "WMMS Login Vendor Registration Create the vendor profile, submit verification documents, and confirm phone ownership in one flow. Vendor details Step 1 of 3 Account Identity and market assignment Documents Required verification evidence Verify Phone ownership confirmation Account & Market Details Create the vendor account, identify the operator, and assign t",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "public",
+      "route": "/payments/callback",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\public\\payments-callback.png",
+      "title": "Market Management System",
+      "url": "http://127.0.0.1:5173/payments/callback",
+      "headings": [
+        "Payment Could Not Be Completed"
+      ],
+      "textLength": 308,
+      "textSample": "WMMS Dashboard PAYMENT RESULT Payment Could Not Be Completed We didn't receive confirmation from the payment provider. Your account has not been charged. If you see a charge on your mobile money or bank statement, please contact market support with your transaction ID. Try Payment Again Go to Dashboard",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "public",
+      "route": "/not-a-real-route",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\public\\not-a-real-route.png",
+      "title": "Market Management System",
+      "url": "http://127.0.0.1:5173/not-a-real-route",
+      "headings": [
+        "Page Not Found"
+      ],
+      "textLength": 120,
+      "textSample": "WMMS 404 Page Not Found The page you are looking for does not exist or has moved. /not-a-real-route Go Back Go Home",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor.png",
+      "title": "Overview - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor",
+      "headings": [
+        "Good evening, Amina"
+      ],
+      "textLength": 1586,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / Overview Today's priorities, status signals, and useful shortcuts. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato VENDOR WORKSPACE Good evening, Amina A simp",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor/stalls",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor-stalls.png",
+      "title": "My Allocation - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor/stalls",
+      "headings": [
+        "My Stall",
+        "Your Current Stall",
+        "A-01",
+        "Stall Support",
+        "Request a Different Stall"
+      ],
+      "textLength": 988,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / My Allocation Your current space assignment, dues, and space change requests. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato MY STALL My Stall Your current s",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor/payments",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor-payments.png",
+      "title": "Payments - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor/payments",
+      "headings": [
+        "Make Payment",
+        "Payment Details",
+        "Recent Payment Activity"
+      ],
+      "textLength": 962,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / Payments Payments due, receipt records, verification, and collection status. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato PAYMENTS > MAKE PAYMENT Make Paym",
+      "visibleProblemText": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor/complaints",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor-complaints.png",
+      "title": "Grievances - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor/complaints",
+      "headings": [
+        "Grievances & Appeals",
+        "Complaints Register"
+      ],
+      "textLength": 1168,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / Grievances Review and resolve trader disputes and compliance appeals. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato Grievances & Appeals Submit and track ma",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor/announcements",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor-announcements.png",
+      "title": "Notices - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor/announcements",
+      "headings": [
+        "Notices",
+        "Active Notices"
+      ],
+      "textLength": 674,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / Notices News and alerts, publication windows, and audience targeting. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato Notices Active market notices, deadlines",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor/settings",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor-settings.png",
+      "title": "Preferences - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor/settings",
+      "headings": [
+        "Settings",
+        "Account Overview",
+        "Vendor Account"
+      ],
+      "textLength": 2039,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / Preferences Account, security, notifications, payments, preferences, data, and activity controls. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato Settings Acc",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "vendor",
+      "route": "/vendor/profile",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\vendor\\vendor-profile.png",
+      "title": "Credential - Vendor Workspace",
+      "url": "http://127.0.0.1:5173/vendor/profile",
+      "headings": [
+        "Official Credential",
+        "Profile Information",
+        "Profile Photo",
+        "Contact Information",
+        "Vendor Details",
+        "Verification Records"
+      ],
+      "textLength": 1566,
+      "textSample": "MMS Market Management System MAIN Dashboard My Stall Payments OPERATIONS Complaints Notifications ACCOUNT Settings Profile AN Daily stall operations Collapse Vendor Workspace / Credential Official identity, government contact information, and verified profile photo. Search workspace... Ctrl K Kampala Central Market Vendor AN Amina Nakato Official Credential ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager.png",
+      "title": "Overview - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager",
+      "headings": [
+        "Market operations"
+      ],
+      "textLength": 1649,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Overview Today's priorities, status signals, and useful shortcuts. Search workspace... Ctrl K Kampala Central Market Manager SN ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "url": "http://localhost:3001/tickets",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3001/vendors",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3001/utility-charges",
+          "failure": "net::ERR_ABORTED"
+        }
+      ]
+    },
+    {
+      "role": "manager",
+      "route": "/manager/vendors",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-vendors.png",
+      "title": "Vendors - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/vendors",
+      "headings": [
+        "Vendors",
+        "Kikomeko Brayann",
+        "Kikomeko Brayan",
+        "Vunni Brian",
+        "Kigozi Duncan",
+        "Joseph Ochieng"
+      ],
+      "textLength": 2042,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Vendors Vendor status, applications, documents, and follow-up work. Search workspace... Ctrl K Kampala Central Market Manager SN",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/stalls",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-stalls.png",
+      "title": "Spaces - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/stalls",
+      "headings": [
+        "Stall Allocation"
+      ],
+      "textLength": 742,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Spaces Market inventory, availability, official allocation, and applications. Search workspace... Ctrl K Kampala Central Market ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/payments",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-payments.png",
+      "title": "Payments - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/payments",
+      "headings": [
+        "Payment Review",
+        "Bank Receipt Queue",
+        "Recent Payments"
+      ],
+      "textLength": 1068,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Payments Payments due, receipt records, verification, and collection status. Search workspace... Ctrl K Kampala Central Market M",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/complaints",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-complaints.png",
+      "title": "Grievances - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/complaints",
+      "headings": [
+        "Grievances & Appeals",
+        "Complaints Register"
+      ],
+      "textLength": 1383,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Grievances Review and resolve trader disputes and compliance appeals. Search workspace... Ctrl K Kampala Central Market Manager ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/billing",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-billing.png",
+      "title": "Revenue - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/billing",
+      "headings": [
+        "Revenue & Dues",
+        "Revenue Collection Policies",
+        "Create Utility Charge",
+        "Official Dues Register"
+      ],
+      "textLength": 2140,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Revenue Market fees, utilities, taxes due, and revenue collection setup. Search workspace... Ctrl K Kampala Central Market Manag",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/reports",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-reports.png",
+      "title": "Reports - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/reports",
+      "headings": [
+        "Revenue Report",
+        "Revenue by Market"
+      ],
+      "textLength": 985,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Reports Payment records, exports, and performance review. Search workspace... Ctrl K Kampala Central Market Manager SN Sarah Nam",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/audit",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-audit.png",
+      "title": "Activity Log - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/audit",
+      "headings": [
+        "Activity Log",
+        "Activity Records"
+      ],
+      "textLength": 19978,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Activity Log Read-only record of important system activity. Search workspace... Ctrl K Kampala Central Market Manager SN Sarah N",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/coordination",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-coordination.png",
+      "title": "Requests - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/coordination",
+      "headings": [
+        "Requests",
+        "Resource Requests",
+        "Updates",
+        "Send Update"
+      ],
+      "textLength": 1798,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Requests Resource requests, approvals, and market updates. Search workspace... Ctrl K Kampala Central Market Manager SN Sarah Na",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/announcements",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-announcements.png",
+      "title": "Notices - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/announcements",
+      "headings": [
+        "Notices",
+        "Publish Notice",
+        "Active Notices",
+        "Archived Notices"
+      ],
+      "textLength": 1027,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Notices News and alerts, publication windows, and audience targeting. Search workspace... Ctrl K Kampala Central Market Manager ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/settings",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-settings.png",
+      "title": "Dept Settings - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/settings",
+      "headings": [
+        "Settings",
+        "Account Overview"
+      ],
+      "textLength": 2095,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Dept Settings Market account controls, operations defaults, security, notifications, and activity. Search workspace... Ctrl K Ka",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "manager",
+      "route": "/manager/profile",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\manager\\manager-profile.png",
+      "title": "Credential - Manager Workspace",
+      "url": "http://127.0.0.1:5173/manager/profile",
+      "headings": [
+        "Official Credential",
+        "Profile Information",
+        "Profile Photo",
+        "Contact Information",
+        "Workspace Scope"
+      ],
+      "textLength": 1458,
+      "textSample": "MMS Market Management System MAIN Dashboard Vendors Stalls & Bookings FINANCE Payments Billing OPERATIONS Complaints Coordination Notices REVIEW Reports ACCOUNT Settings Profile SN Market command center Collapse Manager Workspace / Credential Official identity, government contact information, and verified profile photo. Search workspace... Ctrl K Kampala Cen",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official.png",
+      "title": "Overview - Official Workspace",
+      "url": "http://127.0.0.1:5173/official",
+      "headings": [
+        "Regional market performance"
+      ],
+      "textLength": 1850,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Overview Today's priorities, status signals, and useful shortcuts. Search workspace... Ctrl K Regional monitoring Official DL David Lubega OFFICIAL OVERSIGHT Regional mar",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "url": "http://localhost:3001/audit",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3001/payments",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3001/stalls",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3001/tickets",
+          "failure": "net::ERR_ABORTED"
+        }
+      ]
+    },
+    {
+      "role": "official",
+      "route": "/official/billing",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-billing.png",
+      "title": "Revenue - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/billing",
+      "headings": [
+        "Revenue & Dues",
+        "Revenue Collection Policies",
+        "Official Dues Register"
+      ],
+      "textLength": 1879,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Revenue Market fees, utilities, taxes due, and revenue collection setup. Search workspace... Ctrl K Regional monitoring Official DL David Lubega Revenue & Dues Market fee",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official/reports",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-reports.png",
+      "title": "Reports - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/reports",
+      "headings": [
+        "Revenue Report",
+        "Revenue by Market"
+      ],
+      "textLength": 1145,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Reports Payment records, exports, and performance review. Search workspace... Ctrl K Regional monitoring Official DL David Lubega REPORTS > REVENUE Revenue Report Review ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official/audit",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-audit.png",
+      "title": "Activity Log - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/audit",
+      "headings": [
+        "Activity Log",
+        "Activity Records"
+      ],
+      "textLength": 43237,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Activity Log Read-only record of important system activity. Search workspace... Ctrl K Regional monitoring Official DL David Lubega Activity Log Read-only record of syste",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official/coordination",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-coordination.png",
+      "title": "Coordination - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/coordination",
+      "headings": [
+        "Requests",
+        "Resource Requests",
+        "Updates",
+        "Send Update"
+      ],
+      "textLength": 2929,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Coordination Resource requests, approvals, and market updates. Search workspace... Ctrl K Regional monitoring Official DL David Lubega Requests Review resource requests a",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official/announcements",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-announcements.png",
+      "title": "Notices - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/announcements",
+      "headings": [
+        "Notices",
+        "Publish Notice",
+        "Active Notices",
+        "Archived Notices"
+      ],
+      "textLength": 981,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Notices News and alerts, publication windows, and audience targeting. Search workspace... Ctrl K Regional monitoring Official DL David Lubega Notices Publish and monitor ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official/settings",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-settings.png",
+      "title": "Preferences - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/settings",
+      "headings": [
+        "Settings",
+        "Account Overview"
+      ],
+      "textLength": 1951,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Preferences Oversight preferences, security, notifications, data access, and activity. Search workspace... Ctrl K Regional monitoring Official DL David Lubega Settings Ov",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "official",
+      "route": "/official/profile",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\official\\official-profile.png",
+      "title": "Credential - Official Workspace",
+      "url": "http://127.0.0.1:5173/official/profile",
+      "headings": [
+        "Official Credential",
+        "Profile Information",
+        "Profile Photo",
+        "Contact Information",
+        "Workspace Scope"
+      ],
+      "textLength": 1385,
+      "textSample": "MMS Market Management System MAIN Dashboard Reports GOVERNANCE Audit Compliance Coordination RESOURCES Resources ACCOUNT Settings Profile DL Regional oversight Collapse Official Workspace / Credential Official identity, government contact information, and verified profile photo. Search workspace... Ctrl K Regional monitoring Official DL David Lubega Official",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin.png",
+      "title": "Overview - Control Center",
+      "url": "http://127.0.0.1:5173/admin",
+      "headings": [],
+      "textLength": 658,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Overview Today's priorities, status signals, and useful shortcuts. Search workspace... Ct",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "url": "http://localhost:3001/notifications?limit=5",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3001/markets",
+          "failure": "net::ERR_ABORTED"
+        }
+      ]
+    },
+    {
+      "role": "admin",
+      "route": "/admin/users",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-users.png",
+      "title": "Personnel - Control Center",
+      "url": "http://127.0.0.1:5173/admin/users",
+      "headings": [
+        "Personnel & Access Control"
+      ],
+      "textLength": 3499,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Personnel Staff accounts, roles, clearances, and access status. Search workspace... Ctrl ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/markets",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-markets.png",
+      "title": "Markets - Control Center",
+      "url": "http://127.0.0.1:5173/admin/markets",
+      "headings": [
+        "Markets"
+      ],
+      "textLength": 1247,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Markets Market setup, managers, stall capacity, and operational status. Search workspace.",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/alerts",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-alerts.png",
+      "title": "System Health - Control Center",
+      "url": "http://127.0.0.1:5173/admin/alerts",
+      "headings": [
+        "Alerts"
+      ],
+      "textLength": 2154,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / System Health System attention items, payment exceptions, and operational warnings. Searc",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/integrations",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-integrations.png",
+      "title": "Integrations - Control Center",
+      "url": "http://127.0.0.1:5173/admin/integrations",
+      "headings": [
+        "Integrations",
+        "Payments",
+        "Messaging",
+        "Data and reporting",
+        "Access and security"
+      ],
+      "textLength": 2357,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Integrations Payment, messaging, reporting, and platform connection health. Search worksp",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/settings",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-settings.png",
+      "title": "Configuration - Control Center",
+      "url": "http://127.0.0.1:5173/admin/settings",
+      "headings": [
+        "Platform Settings",
+        "Platform Overview"
+      ],
+      "textLength": 1832,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Configuration Platform configuration, integrations, feature management, security, data, a",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/billing",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-billing.png",
+      "title": "Revenue Controls - Control Center",
+      "url": "http://127.0.0.1:5173/admin/billing",
+      "headings": [
+        "Revenue & Dues",
+        "Revenue Collection Policies",
+        "Official Dues Register"
+      ],
+      "textLength": 1968,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Revenue Controls Market fees, utilities, taxes due, and revenue collection setup. Search ",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/reports",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-reports.png",
+      "title": "Reports - Control Center",
+      "url": "http://127.0.0.1:5173/admin/reports",
+      "headings": [
+        "Revenue Report",
+        "Revenue by Market"
+      ],
+      "textLength": 1228,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Reports Payment records, exports, and performance review. Search workspace... Ctrl K Syst",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/audit",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-audit.png",
+      "title": "Audit Logs - Control Center",
+      "url": "http://127.0.0.1:5173/admin/audit",
+      "headings": [
+        "Activity Log",
+        "Activity Records"
+      ],
+      "textLength": 43471,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Audit Logs Read-only record of important system activity. Search workspace... Ctrl K Syst",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/coordination",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-coordination.png",
+      "title": "Coordination - Control Center",
+      "url": "http://127.0.0.1:5173/admin/coordination",
+      "headings": [
+        "Requests",
+        "Resource Requests",
+        "Updates",
+        "Send Update"
+      ],
+      "textLength": 3012,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Coordination Resource requests, approvals, and market updates. Search workspace... Ctrl K",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/announcements",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-announcements.png",
+      "title": "Notices - Control Center",
+      "url": "http://127.0.0.1:5173/admin/announcements",
+      "headings": [
+        "Notices",
+        "Publish Notice",
+        "Active Notices",
+        "Archived Notices"
+      ],
+      "textLength": 1064,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Notices News and alerts, publication windows, and audience targeting. Search workspace...",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "role": "admin",
+      "route": "/admin/profile",
+      "screenshot": "C:\\Users\\ousam\\OneDrive\\Desktop\\MMS-1\\runtime\\ui-runthrough\\2026-06-04T17-00-41-925Z\\admin\\admin-profile.png",
+      "title": "Credential - Control Center",
+      "url": "http://127.0.0.1:5173/admin/profile",
+      "headings": [
+        "Official Credential",
+        "Profile Information",
+        "Profile Photo",
+        "Contact Information",
+        "Workspace Scope"
+      ],
+      "textLength": 1463,
+      "textSample": "MMS Market Management System MAIN Dashboard Users Roles & Permissions OPERATIONS Billing Controls Notifications Reports SYSTEM Audit Logs System Health Settings CONFIGURATION Markets Integrations Coordination ACCOUNT Profile RN Platform control Collapse Control Center / Credential Official identity, government contact information, and verified profile photo.",
+      "visibleProblemText": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "issueCount": 4
+}

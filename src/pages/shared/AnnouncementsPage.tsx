@@ -2,52 +2,26 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Send } from "lucide-react";
 
-import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
-import {
-  ConsolePage,
-  EmptyState,
-  EvidenceField,
-  FormSection,
-  LoadingState,
-  PageHeader,
-  Panel,
-  RecordCard,
-  ScopeBar,
-  ScopeItem,
-} from "@/components/console/ConsolePage";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { cn, formatHumanDateTime } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/sonner";
+import { MockupCard, MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
 import type { Announcement, AnnouncementAudience, AnnouncementPriority } from "@/types";
 
-const priorityLabels: Record<AnnouncementPriority, string> = {
-  low: "Low",
-  normal: "Normal",
-  high: "High",
-};
+// ─── Constants ───────────────────────────────────────────
+const priorityLabels: Record<AnnouncementPriority, string> = { low: "Low", normal: "Normal", high: "High" };
+const audienceLabels: Record<AnnouncementAudience, string> = { all: "All users", vendors: "Vendors", staff: "Staff" };
 
-const audienceLabels: Record<AnnouncementAudience, string> = {
-  all: "All users",
-  vendors: "Vendors",
-  staff: "Staff",
-};
-
-const priorityClassName = (priority: AnnouncementPriority) => {
-  if (priority === "high") return "border-destructive/20 bg-destructive/15 text-destructive";
-  if (priority === "normal") return "border-info/20 bg-info/10 text-info";
-  return "border-border bg-muted text-muted-foreground";
+const priorityClasses: Record<AnnouncementPriority, string> = {
+  high: "border-red-200 bg-red-50 text-red-700",
+  normal: "border-blue-200 bg-blue-50 text-blue-700",
+  low: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
 const formatExpiry = (announcement: Announcement) => {
@@ -56,6 +30,7 @@ const formatExpiry = (announcement: Announcement) => {
   return "No expiry";
 };
 
+// ─── Announcement card ────────────────────────────────────
 const AnnouncementCard = ({
   announcement,
   canManage,
@@ -64,49 +39,48 @@ const AnnouncementCard = ({
 }: {
   announcement: Announcement;
   canManage: boolean;
-  onArchive: (announcementId: string) => void;
+  onArchive: (id: string) => void;
   archiving: boolean;
 }) => (
-  <RecordCard className={cn("p-3", announcement.priority === "high" && announcement.active && "border-destructive/25 bg-destructive/5")}>
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+  <MockupCard className={cn("p-4", announcement.priority === "high" && announcement.active && "border-red-200 bg-red-50/30")}>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("status-badge", priorityClassName(announcement.priority))}>
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className={`rounded-sm border px-2 py-0.5 text-[11px] font-bold ${priorityClasses[announcement.priority]}`}>
             {priorityLabels[announcement.priority]}
           </span>
-          <span className="status-badge border-border bg-muted text-muted-foreground">
+          <span className="rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
             {audienceLabels[announcement.audience]}
           </span>
-          <span className="text-xs text-muted-foreground">
-            {announcement.marketName || "All markets"}
-          </span>
+          <span className="text-xs text-slate-400">{announcement.marketName || "All markets"}</span>
         </div>
-        <h3 className="mt-2 text-sm font-semibold leading-5">{announcement.title}</h3>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{announcement.body}</p>
+        <h3 className="font-bold text-slate-900">{announcement.title}</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-600">{announcement.body}</p>
       </div>
-
       {canManage && announcement.active && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-2"
-          disabled={archiving}
-          onClick={() => onArchive(announcement.id)}
-        >
+        <Button variant="outline" size="sm" className="shrink-0 gap-2 rounded-sm border-slate-300 font-bold" disabled={archiving} onClick={() => onArchive(announcement.id)}>
           <Archive className="h-4 w-4" />
           Archive
         </Button>
       )}
     </div>
 
-    <div className="mt-3 grid gap-3 border-t border-border/70 pt-3 sm:grid-cols-3">
-      <EvidenceField label="Published by" value={`${announcement.createdByName} (${announcement.createdByRole})`} />
-      <EvidenceField label="Published" value={formatHumanDateTime(announcement.createdAt)} />
-      <EvidenceField label="Lifecycle" value={formatExpiry(announcement)} />
+    <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-3 text-xs">
+      {[
+        { label: "Published by", value: `${announcement.createdByName} (${announcement.createdByRole})` },
+        { label: "Published", value: formatHumanDateTime(announcement.createdAt) },
+        { label: "Lifecycle", value: formatExpiry(announcement) },
+      ].map((field) => (
+        <div key={field.label} className="rounded-sm border border-slate-100 bg-slate-50 p-2">
+          <p className="text-slate-400">{field.label}</p>
+          <p className="mt-1 font-semibold text-slate-700">{field.value}</p>
+        </div>
+      ))}
     </div>
-  </RecordCard>
+  </MockupCard>
 );
 
+// ─── Page ─────────────────────────────────────────────────
 const AnnouncementsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -127,17 +101,10 @@ const AnnouncementsPage = () => {
   useEffect(() => {
     if (!isManager) return;
     setSelectedMarketId(user?.marketId || "");
-    setForm((current) => ({ ...current, marketId: user?.marketId || "" }));
+    setForm((c) => ({ ...c, marketId: user?.marketId || "" }));
   }, [isManager, user?.marketId]);
 
-  const marketScope =
-    isVendor
-      ? undefined
-      : isManager
-        ? user?.marketId || undefined
-        : selectedMarketId === "all"
-          ? undefined
-          : selectedMarketId;
+  const marketScope = isVendor ? undefined : isManager ? user?.marketId || undefined : selectedMarketId === "all" ? undefined : selectedMarketId;
 
   const announcementsQuery = useQuery({
     queryKey: ["announcements", user?.role, marketScope || "all"],
@@ -152,34 +119,16 @@ const AnnouncementsPage = () => {
   });
 
   const createAnnouncement = useMutation({
-    mutationFn: () =>
-      api.createAnnouncement({
-        title: form.title.trim(),
-        body: form.body.trim(),
-        priority: form.priority,
-        audience: form.audience,
-        marketId:
-          isManager
-            ? user?.marketId || null
-            : form.marketId === "all"
-              ? null
-              : form.marketId,
-        expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
-      }),
+    mutationFn: () => api.createAnnouncement({
+      title: form.title.trim(), body: form.body.trim(), priority: form.priority,
+      audience: form.audience, marketId: isManager ? user?.marketId || null : form.marketId === "all" ? null : form.marketId,
+      expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
+    }),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ["announcements"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setForm((current) => ({
-        ...current,
-        title: "",
-        body: "",
-        priority: "normal",
-        audience: "vendors",
-        expiresAt: "",
-      }));
-      toast.success("Notice published", {
-        description: `${result.delivery.recipientCount} notification recipient(s) queued.`,
-      });
+      setForm((c) => ({ ...c, title: "", body: "", priority: "normal", audience: "vendors", expiresAt: "" }));
+      toast.success("Notice published", { description: `${result.delivery.recipientCount} recipient(s) queued.` });
     },
     onError: (error) => {
       const message = error instanceof ApiError ? error.message : "Unable to publish notice.";
@@ -201,234 +150,143 @@ const AnnouncementsPage = () => {
 
   const announcements = announcementsQuery.data?.announcements || [];
   const markets = marketsQuery.data?.markets || [];
-  const activeAnnouncements = announcements.filter((announcement) => announcement.active);
-  const historicalAnnouncements = announcements.filter((announcement) => !announcement.active);
-
-  const pageLoading = announcementsQuery.isPending || (!isManager && !isVendor && marketsQuery.isPending);
-  const canSubmit =
-    canManage &&
-    form.title.trim().length > 0 &&
-    form.body.trim().length > 0 &&
-    (!isManager || Boolean(user?.marketId));
-
-  if (pageLoading) {
-    return (
-      <ConsolePage>
-        <LoadingState rows={1} itemClassName="h-28 rounded-xl" />
-        <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-28 rounded-xl" />
-        <LoadingState rows={2} itemClassName="h-64 rounded-xl" />
-      </ConsolePage>
-    );
-  }
+  const activeAnnouncements = announcements.filter((a) => a.active);
+  const historicalAnnouncements = announcements.filter((a) => !a.active);
+  const canSubmit = canManage && form.title.trim().length > 0 && form.body.trim().length > 0 && (!isManager || Boolean(user?.marketId));
 
   return (
-    <ConsolePage>
-      <PageHeader
+    <MockupPage>
+      <MockupHeader
         eyebrow={isVendor ? "Vendor notices" : "News and alerts"}
         title="Notices"
-        description={
-          isVendor
-            ? "Active market notices, deadlines, inspections, and changes."
-            : "Publish and monitor market-wide news and alerts for vendors and staff."
-        }
-        meta={
-          <>
-            <span className="rounded-full bg-muted px-2.5 py-1">
-              {user?.marketName || (isVendor ? "Assigned market" : "All markets")}
-            </span>
-            <span className="rounded-full bg-muted px-2.5 py-1">{activeAnnouncements.length} active</span>
-          </>
+        subtitle={isVendor ? "Active market notices, deadlines, inspections, and changes." : "Publish and monitor market-wide news and alerts for vendors and staff."}
+        actions={
+          !isVendor && !isManager ? (
+            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-sm border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
+              <option value="all">All markets</option>
+              {markets.map((market) => <option key={market.id} value={market.id}>{market.name}</option>)}
+            </select>
+          ) : !isVendor && isManager ? (
+            <div className="flex h-9 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+              {user?.marketName || "Assigned market"}
+            </div>
+          ) : undefined
         }
       />
 
-      {!isVendor && (
-        <ScopeBar>
-          {!isManager ? (
-            <ScopeItem label="Market scope" className="w-full lg:w-[260px]">
-              <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-                <SelectTrigger id="announcement-market-filter">
-                  <SelectValue placeholder="All markets" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All markets</SelectItem>
-                  {markets.map((market) => (
-                    <SelectItem key={market.id} value={market.id}>
-                      {market.name}
-                    </SelectItem>
+      {/* Summary */}
+      <div className="flex flex-wrap items-center gap-3">
+        <StatusPill tone={activeAnnouncements.length > 0 ? "amber" : "green"}>{activeAnnouncements.length} active</StatusPill>
+        {!isVendor && <StatusPill tone="slate">{historicalAnnouncements.length} archived</StatusPill>}
+        <span className="text-xs text-slate-500">{user?.marketName || (isVendor ? "Assigned market" : "All markets")}</span>
+      </div>
+
+      <div className={cn("grid gap-6", canManage && "xl:grid-cols-[minmax(0,1fr)_380px]")}>
+        {/* Active notices */}
+        <div className="space-y-4">
+          <MockupPanel title="Active Notices">
+            {announcementsQuery.isPending ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => <div key={i} className="h-24 rounded-sm bg-slate-100 animate-pulse" />)}
+              </div>
+            ) : activeAnnouncements.length === 0 ? (
+              <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+                No active notices. Important announcements will appear here when published.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activeAnnouncements.map((announcement) => (
+                  <AnnouncementCard key={announcement.id} announcement={announcement} canManage={canManage} onArchive={(id) => archiveAnnouncement.mutate(id)} archiving={archiveAnnouncement.isPending} />
+                ))}
+              </div>
+            )}
+          </MockupPanel>
+
+          {!isVendor && (
+            <MockupPanel title="Archived Notices">
+              {historicalAnnouncements.length === 0 ? (
+                <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">No archived notices.</div>
+              ) : (
+                <div className="space-y-3">
+                  {historicalAnnouncements.map((announcement) => (
+                    <AnnouncementCard key={announcement.id} announcement={announcement} canManage={false} onArchive={() => undefined} archiving={false} />
                   ))}
-                </SelectContent>
-              </Select>
-            </ScopeItem>
-          ) : (
-            <ScopeItem label="Market scope">
-              <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-                {user?.marketName || "Assigned market"}
-              </div>
-            </ScopeItem>
-          )}
-        </ScopeBar>
-      )}
-
-      <div className="notices-workspace-grid">
-      {canManage && (
-        <DashboardErrorBoundary>
-          <FormSection
-            className="notices-compose-panel workspace-secondary-panel"
-            title="Publish Notice"
-            description="Send an active notice to vendors, staff, or the whole market network."
-            actions={<Send className="h-5 w-5 text-muted-foreground" />}
-          >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="announcement-title">Title</Label>
-                <Input
-                  id="announcement-title"
-                  value={form.title}
-                  maxLength={140}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                  placeholder="e.g. Sanitation inspection this Friday"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="announcement-priority">Priority</Label>
-                  <Select
-                    value={form.priority}
-                    onValueChange={(value: AnnouncementPriority) => setForm((current) => ({ ...current, priority: value }))}
-                  >
-                    <SelectTrigger id="announcement-priority">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="announcement-audience">Audience</Label>
-                  <Select
-                    value={form.audience}
-                    onValueChange={(value: AnnouncementAudience) => setForm((current) => ({ ...current, audience: value }))}
-                  >
-                    <SelectTrigger id="announcement-audience">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vendors">Vendors</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="all">All users</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="announcement-expiry">Expiry</Label>
-                  <Input
-                    id="announcement-expiry"
-                    type="datetime-local"
-                    value={form.expiresAt}
-                    onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))}
-                  />
-                </div>
-              </div>
-
-              {!isManager && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="announcement-market">Target market</Label>
-                  <Select
-                    value={form.marketId}
-                    onValueChange={(value) => setForm((current) => ({ ...current, marketId: value }))}
-                  >
-                    <SelectTrigger id="announcement-market">
-                      <SelectValue placeholder="All markets" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All markets</SelectItem>
-                      {markets.map((market) => (
-                        <SelectItem key={market.id} value={market.id}>
-                          {market.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               )}
+            </MockupPanel>
+          )}
+        </div>
 
-              <div className={cn("space-y-1.5", isManager ? "lg:col-span-2" : "")}>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="announcement-body">Message</Label>
-                  <span className={`text-xs ${form.body.length > 1800 ? "text-warning" : "text-muted-foreground"}`}>
-                    {form.body.length} / 2000
-                  </span>
+        {/* Compose panel */}
+        {canManage && (
+          <div className="space-y-4">
+            <MockupPanel title="Publish Notice">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="font-bold text-slate-700">Title</Label>
+                  <Input className="border-2 border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" maxLength={140} value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="e.g. Sanitation inspection this Friday" />
                 </div>
-                <Textarea
-                  id="announcement-body"
-                  rows={4}
-                  value={form.body}
-                  maxLength={2000}
-                  onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))}
-                  placeholder="Write the notice vendors or staff need to act on."
-                />
-              </div>
 
-              <div className="lg:col-span-2">
-                <Button
-                  className="w-full gap-2 sm:w-auto"
-                  disabled={!canSubmit || createAnnouncement.isPending}
-                  onClick={() => createAnnouncement.mutate()}
-                >
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700">Priority</Label>
+                    <Select value={form.priority} onValueChange={(v: AnnouncementPriority) => setForm((c) => ({ ...c, priority: v }))}>
+                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700">Audience</Label>
+                    <Select value={form.audience} onValueChange={(v: AnnouncementAudience) => setForm((c) => ({ ...c, audience: v }))}>
+                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vendors">Vendors</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="all">All users</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700">Expiry</Label>
+                    <Input type="datetime-local" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.expiresAt} onChange={(e) => setForm((c) => ({ ...c, expiresAt: e.target.value }))} />
+                  </div>
+                </div>
+
+                {!isManager && (
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700">Target market</Label>
+                    <Select value={form.marketId} onValueChange={(v) => setForm((c) => ({ ...c, marketId: v }))}>
+                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue placeholder="All markets" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All markets</SelectItem>
+                        {markets.map((market) => <SelectItem key={market.id} value={market.id}>{market.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-bold text-slate-700">Message</Label>
+                    <span className={`text-xs ${form.body.length > 1800 ? "text-amber-600" : "text-slate-400"}`}>{form.body.length} / 2000</span>
+                  </div>
+                  <Textarea className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(e) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder="Write the notice vendors or staff need to act on." />
+                </div>
+
+                <Button className="w-full gap-2 rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={!canSubmit || createAnnouncement.isPending} onClick={() => createAnnouncement.mutate()}>
                   <Send className="h-4 w-4" />
                   {createAnnouncement.isPending ? "Publishing..." : "Publish Notice"}
                 </Button>
               </div>
-            </div>
-          </FormSection>
-        </DashboardErrorBoundary>
-      )}
-
-      <DashboardErrorBoundary>
-        <Panel className="notices-primary-panel workspace-dominant-panel" title="Active Notices" description="Currently visible notices." contentClassName="space-y-3">
-          {activeAnnouncements.length === 0 ? (
-            <EmptyState title="No active notices" description="Important notices will appear here when published." />
-          ) : (
-            activeAnnouncements.map((announcement) => (
-              <AnnouncementCard
-                key={announcement.id}
-                announcement={announcement}
-                canManage={canManage}
-                onArchive={(announcementId) => archiveAnnouncement.mutate(announcementId)}
-                archiving={archiveAnnouncement.isPending}
-              />
-            ))
-          )}
-        </Panel>
-      </DashboardErrorBoundary>
-
-      {!isVendor && (
-        <DashboardErrorBoundary>
-          <Panel className="workspace-secondary-panel" title="Archived Notices" description="Notices that are no longer active." contentClassName="space-y-3">
-            {historicalAnnouncements.length === 0 ? (
-              <EmptyState title="No historical notices" />
-            ) : (
-              historicalAnnouncements.map((announcement) => (
-                <AnnouncementCard
-                  key={announcement.id}
-                  announcement={announcement}
-                  canManage={false}
-                  onArchive={() => undefined}
-                  archiving={false}
-                />
-              ))
-            )}
-          </Panel>
-        </DashboardErrorBoundary>
-      )}
+            </MockupPanel>
+          </div>
+        )}
       </div>
-    </ConsolePage>
+    </MockupPage>
   );
 };
 

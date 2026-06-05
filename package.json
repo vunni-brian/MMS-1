@@ -7,6 +7,7 @@
     "node": "22.x"
   },
   "scripts": {
+    "capture-pages": "node scripts/capture-all-pages.mjs",
     "dev": "node ./node_modules/vite/bin/vite.js",
     "dev:web": "node ./node_modules/vite/bin/vite.js",
     "dev:api": "node --experimental-strip-types --watch server/main.ts",

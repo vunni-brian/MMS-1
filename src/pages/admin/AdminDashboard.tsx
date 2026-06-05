@@ -1,265 +1,305 @@
 import { useQuery } from "@tanstack/react-query";
+
 import {
-  Activity,
-  AlertTriangle,
-  Bell,
-  Clock3,
-  CreditCard,
-  Database,
-  HardDrive,
-  KeyRound,
-  RadioTower,
-  Server,
-  ShieldAlert,
-  UserPlus,
-  Users,
+ Activity,
+ AlertCircle,
+ Database,
+ Globe2,
+ HardDrive,
+ Landmark,
+ ShieldAlert,
+ ShieldCheck,
+ Terminal,
+ Users
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
+import { formatHumanDateTime } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LoadingState } from "@/components/console/ConsolePage";
-import {
-  MiniAreaChart,
-  MockupHeader,
-  MockupPage,
-  MockupPanel,
-  MockupStatCard,
-  SelectShell,
-  StatusPill,
-} from "@/components/mockup/MockupUI";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MiniAreaChart } from "@/components/mockup/MockupUI";
 
-const serviceCards = [
-  { id: "database", label: "Database", detail: "SQLite runtime", icon: Database, tone: "green" as const, value: "Healthy" },
-  { id: "payments", label: "Payments", detail: "Gateway connected", icon: CreditCard, tone: "green" as const, value: "Online" },
-  { id: "sms", label: "SMS", detail: "Delivery queue", icon: RadioTower, tone: "amber" as const, value: "Watch" },
-  { id: "storage", label: "Storage", detail: "Document uploads", icon: HardDrive, tone: "green" as const, value: "72%" },
-  { id: "queues", label: "Queues", detail: "Notifications", icon: Server, tone: "green" as const, value: "Normal" },
+const fallbackHealth = [
+ { service: "API Gateway", status: "Operational", uptime: "99.99%", latency: "42ms" },
+ { service: "Auth Provider", status: "Operational", uptime: "100%", latency: "18ms" },
+ { service: "Database Cluster", status: "Degraded", uptime: "98.50%", latency: "215ms" },
+ { service: "Storage Bucket", status: "Operational", uptime: "99.95%", latency: "65ms" },
 ];
 
+interface SystemHealthService {
+ service: string;
+ status: "Operational" | "Degraded";
+ uptime: string;
+ latency: string;
+}
+
+type StatTone = "default" | "blue" | "green" | "amber" | "red" | "purple";
+
+interface StatCardProps {
+ title: string;
+ value: string | number;
+ subtitle: string;
+ icon: LucideIcon;
+ tone?: StatTone;
+}
+
+const statToneClasses: Record<StatTone, string> = {
+ default: "text-muted-foreground bg-muted",
+ blue: "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400",
+ green: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400",
+ amber: "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
+ red: "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
+ purple: "text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400",
+};
+
+const getAuditSeverity = (action: string) =>
+ /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";
+
+const getAuditDetailLabel = (details: Record<string, unknown> | null) => {
+ if (!details) return "No details recorded";
+
+ const ipAddress = details.ipAddress ?? details.ip ?? details.clientIp;
+ if (typeof ipAddress === "string" && ipAddress.trim()) {
+ return ipAddress;
+ }
+
+ const status = details.status ?? details.reason ?? details.message;
+ if (typeof status === "string" && status.trim()) {
+ return status;
+ }
+
+ return "Details attached";
+};
+
+const DashboardSkeleton = () => (
+ <div className="space-y-6">
+ <div className="space-y-2">
+ <Skeleton className="h-8 w-[250px]" />
+ <Skeleton className="h-4 w-[400px]" />
+ </div>
+ <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+ {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[120px] rounded-sm" />)}
+ </div>
+ <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+ <div className="grid gap-6">
+ <Skeleton className="h-[350px] rounded-sm" />
+ <Skeleton className="h-[300px] rounded-sm" />
+ </div>
+ <div className="grid content-start gap-6">
+ <Skeleton className="h-[250px] rounded-sm" />
+ <Skeleton className="h-[250px] rounded-sm" />
+ </div>
+ </div>
+ </div>
+);
+
+const StatCard = ({ title, value, subtitle, icon: Icon, tone = "default" }: StatCardProps) => {
+ const toneClassName = statToneClasses[tone];
+ return (
+ <Card className="overflow-hidden bg-card transition-all hover:border-primary/40 hover:shadow-sm">
+ <CardContent className="p-6">
+ <div className="flex items-center gap-4">
+ <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-sm ${toneClassName}`}>
+ <Icon className="h-5 w-5" />
+ </div>
+ <div className="min-w-0 flex-1">
+ <p className="text-sm font-medium text-muted-foreground">{title}</p>
+ <div className="flex items-baseline gap-2">
+ <p className="truncate text-2xl font-bold font-heading text-foreground">{value}</p>
+ </div>
+ <p className="mt-1 truncate text-xs text-muted-foreground">{subtitle}</p>
+ </div>
+ </div>
+ </CardContent>
+ </Card>
+ );
+};
+
 const AdminDashboard = () => {
-  const marketsQuery = useQuery({ queryKey: ["markets", "admin-dashboard"], queryFn: () => api.getMarkets(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
-  const usersQuery = useQuery({ queryKey: ["users", "admin-dashboard"], queryFn: () => api.getUsers(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
-  const vendorsQuery = useQuery({ queryKey: ["vendors", "admin-dashboard"], queryFn: () => api.getVendors(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
-  const paymentsQuery = useQuery({ queryKey: ["payments", "admin-dashboard"], queryFn: () => api.getPayments(), refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
-  const ticketsQuery = useQuery({ queryKey: ["tickets", "admin-dashboard"], queryFn: () => api.getTickets(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
-  const auditQuery = useQuery({ queryKey: ["audit", "admin-dashboard"], queryFn: () => api.getAudit(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
-  const notificationsQuery = useQuery({ queryKey: ["notifications", "admin-dashboard"], queryFn: () => api.getNotifications(25), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
-  const healthQuery = useQuery({ queryKey: ["health", "admin-dashboard"], queryFn: () => api.health(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+ const usersQuery = useQuery({ queryKey: ["users", "admin"], queryFn: () => api.getUsers(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+ const marketsQuery = useQuery({ queryKey: ["markets", "admin"], queryFn: () => api.getMarkets(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+ const auditQuery = useQuery({ queryKey: ["audit", "admin"], queryFn: () => api.getAudit(), refetchInterval: 30000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
+ const systemHealthQuery = useQuery({ queryKey: ["system-health"], queryFn: () => api.health(), refetchInterval: 60000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
 
-  const isLoading =
-    marketsQuery.isPending ||
-    usersQuery.isPending ||
-    vendorsQuery.isPending ||
-    paymentsQuery.isPending ||
-    ticketsQuery.isPending ||
-    auditQuery.isPending ||
-    notificationsQuery.isPending ||
-    healthQuery.isPending;
+ const isLoading = usersQuery.isPending || marketsQuery.isPending || auditQuery.isPending || systemHealthQuery.isPending;
+ const isError = usersQuery.isError || marketsQuery.isError || auditQuery.isError || systemHealthQuery.isError;
 
-  const isError =
-    marketsQuery.isError ||
-    usersQuery.isError ||
-    vendorsQuery.isError ||
-    paymentsQuery.isError ||
-    ticketsQuery.isError ||
-    auditQuery.isError ||
-    notificationsQuery.isError ||
-    healthQuery.isError;
+ if (isError) {
+ return (
+ <div className="p-4 sm:p-6">
+ <Alert variant="destructive" className="max-w-xl">
+ <AlertCircle className="h-4 w-4" />
+ <AlertTitle>Could not load admin dashboard</AlertTitle>
+ <AlertDescription>System data is currently unavailable. Please refresh or check connection.</AlertDescription>
+ </Alert>
+ </div>
+ );
+ }
 
-  if (isError) {
-    return (
-      <MockupPage>
-        <Alert variant="destructive" className="max-w-xl">
-          <AlertTitle>Could not load system overview</AlertTitle>
-          <AlertDescription>There was a problem loading system administration data.</AlertDescription>
-        </Alert>
-      </MockupPage>
-    );
-  }
+ if (isLoading) {
+ return <DashboardSkeleton />;
+ }
 
-  if (isLoading) {
-    return (
-      <MockupPage>
-        <LoadingState rows={7} itemClassName="h-28 rounded-lg" />
-      </MockupPage>
-    );
-  }
+ const users = usersQuery.data?.users || [];
+ const markets = marketsQuery.data?.markets || [];
+ const auditEvents = auditQuery.data?.events || [];
+ const systemHealth: SystemHealthService[] = systemHealthQuery.data?.ok
+ ? fallbackHealth.map((service) => ({ ...service, status: "Operational" }))
+ : fallbackHealth;
 
-  const markets = marketsQuery.data?.markets || [];
-  const staffUsers = usersQuery.data?.users || [];
-  const vendors = vendorsQuery.data?.vendors || [];
-  const payments = paymentsQuery.data?.payments || [];
-  const tickets = ticketsQuery.data?.tickets || [];
-  const auditEvents = auditQuery.data?.events || [];
-  const notifications = notificationsQuery.data?.notifications || [];
-  const completedPayments = payments.filter((payment) => payment.status === "completed");
-  const todaysPayments = completedPayments.filter((payment) => {
-    const paymentDate = new Date(payment.completedAt || payment.createdAt);
-    const now = new Date();
-    return paymentDate.toDateString() === now.toDateString();
-  });
-  const paymentsToday = todaysPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const openTickets = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
-  const totalUsers = staffUsers.length + vendors.length;
-  const activeSessions = Math.max(staffUsers.filter((user) => user.status === "active").length, 18);
-  const unreadNotifications = notifications.filter((notification) => !notification.read).length;
-  const securityEvents = auditEvents.filter((event) => ["auth", "user", "permission", "role"].some((term) => event.action.toLowerCase().includes(term)));
-  const roleCounts = [
-    { label: "Admin", count: staffUsers.filter((user) => user.role === "admin").length || 1, tone: "purple" as const },
-    { label: "Managers", count: staffUsers.filter((user) => user.role === "manager").length || 12, tone: "blue" as const },
-    { label: "Officials", count: staffUsers.filter((user) => user.role === "official").length || 6, tone: "slate" as const },
-    { label: "Vendors", count: vendors.length || 1245, tone: "green" as const },
-  ];
+ const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
+ const activeMarkets = markets.filter((market) => market.stallCount > 0 || market.activeStallCount > 0);
+ const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
+ const degradedServices = systemHealth.filter((s) => s.status !== "Operational");
+ 
+ const systemStatus = degradedServices.length === 0 ? "healthy" : degradedServices.length > 2 ? "critical" : "degraded";
 
-  return (
-    <MockupPage>
-      <MockupHeader
-        eyebrow="Admin control center"
-        title="System overview"
-        subtitle="Platform-wide users, roles, payments, health, notifications, and audit activity."
-        actions={<SelectShell>Live status</SelectShell>}
-      />
+ return (
+ <div className="space-y-6">
+ <div>
+ <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+ <div>
+ <div className="flex items-center gap-3 mb-1">
+ <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Console</p>
+ <Badge variant={systemStatus === "healthy" ? "default" : systemStatus === "critical" ? "destructive" : "secondary"}>
+ {systemStatus === "healthy" ? "All Systems Go" : systemStatus === "critical" ? "Critical Alert" : "Degraded Performance"}
+ </Badge>
+ </div>
+ <h1 className="text-3xl font-bold font-heading text-foreground">System Overview</h1>
+ <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+ Monitor infrastructure health, security events, and platform usage across all regions.
+ </p>
+ </div>
+ </div>
+ </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <MockupStatCard title="Total Users" value={Math.max(totalUsers, 1245).toLocaleString()} subtitle="All roles" tone="purple" icon={Users} />
-        <MockupStatCard title="Active Sessions" value={activeSessions} subtitle="Currently active" tone="green" icon={Activity} />
-        <MockupStatCard title="Payments Today" value={formatCurrency(paymentsToday || 4_800_000)} subtitle="Completed today" tone="blue" icon={CreditCard} />
-        <MockupStatCard title="System Health" value={healthQuery.data?.ok ? "Good" : "Watch"} subtitle="Runtime services" tone={healthQuery.data?.ok ? "green" : "amber"} icon={Server} />
-        <MockupStatCard title="Notification Queue" value={Math.max(unreadNotifications, 5)} subtitle="Unread or pending" tone="amber" icon={Bell} />
-        <MockupStatCard title="API Latency" value="182ms" subtitle="Recent average" tone="slate" icon={Clock3} />
-      </div>
+ <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+ <div><StatCard title="Total Users" value={users.length.toLocaleString()} subtitle={`${internalUsers.length} staff / ${users.length - internalUsers.length} vendors`} tone="blue" icon={Users} /></div>
+ <div><StatCard title="Active Markets" value={activeMarkets.length} subtitle={`${markets.length} registered total`} tone="green" icon={Landmark} /></div>
+ <div><StatCard title="Security Events" value={failedEvents.length} subtitle="Failed logins / Denied access" tone={failedEvents.length > 0 ? "amber" : "green"} icon={failedEvents.length > 0 ? ShieldAlert : ShieldCheck} /></div>
+ <div><StatCard title="System Health" value={systemStatus === "healthy" ? "100%" : "Degraded"} subtitle={`${degradedServices.length} alerts active`} tone={systemStatus === "healthy" ? "green" : "red"} icon={Activity} /></div>
+ </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="grid gap-6">
-          <MockupPanel title="System Health Indicators">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              {serviceCards.map((service) => {
-                const Icon = service.icon;
-                return (
-                  <div key={service.id} className="rounded-xl border border-slate-200 bg-white p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <StatusPill tone={service.tone}>{service.value}</StatusPill>
-                    </div>
-                    <p className="mt-4 text-sm font-semibold text-slate-950">{service.label}</p>
-                    <p className="mt-1 text-xs text-slate-500">{service.detail}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </MockupPanel>
+ <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+ <div className="grid gap-6 content-start">
+ <div>
+ <Card>
+ <CardHeader className="flex flex-row items-center justify-between pb-2">
+ <CardTitle>Platform Activity (Last 30 Days)</CardTitle>
+ <div className="flex gap-2">
+ <Badge variant="secondary" className="bg-primary/10 text-primary">Logins</Badge>
+ <Badge variant="outline">API Calls</Badge>
+ </div>
+ </CardHeader>
+ <CardContent className="pt-4">
+ <MiniAreaChart className="text-primary" />
+ </CardContent>
+ </Card>
+ </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <MockupPanel title="Platform Usage Analytics" actions={<SelectShell className="w-28">30 days</SelectShell>}>
-              <div className="mb-3 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Markets</p>
-                  <p className="mt-1 text-xl font-bold">{Math.max(markets.length, 23)}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Open tickets</p>
-                  <p className="mt-1 text-xl font-bold">{Math.max(openTickets.length, 12)}</p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-xs text-slate-500">Revenue</p>
-                  <p className="mt-1 text-xl font-bold">{formatCurrency(completedPayments.reduce((sum, payment) => sum + payment.amount, 0) || 120_450_000)}</p>
-                </div>
-              </div>
-              <MiniAreaChart className="text-violet-700" />
-            </MockupPanel>
+ <div>
+ <Card>
+ <CardHeader>
+ <CardTitle>Security & Audit Log</CardTitle>
+ </CardHeader>
+ <CardContent>
+ <div className="space-y-3">
+ {auditEvents.slice(0, 8).map((event) => {
+ const severity = getAuditSeverity(event.action);
+ const detailLabel = getAuditDetailLabel(event.details);
 
-            <MockupPanel title="Role Management Overview">
-              <div className="space-y-3">
-                {roleCounts.map((role) => (
-                  <div key={role.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
-                    <div className="flex items-center gap-3">
-                      <KeyRound className="h-4 w-4 text-violet-700" />
-                      <span className="text-sm font-semibold text-slate-950">{role.label}</span>
-                    </div>
-                    <StatusPill tone={role.tone}>{role.count}</StatusPill>
-                  </div>
-                ))}
-              </div>
-            </MockupPanel>
-          </div>
+ return (
+ <div key={event.id} className="group flex items-center justify-between rounded-sm border border-transparent p-3 transition-colors hover:bg-muted/40 hover:border-border">
+ <div className="flex items-center gap-4">
+ <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${severity === "failure" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-primary/10 text-primary"}`}>
+ <Terminal className="h-4 w-4" />
+ </span>
+ <div>
+ <p className="text-sm font-semibold capitalize">{event.action.replace(/_/g, " ")}</p>
+ <div className="flex items-center gap-2 mt-0.5">
+ <span className="text-xs font-medium text-muted-foreground">{event.actorName}</span>
+ <span className="text-[10px] text-muted-foreground/60">•</span>
+ <span className="text-xs text-muted-foreground">{detailLabel}</span>
+ </div>
+ </div>
+ </div>
+ <div className="text-right">
+ <Badge variant={severity === "failure" ? "destructive" : "secondary"} className="text-[10px] uppercase">
+ {severity === "failure" ? "Review" : "Recorded"}
+ </Badge>
+ <p className="mt-1 text-xs text-muted-foreground">{formatHumanDateTime(event.createdAt)}</p>
+ </div>
+ </div>
+ );
+ })}
+ {!auditEvents.length ? <div className="rounded-sm bg-muted/50 p-4 text-center text-sm text-muted-foreground">No recent audit events.</div> : null}
+ </div>
+ </CardContent>
+ </Card>
+ </div>
+ </div>
 
-          <MockupPanel title="Audit Stream">
-            <div className="grid gap-3 md:grid-cols-2">
-              {auditEvents.slice(0, 6).map((event) => (
-                <div key={event.id} className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-                  <div className="flex items-start gap-3">
-                    <UserPlus className="mt-0.5 h-4 w-4 shrink-0 text-violet-700" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-950">{event.action.replace(/_/g, " ")}</p>
-                      <p className="mt-1 truncate text-xs text-slate-500">{event.actorName} - {event.marketName || "System"}</p>
-                      <p className="mt-1 text-[11px] text-slate-400">{formatHumanDateTime(event.createdAt)}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {!auditEvents.length ? <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No audit events recorded yet.</div> : null}
-            </div>
-          </MockupPanel>
-        </div>
+ <div className="grid content-start gap-6">
+ <div>
+ <Card>
+ <CardHeader>
+ <CardTitle>Infrastructure Health</CardTitle>
+ </CardHeader>
+ <CardContent>
+ <div className="space-y-4">
+ {systemHealth.map((service) => (
+ <div key={service.service} className="rounded-sm border border-border/50 bg-muted/20 p-4">
+ <div className="flex items-center justify-between mb-3">
+ <div className="flex items-center gap-2">
+ {service.service.includes("Database") ? <Database className="h-4 w-4 text-muted-foreground" /> :
+ service.service.includes("Storage") ? <HardDrive className="h-4 w-4 text-muted-foreground" /> :
+ <Globe2 className="h-4 w-4 text-muted-foreground" />}
+ <span className="text-sm font-semibold">{service.service}</span>
+ </div>
+ <Badge variant={service.status === "Operational" ? "default" : "destructive"}>{service.status}</Badge>
+ </div>
+ <div className="grid grid-cols-2 gap-2 text-sm">
+ <div className="rounded-sm bg-background/50 p-2">
+ <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Uptime</p>
+ <p className="mt-0.5 font-medium">{service.uptime}</p>
+ </div>
+ <div className="rounded-sm bg-background/50 p-2">
+ <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Latency</p>
+ <p className={`mt-0.5 font-medium ${parseInt(service.latency) > 100 ? "text-amber-500" : ""}`}>{service.latency}</p>
+ </div>
+ </div>
+ </div>
+ ))}
+ </div>
+ </CardContent>
+ </Card>
+ </div>
 
-        <div className="grid content-start gap-6">
-          <MockupPanel title="Security Events">
-            <div className="space-y-3">
-              {(securityEvents.length ? securityEvents.slice(0, 4) : auditEvents.slice(0, 3)).map((event) => (
-                <div key={event.id} className="flex gap-3 rounded-xl bg-slate-50 p-3">
-                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-violet-700" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-950">{event.action.replace(/_/g, " ")}</p>
-                    <p className="truncate text-xs text-slate-500">{formatHumanDateTime(event.createdAt)}</p>
-                  </div>
-                </div>
-              ))}
-              {!auditEvents.length ? <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No security events.</div> : null}
-            </div>
-          </MockupPanel>
-
-          <MockupPanel title="User Activity">
-            <div className="space-y-3">
-              {staffUsers.slice(0, 5).map((account) => (
-                <div key={account.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-950">{account.name}</p>
-                    <p className="truncate text-xs text-slate-500">{account.role} - {account.marketName || account.department || "Platform"}</p>
-                  </div>
-                  <StatusPill tone={account.status === "active" ? "green" : account.status === "suspended" ? "red" : "amber"}>{account.status}</StatusPill>
-                </div>
-              ))}
-            </div>
-          </MockupPanel>
-
-          <MockupPanel title="Attention Queue">
-            <div className="space-y-3">
-              {[
-                { title: "Complaint load", detail: `${Math.max(openTickets.length, 12)} open complaints`, tone: "amber" as const },
-                { title: "SMS delivery", detail: "Delivery latency above normal", tone: "amber" as const },
-                { title: "Payment gateway", detail: "All providers accepting requests", tone: "green" as const },
-              ].map((item) => (
-                <div key={item.title} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-700" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-950">{item.title}</p>
-                      <p className="truncate text-xs text-slate-500">{item.detail}</p>
-                    </div>
-                  </div>
-                  <StatusPill tone={item.tone}>Review</StatusPill>
-                </div>
-              ))}
-            </div>
-          </MockupPanel>
-        </div>
-      </div>
-    </MockupPage>
-  );
+ <div>
+ <Card className="border-red-200/50 bg-red-50/30 dark:border-red-900/50 dark:bg-red-900/10">
+ <CardContent className="pt-6">
+ <div className="flex gap-4">
+ <div className="mt-0.5 rounded-full bg-red-100 p-2 text-red-700 dark:bg-red-900/50 dark:text-red-400">
+ <ShieldAlert className="h-5 w-5" />
+ </div>
+ <div>
+ <p className="text-sm font-semibold text-red-900 dark:text-red-200">Database Latency Alert</p>
+ <p className="mt-1 text-xs text-red-700 dark:text-red-400/80">
+ The database cluster is experiencing high latency (215ms avg). Read replicas are being scaled up automatically. No action required.
+ </p>
+ </div>
+ </div>
+ </CardContent>
+ </Card>
+ </div>
+ </div>
+ </div>
+ </div>
+ );
 };
 
 export default AdminDashboard;

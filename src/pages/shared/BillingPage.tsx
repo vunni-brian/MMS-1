@@ -1,65 +1,60 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { PlusCircle, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { Lock, PlusCircle, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  ConsolePage,
-  DataTableFrame,
-  EmptyState,
-  EvidenceField,
-  FormSection,
-  LoadingState,
-  PageHeader,
-  Panel,
-  ScopeBar,
-  ScopeItem,
-} from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
+import { LoadingState } from "@/components/console/ConsolePage";
+import { MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
 import type { UtilityCalculationMethod, UtilityType } from "@/types";
 
+// ─── Constants ───────────────────────────────────────────
 const utilityTypeOptions: { value: UtilityType; label: string }[] = [
-  { value: "electricity", label: "Electricity" },
-  { value: "water", label: "Water" },
-  { value: "sanitation", label: "Sanitation" },
-  { value: "garbage", label: "Garbage" },
+  { value: "electricity", label: "Electricity" }, { value: "water", label: "Water" },
+  { value: "sanitation", label: "Sanitation" }, { value: "garbage", label: "Garbage" },
   { value: "other", label: "Other" },
 ];
 
 const calculationOptions: { value: UtilityCalculationMethod; label: string }[] = [
-  { value: "metered", label: "Metered" },
-  { value: "estimated", label: "Estimated" },
-  { value: "fixed", label: "Fixed" },
+  { value: "metered", label: "Metered" }, { value: "estimated", label: "Estimated" }, { value: "fixed", label: "Fixed" },
 ];
 
-const formatDate = (value: string | null, fallback = "Not available") => {
-  return formatHumanDate(value ? `${value}T00:00:00` : null, fallback);
-};
-
-const formatDateTime = (value: string | null, fallback = "Not available") => {
-  return formatHumanDateTime(value, fallback);
+const chargeStatusClasses: Record<string, string> = {
+  unpaid: "border-amber-200 bg-amber-50 text-amber-700",
+  overdue: "border-red-200 bg-red-50 text-red-700",
+  pending: "border-amber-200 bg-amber-50 text-amber-700",
+  pending_payment: "border-amber-200 bg-amber-50 text-amber-700",
+  paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  cancelled: "border-slate-200 bg-slate-50 text-slate-500",
 };
 
 const getObligationStatusLabel = (status: string) =>
-  status === "pending" || status === "pending_payment"
-    ? "Pending Payment"
-    : status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+  status === "pending" || status === "pending_payment" ? "Pending Payment"
+  : status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
 
+const formatDate = (value: string | null, fallback = "Not available") =>
+  formatHumanDate(value ? `${value}T00:00:00` : null, fallback);
+
+const formatDateTime = (value: string | null, fallback = "Not available") =>
+  formatHumanDateTime(value, fallback);
+
+// ─── Field row helper ─────────────────────────────────────
+const FieldRow = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
+  <div className="rounded-sm border border-slate-100 bg-slate-50 p-2.5">
+    <p className="text-xs text-slate-400">{label}</p>
+    <div className={`mt-1 break-words text-sm font-semibold text-slate-900 ${mono ? "font-mono text-xs" : ""}`}>{value}</div>
+  </div>
+);
+
+// ─── Page ─────────────────────────────────────────────────
 const BillingPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -78,647 +73,329 @@ const BillingPage = () => {
 
   const [form, setForm] = useState({
     marketId: isManager ? user?.marketId || "" : "",
-    vendorId: "",
-    bookingId: "none",
+    vendorId: "", bookingId: "none",
     utilityType: "electricity" as UtilityType,
-    description: "",
-    billingPeriod: "",
+    description: "", billingPeriod: "",
     calculationMethod: "metered" as UtilityCalculationMethod,
-    usageQuantity: "",
-    unit: "",
-    ratePerUnit: "",
-    amount: "",
-    dueDate: "",
+    usageQuantity: "", unit: "", ratePerUnit: "", amount: "", dueDate: "",
   });
 
   const [error, setError] = useState<string | null>(null);
 
-  const utilityMarketId = isManager
-    ? user?.marketId || undefined
-    : selectedMarketId === "all"
-      ? undefined
-      : selectedMarketId;
+  const utilityMarketId = isManager ? user?.marketId || undefined : selectedMarketId === "all" ? undefined : selectedMarketId;
 
   useEffect(() => {
-    if (isManager) {
-      setSelectedMarketId(user?.marketId || "");
-      setForm((current) => ({ ...current, marketId: user?.marketId || "" }));
-      return;
-    }
-
-    setForm((current) => ({
-      ...current,
-      marketId: selectedMarketId === "all" ? "" : selectedMarketId,
-      vendorId: "",
-      bookingId: "none",
-    }));
+    if (isManager) { setSelectedMarketId(user?.marketId || ""); setForm((c) => ({ ...c, marketId: user?.marketId || "" })); return; }
+    setForm((c) => ({ ...c, marketId: selectedMarketId === "all" ? "" : selectedMarketId, vendorId: "", bookingId: "none" }));
   }, [isManager, selectedMarketId, user?.marketId]);
 
-  const {
-    data: chargeTypesData,
-    error: chargeTypesError,
-    isPending: chargeTypesPending,
-  } = useQuery({
+  const { data: chargeTypesData, error: chargeTypesError, isPending: chargeTypesPending } = useQuery({
     queryKey: ["charge-types", user?.role, utilityMarketId || "all"],
     queryFn: () => api.getChargeTypes(isManager ? user?.marketId || undefined : utilityMarketId),
     enabled: Boolean(user),
   });
-
   const { data: marketsData, isPending: marketsPending } = useQuery({
-    queryKey: ["markets", "billing"],
-    queryFn: () => api.getMarkets(),
-    enabled: Boolean(user && !isManager),
+    queryKey: ["markets", "billing"], queryFn: () => api.getMarkets(), enabled: Boolean(user && !isManager),
   });
-
-  const {
-    data: utilityChargesData,
-    error: utilityChargesError,
-    isPending: utilityChargesPending,
-  } = useQuery({
+  const { data: utilityChargesData, error: utilityChargesError, isPending: utilityChargesPending } = useQuery({
     queryKey: ["utility-charges", "billing", utilityMarketId || "all"],
-    queryFn: () => api.getUtilityCharges({ marketId: utilityMarketId }),
-    enabled: Boolean(user),
+    queryFn: () => api.getUtilityCharges({ marketId: utilityMarketId }), enabled: Boolean(user),
   });
-
   const { data: vendorsData } = useQuery({
     queryKey: ["vendors", "billing", utilityMarketId || "all"],
-    queryFn: () => api.getVendors(utilityMarketId),
-    enabled: Boolean(canManageUtilities && utilityMarketId),
+    queryFn: () => api.getVendors(utilityMarketId), enabled: Boolean(canManageUtilities && utilityMarketId),
   });
-
   const { data: bookingsData } = useQuery({
     queryKey: ["bookings", "billing", utilityMarketId || "all"],
-    queryFn: () => api.getBookings(utilityMarketId),
-    enabled: Boolean(canManageUtilities && utilityMarketId && form.vendorId),
+    queryFn: () => api.getBookings(utilityMarketId), enabled: Boolean(canManageUtilities && utilityMarketId && form.vendorId),
   });
 
   const updateChargeType = useMutation({
-    mutationFn: ({ chargeTypeId, isEnabled }: { chargeTypeId: string; isEnabled: boolean }) =>
-      api.updateChargeType(chargeTypeId, isEnabled),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["charge-types"] });
-      await queryClient.invalidateQueries({ queryKey: ["payments"] });
-      setError(null);
-      toast.success("Billing switch updated");
-    },
-    onError: (mutationError) => {
-      const message =
-        mutationError instanceof ApiError
-          ? mutationError.message
-          : "Unable to update billing switch.";
-      setError(message);
-      toast.error("Billing switch was not updated", { description: message });
-    },
+    mutationFn: ({ chargeTypeId, isEnabled }: { chargeTypeId: string; isEnabled: boolean }) => api.updateChargeType(chargeTypeId, isEnabled),
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["charge-types"] }); await queryClient.invalidateQueries({ queryKey: ["payments"] }); setError(null); toast.success("Billing switch updated"); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to update billing switch."; setError(msg); toast.error("Billing switch was not updated", { description: msg }); },
   });
 
   const createUtilityCharge = useMutation({
-    mutationFn: () =>
-      api.createUtilityCharge({
-        marketId: form.marketId || undefined,
-        vendorId: form.vendorId,
-        bookingId: form.bookingId === "none" ? null : form.bookingId,
-        utilityType: form.utilityType,
-        description: form.description,
-        billingPeriod: form.billingPeriod,
-        usageQuantity:
-          form.calculationMethod === "fixed" || !form.usageQuantity
-            ? null
-            : Number(form.usageQuantity),
-        unit: form.calculationMethod === "fixed" ? null : form.unit || null,
-        ratePerUnit:
-          form.calculationMethod === "fixed" || !form.ratePerUnit
-            ? null
-            : Number(form.ratePerUnit),
-        calculationMethod: form.calculationMethod,
-        amount: form.amount ? Number(form.amount) : null,
-        dueDate: form.dueDate,
-      }),
+    mutationFn: () => api.createUtilityCharge({
+      marketId: form.marketId || undefined, vendorId: form.vendorId, bookingId: form.bookingId === "none" ? null : form.bookingId,
+      utilityType: form.utilityType, description: form.description, billingPeriod: form.billingPeriod,
+      usageQuantity: form.calculationMethod === "fixed" || !form.usageQuantity ? null : Number(form.usageQuantity),
+      unit: form.calculationMethod === "fixed" ? null : form.unit || null,
+      ratePerUnit: form.calculationMethod === "fixed" || !form.ratePerUnit ? null : Number(form.ratePerUnit),
+      calculationMethod: form.calculationMethod, amount: form.amount ? Number(form.amount) : null, dueDate: form.dueDate,
+    }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["utility-charges"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setForm((current) => ({
-        ...current,
-        vendorId: "",
-        bookingId: "none",
-        description: "",
-        billingPeriod: "",
-        usageQuantity: "",
-        unit: "",
-        ratePerUnit: "",
-        amount: "",
-        dueDate: "",
-      }));
+      setForm((c) => ({ ...c, vendorId: "", bookingId: "none", description: "", billingPeriod: "", usageQuantity: "", unit: "", ratePerUnit: "", amount: "", dueDate: "" }));
       setError(null);
-      toast.success("Utility charge created", {
-        description: "The vendor can now review the payment due and upload a receipt.",
-      });
+      toast.success("Utility charge created", { description: "The vendor can now review the payment due and upload a receipt." });
     },
-    onError: (mutationError) => {
-      const message =
-        mutationError instanceof ApiError
-          ? mutationError.message
-          : "Unable to create utility charge.";
-      setError(message);
-      toast.error("Utility charge was not created", { description: message });
-    },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to create utility charge."; setError(msg); toast.error("Utility charge was not created", { description: msg }); },
   });
 
   const cancelUtilityCharge = useMutation({
-    mutationFn: (utilityChargeId: string) => api.cancelUtilityCharge(utilityChargeId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["utility-charges"] });
-      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setError(null);
-      toast.success("Utility charge cancelled");
-    },
-    onError: (mutationError) => {
-      const message =
-        mutationError instanceof ApiError
-          ? mutationError.message
-          : "Unable to cancel utility charge.";
-      setError(message);
-      toast.error("Utility charge was not cancelled", { description: message });
-    },
+    mutationFn: (id: string) => api.cancelUtilityCharge(id),
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["utility-charges"] }); await queryClient.invalidateQueries({ queryKey: ["notifications"] }); setError(null); toast.success("Utility charge cancelled"); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to cancel utility charge."; setError(msg); toast.error("Utility charge was not cancelled", { description: msg }); },
   });
 
   const chargeTypes = chargeTypesData?.chargeTypes || [];
   const utilityCharges = utilityChargesData?.utilityCharges || [];
   const markets = marketsData?.markets || [];
-  const vendors = (vendorsData?.vendors || []).filter((vendor) => vendor.status === "approved");
-  const bookings = (bookingsData?.bookings || []).filter(
-    (booking) => booking.vendorId === form.vendorId,
-  );
-  const selectedVendor = vendors.find((vendor) => vendor.id === form.vendorId) || null;
-
+  const vendors = (vendorsData?.vendors || []).filter((v) => v.status === "approved");
+  const bookings = (bookingsData?.bookings || []).filter((b) => b.vendorId === form.vendorId);
+  const selectedVendor = vendors.find((v) => v.id === form.vendorId) || null;
   const isPageLoading = chargeTypesPending || utilityChargesPending || (!isManager && marketsPending);
-
-  const loadError =
-    chargeTypesError instanceof ApiError
-      ? chargeTypesError.message
-      : utilityChargesError instanceof ApiError
-        ? utilityChargesError.message
-        : null;
-  const unpaidCharges = utilityCharges.filter((charge) => ["unpaid", "overdue", "pending_payment"].includes(charge.status));
-  const overdueCharges = utilityCharges.filter((charge) => charge.status === "overdue");
-  const paidCharges = utilityCharges.filter((charge) => charge.status === "paid");
-  const outstandingUtilityTotal = unpaidCharges.reduce((sum, charge) => sum + charge.amount, 0);
-  const latestCharge = [...utilityCharges].sort(
-    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-  )[0];
+  const loadError = chargeTypesError instanceof ApiError ? chargeTypesError.message : utilityChargesError instanceof ApiError ? utilityChargesError.message : null;
+  const unpaidCharges = utilityCharges.filter((c) => ["unpaid", "overdue", "pending_payment"].includes(c.status));
+  const overdueCharges = utilityCharges.filter((c) => c.status === "overdue");
+  const paidCharges = utilityCharges.filter((c) => c.status === "paid");
+  const outstandingTotal = unpaidCharges.reduce((sum, c) => sum + c.amount, 0);
+  const paidTotal = paidCharges.reduce((sum, c) => sum + c.amount, 0);
+  const latestCharge = [...utilityCharges].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   return (
-    <ConsolePage>
-      <PageHeader
-        eyebrow="Billing and utilities"
-        title="Billing"
-        description="Market fees, payments due, and payment records."
-        meta={
-          <>
-            <span className="rounded-full bg-muted px-2.5 py-1">Role: {user?.role}</span>
-            <span className="rounded-full bg-muted px-2.5 py-1">
-              Fees, utilities, and payment due records
-            </span>
-          </>
+    <MockupPage>
+      <MockupHeader
+        eyebrow="Revenue collection"
+        title="Revenue & Dues"
+        subtitle="Market fees, payments due, and payment records."
+        actions={
+          !isManager ? (
+            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-sm border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
+              <option value="all">All markets</option>
+              {markets.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          ) : (
+            <div className="flex h-9 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+              {user?.marketName || "Assigned market"}
+            </div>
+          )
         }
       />
 
-      <ScopeBar>
-        {!isManager ? (
-          <ScopeItem label="Market scope" className="w-full lg:w-[260px]">
-            <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-              <SelectTrigger id="billing-market-filter">
-                <SelectValue placeholder="All markets" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All markets</SelectItem>
-                {markets.map((market) => (
-                  <SelectItem key={market.id} value={market.id}>
-                    {market.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ScopeItem>
-        ) : (
-          <ScopeItem label="Market scope">
-            <div className="rounded-md border border-border/70 bg-background px-3 py-2 text-sm">
-              {user?.marketName || "Assigned market"}
-            </div>
-          </ScopeItem>
-        )}
-
-      </ScopeBar>
-
       {!canManageUtilities && (
-        <div className="flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5 text-sm text-muted-foreground shadow-sm">
-            <ShieldCheck className="mt-0.5 h-5 w-5 text-muted-foreground" />
-            <div>
-              This view is read-only for your role. Utility charges and switches are shown for
-              monitoring only.
-            </div>
+        <div className="flex items-start gap-3 rounded-sm border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 shadow-sm">
+          <ShieldCheck className="mt-0.5 h-5 w-5 text-slate-400 shrink-0" />
+          <span>This view is read-only for your role. Utility charges and switches are shown for monitoring only.</span>
         </div>
       )}
 
-      {(error || loadError) && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {error || loadError}
-        </div>
-      )}
+      {(error || loadError) && <div className="rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error || loadError}</div>}
 
       {isPageLoading ? (
-        <LoadingState rows={5} itemClassName="h-32 rounded-xl" />
+        <LoadingState rows={5} itemClassName="h-32 rounded-sm" />
       ) : (
         <>
-        <section className="billing-command-strip">
-          <div className="operation-metric is-priority">
-            <span>Outstanding utilities</span>
-            <strong>{formatCurrency(outstandingUtilityTotal)}</strong>
-            <small>{unpaidCharges.length} open charge(s)</small>
-          </div>
-          <div className="operation-metric">
-            <span>Overdue</span>
-            <strong>{overdueCharges.length}</strong>
-            <small>Requires manager follow-up</small>
-          </div>
-          <div className="operation-metric">
-            <span>Paid charges</span>
-            <strong>{paidCharges.length}</strong>
-            <small>Closed in this register</small>
-          </div>
-          <div className="operation-metric">
-            <span>Latest activity</span>
-            <strong>{latestCharge ? formatHumanDate(latestCharge.createdAt) : "None"}</strong>
-            <small>{latestCharge?.description || "No utility charge activity"}</small>
-          </div>
-        </section>
-
-        <div className="billing-workspace-grid">
-          <Panel
-            className="billing-switches-panel workspace-secondary-panel"
-            title="Billing Switches"
-            description="Charge type availability and policy state."
-            actions={<SlidersHorizontal className="h-4 w-4 text-muted-foreground" />}
-            contentClassName="divide-y divide-border/70 p-0"
-          >
-              {chargeTypes.length === 0 ? (
-                <div className="p-4">
-                  <EmptyState
-                    title="No charge types configured"
-                    description="Billing switches will appear here when charge types are available."
-                  />
-                </div>
-              ) : (
-                chargeTypes.map((chargeType) => (
-                  <div
-                    key={chargeType.id}
-                    className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium">{chargeType.displayName}</p>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${chargeType.isEnabled
-                              ? "bg-success/10 text-success"
-                              : "bg-destructive/10 text-destructive"
-                            }`}
-                        >
-                          {chargeType.isEnabled ? "Enabled" : "Disabled"}
-                        </span>
-                      </div>
-
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Scope: <span className="capitalize">{chargeType.scope}</span> - Last updated
-                        by {chargeType.updatedByName || "system"} on{" "}
-                        {formatHumanDateTime(chargeType.updatedAt)}
-                      </p>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      variant={chargeType.isEnabled ? "default" : "outline"}
-                      disabled={!canManageChargeTypes || updateChargeType.isPending}
-                      onClick={() =>
-                        updateChargeType.mutate({
-                          chargeTypeId: chargeType.id,
-                          isEnabled: !chargeType.isEnabled,
-                        })
-                      }
-                    >
-                      {chargeType.isEnabled ? "Enabled" : "Disabled"}
-                    </Button>
-                  </div>
-                ))
-              )}
-          </Panel>
-
-          {canManageUtilities && (
-            <FormSection
-              className="billing-form-panel workspace-secondary-panel"
-              title="Create Utility Charge"
-              description="Assign a metered, estimated, or fixed utility payment due to an approved vendor."
-              actions={<PlusCircle className="h-5 w-5 text-muted-foreground" />}
-            >
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-vendor">Vendor</Label>
-                  <Select
-                    value={form.vendorId}
-                    onValueChange={(value) =>
-                      setForm((current) => ({ ...current, vendorId: value, bookingId: "none" }))
-                    }
-                    disabled={!utilityMarketId}
-                  >
-                    <SelectTrigger id="utility-vendor">
-                      <SelectValue
-                        placeholder={utilityMarketId ? "Select vendor" : "Select market first"}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendors.map((vendor) => (
-                        <SelectItem key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-booking">Booking Reference</Label>
-                  <Select
-                    value={form.bookingId}
-                    onValueChange={(value) =>
-                      setForm((current) => ({ ...current, bookingId: value }))
-                    }
-                    disabled={!selectedVendor}
-                  >
-                    <SelectTrigger id="utility-booking">
-                      <SelectValue placeholder="Optional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No booking link</SelectItem>
-                      {bookings.map((booking) => (
-                        <SelectItem key={booking.id} value={booking.id}>
-                          {booking.stallName} ({booking.id})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-type">Utility Type</Label>
-                  <Select
-                    value={form.utilityType}
-                    onValueChange={(value: UtilityType) =>
-                      setForm((current) => ({ ...current, utilityType: value }))
-                    }
-                  >
-                    <SelectTrigger id="utility-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {utilityTypeOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-period">Billing Period</Label>
-                  <Input
-                    id="utility-period"
-                    value={form.billingPeriod}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, billingPeriod: event.target.value }))
-                    }
-                    placeholder="e.g. April 2026"
-                  />
-                </div>
-
-                <div className="space-y-1.5 lg:col-span-2">
-                  <Label htmlFor="utility-description">Description</Label>
-                  <Textarea
-                    id="utility-description"
-                    rows={3}
-                    value={form.description}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, description: event.target.value }))
-                    }
-                    placeholder="Explain what the vendor is being billed for."
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-method">Calculation Method</Label>
-                  <Select
-                    value={form.calculationMethod}
-                    onValueChange={(value: UtilityCalculationMethod) =>
-                      setForm((current) => ({ ...current, calculationMethod: value }))
-                    }
-                  >
-                    <SelectTrigger id="utility-method">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {calculationOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-due-date">Due Date</Label>
-                  <Input
-                    id="utility-due-date"
-                    type="date"
-                    value={form.dueDate}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, dueDate: event.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-usage">Usage Quantity</Label>
-                  <Input
-                    id="utility-usage"
-                    type="number"
-                    value={form.usageQuantity}
-                    disabled={form.calculationMethod === "fixed"}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, usageQuantity: event.target.value }))
-                    }
-                    placeholder="Optional for fixed"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-unit">Unit</Label>
-                  <Input
-                    id="utility-unit"
-                    value={form.unit}
-                    disabled={form.calculationMethod === "fixed"}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, unit: event.target.value }))
-                    }
-                    placeholder="kWh, litres, units"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-rate">Rate Per Unit</Label>
-                  <Input
-                    id="utility-rate"
-                    type="number"
-                    value={form.ratePerUnit}
-                    disabled={form.calculationMethod === "fixed"}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, ratePerUnit: event.target.value }))
-                    }
-                    placeholder="Optional if amount is entered"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="utility-amount">Amount</Label>
-                  <Input
-                    id="utility-amount"
-                    type="number"
-                    value={form.amount}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, amount: event.target.value }))
-                    }
-                    placeholder="Leave blank to auto-calculate"
-                  />
-                </div>
-
-                {/* Live amount preview */}
-                {(() => {
-                  const qty = parseFloat(form.usageQuantity);
-                  const rate = parseFloat(form.ratePerUnit);
-                  const manual = parseFloat(form.amount);
-                  const calculated = form.calculationMethod !== "fixed" && !isNaN(qty) && !isNaN(rate) ? qty * rate : null;
-                  const preview = !isNaN(manual) && manual > 0 ? manual : calculated;
-                  if (!preview) return null;
-                  return (
-                    <div className="lg:col-span-2 flex items-center gap-2 rounded-md border border-success/25 bg-success/5 px-3 py-2 text-sm">
-                      <span className="text-muted-foreground">
-                        {!isNaN(manual) && manual > 0 ? "Manual amount:" : "Calculated amount:"}
-                      </span>
-                      <span className="font-semibold text-success">{formatCurrency(preview)}</span>
-                      {calculated && !isNaN(manual) && manual > 0 && Math.abs(manual - calculated) > 0.01 && (
-                        <span className="ml-auto text-xs text-warning">
-                          Auto-calc would be {formatCurrency(calculated)}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                <div className="lg:col-span-2">
-                  <Button
-                    className="w-full lg:w-auto"
-                    onClick={() => createUtilityCharge.mutate()}
-                    disabled={
-                      createUtilityCharge.isPending ||
-                      !form.vendorId ||
-                      !form.description.trim() ||
-                      !form.billingPeriod.trim() ||
-                      !form.dueDate ||
-                      !form.marketId
-                    }
-                  >
-                    {createUtilityCharge.isPending ? "Creating Charge..." : "Create Utility Charge"}
-                  </Button>
-                </div>
+          {/* Summary strip */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: "Outstanding utilities", value: formatCurrency(outstandingTotal), sub: `${unpaidCharges.length} open charge(s)`, tone: outstandingTotal > 0 ? "amber" as const : "green" as const },
+              { label: "Overdue", value: overdueCharges.length, sub: overdueCharges.length ? "Requires follow-up" : "None overdue", tone: overdueCharges.length > 0 ? "red" as const : "green" as const },
+              { label: "Paid charges", value: formatCurrency(paidTotal), sub: `${paidCharges.length} paid in register`, tone: "green" as const },
+              { label: "Latest activity", value: latestCharge ? formatHumanDate(latestCharge.createdAt) : "None", sub: latestCharge?.description || "No activity", tone: "slate" as const },
+            ].map((item) => (
+              <div key={item.label} className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-medium text-slate-600">{item.label}</p>
+                <p className="mt-2 text-xl font-bold text-slate-950 font-heading">{item.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
               </div>
-            </FormSection>
-          )}
+            ))}
+          </div>
 
-          <DataTableFrame
-            className="billing-primary-frame workspace-primary-frame"
-            title="Utility Charge Register"
-            description="Payments due, due dates, payment attempts, and references."
-          >
-            <div className="space-y-3 p-3">
+          {/* Main layout */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+
+            {/* Dues register */}
+            <MockupPanel title="Official Dues Register" actions={<span className="text-xs text-slate-400">{utilityCharges.length} charges</span>}>
               {utilityCharges.length === 0 ? (
-                <EmptyState
-                  title="No utility charges recorded"
-                  description="Create metered, estimated, or fixed utility payments due for vendors in the selected market."
-                />
+                <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+                  No utility charges recorded. Create metered, estimated, or fixed charges for vendors in the selected market.
+                </div>
               ) : (
-                utilityCharges.map((charge) => (
-                  <div key={charge.id} className="rounded-md border border-border/70 bg-background/80 p-3">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <p className="font-medium">{charge.description}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {charge.vendorName} - {charge.marketName || charge.marketId} -{" "}
-                          {charge.billingPeriod}
+                <div className="space-y-3">
+                  {utilityCharges.map((charge) => (
+                    <div key={charge.id} className="rounded-sm border border-slate-200 bg-white p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900">{charge.description}</p>
+                          <p className="mt-1 text-xs text-slate-500">{charge.vendorName} · {charge.marketName || charge.marketId} · {charge.billingPeriod}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-sm border px-2 py-0.5 text-[11px] font-bold ${chargeStatusClasses[charge.status] || "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                            {getObligationStatusLabel(charge.status)}
+                          </span>
+                          <span className="font-bold text-slate-900">{formatCurrency(charge.amount)}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                        <FieldRow label="Due Date" value={formatDate(charge.dueDate)} />
+                        <FieldRow label="Calculation" value={`${charge.calculationMethod}${charge.unit ? ` (${charge.unit})` : ""}`} />
+                        <FieldRow label="Payment Attempts" value={charge.paymentCount} />
+                        <FieldRow label="Latest Reference" value={charge.latestPaymentReference || "Awaiting payment"} mono={Boolean(charge.latestPaymentReference)} />
+                      </div>
+
+                      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs text-slate-400">
+                          Created by {charge.createdByName || "system"} on {formatDateTime(charge.createdAt)}.
+                          {charge.paidAt ? ` Paid on ${formatDateTime(charge.paidAt)}.` : ""}
                         </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <StatusBadge
-                          status={charge.status}
-                          label={getObligationStatusLabel(charge.status)}
-                          context="obligation"
-                        />
-                        <span className="text-sm font-semibold">
-                          {formatCurrency(charge.amount)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <EvidenceField label="Due Date" value={formatDate(charge.dueDate)} />
-                      <EvidenceField
-                        label="Calculation"
-                        value={`${charge.calculationMethod} ${charge.unit ? `(${charge.unit})` : ""
-                          }`}
-                      />
-                      <EvidenceField label="Payment Attempts" value={charge.paymentCount} />
-                      <EvidenceField
-                        label="Latest Reference"
-                        value={charge.latestPaymentReference || "Awaiting payment"}
-                        mono={Boolean(charge.latestPaymentReference)}
-                      />
-                    </div>
-
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-xs text-muted-foreground">
-                        Created by {charge.createdByName || "system"} on{" "}
-                        {formatDateTime(charge.createdAt)}.{" "}
-                        {charge.paidAt ? `Paid on ${formatDateTime(charge.paidAt)}.` : ""}
-                      </div>
-
-                      {canManageUtilities &&
-                        (charge.status === "unpaid" || charge.status === "overdue") && (
-                          <Button
-                            variant="outline"
-                            onClick={() => cancelUtilityCharge.mutate(charge.id)}
-                            disabled={cancelUtilityCharge.isPending}
-                          >
+                        {canManageUtilities && (charge.status === "unpaid" || charge.status === "overdue") && (
+                          <Button variant="outline" size="sm" className="rounded-sm border-slate-300 font-bold" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>
                             Cancel Charge
                           </Button>
                         )}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </MockupPanel>
+
+            {/* Right column */}
+            <div className="space-y-4">
+              {/* Billing switches */}
+              <MockupPanel title="Revenue Collection Policies" actions={<span className="text-xs text-slate-400">{chargeTypes.length} switches</span>}>
+                {chargeTypes.length === 0 ? (
+                  <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+                    No billing switches configured.
                   </div>
-                ))
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {chargeTypes.map((chargeType) => (
+                      <div key={chargeType.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-bold text-slate-900">{chargeType.displayName}</p>
+                            <StatusPill tone={chargeType.isEnabled ? "green" : "red"}>
+                              {chargeType.isEnabled ? "Enabled" : "Disabled"}
+                            </StatusPill>
+                            {!chargeType.isEnabled && (
+                              <span className="inline-flex items-center gap-1 rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                                <Lock className="h-3 w-3" />Admin locked
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs text-slate-400">
+                            <span className="capitalize">{chargeType.scope}</span> scope · Updated by {chargeType.updatedByName || "system"}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className={`shrink-0 rounded-sm shadow-none font-bold ${chargeType.isEnabled ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+                          variant={chargeType.isEnabled ? "default" : "outline"}
+                          disabled={!canManageChargeTypes || updateChargeType.isPending}
+                          onClick={() => updateChargeType.mutate({ chargeTypeId: chargeType.id, isEnabled: !chargeType.isEnabled })}
+                        >
+                          {chargeType.isEnabled ? "Enabled" : "Disabled"}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </MockupPanel>
+
+              {/* Create utility charge */}
+              {canManageUtilities && (
+                <MockupPanel title="Create Utility Charge" actions={<PlusCircle className="h-4 w-4 text-slate-400" />}>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="font-bold text-slate-700">Vendor</Label>
+                      <Select value={form.vendorId} onValueChange={(v) => setForm((c) => ({ ...c, vendorId: v, bookingId: "none" }))} disabled={!utilityMarketId}>
+                        <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue placeholder={utilityMarketId ? "Select vendor" : "Select market first"} /></SelectTrigger>
+                        <SelectContent>{vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="font-bold text-slate-700">Booking Reference</Label>
+                      <Select value={form.bookingId} onValueChange={(v) => setForm((c) => ({ ...c, bookingId: v }))} disabled={!selectedVendor}>
+                        <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue placeholder="Optional" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No booking link</SelectItem>
+                          {bookings.map((b) => <SelectItem key={b.id} value={b.id}>{b.stallName} ({b.id})</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="font-bold text-slate-700">Utility Type</Label>
+                        <Select value={form.utilityType} onValueChange={(v: UtilityType) => setForm((c) => ({ ...c, utilityType: v }))}>
+                          <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>{utilityTypeOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="font-bold text-slate-700">Method</Label>
+                        <Select value={form.calculationMethod} onValueChange={(v: UtilityCalculationMethod) => setForm((c) => ({ ...c, calculationMethod: v }))}>
+                          <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>{calculationOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="font-bold text-slate-700">Billing Period</Label>
+                      <Input className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder="e.g. April 2026" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="font-bold text-slate-700">Description</Label>
+                      <Textarea className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Explain what the vendor is being billed for." />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="font-bold text-slate-700">Due Date</Label>
+                        <Input type="date" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.dueDate} onChange={(e) => setForm((c) => ({ ...c, dueDate: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="font-bold text-slate-700">Amount</Label>
+                        <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Leave blank to auto-calc" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="font-bold text-slate-700">Usage Qty</Label>
+                        <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder="Optional for fixed" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="font-bold text-slate-700">Rate Per Unit</Label>
+                        <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder="Optional" />
+                      </div>
+                    </div>
+
+                    {/* Live amount preview */}
+                    {(() => {
+                      const qty = parseFloat(form.usageQuantity);
+                      const rate = parseFloat(form.ratePerUnit);
+                      const manual = parseFloat(form.amount);
+                      const calculated = form.calculationMethod !== "fixed" && !isNaN(qty) && !isNaN(rate) ? qty * rate : null;
+                      const preview = !isNaN(manual) && manual > 0 ? manual : calculated;
+                      if (!preview) return null;
+                      return (
+                        <div className="flex items-center gap-2 rounded-sm border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+                          <span className="text-slate-500">{!isNaN(manual) && manual > 0 ? "Manual amount:" : "Calculated:"}</span>
+                          <span className="font-bold text-emerald-800">{formatCurrency(preview)}</span>
+                          {calculated && !isNaN(manual) && manual > 0 && Math.abs(manual - calculated) > 0.01 && (
+                            <span className="ml-auto text-xs text-amber-600">Auto-calc: {formatCurrency(calculated)}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    <Button
+                      className="w-full rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold"
+                      onClick={() => createUtilityCharge.mutate()}
+                      disabled={createUtilityCharge.isPending || !form.vendorId || !form.description.trim() || !form.billingPeriod.trim() || !form.dueDate || !form.marketId}
+                    >
+                      {createUtilityCharge.isPending ? "Creating..." : "Create Utility Charge"}
+                    </Button>
+                  </div>
+                </MockupPanel>
               )}
             </div>
-          </DataTableFrame>
-        </div>
+          </div>
         </>
       )}
-    </ConsolePage>
+    </MockupPage>
   );
 };
 
