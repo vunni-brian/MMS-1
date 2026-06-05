@@ -1,3 +1,12 @@
+import type { ElementType } from "react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  XCircle,
+  Pause,
+  MoreHorizontal,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BookingStatus, PaymentStatus, PenaltyStatus, StallStatus, TicketStatus, UtilityChargeStatus, VendorApprovalStatus } from "@/types";
 
@@ -21,6 +30,28 @@ const statusStyles: Record<string, string> = {
   in_progress: "border-warning/25 bg-warning/15 text-warning",
   resolved: "border-success/20 bg-success/15 text-success",
   closed: "border-border bg-muted text-muted-foreground",
+};
+
+const statusIcons: Record<string, ElementType> = {
+  active: MoreHorizontal,
+  inactive: Pause,
+  maintenance: AlertCircle,
+  pending: Clock,
+  pending_payment: Clock,
+  unpaid: AlertCircle,
+  approved: CheckCircle2,
+  paid: CheckCircle2,
+  rejected: XCircle,
+  late_payment: AlertCircle,
+  completed: CheckCircle2,
+  failed: XCircle,
+  overdue: AlertCircle,
+  cancelled: XCircle,
+  suspended: XCircle,
+  open: AlertCircle,
+  in_progress: Clock,
+  resolved: CheckCircle2,
+  closed: MoreHorizontal,
 };
 
 const statusLabels: Record<string, string> = {
@@ -73,13 +104,22 @@ interface StatusBadgeProps {
   className?: string;
   label?: string;
   context?: StatusContext;
+  showIcon?: boolean;
+  compact?: boolean;
 }
 
-export const StatusBadge = ({ status, className, label, context = "default" }: StatusBadgeProps) => (
-  <span className={cn('status-badge', statusStyles[status], className)}>
-    {label ||
-      contextLabels[context]?.[status] ||
-      statusLabels[status] ||
-      status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ")}
-  </span>
-);
+export const StatusBadge = ({ status, className, label, context = "default", showIcon = true, compact = false }: StatusBadgeProps) => {
+  const Icon = showIcon ? statusIcons[status] : null;
+  const displayLabel =
+    label ||
+    contextLabels[context]?.[status] ||
+    statusLabels[status] ||
+    status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ");
+
+  return (
+    <span className={cn('status-badge inline-flex items-center gap-1.5', statusStyles[status], compact && 'px-2 py-0.5 text-xs', className)}>
+      {Icon && <Icon className={cn("h-3 w-3 shrink-0", !compact && "h-3.5 w-3.5")} />}
+      {displayLabel}
+    </span>
+  );
+};

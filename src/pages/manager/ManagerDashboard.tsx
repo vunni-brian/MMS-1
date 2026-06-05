@@ -34,6 +34,11 @@ import {
   SegmentedControl,
 } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
+import {
+  PriorityIndicator,
+  ScanCounter,
+  CompactStatusCard,
+} from "@/components/ScanComponents";
 import { toast } from "@/components/ui/sonner";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import type {

@@ -22,6 +22,11 @@ import {
   RecordCard,
 } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
+import {
+  PriorityIndicator,
+  PriorityBadge,
+  ScanCounter,
+} from "@/components/ScanComponents";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import {
   Table,
@@ -353,22 +358,34 @@ const OfficialDashboard = () => {
                   </RecordCard>
                 ))}
 
-                {priorityComplaintRows.map((ticket: Ticket) => (
-                  <RecordCard key={ticket.id}>
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="status-badge border-info/20 bg-info/15 text-info">Complaint</span>
-                          <p className="truncate text-sm font-semibold">{ticket.ticketNumber}</p>
+                {priorityComplaintRows.map((ticket: Ticket) => {
+                  const isHighPriority = ticket.category === "dispute";
+                  return (
+                    <RecordCard
+                      key={ticket.id}
+                      className={isHighPriority ? "border-destructive/25 bg-destructive/5" : undefined}
+                    >
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {isHighPriority ? (
+                              <PriorityBadge priority="high" />
+                            ) : (
+                              <span className="status-badge border-info/20 bg-info/15 text-info">
+                                {ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)}
+                              </span>
+                            )}
+                            <p className="truncate text-sm font-semibold">{ticket.ticketNumber}</p>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {ticket.subject} - {ticket.marketName || "Assigned market"} - {formatHumanDate(ticket.createdAt)}
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {ticket.subject} - {ticket.marketName || "Assigned market"} - {formatHumanDate(ticket.createdAt)}
-                        </p>
+                        <StatusBadge status={ticket.status} context="ticket" showIcon compact className="shrink-0" />
                       </div>
-                      <StatusBadge status={ticket.status} context="ticket" />
-                    </div>
-                  </RecordCard>
-                ))}
+                    </RecordCard>
+                  );
+                })}
               </>
             )}
           </div>
@@ -385,28 +402,48 @@ const OfficialDashboard = () => {
               <EmptyState title="No open complaints" description="Complaint tickets awaiting action will appear here." />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticket</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Market</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {priorityComplaintRows.map((ticket) => (
-                  <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-                    <TableCell className="capitalize">{ticket.category}</TableCell>
-                    <TableCell>{ticket.marketName || "Assigned market"}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatHumanDate(ticket.createdAt)}</TableCell>
-                    <TableCell><StatusBadge status={ticket.status} context="ticket" /></TableCell>
+               <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Market</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {priorityComplaintRows.map((ticket) => {
+                    const isHighPriority = ticket.category === "dispute";
+                    return (
+                      <TableRow key={ticket.id} className={isHighPriority ? "bg-destructive/5" : ""}>
+                        <TableCell className={`font-medium ${isHighPriority ? "text-destructive" : ""}`}>
+                          {ticket.ticketNumber}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {isHighPriority ? (
+                            <PriorityBadge priority="high" />
+                          ) : (
+                            ticket.category
+                          )}
+                        </TableCell>
+                        <TableCell>{ticket.marketName || "Assigned market"}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatHumanDate(ticket.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge
+                            status={ticket.status}
+                            context="ticket"
+                            showIcon
+                            compact
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
           )}
         </Panel>
       </div>

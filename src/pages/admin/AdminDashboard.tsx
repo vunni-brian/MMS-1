@@ -8,6 +8,7 @@ import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PriorityIndicator, ScanCounter } from "@/components/ScanComponents";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConsolePage, DetailSheet, EmptyState, EvidenceField, LoadingState, PageHeader, Panel, RecordCard } from "@/components/console/ConsolePage";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
@@ -540,25 +541,27 @@ const AdminDashboard = () => {
         <DashboardErrorBoundary>
           <Panel title="System Health" description="Signals administrators check first." contentClassName="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            {systemHealth.map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-2.5">
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-muted-foreground">{item.label}</p>
-                  <p className="mt-0.5 truncate text-sm font-semibold">{item.value}</p>
+            {systemHealth.map((item) => {
+              const toneMap: Record<string, "danger" | "warning" | "success" | "info"> = {
+                success: "success",
+                destructive: "danger",
+                warning: "warning",
+                default: "info",
+              };
+              return (
+                <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-muted-foreground">{item.label}</p>
+                    <p className="mt-0.5 truncate text-sm font-semibold">{item.value}</p>
+                  </div>
+                  <PriorityIndicator
+                    priority={toneMap[item.tone] || "info"}
+                    label={item.detail}
+                    showIcon
+                  />
                 </div>
-                <span
-                  className={
-                    item.tone === "success"
-                      ? "status-badge border-success/20 bg-success/15 text-success"
-                      : item.tone === "destructive"
-                        ? "status-badge border-destructive/20 bg-destructive/15 text-destructive"
-                        : "status-badge border-warning/25 bg-warning/15 text-warning"
-                  }
-                >
-                  {item.detail}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="grid gap-2">
@@ -591,7 +594,7 @@ const AdminDashboard = () => {
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+               <TableBody>
                 {marketRows.map((market) => (
                   <TableRow
                     key={market.id}
@@ -605,7 +608,17 @@ const AdminDashboard = () => {
                     <TableCell className="text-right">{formatCurrency(market.revenue)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(market.utilitiesDue)}</TableCell>
                     <TableCell>
-                      <span className={statusClassName(market.status)}>{market.status}</span>
+                      <PriorityIndicator
+                        priority={
+                          market.status === "Critical"
+                            ? "danger"
+                            : market.status === "Warning"
+                              ? "warning"
+                              : "success"
+                        }
+                        label={market.status}
+                        showIcon
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

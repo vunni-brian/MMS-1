@@ -28,6 +28,12 @@ import {
   RecordCard,
 } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
+import {
+  PriorityIndicator,
+  QuickActionsPanel,
+  QuickActionCard,
+  ScanCounter,
+} from "@/components/ScanComponents";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
@@ -369,10 +375,27 @@ const VendorDashboard = () => {
         />
       </section>
 
-      <Panel title="Things to do" contentClassName="vendor-task-grid">
-        {taskActions.map((action) => (
-          <VendorTaskAction key={action.label} {...action} />
-        ))}
+      <Panel title="Things to do" contentClassName="space-y-3">
+        <QuickActionsPanel title="Quick Actions" description="Fast access to common tasks">
+          {taskActions
+            .filter((action) => !action.disabled)
+            .map((action) => (
+              <QuickActionCard
+                key={action.label}
+                icon={action.icon}
+                title={action.label}
+                description={action.detail}
+                href={action.to}
+              />
+            ))}
+        </QuickActionsPanel>
+        {taskActions.some((a) => a.disabled) && (
+          <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
+            <p className="text-xs text-warning">
+              Some actions are available once your account is approved.
+            </p>
+          </div>
+        )}
       </Panel>
 
       {!activeStall && (
@@ -400,7 +423,7 @@ const VendorDashboard = () => {
       )}
 
       <div className="vendor-dashboard-grid">
-        <Panel
+       <Panel
           title="Recent Notices"
           actions={
             <Button asChild variant="ghost" size="sm" className="h-auto px-0">
@@ -412,25 +435,45 @@ const VendorDashboard = () => {
           {marketAnnouncements.length === 0 ? (
             <EmptyState title="No active notices" description="Inspection notices, deadline updates, and market alerts will appear here." />
           ) : (
-            marketAnnouncements.slice(0, 4).map((announcement) => (
-              <RecordCard key={announcement.id} className={announcement.priority === "high" ? "border-destructive/25 bg-destructive/5" : undefined}>
-                <div className="flex items-start gap-3">
-                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${announcement.priority === "high" ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-info/20 bg-info/10 text-info"}`}>
-                    <Megaphone className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-semibold">{announcement.title}</p>
-                      {announcement.priority === "high" && (
-                        <span className="status-badge border-destructive/20 bg-destructive/15 text-destructive">High</span>
-                      )}
+            <>
+              {marketAnnouncements
+                .filter((a) => a.priority === "high")
+                .slice(0, 2)
+                .map((announcement) => (
+                  <RecordCard key={announcement.id} className="border-destructive/25 bg-destructive/5">
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-destructive/20 bg-destructive/10 text-destructive">
+                        <Megaphone className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold">{announcement.title}</p>
+                          <PriorityIndicator priority="danger" label="High" />
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{announcement.body}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(announcement.createdAt)}</span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{announcement.body}</p>
-                  </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(announcement.createdAt)}</span>
-                </div>
-              </RecordCard>
-            ))
+                  </RecordCard>
+                ))}
+              {marketAnnouncements
+                .filter((a) => a.priority !== "high")
+                .slice(0, 2)
+                .map((announcement) => (
+                  <RecordCard key={announcement.id}>
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-info/20 bg-info/10 text-info">
+                        <Megaphone className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{announcement.title}</p>
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{announcement.body}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">{fmtAlert(announcement.createdAt)}</span>
+                    </div>
+                  </RecordCard>
+                ))}
+            </>
           )}
         </Panel>
 
@@ -459,7 +502,7 @@ const VendorDashboard = () => {
                     <p className="mt-1 truncate text-xs text-muted-foreground">{formatCurrency(payment.amount)}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <StatusBadge status={payment.status} context="payment" />
+                    <StatusBadge status={payment.status} context="payment" showIcon compact />
                     <p className="mt-1 text-xs text-muted-foreground">{fmtAlert(payment.createdAt)}</p>
                   </div>
                 </div>
