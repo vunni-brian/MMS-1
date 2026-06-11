@@ -193,6 +193,25 @@ export const closeDatabase = async () => {
   }
 };
 
+export const canConnectToDatabase = async (connectionString = config.databaseUrl) => {
+  const probePool = new Pool({
+    connectionString,
+    ssl: resolveSslConfig(connectionString),
+    max: 1,
+    idleTimeoutMillis: 1_000,
+    connectionTimeoutMillis: 1_500,
+  });
+
+  try {
+    await probePool.query("SELECT 1");
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await probePool.end();
+  }
+};
+
 export const createId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
 const isoFromDayOffset = (days: number, hour = 9) => {

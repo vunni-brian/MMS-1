@@ -50,6 +50,7 @@ import {
  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CommandMenu } from "@/components/CommandMenu";
+import { LoadingAnimation } from "@/components/LoadingAnimation";
 import type { Role } from "@/types";
 
 interface NavItem {
@@ -312,11 +313,7 @@ const AppLayout = () => {
  }, [user?.id, user?.profileImage]);
 
  if (!user) {
- return (
- <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
- Loading workspace...
- </div>
- );
+ return <LoadingAnimation label="Loading workspace…" />;
  }
 
  const openProfileTab = (tab?: string) => {
@@ -379,12 +376,14 @@ const AppLayout = () => {
  )}
  >
  <div className="mms-sidebar-brand flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-3">
- <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-primary text-primary-foreground">
- <Landmark className="h-4 w-4" />
- </div>
+ <img
+   src="/images/mms-logo.svg"
+   alt="MMS logo"
+   className="h-8 w-8 shrink-0 rounded-md border border-white/10 bg-white object-contain shadow-sm"
+ />
           <div className={cn("min-w-0 flex-1", sidebarCollapsed && "lg:hidden")}>
-            <p className="truncate text-sm font-bold leading-tight tracking-tight">KAMPALA MARKETS</p>
-            <p className="truncate text-[10px] font-medium leading-4 text-muted-foreground uppercase tracking-wider">Management System</p>
+            <p className="truncate text-sm font-bold leading-tight tracking-tight">MMS</p>
+            <p className="truncate text-[10px] font-medium leading-4 text-muted-foreground uppercase tracking-wider">Market Management System</p>
           </div>
  <button
  type="button"

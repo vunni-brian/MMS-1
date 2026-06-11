@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { config } from "./config.ts";
 import { getBearerToken, matchRoute, sendError, sendJson, setCorsHeaders, type RouteContext, type RouteDefinition } from "./lib/http.ts";
 import { authenticateToken } from "./lib/session.ts";
-import { initDatabase, seedDatabase } from "./lib/db.ts";
+import { canConnectToDatabase, initDatabase, seedDatabase } from "./lib/db.ts";
 import { authRoutes } from "./modules/auth.ts";
 import { billingRoutes } from "./modules/billing.ts";
 import { marketRoutes } from "./modules/markets.ts";
@@ -39,11 +39,25 @@ const routes: RouteDefinition[] = [
 ];
 
 if (config.autoMigrate) {
-  await initDatabase();
+  try {
+    await initDatabase();
+  } catch (error) {
+    console.warn("[startup] Skipping database migration because PostgreSQL is unavailable.", error instanceof Error ? error.message : error);
+  }
 }
 
 if (config.seedOnBoot) {
-  await seedDatabase();
+  const databaseReady = await canConnectToDatabase();
+
+  if (!databaseReady) {
+    console.warn("[startup] Skipping database seed because PostgreSQL is unavailable.");
+  } else {
+    try {
+      await seedDatabase();
+    } catch (error) {
+      console.warn("[startup] Seed data could not be applied at boot.", error instanceof Error ? error.message : error);
+    }
+  }
 }
 
 const backgroundTaskState = new Map<string, { running: boolean; failures: number; nextRunAt: number }>();

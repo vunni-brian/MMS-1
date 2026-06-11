@@ -6,7 +6,7 @@
 
 @layer base {
  :root {
- --background: 210 40% 98%;
+ --background: 210 20% 98%;
  --foreground: 222 47% 11%;
 
  --card: 0 0% 100%;
@@ -15,24 +15,24 @@
  --popover: 0 0% 100%;
  --popover-foreground: 222 47% 11%;
 
- --primary: 147 100% 25%;
- --primary-foreground: 210 40% 98%;
+ --primary: 222 47% 11%;
+ --primary-foreground: 0 0% 100%;
 
- --secondary: 210 40% 96%;
- --secondary-foreground: 222 47% 11%;
+ --secondary: 210 20% 96%;
+ --secondary-foreground: 0 0% 100%;
 
- --muted: 210 40% 96%;
- --muted-foreground: 215 16% 43%;
+ --muted: 210 20% 96%;
+ --muted-foreground: 215 16% 47%;
 
- --accent: 160 84% 95%;
- --accent-foreground: 156 72% 19%;
+ --accent: 217 91% 60%;
+ --accent-foreground: 222 47% 11%;
 
- --destructive: 0 84.2% 60.2%;
- --destructive-foreground: 210 40% 98%;
+ --destructive: 0 84% 61%;
+ --destructive-foreground: 0 0% 100%;
 
- --border: 214.3 31.8% 91.4%;
- --input: 214.3 31.8% 91.4%;
- --ring: 147 100% 25%;
+ --border: 0 0% 83%;
+ --input: 0 0% 83%;
+ --ring: 142 50% 42%;
 
  --radius: 0.25rem; /* Sharp, official radius */
 
@@ -43,14 +43,14 @@
  --info: 173 80% 32%;
  --info-foreground: 210 40% 98%;
 
- --sidebar-background: 160 84% 12%;
+ --sidebar-background: 222 47% 11%;
  --sidebar-foreground: 210 40% 98%;
- --sidebar-primary: 142 70% 45%;
+ --sidebar-primary: 222 47% 11%;
  --sidebar-primary-foreground: 0 0% 100%;
- --sidebar-accent: 158 64% 18%;
- --sidebar-accent-foreground: 210 40% 98%;
- --sidebar-border: 157 44% 22%;
- --sidebar-ring: 142 70% 45%;
+ --sidebar-accent: 217 91% 60%;
+ --sidebar-accent-foreground: 0 0% 100%;
+ --sidebar-border: 0 0% 83%;
+ --sidebar-ring: 142 50% 42%;
 
  --font-heading: 'Inter', sans-serif;
  --font-body: 'Inter', sans-serif;
@@ -2519,18 +2519,38 @@ body {
 /* Notion-inspired MMS product layer. This block intentionally sits last so
  legacy enterprise rules resolve into one calm, light SaaS system. */
 :root {
- --background: 220 23% 97%;
- --foreground: 222 47% 11%;
+ --background: 240 14% 98%;
+ --foreground: 0 0% 20%;
  --card: 0 0% 100%;
- --card-foreground: 222 47% 11%;
- --muted: 220 20% 96%;
- --muted-foreground: 215 16% 47%;
- --border: 220 13% 91%;
- --input: 220 13% 91%;
- --ring: 222 47% 11%;
+ --card-foreground: 0 0% 20%;
+ --muted: 49 28% 82%;
+ --muted-foreground: 0 0% 43%;
+ --border: 0 0% 83%;
+ --input: 0 0% 83%;
+ --ring: 142 50% 42%;
  --radius: 0.5rem;
  --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
  --font-body: 'Inter', sans-serif;
+}
+
+.dark {
+ --background: 220 16% 13%;
+ --foreground: 0 0% 90%;
+ --card: 220 16% 18%;
+ --card-foreground: 0 0% 90%;
+ --muted: 220 16% 24%;
+ --muted-foreground: 0 0% 72%;
+ --border: 220 16% 28%;
+ --input: 220 16% 28%;
+ --ring: 142 50% 42%;
+ --primary: 142 50% 42%;
+ --primary-foreground: 0 0% 100%;
+ --secondary: 217 79% 67%;
+ --secondary-foreground: 0 0% 100%;
+ --accent: 188 86% 70%;
+ --accent-foreground: 0 0% 12%;
+ --destructive: 0 84% 61%;
+ --destructive-foreground: 0 0% 100%;
 }
 
 .app-role-vendor {

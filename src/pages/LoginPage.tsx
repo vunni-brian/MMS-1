@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Landmark, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
@@ -108,11 +108,13 @@ const LoginPage = () => {
  <div className="w-full max-w-[480px]">
  {/* Logo Header */}
  <div className="mb-8 flex flex-col items-center text-center">
- <div className="flex h-16 w-16 items-center justify-center bg-primary text-white mb-4 shadow-sm">
- <Landmark className="h-8 w-8" />
- </div>
+ <img
+   src="/images/mms-logo.svg"
+   alt="MMS logo"
+   className="mb-4 h-16 w-16 rounded-2xl border border-slate-200 bg-white object-contain shadow-sm"
+ />
  <h1 className="text-2xl font-bold text-slate-900">Sign In to Your Account</h1>
- <p className="mt-2 text-sm text-slate-600">Access the Kampala Market Management System</p>
+ <p className="mt-2 text-sm text-slate-600">Access the MMS Market Management System</p>
  </div>
 
  <div className="bg-white border border-slate-200 shadow-sm p-8">

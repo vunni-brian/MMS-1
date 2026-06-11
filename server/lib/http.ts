@@ -56,11 +56,33 @@ export const sendEmpty = (res: ServerResponse, statusCode = 204) => {
   res.end();
 };
 
+const isDatabaseConnectionError = (error: unknown) => {
+  const candidates = [error];
+
+  if (error instanceof AggregateError) {
+    candidates.push(...error.errors);
+  }
+
+  return candidates.some((candidate) => {
+    const message = candidate instanceof Error ? candidate.message : String(candidate);
+    const code = candidate && typeof candidate === "object" && "code" in candidate ? String((candidate as { code?: unknown }).code) : "";
+
+    return /ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(message) || /ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(code);
+  });
+};
+
 export const sendError = (res: ServerResponse, error: unknown) => {
   if (error instanceof HttpError) {
     return sendJson(res, error.statusCode, {
       error: error.message,
       details: error.details ?? null,
+      timestamp: nowIso(),
+    });
+  }
+
+  if (isDatabaseConnectionError(error)) {
+    return sendJson(res, 503, {
+      error: "Database unavailable. Start PostgreSQL and verify DATABASE_URL.",
       timestamp: nowIso(),
     });
   }

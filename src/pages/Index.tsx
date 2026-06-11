@@ -5,7 +5,6 @@ import {
   Bell,
   ClipboardCheck,
   CreditCard,
-  Landmark,
   MessageSquareText,
   ShieldCheck,
   Store,
@@ -68,9 +67,11 @@ const Index = () => {
             className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
             aria-label="MMS home"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
-              <Landmark className="h-5 w-5" />
-            </span>
+            <img
+              src="/images/mms-logo.svg"
+              alt="MMS logo"
+              className="h-10 w-10 rounded-xl border border-slate-200 bg-white object-contain shadow-sm"
+            />
             <span className="min-w-0 text-left">
               <span className="block text-lg font-semibold leading-tight font-heading">MMS</span>
               <span className="hidden text-xs text-slate-500 sm:block">Market Management System</span>
@@ -108,13 +109,14 @@ const Index = () => {
             <div className="max-w-3xl">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Modern civic market operations
+                Built for Wandegeya Market and KCCA-ready operations
               </div>
-              <h1 className="text-5xl font-semibold leading-tight tracking-tight text-slate-950 font-heading sm:text-6xl lg:text-7xl">
+              <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Web-based Market Management System</p>
+              <h1 className="mt-3 text-5xl font-semibold leading-tight tracking-tight text-slate-950 font-heading sm:text-6xl lg:text-7xl">
                 MMS
               </h1>
-              <p className="mt-5 max-w-xl text-lg leading-8 text-slate-700">
-                A calm operational platform for vendor services, stall allocation, payments, complaints, reporting, and accountable market oversight.
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700">
+                A calm, accountable platform for vendor onboarding, stall allocation, payments, complaints, reporting, and market oversight across vendors, managers, officials, and administrators.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button size="lg" onClick={() => navigate("/login")} className="gap-2 bg-slate-950 text-white hover:bg-slate-800">
@@ -126,8 +128,13 @@ const Index = () => {
                 </Button>
               </div>
               <div className="mt-8 flex flex-wrap gap-3 text-sm text-slate-600">
-                {["Role-based dashboards", "Transparent payments", "Audit-ready workflows"].map((item) => (
-                  <span key={item} className="rounded-full border border-slate-200 bg-white/90 px-3 py-1 font-medium">
+                {[
+                  "OTP vendor registration",
+                  "Transparent payments",
+                  "Audit-ready workflows",
+                  "Market-wide visibility",
+                ].map((item) => (
+                  <span key={item} className="rounded-full border border-slate-200 bg-white/90 px-3 py-1 font-medium shadow-sm">
                     {item}
                   </span>
                 ))}
@@ -191,7 +198,7 @@ const Index = () => {
           <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="font-semibold text-slate-950">MMS</p>
-              <p className="mt-1">Market Management System for modern civic operations.</p>
+              <p className="mt-1">Web-based Market Management System for Wandegeya Market and public market operations.</p>
             </div>
             <div className="md:text-right">
               <p>support@mms.ug</p>
