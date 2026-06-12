@@ -34,3 +34,5 @@ runtime/console-dev/
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env*

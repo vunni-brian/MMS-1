@@ -103,12 +103,21 @@ const AdminAlertsPage = () => {
  const auditEvents = useMemo(() => auditQuery.data?.events ?? [], [auditQuery.data?.events]);
 
  const hasLoadedAlertData =
- paymentsQuery.isSuccess ||
- ticketsQuery.isSuccess ||
- utilityChargesQuery.isSuccess ||
- penaltiesQuery.isSuccess ||
- chargeTypesQuery.isSuccess ||
+ paymentsQuery.isSuccess &&
+ ticketsQuery.isSuccess &&
+ utilityChargesQuery.isSuccess &&
+ penaltiesQuery.isSuccess &&
+ chargeTypesQuery.isSuccess &&
  auditQuery.isSuccess;
+
+ const anyError =
+ paymentsQuery.isError ||
+ ticketsQuery.isError ||
+ utilityChargesQuery.isError ||
+ penaltiesQuery.isError ||
+ chargeTypesQuery.isError ||
+ auditQuery.isError;
+
  const isLoading =
  !hasLoadedAlertData &&
  (paymentsQuery.isPending ||

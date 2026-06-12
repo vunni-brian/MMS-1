@@ -80,7 +80,11 @@ const Index = () => {
 
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
             {publicLinks.map((item) => (
-              <a key={item.label} href={`#${item.target}`} className="transition-colors hover:text-slate-950">
+              <a
+                key={item.label}
+                href={`#${item.target}`}
+                className="transition-colors hover:text-slate-950"
+              >
                 {item.label}
               </a>
             ))}
