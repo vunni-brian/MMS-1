@@ -372,7 +372,7 @@ const AdminAlertsPage = () => {
  <aside className="admin-alert-side-panel">
  <div>
  <p className="text-sm font-semibold font-heading">Notification Rules</p>
- <p className="mt-1 text-xs leading-5 text-muted-foreground">Quiet defaults for admin attention routing.</p>
+ <p className="mt-1 text-xs leading-5 text-muted-foreground">Current routing configuration. Manage via System Settings.</p>
  </div>
  {[
  ["Critical alerts", true],
@@ -382,7 +382,7 @@ const AdminAlertsPage = () => {
  ].map(([label, checked]) => (
  <div key={String(label)} className="flex items-center justify-between gap-3 rounded-sm border border-border/70 bg-background px-3 py-2">
  <span className="text-sm">{label}</span>
- <Switch defaultChecked={Boolean(checked)} />
+ <Switch checked={Boolean(checked)} disabled aria-label={`${String(label)} — read only`} />
  </div>
  ))}
  </aside>

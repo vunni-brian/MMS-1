@@ -50,7 +50,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, getSessionToken } from "@/lib/api";
 import { cn, formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import type { Role } from "@/types";
 
@@ -379,6 +379,34 @@ const SettingsPage = () => {
  },
  });
 
+ const [deactivationState, setDeactivationState] = useState<"idle" | "confirm" | "submitting" | "done" | "error">("idle");
+
+ const requestDeactivation = useMutation({
+ mutationFn: () => api.createTicket({
+ category: "other",
+ priority: "high",
+ subject: "Account Deactivation Request",
+ description: `Vendor ${user.name} (ID: ${user.id}) has requested deactivation of their account. Please review and process stall release.`,
+ }),
+ onSuccess: () => setDeactivationState("done"),
+ onError: () => setDeactivationState("error"),
+ });
+
+ const [wipeState, setWipeState] = useState<"idle" | "confirm" | "submitting" | "done" | "error">("idle");
+
+ const wipeTestData = useMutation({
+ mutationFn: async () => {
+ const token = getSessionToken();
+ const res = await fetch("/api/admin/wipe-test-data", {
+ method: "POST",
+ headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+ });
+ if (!res.ok) throw new Error("Wipe failed");
+ },
+ onSuccess: () => setWipeState("done"),
+ onError: () => setWipeState("error"),
+ });
+
  if (!user) {
  return null;
  }
@@ -490,9 +518,38 @@ const SettingsPage = () => {
  <p className="mt-1 text-xs leading-5 text-muted-foreground">
  Deactivation requests should be reviewed by market staff before stall access is released.
  </p>
- <Button type="button" variant="outline" className="mt-3 text-destructive hover:text-destructive">
+ {deactivationState === "done" ? (
+ <p className="mt-3 text-xs text-success font-medium">Request submitted. Market staff will contact you to complete the process.</p>
+ ) : deactivationState === "error" ? (
+ <p className="mt-3 text-xs text-destructive font-medium">Failed to submit request. Please try again or contact your market office directly.</p>
+ ) : deactivationState === "confirm" ? (
+ <div className="mt-3 space-y-2">
+ <p className="text-xs font-semibold text-destructive">Are you sure? This will notify market staff to begin the deactivation process.</p>
+ <div className="flex gap-2">
+ <Button
+ type="button"
+ size="sm"
+ variant="destructive"
+ disabled={deactivationState === "submitting"}
+ onClick={() => { setDeactivationState("submitting"); requestDeactivation.mutate(); }}
+ >
+ Yes, submit request
+ </Button>
+ <Button type="button" size="sm" variant="outline" onClick={() => setDeactivationState("idle")}>
+ Cancel
+ </Button>
+ </div>
+ </div>
+ ) : (
+ <Button
+ type="button"
+ variant="outline"
+ className="mt-3 text-destructive hover:text-destructive"
+ onClick={() => setDeactivationState("confirm")}
+ >
  Request Deactivation
  </Button>
+ )}
  </div>
  </Panel>
  )}
@@ -1078,9 +1135,38 @@ const SettingsPage = () => {
  <div className="rounded-sm border border-destructive/20 bg-destructive/5 p-3">
  <p className="text-sm font-semibold text-destructive">Wipe test data</p>
  <p className="mt-1 text-xs leading-5 text-muted-foreground">Removes demo vendors, sample payments, and generated complaints after confirmation.</p>
- <Button type="button" variant="outline" className="mt-3 text-destructive hover:text-destructive">
+ {wipeState === "done" ? (
+ <p className="mt-3 text-xs text-success font-medium">Test data wiped successfully.</p>
+ ) : wipeState === "error" ? (
+ <p className="mt-3 text-xs text-destructive font-medium">Wipe failed. The backend endpoint may not be available yet.</p>
+ ) : wipeState === "confirm" ? (
+ <div className="mt-3 space-y-2">
+ <p className="text-xs font-semibold text-destructive">This cannot be undone. Confirm wipe?</p>
+ <div className="flex gap-2">
+ <Button
+ type="button"
+ size="sm"
+ variant="destructive"
+ disabled={wipeTestData.isPending}
+ onClick={() => { setWipeState("submitting"); wipeTestData.mutate(); }}
+ >
+ {wipeTestData.isPending ? "Wiping…" : "Yes, wipe test data"}
+ </Button>
+ <Button type="button" size="sm" variant="outline" onClick={() => setWipeState("idle")}>
+ Cancel
+ </Button>
+ </div>
+ </div>
+ ) : (
+ <Button
+ type="button"
+ variant="outline"
+ className="mt-3 text-destructive hover:text-destructive"
+ onClick={() => setWipeState("confirm")}
+ >
  Wipe Test Data
  </Button>
+ )}
  </div>
  </Panel>
  )}

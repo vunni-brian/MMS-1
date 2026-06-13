@@ -166,7 +166,36 @@ const AdminMarketsPage = () => {
  subtitle="Manage market setup, capacity, managers, and operating health."
  context={context}
  actions={
- <Button variant="outline" className="gap-2">
+ <Button
+ variant="outline"
+ className="gap-2"
+ disabled={isLoading || filteredMarkets.length === 0}
+ onClick={() => {
+ const headers = ["Name", "Code", "Location", "Region", "Manager", "Vendors", "Stalls", "Active Stalls", "Occupancy %", "Revenue (UGX)", "Open Complaints", "Health"];
+ const rows = filteredMarkets.map((m) => [
+ m.name,
+ m.code,
+ m.location,
+ m.regionName ?? "",
+ m.managerName ?? "",
+ m.vendorCount,
+ m.stallCount,
+ m.activeStallCount,
+ m.activeRate,
+ m.revenue,
+ m.openComplaints,
+ healthLabels[m.health],
+ ]);
+ const csv = [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+ const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement("a");
+ a.href = url;
+ a.download = `markets-export-${new Date().toISOString().slice(0, 10)}.csv`;
+ a.click();
+ URL.revokeObjectURL(url);
+ }}
+ >
  <Download className="h-4 w-4" />
  Export
  </Button>

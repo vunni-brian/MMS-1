@@ -285,7 +285,7 @@ const AdminIntegrationsPage = () => {
  ].map(([label, checked]) => (
  <div key={String(label)} className="flex items-center justify-between gap-3 rounded-sm border border-border/70 bg-background px-3 py-2">
  <span className="text-sm">{label}</span>
- <Switch defaultChecked={Boolean(checked)} />
+ <Switch checked={Boolean(checked)} disabled aria-label={`${String(label)} — read only`} />
  </div>
  ))}
  </div>
