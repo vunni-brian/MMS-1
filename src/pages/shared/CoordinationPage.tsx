@@ -59,33 +59,36 @@ const CoordinationPage = () => {
 
   const postMessage = useMutation({
     mutationFn: () => api.postCoordinationMessage(subject, body, marketId),
+    onMutate: () => { setError(null); setSuccess(null); },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["coordination-messages"] });
-      setSubject(""); setBody(""); setError(null);
+      setSubject(""); setBody("");
       setSuccess("Message sent successfully.");
     },
-    onError: (error) => { setSuccess(null); setError(error instanceof ApiError ? error.message : "Unable to send request update."); },
+    onError: (error) => { setError(error instanceof ApiError ? error.message : "Unable to send request update."); },
   });
 
   const createResourceRequest = useMutation({
     mutationFn: () => api.createResourceRequest({ category: requestCategory, title: requestTitle, description: requestDescription, amountRequested: Number(requestAmount) }),
+    onMutate: () => { setError(null); setSuccess(null); },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["resource-requests"] });
       setRequestCategory("budget"); setRequestTitle(""); setRequestDescription(""); setRequestAmount("");
-      setError(null); setSuccess("Resource request submitted successfully.");
+      setSuccess("Resource request submitted successfully.");
     },
-    onError: (error) => { setSuccess(null); setError(error instanceof ApiError ? error.message : "Unable to submit resource request."); },
+    onError: (error) => { setError(error instanceof ApiError ? error.message : "Unable to submit resource request."); },
   });
 
   const reviewResourceRequest = useMutation({
     mutationFn: ({ request, status }: { request: ResourceRequest; status: "approved" | "rejected" }) =>
       api.reviewResourceRequest(request.id, { status, approvedAmount: status === "approved" ? request.amountRequested : null, reviewNote: status === "approved" ? "Approved for operational follow-up." : "Rejected from request review." }),
+    onMutate: () => { setError(null); setSuccess(null); },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["resource-requests"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setError(null); setSuccess("Resource request reviewed successfully.");
+      setSuccess("Resource request reviewed successfully.");
     },
-    onError: (error) => { setSuccess(null); setError(error instanceof ApiError ? error.message : "Unable to review resource request."); },
+    onError: (error) => { setError(error instanceof ApiError ? error.message : "Unable to review resource request."); },
   });
 
   const messages = data?.messages || [];
