@@ -23,15 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
  MiniAreaChart,
  MiniBarChart,
- SelectShell,
 } from "@/components/mockup/MockupUI";
-
-const fallbackMarketRows = [
- { market: "Kampala Central Market", vendors: 850, revenue: 25_400_000, compliance: 94, risk: "Low", tone: "default" as const },
- { market: "Nakasero Market", vendors: 620, revenue: 18_250_000, compliance: 88, risk: "Medium", tone: "secondary" as const },
- { market: "Kalerwe Market", vendors: 1230, revenue: 33_700_000, compliance: 76, risk: "Medium", tone: "secondary" as const },
- { market: "Owino Market", vendors: 1660, revenue: 44_100_000, compliance: 69, risk: "High", tone: "destructive" as const },
-];
 
 type StatTone = "default" | "blue" | "green" | "amber" | "red" | "purple";
 
@@ -153,15 +145,14 @@ const OfficialDashboard = () => {
  const completedPayments = payments.filter((payment) => payment.status === "completed");
  const totalRevenue = completedPayments.reduce((sum, payment) => sum + payment.amount, 0);
  const activeStalls = stalls.filter((stall) => stall.status === "active");
- const occupancyRate = stalls.length > 0 ? Math.round((activeStalls.length / stalls.length) * 100) : 82;
+ const occupancyRate = stalls.length > 0 ? Math.round((activeStalls.length / stalls.length) * 100) : 0;
  const openComplaints = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
  const resolvedComplaints = tickets.filter((ticket) => ["resolved", "closed"].includes(ticket.status));
- const resolutionRate = tickets.length ? Math.round((resolvedComplaints.length / tickets.length) * 100) : 91;
+ const resolutionRate = tickets.length ? Math.round((resolvedComplaints.length / tickets.length) * 100) : 0;
  const breachedSla = tickets.filter((ticket) => ticket.breachedSla || ticket.escalatedAt);
  const pendingResources = resourceRequests.filter((request) => request.status === "pending");
- const complianceScore = Math.round((resolutionRate + occupancyRate) / 2);
- const marketRows = markets.length
- ? markets.slice(0, 4).map((market) => {
+ const complianceScore = tickets.length > 0 || stalls.length > 0 ? Math.round((resolutionRate + occupancyRate) / 2) : null;
+ const marketRows = markets.slice(0, 4).map((market) => {
  const marketPayments = completedPayments.filter((payment) => payment.marketId === market.id);
  const marketTickets = tickets.filter((ticket) => ticket.marketId === market.id);
  const marketResolved = marketTickets.filter((ticket) => ["resolved", "closed"].includes(ticket.status));
@@ -179,8 +170,7 @@ const OfficialDashboard = () => {
  risk,
  tone: risk === "Low" ? "default" : risk === "High" ? "destructive" : "secondary",
  };
- })
- : fallbackMarketRows;
+ });
 
  return (
  <div className="space-y-6">
@@ -192,10 +182,6 @@ const OfficialDashboard = () => {
  <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
  Revenue, compliance, occupancy, complaints, and escalations across assigned markets.
  </p>
- </div>
- <div className="flex shrink-0 items-center gap-2">
- <SelectShell className="w-36">All markets</SelectShell>
- <SelectShell className="w-32">This month</SelectShell>
  </div>
  </div>
  </div>
@@ -216,15 +202,15 @@ const OfficialDashboard = () => {
  <div className="mt-6 grid gap-4 sm:grid-cols-3">
  <div className="rounded-sm bg-muted/40 p-4 transition-colors hover:bg-muted/60">
  <p className="text-xs font-medium text-muted-foreground">Compliance</p>
- <p className="mt-2 text-2xl font-bold">{complianceScore}%</p>
+ <p className="mt-2 text-2xl font-bold">{complianceScore !== null ? `${complianceScore}%` : "—"}</p>
  </div>
  <div className="rounded-sm bg-muted/40 p-4 transition-colors hover:bg-muted/60">
  <p className="text-xs font-medium text-muted-foreground">Occupancy</p>
- <p className="mt-2 text-2xl font-bold">{occupancyRate}%</p>
+ <p className="mt-2 text-2xl font-bold">{stalls.length > 0 ? `${occupancyRate}%` : "—"}</p>
  </div>
  <div className="rounded-sm bg-muted/40 p-4 transition-colors hover:bg-muted/60">
  <p className="text-xs font-medium text-muted-foreground">Resolution</p>
- <p className="mt-2 text-2xl font-bold">{resolutionRate}%</p>
+ <p className="mt-2 text-2xl font-bold">{tickets.length > 0 ? `${resolutionRate}%` : "—"}</p>
  </div>
  </div>
  </div>
@@ -249,7 +235,7 @@ const OfficialDashboard = () => {
  </CardHeader>
  <CardContent>
  <div className="space-y-3">
- {marketRows.map((row, index) => (
+ {marketRows.length > 0 ? marketRows.map((row, index) => (
  <div key={row.market} className="grid gap-3 rounded-sm border border-border bg-card p-4 md:grid-cols-[auto_1fr_auto] md:items-center transition-all hover:bg-muted/30">
  <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary/10 text-sm font-bold text-primary">{index + 1}</span>
  <div className="min-w-0">
@@ -266,7 +252,11 @@ const OfficialDashboard = () => {
  <Badge variant={row.tone}>{row.risk}</Badge>
  </div>
  </div>
- ))}
+ )) : (
+ <div className="rounded-sm border border-dashed border-border/70 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+ No market data available. Rankings will appear once markets have been configured.
+ </div>
+ )}
  </div>
  </CardContent>
  </Card>
@@ -275,9 +265,8 @@ const OfficialDashboard = () => {
  <div className="grid gap-6 lg:grid-cols-2">
  <div>
  <Card>
- <CardHeader className="flex flex-row items-center justify-between pb-2">
+ <CardHeader>
  <CardTitle>Revenue Trends</CardTitle>
- <SelectShell className="w-28">Monthly</SelectShell>
  </CardHeader>
  <CardContent className="pt-4">
  <MiniBarChart className="text-primary" />
@@ -329,8 +318,8 @@ const OfficialDashboard = () => {
  <CardContent>
  <div className="space-y-3">
  {[
- { title: "Complaint SLA breach", detail: `${Math.max(breachedSla.length, 6)} cases past target`, tone: "destructive" as const },
- { title: "Occupancy review", detail: `${occupancyRate}% regional occupancy`, tone: occupancyRate >= 80 ? ("default" as const) : ("secondary" as const) },
+ { title: "Complaint SLA breach", detail: breachedSla.length > 0 ? `${breachedSla.length} case${breachedSla.length > 1 ? "s" : ""} past target` : "No SLA breaches", tone: breachedSla.length > 0 ? "destructive" as const : "default" as const },
+ { title: "Occupancy review", detail: stalls.length > 0 ? `${occupancyRate}% regional occupancy` : "No stall data available", tone: occupancyRate >= 80 || stalls.length === 0 ? ("default" as const) : ("secondary" as const) },
  { title: "Revenue audit sample", detail: "Monthly reconciliation ready", tone: "default" as const },
  ].map((item) => (
  <div key={item.title} className="flex items-center justify-between gap-3 rounded-sm bg-muted/40 p-3">

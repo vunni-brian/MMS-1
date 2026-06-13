@@ -3,9 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
  Activity,
  AlertCircle,
- Database,
- Globe2,
- HardDrive,
  Landmark,
  ShieldAlert,
  ShieldCheck,
@@ -22,13 +19,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAreaChart } from "@/components/mockup/MockupUI";
-
-const fallbackHealth = [
- { service: "API Gateway", status: "Operational", uptime: "99.99%", latency: "42ms" },
- { service: "Auth Provider", status: "Operational", uptime: "100%", latency: "18ms" },
- { service: "Database Cluster", status: "Degraded", uptime: "98.50%", latency: "215ms" },
- { service: "Storage Bucket", status: "Operational", uptime: "99.95%", latency: "65ms" },
-];
 
 interface SystemHealthService {
  service: string;
@@ -147,16 +137,13 @@ const AdminDashboard = () => {
  const users = usersQuery.data?.users || [];
  const markets = marketsQuery.data?.markets || [];
  const auditEvents = auditQuery.data?.events || [];
- const systemHealth: SystemHealthService[] = systemHealthQuery.data?.ok
- ? fallbackHealth.map((service) => ({ ...service, status: "Operational" }))
- : fallbackHealth;
+ const systemOk = systemHealthQuery.data?.ok ?? false;
 
  const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
  const activeMarkets = markets.filter((market) => market.stallCount > 0 || market.activeStallCount > 0);
  const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
- const degradedServices = systemHealth.filter((s) => s.status !== "Operational");
- 
- const systemStatus = degradedServices.length === 0 ? "healthy" : degradedServices.length > 2 ? "critical" : "degraded";
+ const degradedServices = systemOk ? [] : [{ service: "Platform" }];
+ const systemStatus = systemOk ? "healthy" : "degraded";
 
  return (
  <div className="space-y-6">
@@ -250,49 +237,24 @@ const AdminDashboard = () => {
  <CardTitle>Infrastructure Health</CardTitle>
  </CardHeader>
  <CardContent>
- <div className="space-y-4">
- {systemHealth.map((service) => (
- <div key={service.service} className="rounded-sm border border-border/50 bg-muted/20 p-4">
- <div className="flex items-center justify-between mb-3">
- <div className="flex items-center gap-2">
- {service.service.includes("Database") ? <Database className="h-4 w-4 text-muted-foreground" /> :
- service.service.includes("Storage") ? <HardDrive className="h-4 w-4 text-muted-foreground" /> :
- <Globe2 className="h-4 w-4 text-muted-foreground" />}
- <span className="text-sm font-semibold">{service.service}</span>
- </div>
- <Badge variant={service.status === "Operational" ? "default" : "destructive"}>{service.status}</Badge>
- </div>
- <div className="grid grid-cols-2 gap-2 text-sm">
- <div className="rounded-sm bg-background/50 p-2">
- <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Uptime</p>
- <p className="mt-0.5 font-medium">{service.uptime}</p>
- </div>
- <div className="rounded-sm bg-background/50 p-2">
- <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Latency</p>
- <p className={`mt-0.5 font-medium ${parseInt(service.latency) > 100 ? "text-amber-500" : ""}`}>{service.latency}</p>
- </div>
- </div>
- </div>
- ))}
- </div>
- </CardContent>
- </Card>
- </div>
-
+ <div className={`flex items-center gap-4 rounded-sm border p-4 ${systemOk ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-900/10" : "border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/10"}`}>
+ <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${systemOk ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400"}`}>
+ {systemOk ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+ </span>
  <div>
- <Card className="border-red-200/50 bg-red-50/30 dark:border-red-900/50 dark:bg-red-900/10">
- <CardContent className="pt-6">
- <div className="flex gap-4">
- <div className="mt-0.5 rounded-full bg-red-100 p-2 text-red-700 dark:bg-red-900/50 dark:text-red-400">
- <ShieldAlert className="h-5 w-5" />
- </div>
- <div>
- <p className="text-sm font-semibold text-red-900 dark:text-red-200">Database Latency Alert</p>
- <p className="mt-1 text-xs text-red-700 dark:text-red-400/80">
- The database cluster is experiencing high latency (215ms avg). Read replicas are being scaled up automatically. No action required.
+ <p className={`text-sm font-semibold ${systemOk ? "text-emerald-900 dark:text-emerald-200" : "text-red-900 dark:text-red-200"}`}>
+ {systemOk ? "All systems operational" : "Platform health check failed"}
+ </p>
+ <p className={`mt-0.5 text-xs ${systemOk ? "text-emerald-700 dark:text-emerald-400/80" : "text-red-700 dark:text-red-400/80"}`}>
+ {systemOk ? "API and services responding normally." : "The health endpoint returned a failure response. Check server logs."}
  </p>
  </div>
  </div>
+ {!systemOk && (
+ <div className="mt-3 rounded-sm border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+ Service degradation detected. Review infrastructure logs and check connectivity to the API gateway.
+ </div>
+ )}
  </CardContent>
  </Card>
  </div>

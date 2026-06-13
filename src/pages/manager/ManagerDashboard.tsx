@@ -299,7 +299,7 @@ const ManagerDashboard = () => {
  <Badge variant={occupancyRate >= 80 ? "default" : "secondary"}>{activeStalls.length} active</Badge>
  </div>
  <div className="mt-4 h-2 rounded-full bg-muted">
- <div className="h-2 rounded-full bg-primary" style={{ width: `${Math.min(occupancyRate || 78, 100)}%` }} />
+ <div className="h-2 rounded-full bg-primary" style={{ width: `${Math.min(occupancyRate, 100)}%` }} />
  </div>
  </div>
  <div className="grid grid-cols-3 gap-3 text-center">
