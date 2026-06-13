@@ -25,10 +25,14 @@ const PaymentCallbackPage = () => {
  return `/${user.role}`;
  }, [user]);
 
- const { data, isLoading, error } = useQuery({
+ const { data, isLoading, error, refetch, isFetching } = useQuery({
  queryKey: ["payments", "pesapal-callback", orderTrackingId, merchantReference],
  enabled: Boolean(orderTrackingId && merchantReference),
  queryFn: () => api.getPesapalCallbackStatus(orderTrackingId!, merchantReference!),
+ refetchInterval: (query) => {
+ const status = query.state.data?.payment?.status;
+ return status === "pending" ? 5_000 : false;
+ },
  });
 
  const payment = data?.payment || null;
@@ -114,6 +118,9 @@ const PaymentCallbackPage = () => {
  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
  {bodyMessage}
  {countdown !== null && <span className="ml-1 font-semibold text-slate-950">Redirecting in {countdown}s.</span>}
+ {paymentStatus === "pending" && !isLoading && (
+ <span className="ml-1 text-slate-400">{isFetching ? "Checking…" : "Checking every 5 seconds."}</span>
+ )}
  </p>
 
  {isFailed ? (
@@ -161,6 +168,15 @@ const PaymentCallbackPage = () => {
  </Button>
  <Button asChild variant="outline">
  <Link to={user ? `/${user.role}` : "/login"}>Go to Dashboard</Link>
+ </Button>
+ </>
+ ) : paymentStatus === "pending" ? (
+ <>
+ <Button variant="outline" disabled={isFetching} onClick={() => refetch()} className="sm:col-span-1">
+ {isFetching ? "Checking…" : "Check Again"}
+ </Button>
+ <Button asChild variant="ghost" className="sm:col-span-1">
+ <Link to={returnPath}>Go to Dashboard</Link>
  </Button>
  </>
  ) : (
