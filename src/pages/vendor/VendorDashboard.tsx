@@ -35,13 +35,13 @@ const fallbackNotices = [
 const QuickAction = ({ icon: Icon, label, to }: { icon: ElementType; label: string; to: string }) => (
  <Link
  to={to}
- className="group flex min-h-14 items-center gap-3 rounded-sm border border-border bg-card px-3 py-3 text-left transition-all hover:border-primary/40 hover:bg-muted/50 hover:shadow-sm"
+ className="group flex min-h-14 items-center gap-3 rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
  >
- <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
- <Icon className="h-4 w-4" />
+ <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-all group-hover:from-primary group-hover:to-primary/90 group-hover:text-primary-foreground shadow-sm">
+ <Icon className="h-5 w-5" />
  </span>
  <span className="min-w-0 flex-1 text-sm font-semibold text-card-foreground">{label}</span>
- <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+ <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
  </Link>
 );
 
@@ -52,16 +52,16 @@ const DashboardSkeleton = () => (
  <Skeleton className="h-4 w-[400px]" />
  </div>
  <div className="grid gap-6 md:grid-cols-3">
- {[1, 2, 3].map(i => <Skeleton key={i} className="h-[120px] rounded-sm" />)}
+ {[1, 2, 3].map(i => <Skeleton key={i} className="h-[120px] rounded-xl" />)}
  </div>
  <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
  <div className="grid gap-6">
- <Skeleton className="h-[180px] rounded-sm" />
- <Skeleton className="h-[300px] rounded-sm" />
+ <Skeleton className="h-[180px] rounded-xl" />
+ <Skeleton className="h-[300px] rounded-xl" />
  </div>
  <div className="grid content-start gap-6">
- <Skeleton className="h-[250px] rounded-sm" />
- <Skeleton className="h-[200px] rounded-sm" />
+ <Skeleton className="h-[250px] rounded-xl" />
+ <Skeleton className="h-[200px] rounded-xl" />
  </div>
  </div>
  </div>
@@ -177,7 +177,7 @@ const VendorDashboard = () => {
 
  <div className="grid gap-6 md:grid-cols-3">
  <div>
- <Card className="h-full ">
+ <Card className="h-full stat-card">
  <CardHeader className="flex flex-row items-center justify-between pb-2">
  <CardTitle className="text-sm font-medium text-muted-foreground">My Stall</CardTitle>
  <Store className="h-4 w-4 text-muted-foreground" />
@@ -190,9 +190,9 @@ const VendorDashboard = () => {
  </CardContent>
  </Card>
  </div>
- 
+
  <div>
- <Card className="h-full ">
+ <Card className="h-full stat-card">
  <CardHeader className="flex flex-row items-center justify-between pb-2">
  <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Balance</CardTitle>
  <WalletCards className="h-4 w-4 text-muted-foreground" />
@@ -205,7 +205,7 @@ const VendorDashboard = () => {
  </div>
 
  <div>
- <Card className="h-full ">
+ <Card className="h-full stat-card">
  <CardHeader className="flex flex-row items-center justify-between pb-2">
  <CardTitle className="text-sm font-medium text-muted-foreground">Complaint Status</CardTitle>
  <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -223,7 +223,7 @@ const VendorDashboard = () => {
  <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
  <div className="grid content-start gap-6">
  <div>
- <Card>
+ <Card className="card-warm">
  <CardHeader>
  <CardTitle>Current Stall Details</CardTitle>
  </CardHeader>
@@ -246,7 +246,7 @@ const VendorDashboard = () => {
  </div>
 
  <div>
- <Card>
+ <Card className="card-warm">
  <CardHeader className="flex flex-row items-center justify-between">
  <CardTitle>Payment History</CardTitle>
  <Link to="/vendor/payments" className="text-sm font-medium text-primary hover:underline">
@@ -255,15 +255,15 @@ const VendorDashboard = () => {
  </CardHeader>
  <CardContent>
  {paymentRows.length === 0 ? (
- <div className="rounded-sm bg-muted/50 p-6 text-center text-sm text-muted-foreground">
+ <div className="rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
  No payment records yet. Payments will appear here once dues are processed.
  </div>
  ) : (
  <div className="space-y-3">
  {paymentRows.map((payment, index) => (
- <div key={payment.id} className="group flex items-center justify-between rounded-sm border border-transparent p-3 transition-colors hover:bg-muted/50">
+ <div key={payment.id} className="group flex items-center justify-between rounded-xl border border-transparent p-3 transition-all hover:bg-muted/40 hover:shadow-sm">
  <div className="flex items-center gap-4">
- <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+ <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
  {index === 0 ? <CheckCircle2 className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
  </span>
  <div>
@@ -281,7 +281,7 @@ const VendorDashboard = () => {
  </div>
 
  <div>
- <Card>
+ <Card className="card-warm">
  <CardHeader>
  <CardTitle>Recent Activity</CardTitle>
  </CardHeader>
@@ -290,8 +290,8 @@ const VendorDashboard = () => {
  {activityRows.map((item) => {
  const Icon = item.icon;
  return (
- <div key={item.id} className="flex items-center gap-4 rounded-sm border border-border/50 bg-muted/20 p-3">
- <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-background text-primary shadow-sm">
+ <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-muted/20 p-3 transition-all hover:bg-muted/40">
+ <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-sm">
  <Icon className="h-5 w-5" />
  </span>
  <div>
@@ -309,7 +309,7 @@ const VendorDashboard = () => {
 
  <div className="grid content-start gap-6">
  <div>
- <Card>
+ <Card className="card-warm">
  <CardHeader className="flex flex-row items-center justify-between">
  <CardTitle>Notifications</CardTitle>
  <Link to="/vendor/announcements" className="text-sm font-medium text-primary hover:underline">
@@ -319,7 +319,7 @@ const VendorDashboard = () => {
  <CardContent>
  <div className="space-y-4">
  {noticeRows.map((notice) => (
- <div key={notice.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+ <div key={notice.id} className="border-b border-border/50 pb-4 last:border-0 last:pb-0">
  <p className="text-sm font-semibold">{notice.title}</p>
  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{notice.body}</p>
  </div>
@@ -330,7 +330,7 @@ const VendorDashboard = () => {
  </div>
 
  <div>
- <Card>
+ <Card className="card-warm">
  <CardHeader>
  <CardTitle>Quick Actions</CardTitle>
  </CardHeader>
@@ -344,10 +344,10 @@ const VendorDashboard = () => {
  </div>
 
  <div>
- <Card className="border-amber-200/50 bg-amber-50/30 dark:border-amber-900/50 dark:bg-amber-900/10">
+ <Card className="border-amber-200/50 bg-gradient-to-br from-amber-50/50 to-amber-100/30 dark:border-amber-900/50 dark:bg-amber-900/10 rounded-xl">
  <CardContent className="pt-6">
  <div className="flex gap-4">
- <div className="mt-0.5 rounded-full bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+ <div className="mt-0.5 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 p-2.5 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 shadow-sm">
  <CalendarClock className="h-5 w-5" />
  </div>
  <div>

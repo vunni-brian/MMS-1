@@ -6,53 +6,53 @@
 
 @layer base {
  :root {
- --background: 210 20% 98%;
- --foreground: 222 47% 11%;
+ --background: 220 20% 97%;
+ --foreground: 220 30% 12%;
 
  --card: 0 0% 100%;
- --card-foreground: 222 47% 11%;
+ --card-foreground: 220 30% 12%;
 
  --popover: 0 0% 100%;
- --popover-foreground: 222 47% 11%;
+ --popover-foreground: 220 30% 12%;
 
- --primary: 222 47% 11%;
+ --primary: 221 83% 53%;
  --primary-foreground: 0 0% 100%;
 
- --secondary: 210 20% 96%;
- --secondary-foreground: 0 0% 100%;
+ --secondary: 220 20% 95%;
+ --secondary-foreground: 220 30% 12%;
 
- --muted: 210 20% 96%;
- --muted-foreground: 215 16% 47%;
+ --muted: 220 20% 95%;
+ --muted-foreground: 215 20% 45%;
 
- --accent: 217 91% 60%;
- --accent-foreground: 222 47% 11%;
+ --accent: 221 83% 53%;
+ --accent-foreground: 0 0% 100%;
 
- --destructive: 0 84% 61%;
+ --destructive: 0 84% 60%;
  --destructive-foreground: 0 0% 100%;
 
- --border: 0 0% 83%;
- --input: 0 0% 83%;
- --ring: 142 50% 42%;
+ --border: 220 20% 88%;
+ --input: 220 20% 88%;
+ --ring: 221 83% 53%;
 
- --radius: 0.25rem; /* Sharp, official radius */
+ --radius: 0.75rem;
 
- --success: 147 100% 25%;
- --success-foreground: 144 65% 96%;
- --warning: 49 100% 50%;
- --warning-foreground: 222 47% 11%;
- --info: 173 80% 32%;
- --info-foreground: 210 40% 98%;
+ --success: 142 76% 36%;
+ --success-foreground: 0 0% 100%;
+ --warning: 38 92% 50%;
+ --warning-foreground: 0 0% 100%;
+ --info: 199 89% 48%;
+ --info-foreground: 0 0% 100%;
 
- --sidebar-background: 222 47% 11%;
- --sidebar-foreground: 210 40% 98%;
- --sidebar-primary: 222 47% 11%;
+ --sidebar-background: 220 30% 12%;
+ --sidebar-foreground: 220 40% 98%;
+ --sidebar-primary: 221 83% 53%;
  --sidebar-primary-foreground: 0 0% 100%;
- --sidebar-accent: 217 91% 60%;
+ --sidebar-accent: 221 83% 53%;
  --sidebar-accent-foreground: 0 0% 100%;
- --sidebar-border: 0 0% 83%;
- --sidebar-ring: 142 50% 42%;
+ --sidebar-border: 220 20% 20%;
+ --sidebar-ring: 221 83% 53%;
 
- --font-heading: 'Inter', sans-serif;
+ --font-heading: 'Plus Jakarta Sans', sans-serif;
  --font-body: 'Inter', sans-serif;
  }
 }
@@ -89,68 +89,73 @@
 
 @layer utilities {
  .card-warm {
- @apply rounded-sm border border-border/80 bg-card shadow-sm transition-colors duration-150;
- box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.035), 0 12px 24px -22px hsl(var(--foreground) / 0.22);
+ @apply rounded-xl border border-border/60 bg-card shadow-lg transition-all duration-300;
+ box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.05), 0 10px 15px -3px hsl(var(--foreground) / 0.08);
  }
 
  .card-warm:hover {
- @apply border-border;
+ @apply border-border/80 shadow-xl;
+ box-shadow: 0 10px 15px -3px hsl(var(--foreground) / 0.08), 0 20px 25px -5px hsl(var(--foreground) / 0.12);
+ transform: translateY(-2px);
  }
 
  .status-badge {
- @apply inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-5;
+ @apply inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold leading-5;
  }
 
  .stat-card {
- @apply relative overflow-hidden rounded-sm border border-border/80 bg-card shadow-sm transition-colors duration-150;
- box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.035), 0 12px 24px -22px hsl(var(--foreground) / 0.22);
+ @apply relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg transition-all duration-300;
+ box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.05), 0 10px 15px -3px hsl(var(--foreground) / 0.08);
+ background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted) / 0.3));
  }
 
  .stat-card:hover {
- @apply border-border;
+ @apply border-border/80 shadow-xl;
+ box-shadow: 0 10px 15px -3px hsl(var(--foreground) / 0.08), 0 20px 25px -5px hsl(var(--foreground) / 0.12);
+ transform: translateY(-2px);
  }
 
  .interactive-row {
- @apply rounded-sm bg-muted/35 transition-colors duration-150 hover:bg-muted/55;
+ @apply rounded-lg bg-muted/30 transition-all duration-200 hover:bg-muted/50 hover:shadow-md;
  }
 
  .insight-chip {
- @apply inline-flex items-center rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-xs font-semibold text-muted-foreground;
+ @apply inline-flex items-center rounded-full border border-border/60 bg-gradient-to-r from-muted/40 to-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm;
  }
 
  .page-kicker {
- @apply text-[10px] font-semibold uppercase text-muted-foreground;
- letter-spacing: 0;
+ @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+ letter-spacing: 0.05em;
  }
 
  .soft-glow {
- box-shadow: none;
+ box-shadow: 0 0 20px hsl(var(--primary) / 0.15);
  }
 
  .console-section {
- @apply border-b border-border/70 pb-2;
+ @apply border-b border-border/50 pb-3;
  }
 
  .console-scope-bar {
- @apply flex flex-wrap gap-2 rounded-sm border border-border/70 bg-card p-2.5 shadow-sm sm:flex-row sm:items-end;
+ @apply flex flex-wrap gap-3 rounded-xl border border-border/60 bg-gradient-to-r from-card to-muted/30 p-4 shadow-md sm:flex-row sm:items-end;
  }
 
  .console-table-card {
- @apply overflow-hidden rounded-sm border border-border/80 bg-card shadow-sm;
- box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
+ @apply overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg;
+ box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.05);
  }
 
  .dashboard-panel {
- @apply overflow-hidden rounded-sm border border-border/80 bg-card shadow-sm;
- box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
+ @apply overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg;
+ box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.05);
  }
 
  .dashboard-panel-header {
- @apply flex flex-col gap-2 border-b border-border/70 px-3 py-2 sm:flex-row sm:items-start sm:justify-between;
+ @apply flex flex-col gap-3 border-b border-border/50 px-4 py-3 sm:flex-row sm:items-start sm:justify-between;
  }
 
  .dashboard-panel-body {
- @apply p-2.5;
+ @apply p-4;
  }
 
  .animate-fade-in-up {
@@ -167,7 +172,7 @@
  }
  }
 
- /* Flatten shadows on app-owned cards/panels only.
+ /* Modern shadows on app-owned cards/panels only.
  Do NOT apply globally — dialogs, dropdowns, and popovers
  need their full shadow-sm/xl for depth perception. */
  .card-warm,
@@ -175,7 +180,7 @@
  .dashboard-panel,
  .console-table-card,
  .admin-market-card {
- box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.035), 0 12px 24px -22px hsl(var(--foreground) / 0.22);
+ box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.05), 0 10px 15px -3px hsl(var(--foreground) / 0.08);
  }
 
 

@@ -16,6 +16,18 @@ const AppLayout = lazy(() => import("./components/AppLayout"));
 const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const ManagerDashboard = lazy(() => import("./pages/manager/ManagerDashboard"));
 const OfficialDashboard = lazy(() => import("./pages/official/OfficialDashboard"));
+const OfficialMarketsPage = lazy(() =>
+ import("./pages/official/OversightPages").then((module) => ({ default: module.OfficialMarketsPage })),
+);
+const OfficialVendorDirectoryPage = lazy(() =>
+ import("./pages/official/OversightPages").then((module) => ({ default: module.OfficialVendorDirectoryPage })),
+);
+const OfficialCompliancePage = lazy(() =>
+ import("./pages/official/OversightPages").then((module) => ({ default: module.OfficialCompliancePage })),
+);
+const OfficialAnalyticsPage = lazy(() =>
+ import("./pages/official/OversightPages").then((module) => ({ default: module.OfficialAnalyticsPage })),
+);
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsersPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
@@ -134,6 +146,10 @@ const App = () => (
  }
  >
  <Route index element={<OfficialDashboard />} />
+ <Route path="markets" element={<OfficialMarketsPage />} />
+ <Route path="vendors" element={<OfficialVendorDirectoryPage />} />
+ <Route path="compliance" element={<OfficialCompliancePage />} />
+ <Route path="analytics" element={<OfficialAnalyticsPage />} />
  <Route path="billing" element={<BillingPage />} />
  <Route path="reports" element={<ReportsPage />} />
  <Route path="audit" element={<AuditPage />} />

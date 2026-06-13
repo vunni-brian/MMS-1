@@ -199,21 +199,23 @@ const RegisterPage = () => {
  )
  : otp.length === 6 && Boolean(challengeId);
 
- return (
-  <div className="min-h-screen flex flex-col bg-[#F3F4F6] text-slate-900 font-sans">
-      {/* Official Top Bar */}
-      <div className="bg-primary px-4 py-2 text-white">
+  return (
+  <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 text-slate-900 font-sans">
+      {/* Modern Top Bar */}
+      <div className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 px-4 py-2.5 text-white shadow-lg">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between text-xs font-medium">
-          <div className="flex items-center gap-2">
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-primary">✓</span>
-            Official Market Management Portal
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-inner">
+              <Landmark className="h-3 w-3" />
+            </span>
+            <span className="font-semibold tracking-wide">Official Market Management Portal</span>
           </div>
         </div>
       </div>
 
-      <header className="mx-auto flex max-w-6xl items-center justify-between py-4 px-4 sm:px-6 lg:px-8 w-full">
-        <button type="button" onClick={() => navigate("/")} className="flex items-center gap-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          <div className="flex h-12 w-12 items-center justify-center bg-primary text-white">
+      <header className="mx-auto flex max-w-6xl items-center justify-between py-6 px-4 sm:px-6 lg:px-8 w-full">
+        <button type="button" onClick={() => navigate("/")} className="flex items-center gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all hover:bg-white/50">
+          <div className="flex h-12 w-12 items-center justify-center bg-gradient-to-br from-primary to-primary/90 text-white rounded-xl shadow-lg shadow-primary/25">
             <Landmark className="h-6 w-6" />
           </div>
           <div className="text-left hidden sm:block">
@@ -221,21 +223,21 @@ const RegisterPage = () => {
             <span className="block text-xs font-medium text-slate-500 uppercase tracking-wider">Management System</span>
           </div>
         </button>
-        <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="rounded-lg">
           Login
         </Button>
       </header>
 
       <main className="mx-auto grid flex-1 w-full max-w-6xl items-center gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:grid-cols-[0.72fr_1.28fr]">
- <aside className="hidden overflow-hidden rounded-sm border border-white bg-slate-900 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.7)] lg:block">
+ <aside className="hidden overflow-hidden rounded-2xl border border-white/20 bg-slate-900 shadow-2xl lg:block">
  <div className="relative min-h-[640px]">
  <img src="/images/market-hero.jpg" alt="Market walkway" className="absolute inset-0 h-full w-full object-cover" />
- <div className="absolute inset-0 via-primary/52 " />
- <div className="absolute left-6 right-6 top-6 rounded-sm border border-white/20 bg-white/90 p-5 backdrop-blur">
- <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary text-primary-foreground">
- <Store className="h-5 w-5" />
+ <div className="absolute inset-0 bg-gradient-to-b from-primary/60 to-slate-900/80" />
+ <div className="absolute left-6 right-6 top-6 rounded-2xl border border-white/20 bg-white/95 p-6 backdrop-blur-xl shadow-2xl">
+ <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/90 text-white shadow-lg">
+ <Store className="h-6 w-6" />
  </span>
- <h1 className="mt-5 text-3xl font-bold leading-tight font-heading text-slate-950">Vendor Registration</h1>
+ <h1 className="mt-6 text-3xl font-bold leading-tight font-heading text-slate-950">Vendor Registration</h1>
  <p className="mt-3 text-sm leading-6 text-slate-600">
  Create the vendor profile, submit verification documents, and confirm phone ownership in one flow.
  </p>
@@ -243,7 +245,7 @@ const RegisterPage = () => {
  </div>
  </aside>
 
- <Card className="card-warm rounded-sm border-slate-200 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]">
+ <Card className="card-warm rounded-2xl border-border/60 shadow-2xl bg-white/80 backdrop-blur-xl">
  <CardHeader className="pb-4">
  <CardTitle className="text-lg font-heading">
  {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}

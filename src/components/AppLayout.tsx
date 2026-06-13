@@ -8,7 +8,6 @@ import {
  Building2,
  ChevronDown,
  CircleDollarSign,
- ClipboardList,
  CreditCard,
  Gauge,
  HelpCircle,
@@ -133,21 +132,30 @@ const roleNavGroups: Record<Role, NavGroup[]> = {
  title: "Main",
  items: [
  { label: "Dashboard", path: "", icon: LayoutDashboard },
- { label: "Reports", path: "reports", icon: BarChart3 },
+ { label: "Market Monitoring", path: "markets", icon: Landmark },
+ { label: "Vendor Listings", path: "vendors", icon: Users },
+ ],
+ },
+ {
+ title: "Finance",
+ items: [
+ { label: "Revenue & Dues", path: "billing", icon: Gauge },
+ { label: "Analytics", path: "analytics", icon: BarChart3 },
+ { label: "Reports", path: "reports", icon: CircleDollarSign },
  ],
  },
  {
  title: "Governance",
  items: [
+ { label: "Compliance", path: "compliance", icon: ShieldCheck },
  { label: "Audit", path: "audit", icon: ScrollText },
- { label: "Compliance", path: "billing", icon: ShieldCheck },
  { label: "Coordination", path: "coordination", icon: MessagesSquare },
  ],
  },
  {
- title: "Resources",
+ title: "Communication",
  items: [
- { label: "Resources", path: "announcements", icon: ClipboardList },
+ { label: "Notices", path: "announcements", icon: Megaphone },
  ],
  },
  {
@@ -337,22 +345,22 @@ const AppLayout = () => {
  navigate(`${location.pathname}?${params.toString()}`);
  };
 
- return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#F7F8FA] dark:bg-slate-950">
-      {/* Official Top Bar */}
-      <div className="bg-primary px-4 py-2 text-white shrink-0 z-50">
+  return (
+    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:bg-slate-950">
+      {/* Modern Top Bar */}
+      <div className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 px-4 py-2.5 text-white shrink-0 z-50 shadow-lg">
         <div className="flex w-full items-center justify-between text-xs font-medium">
-          <div className="flex items-center gap-2">
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-primary">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-inner">
               <ShieldCheck className="h-3 w-3" aria-hidden="true" />
             </span>
-            <span className="hidden sm:inline">Official Market Management Portal</span>
-            <span className="sm:hidden">Official Portal</span>
+            <span className="hidden sm:inline font-semibold tracking-wide">Official Market Management Portal</span>
+            <span className="sm:hidden font-semibold">Official Portal</span>
           </div>
           <div className="hidden sm:flex gap-4">
-            <a href="#" className="hover:underline">English</a>
-            <a href="#" className="hover:underline">Luganda</a>
-            <a href="#" className="hover:underline">Swahili</a>
+            <a href="#" className="hover:text-white/80 transition-colors">English</a>
+            <a href="#" className="hover:text-white/80 transition-colors">Luganda</a>
+            <a href="#" className="hover:text-white/80 transition-colors">Swahili</a>
           </div>
         </div>
       </div>
@@ -363,48 +371,53 @@ const AppLayout = () => {
  <button
  type="button"
  aria-label="Close navigation overlay"
- className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-[2px] lg:hidden"
+ className="fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-sm lg:hidden"
  onClick={() => setSidebarOpen(false)}
  />
  )}
 
  <aside
  className={cn(
- "mms-sidebar fixed inset-y-0 left-0 z-50 flex w-[288px] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-200 lg:static lg:translate-x-0",
+ "mms-sidebar fixed inset-y-0 left-0 z-50 flex w-[288px] flex-col border-r border-sidebar-border/20 bg-gradient-to-b from-sidebar to-sidebar/95 text-sidebar-foreground transition-[width,transform] duration-300 ease-out lg:static lg:translate-x-0 shadow-xl",
  sidebarOpen ? "translate-x-0" : "-translate-x-full",
- sidebarCollapsed ? "lg:w-[68px]" : "lg:w-[288px]",
+ sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[288px]",
  )}
  >
- <div className="mms-sidebar-brand flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-3">
+ <div className="mms-sidebar-brand flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border/20 px-4 bg-gradient-to-r from-sidebar/50 to-transparent">
+ <div className="relative">
  <img
    src="/images/mms-logo.svg"
    alt="MMS logo"
-   className="h-8 w-8 shrink-0 rounded-md border border-white/10 bg-white object-contain shadow-sm"
+   className="h-9 w-9 shrink-0 rounded-xl border border-white/10 bg-white/10 backdrop-blur-sm object-contain shadow-lg"
  />
+          <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 border-2 border-sidebar shadow-sm" />
+ </div>
           <div className={cn("min-w-0 flex-1", sidebarCollapsed && "lg:hidden")}>
-            <p className="truncate text-sm font-bold leading-tight tracking-tight">MMS</p>
-            <p className="truncate text-[10px] font-medium leading-4 text-muted-foreground uppercase tracking-wider">Market Management System</p>
+            <p className="truncate text-base font-bold leading-tight tracking-tight text-white">MMS</p>
+            <p className="truncate text-[10px] font-medium leading-4 text-white/70 uppercase tracking-widest">Market Management</p>
           </div>
  <button
  type="button"
  aria-label="Close navigation"
- className="rounded-sm p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+ className="rounded-lg p-2 text-white/60 transition-all hover:bg-white/10 hover:text-white lg:hidden"
  onClick={() => setSidebarOpen(false)}
  >
  <X className="h-4 w-4" />
  </button>
  </div>
 
- <nav className="mms-sidebar-nav flex-1 overflow-y-auto px-3 py-3">
+ <nav className="mms-sidebar-nav flex-1 overflow-y-auto px-4 py-4 space-y-6">
  {filteredGroups.map((group) => (
- <div key={group.title} className="mms-sidebar-group mb-4 last:mb-0">
- <p className={cn("mms-sidebar-label mb-1.5 px-2.5 text-[10px] font-semibold uppercase leading-4 text-muted-foreground", sidebarCollapsed && "lg:hidden")}>
+ <div key={group.title} className="mms-sidebar-group last:mb-0">
+ <p className={cn("mms-sidebar-label mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-white/40", sidebarCollapsed && "lg:hidden")}>
  {group.title}
  </p>
- <div className="space-y-0.5">
+ <div className="space-y-1">
  {group.items.map((item) => {
  const navIdentity = getNavigationIdentity(user.role, item.path);
  const Icon = item.icon;
+ const target = getNavTarget(basePath, item);
+ const targetPath = target.split("?")[0];
  const itemQuery = item.query ? new URLSearchParams(item.query).toString() : "";
  const currentQuery = new URLSearchParams(location.search).toString();
  const hasActiveQueryPeer = !item.query && visibleNavItems.some((peer) => (
@@ -412,29 +425,34 @@ const AppLayout = () => {
  Boolean(peer.query) &&
  new URLSearchParams(peer.query || "").toString() === currentQuery
  ));
+ const currentPath = location.pathname.replace(/\/$/, "") || "/";
+ const normalizedTargetPath = targetPath.replace(/\/$/, "") || "/";
+ const routeActive = item.path === ""
+ ? currentPath === normalizedTargetPath
+ : currentPath === normalizedTargetPath || currentPath.startsWith(`${normalizedTargetPath}/`);
+ const active = item.query ? routeActive && currentQuery === itemQuery : routeActive && !hasActiveQueryPeer;
 
  return (
  <NavLink
  key={`${group.title}-${item.label}-${item.query || ""}`}
- to={getNavTarget(basePath, item)}
+ to={target}
  end={item.path === ""}
  title={sidebarCollapsed ? item.label : undefined}
  onClick={() => setSidebarOpen(false)}
- className={({ isActive }) => {
- const active = item.query ? isActive && currentQuery === itemQuery : isActive && !hasActiveQueryPeer;
-
- return cn(
- "workspace-nav-link relative flex h-8 items-center gap-2.5 rounded-sm px-2.5 text-[14px] font-normal transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+ className={cn(
+ "workspace-nav-link relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
  `nav-accent-${navIdentity.accent}`,
  sidebarCollapsed && "lg:justify-center lg:px-0",
  active
- ? "is-active font-medium text-foreground"
- : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
- );
- }}
+ ? "is-active bg-gradient-to-r from-white/20 to-white/5 text-white shadow-lg"
+ : "text-white/70 hover:bg-white/10 hover:text-white",
+ )}
  >
- <Icon className="h-3.5 w-3.5 shrink-0" />
+ <Icon className="h-4 w-4 shrink-0" />
  <span className={cn("truncate", sidebarCollapsed && "lg:hidden")}>{item.label}</span>
+ {active && !sidebarCollapsed && (
+ <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white shadow-sm" />
+ )}
  </NavLink>
  );
  })}
@@ -443,22 +461,23 @@ const AppLayout = () => {
  ))}
  </nav>
 
- <div className="mms-sidebar-footer border-t border-sidebar-border p-3">
+ <div className="mms-sidebar-footer border-t border-sidebar-border/20 p-4 space-y-3">
  <button
  type="button"
  onClick={() => openProfileTab()}
  aria-label="Open profile settings"
  className={cn(
- "mb-2 flex w-full items-center gap-2.5 rounded-sm px-2 py-2 text-left transition-colors hover:bg-muted",
+ "mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-white/10",
  sidebarCollapsed && "lg:justify-center lg:px-0",
  )}
  >
- <Avatar className="h-7 w-7 border border-border">
+ <Avatar className="h-8 w-8 border-2 border-white/20">
  {profileImageUrl && <AvatarImage src={profileImageUrl} alt={user.name} />}
- <AvatarFallback className="bg-muted text-[11px] font-semibold text-foreground">{initials}</AvatarFallback>
+ <AvatarFallback className="bg-white/20 text-xs font-bold text-white">{initials}</AvatarFallback>
  </Avatar>
  <span className={cn("min-w-0", sidebarCollapsed && "lg:hidden")}>
- <span className="block truncate text-[11px] leading-4 text-muted-foreground">{roleDescriptions[user.role]}</span>
+ <span className="block truncate text-xs font-medium text-white/90">{user.name}</span>
+ <span className="block truncate text-[10px] text-white/50">{roleDescriptions[user.role]}</span>
  </span>
  </button>
 
@@ -466,32 +485,32 @@ const AppLayout = () => {
  <Button
  type="button"
  variant="ghost"
- className={cn("h-8 flex-1 justify-start gap-2 rounded-sm px-2 text-xs font-normal text-muted-foreground hover:text-foreground", sidebarCollapsed && "lg:justify-center")}
+ className={cn("h-9 flex-1 justify-start gap-2 rounded-lg px-3 text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white", sidebarCollapsed && "lg:justify-center")}
  onClick={() => setSidebarCollapsed((value) => !value)}
  >
- {sidebarCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+ {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
  <span className={cn(sidebarCollapsed && "lg:hidden")}>{sidebarCollapsed ? "Expand" : "Collapse"}</span>
  </Button>
  <Button
  type="button"
  variant="ghost"
  size="icon"
- className="h-8 w-8 shrink-0 rounded-sm text-muted-foreground hover:text-foreground"
+ className="h-9 w-9 shrink-0 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
  onClick={signOut}
  aria-label="Sign out"
  >
- <LogOut className="h-3.5 w-3.5" />
+ <LogOut className="h-4 w-4" />
  </Button>
  </div>
  </div>
  </aside>
 
  <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
- <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-white px-4 lg:px-6 shadow-sm">
+ <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-white/80 backdrop-blur-xl px-4 lg:px-6 shadow-sm">
  <button
  type="button"
  aria-label="Open navigation"
- className="rounded-sm p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+ className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground lg:hidden"
  onClick={() => setSidebarOpen(true)}
  >
  <Menu className="h-5 w-5" />
@@ -499,7 +518,7 @@ const AppLayout = () => {
  <button
  type="button"
  aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
- className="hidden rounded-sm p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
+ className="hidden rounded-lg p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground lg:inline-flex"
  onClick={() => setSidebarCollapsed((value) => !value)}
  >
  <Menu className="h-5 w-5" />
@@ -507,17 +526,17 @@ const AppLayout = () => {
 
  <div className="hidden min-w-0 flex-1 items-center gap-4 md:flex">
  <div className="min-w-0">
- <nav className="flex min-w-0 items-center gap-1 text-xs font-medium text-muted-foreground" aria-label="Breadcrumb">
+ <nav className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-label="Breadcrumb">
  {breadcrumbs.map((item, index) => (
- <span key={`${item.label}-${item.path || "current"}`} className="inline-flex min-w-0 items-center gap-1">
+ <span key={`${item.label}-${item.path || "current"}`} className="inline-flex min-w-0 items-center gap-1.5">
  {item.path && index < breadcrumbs.length - 1 ? (
- <NavLink to={item.path} className="truncate transition-colors hover:text-foreground">
+ <NavLink to={item.path} className="truncate transition-colors hover:text-foreground hover:underline">
  {item.label}
  </NavLink>
  ) : (
- <span className="truncate text-foreground">{item.label}</span>
+ <span className="truncate text-foreground font-semibold">{item.label}</span>
  )}
- {index < breadcrumbs.length - 1 && <span className="text-muted-foreground/60">/</span>}
+ {index < breadcrumbs.length - 1 && <span className="text-muted-foreground/40">/</span>}
  </span>
  ))}
  </nav>
@@ -529,11 +548,11 @@ const AppLayout = () => {
  <button
  type="button"
  onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
- className="flex h-9 w-full items-center rounded-sm border border-border bg-slate-50 pl-9 pr-14 text-sm outline-none transition-colors text-muted-foreground hover:bg-slate-100"
+ className="flex h-9 w-full items-center rounded-lg border border-border/60 bg-slate-50/80 pl-9 pr-14 text-sm outline-none transition-all text-muted-foreground hover:bg-slate-100/80 hover:border-border/80"
  >
  Search workspace...
  </button>
- <span className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-sm border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground xl:inline-flex">
+ <span className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-lg border border-border/60 bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground xl:inline-flex">
  Ctrl K
  </span>
  </div>
@@ -547,7 +566,7 @@ const AppLayout = () => {
  <div className="ml-auto flex shrink-0 items-center gap-2">
  <DropdownMenu>
  <DropdownMenuTrigger asChild>
- <Button variant="outline" className="hidden h-9 gap-2 rounded-sm border-border bg-white px-3 text-sm font-medium text-slate-700 shadow-none xl:inline-flex">
+ <Button variant="outline" className="hidden h-9 gap-2 rounded-lg border-border/60 bg-white/80 px-3 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 xl:inline-flex">
  <Building2 className="h-4 w-4 text-muted-foreground" />
  <span className="max-w-[180px] truncate">{headerScope}</span>
  <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -567,8 +586,8 @@ const AppLayout = () => {
  </DropdownMenuContent>
  </DropdownMenu>
 
- <span className="role-badge hidden h-9 items-center gap-2 rounded-sm border border-border bg-white px-3 text-xs font-semibold text-slate-700 sm:inline-flex">
- <span className="h-2 w-2 rounded-full bg-[var(--role-accent)]" />
+ <span className="role-badge hidden h-9 items-center gap-2 rounded-lg border border-border/60 bg-white/80 px-3 text-xs font-semibold text-slate-700 shadow-sm sm:inline-flex">
+ <span className="h-2 w-2 rounded-full bg-primary" />
  {roleLabels[user.role]}
  </span>
 
@@ -581,7 +600,7 @@ const AppLayout = () => {
  }
  }}
  disabled={isPendingVendor}
- className="relative flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-white text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+ className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-white/80 text-muted-foreground transition-all hover:bg-slate-50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45 shadow-sm"
  >
  <Bell className="h-4 w-4" />
  {hasUnread && !isPendingVendor && (
@@ -592,7 +611,7 @@ const AppLayout = () => {
  <button
  type="button"
  aria-label="Help"
- className="hidden h-9 w-9 items-center justify-center rounded-sm border border-border bg-white text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground sm:flex"
+ className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-white/80 text-muted-foreground transition-all hover:bg-slate-50 hover:text-foreground shadow-sm sm:flex"
  onClick={() => openSettingsTab("security")}
  >
  <HelpCircle className="h-4 w-4" />
@@ -602,9 +621,9 @@ const AppLayout = () => {
  <DropdownMenuTrigger asChild>
  <button
  type="button"
- className="flex h-9 items-center gap-2 rounded-sm border border-border bg-white px-1 pr-2 text-left transition-colors hover:bg-muted/50"
+ className="flex h-9 items-center gap-2 rounded-lg border border-border/60 bg-white/80 px-1 pr-2 text-left transition-all hover:bg-slate-50 shadow-sm"
  >
- <Avatar className="h-7 w-7 border border-border">
+ <Avatar className="h-7 w-7 border border-border/60">
  {profileImageUrl && <AvatarImage src={profileImageUrl} alt={user.name} />}
  <AvatarFallback className="bg-muted text-xs font-semibold text-foreground">{initials}</AvatarFallback>
  </Avatar>
@@ -615,7 +634,7 @@ const AppLayout = () => {
  <DropdownMenuContent align="end" className="w-72 p-2">
  <DropdownMenuLabel className="p-2">
  <div className="flex items-start gap-3">
- <Avatar className="h-10 w-10 border border-border">
+ <Avatar className="h-10 w-10 border border-border/60">
  {profileImageUrl && <AvatarImage src={profileImageUrl} alt={user.name} />}
  <AvatarFallback className="bg-muted text-sm font-semibold text-foreground">{initials}</AvatarFallback>
  </Avatar>
@@ -652,27 +671,29 @@ const AppLayout = () => {
  </header>
 
  <main
- className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F3F4F6]"
+ className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50"
  aria-hidden={sidebarOpen ? true : undefined}
  >
  <div className="app-content-stack mx-auto flex min-h-full w-full max-w-[1360px] flex-col px-4 py-6 sm:px-6">
  <div className="flex-1 flex flex-col">
  <Outlet />
  </div>
- <footer className="enterprise-footer" aria-label="Workspace status">
- <div className="enterprise-footer-left">
- <span>MMS v1.0.0</span>
+ <footer className="enterprise-footer mt-8 border-t border-border/40 bg-white/50 backdrop-blur-sm px-4 py-4" aria-label="Workspace status">
+ <div className="enterprise-footer-left flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+ <span className="font-semibold text-foreground">MMS v1.0.0</span>
+ <span className="text-muted-foreground/60">•</span>
  <span>{roleLabels[user.role]} workspace</span>
+ <span className="text-muted-foreground/60">•</span>
  <span>{headerScope}</span>
  </div>
- <div className="enterprise-footer-right">
- <span className="inline-flex items-center gap-1.5">
- <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+ <div className="enterprise-footer-right flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+ <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-emerald-600 font-medium">
+ <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
  All systems operational
  </span>
- <button type="button" onClick={() => openSettingsTab("notifications")}>Support</button>
- <button type="button" onClick={() => openSettingsTab("security")}>Security</button>
- <span>(c) 2026 Kampala Capital City Authority</span>
+ <button type="button" onClick={() => openSettingsTab("notifications")} className="hover:text-foreground transition-colors">Support</button>
+ <button type="button" onClick={() => openSettingsTab("security")} className="hover:text-foreground transition-colors">Security</button>
+ <span className="text-muted-foreground/60">© 2026 Kampala Capital City Authority</span>
  </div>
  </footer>
  </div>

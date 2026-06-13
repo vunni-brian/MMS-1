@@ -544,6 +544,10 @@ Manager routes:
 Official routes:
 
 - `/official`
+- `/official/markets`
+- `/official/vendors`
+- `/official/compliance`
+- `/official/analytics`
 - `/official/billing`
 - `/official/reports`
 - `/official/audit`
