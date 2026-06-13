@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Mail, Phone, Settings, Trash2, UserCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileClock, Mail, Phone, Settings, Trash2, UserCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, formatAttachmentLabel } from "@/lib/api";
-import { formatHumanDate } from "@/lib/utils";
+import { cn, formatHumanDate } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -445,6 +445,37 @@ const ProfileSettingsPage = () => {
  <div className="grid gap-3 md:grid-cols-2">
  <EvidenceField label="National ID" value={formatAttachmentLabel(vendor?.idDocument || null)} />
  <EvidenceField label="LC Letter" value={formatAttachmentLabel(vendor?.lcLetter || null)} />
+ </div>
+ </FormSection>
+ )}
+
+ {isVendor && (
+ <FormSection title="Verification Status" description="Checklist of identity and contact verification used for vendor approval." className="shadow-none">
+ <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+ {[
+ { label: "National ID", done: Boolean(vendor?.documentValidation.nationalIdPresent) },
+ { label: "LC Letter", done: Boolean(vendor?.documentValidation.lcLetterPresent) },
+ { label: "Phone Verified", done: Boolean(user.phoneVerifiedAt) },
+ { label: "Email on File", done: Boolean(profileForm.email.trim()) },
+ ].map((item) => (
+ <div
+ key={item.label}
+ className={cn(
+ "flex flex-col items-center gap-1.5 rounded-sm border p-3 text-center",
+ item.done ? "border-success/25 bg-success/10" : "border-dashed border-border/70 bg-muted/15",
+ )}
+ >
+ {item.done ? (
+ <CheckCircle2 className="h-5 w-5 text-success" />
+ ) : (
+ <FileClock className="h-5 w-5 text-muted-foreground" />
+ )}
+ <p className="text-xs font-medium">{item.label}</p>
+ <p className={cn("text-[11px]", item.done ? "text-success" : "text-muted-foreground")}>
+ {item.done ? "Verified" : "Pending"}
+ </p>
+ </div>
+ ))}
  </div>
  </FormSection>
  )}

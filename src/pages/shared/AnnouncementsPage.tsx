@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Send } from "lucide-react";
+import { Archive, AlertCircle, Bell, Send } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -44,18 +44,25 @@ const AnnouncementCard = ({
 }) => (
   <MockupCard className={cn("p-4", announcement.priority === "high" && announcement.active && "border-red-200 bg-red-50/30")}>
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className={`rounded-sm border px-2 py-0.5 text-[11px] font-bold ${priorityClasses[announcement.priority]}`}>
-            {priorityLabels[announcement.priority]}
+      <div className="flex min-w-0 items-start gap-3">
+        {announcement.priority === "high" && announcement.active && (
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+            <AlertCircle className="h-4 w-4" />
           </span>
-          <span className="rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-            {audienceLabels[announcement.audience]}
-          </span>
-          <span className="text-xs text-slate-400">{announcement.marketName || "All markets"}</span>
+        )}
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className={`rounded-sm border px-2 py-0.5 text-[11px] font-bold ${priorityClasses[announcement.priority]}`}>
+              {priorityLabels[announcement.priority]}
+            </span>
+            <span className="rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              {audienceLabels[announcement.audience]}
+            </span>
+            <span className="text-xs text-slate-400">{announcement.marketName || "All markets"}</span>
+          </div>
+          <h3 className="font-bold text-slate-900">{announcement.title}</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{announcement.body}</p>
         </div>
-        <h3 className="font-bold text-slate-900">{announcement.title}</h3>
-        <p className="mt-1 text-sm leading-6 text-slate-600">{announcement.body}</p>
       </div>
       {canManage && announcement.active && (
         <Button variant="outline" size="sm" className="shrink-0 gap-2 rounded-sm border-slate-300 font-bold" disabled={archiving} onClick={() => onArchive(announcement.id)}>
@@ -193,13 +200,32 @@ const AnnouncementsPage = () => {
               <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
                 No active notices. Important announcements will appear here when published.
               </div>
-            ) : (
-              <div className="space-y-3">
-                {activeAnnouncements.map((announcement) => (
-                  <AnnouncementCard key={announcement.id} announcement={announcement} canManage={canManage} onArchive={(id) => archiveAnnouncement.mutate(id)} archiving={archiveAnnouncement.isPending} />
-                ))}
-              </div>
-            )}
+            ) : (() => {
+              const urgent = activeAnnouncements.filter((a) => a.priority === "high");
+              const other = activeAnnouncements.filter((a) => a.priority !== "high");
+              return (
+                <div className="space-y-5">
+                  {urgent.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-600">
+                        <Bell className="h-3.5 w-3.5" /> Urgent
+                      </div>
+                      {urgent.map((announcement) => (
+                        <AnnouncementCard key={announcement.id} announcement={announcement} canManage={canManage} onArchive={(id) => archiveAnnouncement.mutate(id)} archiving={archiveAnnouncement.isPending} />
+                      ))}
+                    </div>
+                  )}
+                  {other.length > 0 && (
+                    <div className="space-y-3">
+                      {urgent.length > 0 && <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Other Notices</div>}
+                      {other.map((announcement) => (
+                        <AnnouncementCard key={announcement.id} announcement={announcement} canManage={canManage} onArchive={(id) => archiveAnnouncement.mutate(id)} archiving={archiveAnnouncement.isPending} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </MockupPanel>
 
           {!isVendor && (

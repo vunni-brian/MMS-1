@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import {
+ AlertTriangle,
  CalendarClock,
  CheckCircle2,
  CreditCard,
@@ -22,6 +23,7 @@ import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const fallbackNotices = [
@@ -174,6 +176,27 @@ const VendorDashboard = () => {
  A simple view of your stall, dues, notices, and support requests at {user?.marketName || "your market"}.
  </p>
  </div>
+
+ {approvedBookings.length > 0 && outstandingBalance > 0 && (
+ <div className="flex flex-col gap-3 rounded-xl border border-amber-200/70 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-900/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+ <div className="flex items-start gap-3">
+ <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+ <AlertTriangle className="h-4 w-4" />
+ </span>
+ <div>
+ <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+ You have {approvedBookings.length} pending payment{approvedBookings.length > 1 ? "s" : ""}
+ </p>
+ <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">
+ Total due: {formatCurrency(outstandingBalance)}. Pay online or upload a bank receipt for review.
+ </p>
+ </div>
+ </div>
+ <Link to="/vendor/payments" className="shrink-0">
+ <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">Pay Now</Button>
+ </Link>
+ </div>
+ )}
 
  <div className="grid gap-6 md:grid-cols-3">
  <div>

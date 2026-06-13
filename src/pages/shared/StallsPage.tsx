@@ -5,7 +5,7 @@ import { Plus, Search, X } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatHumanDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,12 @@ const StallsPage = () => {
     queryKey: ["stalls"],
     queryFn: () => api.getStalls(),
     refetchInterval: 30_000,
+  });
+
+  const vendorBookingsQuery = useQuery({
+    queryKey: ["bookings", "stall-history"],
+    queryFn: () => api.getBookings(),
+    enabled: role === "vendor",
   });
 
   const createStall = useMutation({
@@ -218,6 +224,48 @@ const StallsPage = () => {
             )}
           </MockupPanel>
         </div>
+
+        <MockupPanel title="Stall History">
+          {(() => {
+            const bookings = vendorBookingsQuery.data?.bookings || [];
+            const historyRows = bookings
+              .filter((booking) => booking.status !== "pending")
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            if (vendorBookingsQuery.isPending) {
+              return <LoadingState rows={3} itemClassName="h-12 rounded-sm" />;
+            }
+
+            if (historyRows.length === 0) {
+              return (
+                <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+                  No stall assignment history yet. Past and current allocations will appear here.
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-2">
+                {historyRows.map((booking) => {
+                  const isCurrent = booking.status === "approved" && myStall?.name === booking.stallName;
+                  const tone = booking.status === "rejected" ? "red" : isCurrent ? "green" : "slate";
+                  const label = booking.status === "rejected" ? "Rejected" : isCurrent ? "Active" : "Ended";
+                  return (
+                    <div key={booking.id} className="flex flex-col gap-2 rounded-sm border border-slate-100 bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900">Stall {booking.stallName}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {formatHumanDate(booking.startDate)} — {isCurrent ? "Present" : formatHumanDate(booking.endDate)}
+                        </p>
+                      </div>
+                      <StatusPill tone={tone}>{label}</StatusPill>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </MockupPanel>
       </MockupPage>
     );
   }
