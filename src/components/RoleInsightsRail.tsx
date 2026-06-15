@@ -14,7 +14,7 @@ const toneClassName = (tone: InsightTone = "default") => {
 };
 
 const InsightRow = ({ item }: { item: InsightMetric }) => (
- <div className="rounded-sm border border-border/70 bg-background/80 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-background/80 p-2.5">
  <div className="flex items-start justify-between gap-3">
  <div className="min-w-0">
  <p className="truncate text-[11px] font-medium text-muted-foreground">{item.label}</p>
@@ -28,7 +28,7 @@ const InsightRow = ({ item }: { item: InsightMetric }) => (
 );
 
 const AlertRow = ({ alert }: { alert: InsightAlert }) => (
- <div className="rounded-sm border border-border/70 bg-background/80 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-background/80 p-2.5">
  <div className="flex items-start gap-2.5">
  <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", alert.tone === "destructive" ? "bg-destructive" : alert.tone === "warning" ? "bg-warning" : alert.tone === "success" ? "bg-success" : "bg-info")} />
  <div className="min-w-0">
@@ -69,7 +69,7 @@ export const RoleInsightsRail = ({ user, isPendingVendor, notifications }: RoleI
  ))}
  </div>
 
- <div className="mt-4 rounded-sm border border-border/70 bg-background/80 p-3">
+ <div className="mt-4 rounded-lg border border-border/70 bg-background/80 p-3">
  <div className="flex items-center justify-between">
  <p className="section-eyebrow">Activity Trend</p>
  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
@@ -91,7 +91,7 @@ export const RoleInsightsRail = ({ user, isPendingVendor, notifications }: RoleI
  {alerts.length ? (
  alerts.map((alert) => <AlertRow key={alert.id} alert={alert} />)
  ) : (
- <div className="rounded-sm border border-dashed border-border/70 bg-background/80 p-3 text-center">
+ <div className="rounded-lg border border-dashed border-border/70 bg-background/80 p-3 text-center">
  <p className="text-xs font-medium">No active attention items</p>
  <p className="mt-1 text-[11px] text-muted-foreground">Exceptions and approvals will appear here.</p>
  </div>

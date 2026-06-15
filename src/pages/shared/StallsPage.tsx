@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadingState } from "@/components/console/ConsolePage";
-import { MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
+import { StatusBadge } from "@/components/StatusBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import type { Stall, StallStatus } from "@/types";
 
@@ -150,17 +153,17 @@ const StallsPage = () => {
 
   if (stallsQuery.isError) {
     return (
-      <MockupPage>
-        <Alert variant="destructive" className="max-w-xl rounded-sm">
+      <PageLayout>
+        <Alert variant="destructive" className="max-w-xl rounded-lg">
           <AlertTitle>Error loading stalls</AlertTitle>
           <AlertDescription>There was a problem reaching the server.</AlertDescription>
         </Alert>
-      </MockupPage>
+      </PageLayout>
     );
   }
 
   if (stallsQuery.isPending) {
-    return <MockupPage><LoadingState rows={6} itemClassName="h-28 rounded-sm" /></MockupPage>;
+    return <PageLayout><LoadingState rows={6} itemClassName="h-28 rounded-lg" /></PageLayout>;
   }
 
   // ── Vendor view ───────────────────────────────────────
@@ -168,39 +171,48 @@ const StallsPage = () => {
     const myStall = (stallsQuery.data?.stalls || []).find((s) => s.vendorName === user?.name && s.status === "active");
 
     return (
-      <MockupPage>
-        <MockupHeader eyebrow="My Stall" title="My Stall" subtitle="Your current stall assignment, dues, and availability." />
+      <PageLayout>
+        <PageHeader eyebrow="My Stall" title="My Stall" subtitle="Your current stall assignment, dues, and availability." />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <MockupPanel title="Current Stall">
+          <Card>
+            <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+              <CardTitle className="text-base font-medium">Current Stall</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
             {myStall ? (
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-3xl font-bold text-slate-950">{myStall.name}</h2>
-                    <StatusPill tone="green">Active</StatusPill>
+                    <StatusBadge status="active" />
                   </div>
                   <p className="mt-2 text-sm text-slate-600">{myStall.zone} — {myStall.size}</p>
                   <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Monthly dues</p>
                   <p className="mt-1 text-2xl font-bold text-slate-950">{formatCurrency(myStall.pricePerMonth)}</p>
                 </div>
                 <div className="grid gap-2 sm:w-52">
-                  <Button className="rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => navigate("/vendor/payments")}>Pay Dues</Button>
-                  <Button variant="outline" className="rounded-sm border-slate-300 font-bold" onClick={() => navigate("/vendor/complaints")}>Report Issue</Button>
+                  <Button className="rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => navigate("/vendor/payments")}>Pay Dues</Button>
+                  <Button variant="outline" className="rounded-lg border-slate-300 font-bold" onClick={() => navigate("/vendor/complaints")}>Report Issue</Button>
                 </div>
               </div>
             ) : (
-              <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
                 <p className="font-bold text-slate-900">No active stall assignment</p>
                 <p className="mt-2 text-sm text-slate-500">Browse available stalls and submit an application to get started.</p>
-                <Button className="mt-4 rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold" asChild>
+                <Button className="mt-4 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" asChild>
                   <Link to="/vendor/stalls">Browse Available Stalls</Link>
                 </Button>
               </div>
             )}
-          </MockupPanel>
+          </CardContent>
+          </Card>
 
-          <MockupPanel title="Stall Information">
+          <Card>
+            <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+              <CardTitle className="text-base font-medium">Stall Information</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
             {myStall ? (
               <div className="space-y-3 text-sm">
                 {[
@@ -210,22 +222,27 @@ const StallsPage = () => {
                   { label: "Market", value: myStall.marketName || user?.marketName || "Assigned market" },
                   { label: "Monthly dues", value: formatCurrency(myStall.pricePerMonth) },
                 ].map((row) => (
-                  <div key={row.label} className="flex items-center justify-between gap-3 rounded-sm border border-slate-100 bg-slate-50 px-3 py-2">
+                  <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
                     <span className="text-slate-500">{row.label}</span>
                     <span className="font-bold text-slate-900">{row.value}</span>
                   </div>
                 ))}
-                <div className="mt-2 rounded-sm border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
+                <div className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
                   Assignment is active and eligible for monthly dues payment.
                 </div>
               </div>
             ) : (
               <p className="text-sm text-slate-500">Stall details will appear here once you have an active assignment.</p>
             )}
-          </MockupPanel>
+          </CardContent>
+          </Card>
         </div>
 
-        <MockupPanel title="Stall History">
+        <Card>
+          <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+            <CardTitle className="text-base font-medium">Stall History</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
           {(() => {
             const bookings = vendorBookingsQuery.data?.bookings || [];
             const historyRows = bookings
@@ -233,12 +250,12 @@ const StallsPage = () => {
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             if (vendorBookingsQuery.isPending) {
-              return <LoadingState rows={3} itemClassName="h-12 rounded-sm" />;
+              return <LoadingState rows={3} itemClassName="h-12 rounded-lg" />;
             }
 
             if (historyRows.length === 0) {
               return (
-                <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
                   No stall assignment history yet. Past and current allocations will appear here.
                 </div>
               );
@@ -248,38 +265,39 @@ const StallsPage = () => {
               <div className="space-y-2">
                 {historyRows.map((booking) => {
                   const isCurrent = booking.status === "approved" && myStall?.name === booking.stallName;
-                  const tone = booking.status === "rejected" ? "red" : isCurrent ? "green" : "slate";
+                  const badgeVariant = booking.status === "rejected" ? "error" : isCurrent ? "success" : "secondary";
                   const label = booking.status === "rejected" ? "Rejected" : isCurrent ? "Active" : "Ended";
                   return (
-                    <div key={booking.id} className="flex flex-col gap-2 rounded-sm border border-slate-100 bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div key={booking.id} className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-slate-900">Stall {booking.stallName}</p>
                         <p className="mt-0.5 text-xs text-slate-500">
                           {formatHumanDate(booking.startDate)} — {isCurrent ? "Present" : formatHumanDate(booking.endDate)}
                         </p>
                       </div>
-                      <StatusPill tone={tone}>{label}</StatusPill>
+                      <StatusBadge status={booking.status} label={label} context="booking" />
                     </div>
                   );
                 })}
               </div>
             );
           })()}
-        </MockupPanel>
-      </MockupPage>
+        </CardContent>
+        </Card>
+      </PageLayout>
     );
   }
 
   // ── Manager / official view ───────────────────────────
   return (
-    <MockupPage>
-      <MockupHeader
+    <PageLayout>
+      <PageHeader
         eyebrow="Stalls > Allocation"
         title="Stall Allocation"
         subtitle={user?.marketName || "Manage stall availability and assignments."}
         actions={
           role === "manager" ? (
-            <Button onClick={() => setShowCreate(true)} className="h-9 gap-2 rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold">
+            <Button onClick={() => setShowCreate(true)} className="h-9 gap-2 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold">
               <Plus className="h-4 w-4" />
               Add Stall
             </Button>
@@ -295,7 +313,7 @@ const StallsPage = () => {
           { label: "Allocated", value: stallCounts.allocated, tone: "red" as const },
           { label: "Reserved / maintenance", value: stallCounts.reserved, tone: "amber" as const },
         ].map((item) => (
-          <div key={item.label} className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-600">{item.label}</p>
             <p className="mt-2 text-2xl font-bold text-slate-950 font-heading">{item.value}</p>
           </div>
@@ -303,13 +321,17 @@ const StallsPage = () => {
       </div>
 
       {/* Filter + grid */}
-      <MockupPanel title="Stall Map">
+      <Card>
+        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+          <CardTitle className="text-base font-medium">Stall Map</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
         {/* Controls */}
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-1 rounded-sm border border-slate-200 bg-slate-50 p-1">
+          <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
             {([{ id: "all", label: "All" }, { id: "available", label: "Available" }, { id: "allocated", label: "Allocated" }, { id: "reserved", label: "Reserved" }] as const).map((tab) => (
               <button key={tab.id} type="button" onClick={() => setStatusFilter(tab.id as StatusFilter)}
-                className={`h-8 rounded-sm px-3 text-xs font-bold transition-colors ${statusFilter === tab.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>
+                className={`h-8 rounded-lg px-3 text-xs font-bold transition-colors ${statusFilter === tab.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>
                 {tab.label}
               </button>
             ))}
@@ -317,9 +339,9 @@ const StallsPage = () => {
           <div className="flex flex-wrap gap-2">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search stall..." className="h-9 pl-9 w-full border-slate-300 rounded-sm sm:w-52 focus-visible:border-primary focus-visible:ring-0" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search stall..." className="h-9 pl-9 w-full border-slate-300 rounded-lg sm:w-52 focus-visible:border-primary focus-visible:ring-0" />
             </div>
-            <select value={rowFilter} onChange={(e) => setRowFilter(e.target.value)} className="h-9 rounded-sm border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+            <select value={rowFilter} onChange={(e) => setRowFilter(e.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
               <option value="all">All Rows</option>
               {rows.map((row) => <option key={row} value={row}>Row {row}</option>)}
             </select>
@@ -328,7 +350,7 @@ const StallsPage = () => {
 
         {/* Grid */}
         {filteredStalls.length === 0 ? (
-          <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
             No stalls match the current filters.
           </div>
         ) : (
@@ -343,7 +365,7 @@ const StallsPage = () => {
                     {rowStalls.map((stall) => (
                       <button key={stall.id} type="button"
                         onClick={() => role === "manager" ? setSelectedStall(stall) : undefined}
-                        className={`min-h-[72px] rounded-sm border p-2.5 text-center transition-colors ${statusClasses[stall.status]} ${role === "manager" ? "cursor-pointer" : "cursor-default"}`}>
+                        className={`min-h-[72px] rounded-lg border p-2.5 text-center transition-colors ${statusClasses[stall.status]} ${role === "manager" ? "cursor-pointer" : "cursor-default"}`}>
                         <p className="text-sm font-bold text-slate-900">{stall.name}</p>
                         <p className="mt-1 text-[11px] font-semibold">{statusLabel[stall.status]}</p>
                         {stall.vendorName && <p className="mt-0.5 truncate text-[10px] text-slate-500">{stall.vendorName}</p>}
@@ -358,27 +380,28 @@ const StallsPage = () => {
 
         {/* Legend */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6 border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
-          <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-emerald-500" />Available</span>
-          <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-amber-400" />Reserved</span>
-          <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-red-500" />Allocated</span>
+          <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-lg bg-emerald-500" />Available</span>
+          <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-lg bg-amber-400" />Reserved</span>
+          <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-lg bg-red-500" />Allocated</span>
         </div>
-      </MockupPanel>
+        </CardContent>
+      </Card>
 
       {/* Stall detail dialog (manager) */}
       <Dialog open={Boolean(selectedStall)} onOpenChange={(open) => !open && setSelectedStall(null)}>
-        <DialogContent className="rounded-sm sm:max-w-md">
+        <DialogContent className="rounded-lg sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-bold text-slate-900">Stall {selectedStall?.name}</DialogTitle>
             <DialogDescription>Manage availability and publication for this stall.</DialogDescription>
           </DialogHeader>
           {selectedStall?.original && (
             <div className="space-y-4">
-              <div className="rounded-sm border border-slate-200 bg-slate-50 divide-y divide-slate-100">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 divide-y divide-slate-100">
                 {[
                   { label: "Zone", value: selectedStall.original.zone },
                   { label: "Size", value: selectedStall.original.size },
                   { label: "Monthly rent", value: formatCurrency(selectedStall.original.pricePerMonth) },
-                  { label: "Status", value: <StatusPill tone={selectedStall.status === "available" ? "green" : selectedStall.status === "allocated" ? "red" : "amber"}>{statusLabel[selectedStall.status]}</StatusPill> },
+                  { label: "Status", value: <StatusBadge status={selectedStall.status} /> },
                   { label: "Assigned to", value: selectedStall.original.vendorName || "—" },
                   { label: "Published", value: selectedStall.original.isPublished ? "Yes" : "Hidden" },
                 ].map((row) => (
@@ -391,13 +414,13 @@ const StallsPage = () => {
 
               <div className="space-y-2">
                 {selectedStall.stallStatus !== "active" && (
-                  <Button variant="outline" className="w-full rounded-sm border-slate-300 font-bold"
+                  <Button variant="outline" className="w-full rounded-lg border-slate-300 font-bold"
                     onClick={() => updateStall.mutate({ stallId: selectedStall.id, status: selectedStall.stallStatus === "maintenance" ? "inactive" : "maintenance" })}
                     disabled={updateStall.isPending}>
                     {selectedStall.stallStatus === "maintenance" ? "Restore Availability" : "Mark as Maintenance"}
                   </Button>
                 )}
-                <Button variant="outline" className="w-full rounded-sm border-slate-300 font-bold"
+                <Button variant="outline" className="w-full rounded-lg border-slate-300 font-bold"
                   onClick={() => updateStall.mutate({ stallId: selectedStall.id, isPublished: !selectedStall.original!.isPublished })}
                   disabled={updateStall.isPending}>
                   {selectedStall.original.isPublished ? "Unpublish Stall" : "Publish Stall"}
@@ -413,7 +436,7 @@ const StallsPage = () => {
 
       {/* Add stall dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="rounded-sm">
+        <DialogContent className="rounded-lg">
           <DialogHeader>
             <DialogTitle className="font-bold text-slate-900">Add Stall</DialogTitle>
             <DialogDescription>Add a stall to the market inventory.</DialogDescription>
@@ -421,29 +444,29 @@ const StallsPage = () => {
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label className="font-bold text-slate-700">Stall Number</Label>
-              <Input className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={stallForm.name} onChange={(e) => setStallForm((c) => ({ ...c, name: e.target.value }))} placeholder="A-07" />
+              <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.name} onChange={(e) => setStallForm((c) => ({ ...c, name: e.target.value }))} placeholder="A-07" />
             </div>
             <div className="space-y-1.5">
               <Label className="font-bold text-slate-700">Section / Zone</Label>
-              <Input className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={stallForm.zone} onChange={(e) => setStallForm((c) => ({ ...c, zone: e.target.value }))} placeholder="Row A" />
+              <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.zone} onChange={(e) => setStallForm((c) => ({ ...c, zone: e.target.value }))} placeholder="Row A" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="font-bold text-slate-700">Size</Label>
-                <Input className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={stallForm.size} onChange={(e) => setStallForm((c) => ({ ...c, size: e.target.value }))} placeholder="3m × 3m" />
+                <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.size} onChange={(e) => setStallForm((c) => ({ ...c, size: e.target.value }))} placeholder="3m × 3m" />
               </div>
               <div className="space-y-1.5">
                 <Label className="font-bold text-slate-700">Monthly Rent</Label>
-                <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={stallForm.pricePerMonth} onChange={(e) => setStallForm((c) => ({ ...c, pricePerMonth: Number(e.target.value) }))} />
+                <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.pricePerMonth} onChange={(e) => setStallForm((c) => ({ ...c, pricePerMonth: Number(e.target.value) }))} />
               </div>
             </div>
-            <Button className="w-full rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={createStall.isPending || !stallForm.name.trim() || !stallForm.zone.trim()} onClick={() => createStall.mutate()}>
+            <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={createStall.isPending || !stallForm.name.trim() || !stallForm.zone.trim()} onClick={() => createStall.mutate()}>
               {createStall.isPending ? "Saving..." : "Save Stall"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </MockupPage>
+    </PageLayout>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { Activity, Download } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -9,13 +9,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/console/ConsolePage";
-import {
-  MockupHeader,
-  MockupPage,
-  MockupPanel,
-  MockupStatCard,
-  StatusPill,
-} from "@/components/mockup/MockupUI";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
+import { StatCard } from "@/components/StatCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RevenueMarketRow {
   market: string;
@@ -96,24 +94,24 @@ const ReportsPage = () => {
 
   if (isError) {
     return (
-      <MockupPage>
+      <PageLayout>
         <Alert variant="destructive" className="max-w-xl"><AlertTitle>Error loading report</AlertTitle><AlertDescription>Revenue report data could not be loaded.</AlertDescription></Alert>
-      </MockupPage>
+      </PageLayout>
     );
   }
 
   if (isLoading) {
-    return <MockupPage><LoadingState rows={6} itemClassName="h-28 rounded-sm" /></MockupPage>;
+    return <PageLayout><LoadingState rows={6} itemClassName="h-28 rounded-lg" /></PageLayout>;
   }
 
   return (
-    <MockupPage>
-      <MockupHeader
+    <PageLayout>
+      <PageHeader
         eyebrow="Reports > Revenue"
         title="Revenue Report"
         subtitle="Review collection totals, outstanding balances, and market-level rates."
         actions={
-          <Button onClick={exportCSV} className="h-9 gap-2 rounded-sm shadow-none font-bold">
+          <Button onClick={exportCSV} className="h-9 gap-2 rounded-lg shadow-none font-bold">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
@@ -121,15 +119,15 @@ const ReportsPage = () => {
       />
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 rounded-sm border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-end">
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-end">
         <div className="space-y-1.5">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Market</p>
           {isManager ? (
-            <div className="flex h-9 min-w-[220px] items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+            <div className="flex h-9 min-w-[220px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
               {user?.marketName || "Assigned market"}
             </div>
           ) : (
-            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 min-w-[220px] rounded-sm border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
+            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 min-w-[220px] rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
               <option value="all">All Markets</option>
               {(marketsQuery.data?.markets || []).map((market) => <option key={market.id} value={market.id}>{market.name}</option>)}
             </select>
@@ -137,26 +135,30 @@ const ReportsPage = () => {
         </div>
         <div className="space-y-1.5">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">From</p>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-[170px] border-2 border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" />
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-[170px] border-2 border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" />
         </div>
         <div className="space-y-1.5">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">To</p>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-[170px] border-2 border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-[170px] border-2 border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" />
         </div>
       </div>
 
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MockupStatCard title="Total Revenue" value={formatCurrency(totals.totalRevenue)} tone="green" />
-        <MockupStatCard title="Total Collections" value={formatCurrency(totals.collections)} tone="green" />
-        <MockupStatCard title="Outstanding" value={formatCurrency(totals.outstanding)} tone={totals.outstanding > 0 ? "amber" : "green"} />
-        <MockupStatCard title="Collection Rate" value={`${collectionRate.toFixed(2)}%`} tone={collectionRate >= 90 ? "green" : "amber"} />
+        <StatCard title="Total Revenue" value={formatCurrency(totals.totalRevenue)} subtitle="" icon={Activity} tone="success" />
+        <StatCard title="Total Collections" value={formatCurrency(totals.collections)} subtitle="" icon={Activity} tone="success" />
+        <StatCard title="Outstanding" value={formatCurrency(totals.outstanding)} subtitle="" icon={Activity} tone={totals.outstanding > 0 ? "warning" : "success"} />
+        <StatCard title="Collection Rate" value={`${collectionRate.toFixed(2)}%`} subtitle="" icon={Activity} tone={collectionRate >= 90 ? "success" : "warning"} />
       </div>
 
       {/* Table */}
-      <MockupPanel title="Revenue by Market">
+      <Card>
+        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+          <CardTitle className="text-base font-medium">Revenue by Market</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
         {rows.length === 0 ? (
-          <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
             No revenue data found for the selected period and market. Adjust the date range or market filter.
           </div>
         ) : (
@@ -178,7 +180,7 @@ const ReportsPage = () => {
                     <td className="py-3 pr-4 text-right text-slate-600 tabular-nums">{row.totalRevenue.toLocaleString()}</td>
                     <td className="py-3 pr-4 text-right text-slate-600 tabular-nums">{row.collections.toLocaleString()}</td>
                     <td className="py-3 pr-4 text-right text-slate-600 tabular-nums">{row.outstanding.toLocaleString()}</td>
-                    <td className="py-3 text-right"><StatusPill tone={row.rate >= 95 ? "green" : "amber"}>{row.rate.toFixed(2)}%</StatusPill></td>
+                    <td className="py-3 text-right"><Badge variant={row.rate >= 95 ? "success" : "warning"}>{row.rate.toFixed(2)}%</Badge></td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold text-slate-900">
@@ -192,8 +194,9 @@ const ReportsPage = () => {
             </table>
           </div>
         )}
-      </MockupPanel>
-    </MockupPage>
+        </CardContent>
+      </Card>
+    </PageLayout>
   );
 };
 

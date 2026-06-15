@@ -7,9 +7,8 @@ import {
  ShieldAlert,
  ShieldCheck,
  Terminal,
- Users
+ Users,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { formatHumanDateTime } from "@/lib/utils";
@@ -18,33 +17,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MiniAreaChart } from "@/components/mockup/MockupUI";
-
-interface SystemHealthService {
- service: string;
- status: "Operational" | "Degraded";
- uptime: string;
- latency: string;
-}
-
-type StatTone = "default" | "blue" | "green" | "amber" | "red" | "purple";
-
-interface StatCardProps {
- title: string;
- value: string | number;
- subtitle: string;
- icon: LucideIcon;
- tone?: StatTone;
-}
-
-const statToneClasses: Record<StatTone, string> = {
- default: "text-muted-foreground bg-muted",
- blue: "text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400",
- green: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400",
- amber: "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
- red: "text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400",
- purple: "text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400",
-};
+import { MiniAreaChart } from "@/components/charts/MiniCharts";
+import { KpiStrip } from "@/components/console/ConsolePage";
+import { Button } from "@/components/ui/button";
 
 const getAuditSeverity = (action: string) =>
  /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";
@@ -66,48 +41,17 @@ const getAuditDetailLabel = (details: Record<string, unknown> | null) => {
 };
 
 const DashboardSkeleton = () => (
- <div className="space-y-6">
- <div className="space-y-2">
- <Skeleton className="h-8 w-[250px]" />
- <Skeleton className="h-4 w-[400px]" />
- </div>
- <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
- {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[120px] rounded-sm" />)}
- </div>
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
- <div className="grid gap-6">
- <Skeleton className="h-[350px] rounded-sm" />
- <Skeleton className="h-[300px] rounded-sm" />
- </div>
- <div className="grid content-start gap-6">
- <Skeleton className="h-[250px] rounded-sm" />
- <Skeleton className="h-[250px] rounded-sm" />
- </div>
- </div>
- </div>
+  <div className="space-y-6">
+    <Skeleton className="h-8 w-[250px]" />
+    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[120px]" />)}
+    </div>
+    <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
+      <Skeleton className="h-[350px]" />
+      <Skeleton className="h-[350px]" />
+    </div>
+  </div>
 );
-
-const StatCard = ({ title, value, subtitle, icon: Icon, tone = "default" }: StatCardProps) => {
- const toneClassName = statToneClasses[tone];
- return (
- <Card className="overflow-hidden bg-card transition-all hover:border-primary/40 hover:shadow-sm">
- <CardContent className="p-6">
- <div className="flex items-center gap-4">
- <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-sm ${toneClassName}`}>
- <Icon className="h-5 w-5" />
- </div>
- <div className="min-w-0 flex-1">
- <p className="text-sm font-medium text-muted-foreground">{title}</p>
- <div className="flex items-baseline gap-2">
- <p className="truncate text-2xl font-bold font-heading text-foreground">{value}</p>
- </div>
- <p className="mt-1 truncate text-xs text-muted-foreground">{subtitle}</p>
- </div>
- </div>
- </CardContent>
- </Card>
- );
-};
 
 const AdminDashboard = () => {
  const usersQuery = useQuery({ queryKey: ["users", "admin"], queryFn: () => api.getUsers(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
@@ -118,20 +62,19 @@ const AdminDashboard = () => {
  const isLoading = usersQuery.isPending || marketsQuery.isPending || auditQuery.isPending || systemHealthQuery.isPending;
  const isError = usersQuery.isError || marketsQuery.isError || auditQuery.isError || systemHealthQuery.isError;
 
+ 
  if (isError) {
- return (
- <div className="p-4 sm:p-6">
- <Alert variant="destructive" className="max-w-xl">
- <AlertCircle className="h-4 w-4" />
- <AlertTitle>Could not load admin dashboard</AlertTitle>
- <AlertDescription>System data is currently unavailable. Please refresh or check connection.</AlertDescription>
- </Alert>
- </div>
- );
+   return (
+    <Alert variant="destructive" className="max-w-xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Could not load admin dashboard</AlertTitle>
+          <AlertDescription>System data is currently unavailable. Please refresh or check connection.</AlertDescription>
+        </Alert>
+   );
  }
 
  if (isLoading) {
- return <DashboardSkeleton />;
+   return <DashboardSkeleton />;
  }
 
  const users = usersQuery.data?.users || [];
@@ -142,126 +85,170 @@ const AdminDashboard = () => {
  const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
  const activeMarkets = markets.filter((market) => market.stallCount > 0 || market.activeStallCount > 0);
  const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
- const degradedServices = systemOk ? [] : [{ service: "Platform" }];
  const systemStatus = systemOk ? "healthy" : "degraded";
 
- return (
- <div className="space-y-6">
- <div>
- <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
- <div>
- <div className="flex items-center gap-3 mb-1">
- <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Console</p>
- <Badge variant={systemStatus === "healthy" ? "default" : systemStatus === "critical" ? "destructive" : "secondary"}>
- {systemStatus === "healthy" ? "All Systems Go" : systemStatus === "critical" ? "Critical Alert" : "Degraded Performance"}
- </Badge>
- </div>
- <h1 className="text-3xl font-bold font-heading text-foreground">System Overview</h1>
- <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
- Monitor infrastructure health, security events, and platform usage across all regions.
- </p>
- </div>
- </div>
- </div>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+            Admin Console
+          </Badge>
+        </div>
+        <p className="mt-1 text-sm text-slate-500">
+          Monitor infrastructure health, security events, and platform usage across all regions.
+        </p>
+      </div>
 
- <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
- <div><StatCard title="Total Users" value={users.length.toLocaleString()} subtitle={`${internalUsers.length} staff / ${users.length - internalUsers.length} vendors`} tone="blue" icon={Users} /></div>
- <div><StatCard title="Active Markets" value={activeMarkets.length} subtitle={`${markets.length} registered total`} tone="green" icon={Landmark} /></div>
- <div><StatCard title="Security Events" value={failedEvents.length} subtitle="Failed logins / Denied access" tone={failedEvents.length > 0 ? "amber" : "green"} icon={failedEvents.length > 0 ? ShieldAlert : ShieldCheck} /></div>
- <div><StatCard title="System Health" value={systemStatus === "healthy" ? "100%" : "Degraded"} subtitle={`${degradedServices.length} alerts active`} tone={systemStatus === "healthy" ? "green" : "red"} icon={Activity} /></div>
- </div>
+       {/* Stats Grid */}
+       <KpiStrip columns="grid-cols-2 xl:grid-cols-4" items={[
+         { label: "Total Users", value: users.length.toLocaleString(), detail: `${internalUsers.length} staff / ${users.length - internalUsers.length} vendors`, tone: "info", icon: Users },
+         { label: "Active Markets", value: activeMarkets.length, detail: `${markets.length} registered total`, tone: "success", icon: Landmark },
+         { label: "Security Events", value: failedEvents.length, detail: "Failed logins / Denied access", tone: failedEvents.length > 0 ? "warning" : "success", icon: failedEvents.length > 0 ? ShieldAlert : ShieldCheck },
+         { label: "System Health", value: systemStatus === "healthy" ? "100%" : "Degraded", detail: systemStatus === "healthy" ? "All systems operational" : "Degraded performance", tone: systemStatus === "healthy" ? "success" : "destructive", icon: Activity },
+       ]} />
 
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
- <div className="grid gap-6 content-start">
- <div>
- <Card>
- <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle>Platform Activity (Last 30 Days)</CardTitle>
- <div className="flex gap-2">
- <Badge variant="secondary" className="bg-primary/10 text-primary">Logins</Badge>
- <Badge variant="outline">API Calls</Badge>
- </div>
- </CardHeader>
- <CardContent className="pt-4">
- <MiniAreaChart className="text-primary" />
- </CardContent>
- </Card>
- </div>
+      {/* Charts and Activity */}
+      <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Chart Card */}
+          <Card className="border-slate-200 bg-white">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-slate-900">Platform Activity (Last 30 Days)</CardTitle>
+              <div className="flex gap-2">
+                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">Logins</Badge>
+                <Badge variant="outline" className="border-slate-200">API Calls</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <MiniAreaChart className="text-emerald-600" />
+            </CardContent>
+          </Card>
 
- <div>
- <Card>
- <CardHeader>
- <CardTitle>Security & Audit Log</CardTitle>
- </CardHeader>
- <CardContent>
- <div className="space-y-3">
- {auditEvents.slice(0, 8).map((event) => {
- const severity = getAuditSeverity(event.action);
- const detailLabel = getAuditDetailLabel(event.details);
+          {/* Security & Audit Log */}
+          <Card className="border-slate-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Security & Audit Log</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {auditEvents.slice(0, 8).map((event) => {
+                  const severity = getAuditSeverity(event.action);
+                  const detailLabel = getAuditDetailLabel(event.details);
 
- return (
- <div key={event.id} className="group flex items-center justify-between rounded-sm border border-transparent p-3 transition-colors hover:bg-muted/40 hover:border-border">
- <div className="flex items-center gap-4">
- <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${severity === "failure" ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" : "bg-primary/10 text-primary"}`}>
- <Terminal className="h-4 w-4" />
- </span>
- <div>
- <p className="text-sm font-semibold capitalize">{event.action.replace(/_/g, " ")}</p>
- <div className="flex items-center gap-2 mt-0.5">
- <span className="text-xs font-medium text-muted-foreground">{event.actorName}</span>
- <span className="text-[10px] text-muted-foreground/60">•</span>
- <span className="text-xs text-muted-foreground">{detailLabel}</span>
- </div>
- </div>
- </div>
- <div className="text-right">
- <Badge variant={severity === "failure" ? "destructive" : "secondary"} className="text-[10px] uppercase">
- {severity === "failure" ? "Review" : "Recorded"}
- </Badge>
- <p className="mt-1 text-xs text-muted-foreground">{formatHumanDateTime(event.createdAt)}</p>
- </div>
- </div>
- );
- })}
- {!auditEvents.length ? <div className="rounded-sm bg-muted/50 p-4 text-center text-sm text-muted-foreground">No recent audit events.</div> : null}
- </div>
- </CardContent>
- </Card>
- </div>
- </div>
+                  return (
+                    <div key={event.id} className="group flex items-center justify-between rounded-lg border border-transparent p-3 transition-all hover:bg-slate-50 hover:border-slate-200">
+                      <div className="flex items-center gap-4">
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                          severity === "failure" 
+                            ? "bg-red-100 text-red-600" 
+                            : "bg-emerald-100 text-emerald-600"
+                        }`}>
+                          <Terminal className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold capitalize text-slate-900">{event.action.replace(/_/g, " ")}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-medium text-slate-500">{event.actorName}</span>
+                            <span className="text-[10px] text-slate-400">•</span>
+                            <span className="text-xs text-slate-500">{detailLabel}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={severity === "failure" ? "destructive" : "secondary"} className="text-[10px] uppercase">
+                          {severity === "failure" ? "Review" : "Recorded"}
+                        </Badge>
+                        <p className="mt-1 text-xs text-slate-500">{formatHumanDateTime(event.createdAt)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {!auditEvents.length && (
+                  <div className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-500">
+                    No recent audit events.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
- <div className="grid content-start gap-6">
- <div>
- <Card>
- <CardHeader>
- <CardTitle>Infrastructure Health</CardTitle>
- </CardHeader>
- <CardContent>
- <div className={`flex items-center gap-4 rounded-sm border p-4 ${systemOk ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-900/10" : "border-red-200 bg-red-50/50 dark:border-red-900/50 dark:bg-red-900/10"}`}>
- <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${systemOk ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400"}`}>
- {systemOk ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
- </span>
- <div>
- <p className={`text-sm font-semibold ${systemOk ? "text-emerald-900 dark:text-emerald-200" : "text-red-900 dark:text-red-200"}`}>
- {systemOk ? "All systems operational" : "Platform health check failed"}
- </p>
- <p className={`mt-0.5 text-xs ${systemOk ? "text-emerald-700 dark:text-emerald-400/80" : "text-red-700 dark:text-red-400/80"}`}>
- {systemOk ? "API and services responding normally." : "The health endpoint returned a failure response. Check server logs."}
- </p>
- </div>
- </div>
- {!systemOk && (
- <div className="mt-3 rounded-sm border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
- Service degradation detected. Review infrastructure logs and check connectivity to the API gateway.
- </div>
- )}
- </CardContent>
- </Card>
- </div>
- </div>
- </div>
- </div>
- );
+        {/* Right Column - Infrastructure Health */}
+        <div className="space-y-6">
+          <Card className="border-slate-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Infrastructure Health</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`flex items-center gap-4 rounded-xl border p-4 ${
+                systemOk 
+                  ? "border-emerald-200 bg-emerald-50/50" 
+                  : "border-red-200 bg-red-50/50"
+              }`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  systemOk 
+                    ? "bg-emerald-100 text-emerald-700" 
+                    : "bg-red-100 text-red-700"
+                }`}>
+                  {systemOk ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+                </span>
+                <div>
+                  <p className={`text-sm font-semibold ${
+                    systemOk ? "text-emerald-900" : "text-red-900"
+                  }`}>
+                    {systemOk ? "All systems operational" : "Platform health check failed"}
+                  </p>
+                  <p className={`mt-0.5 text-xs ${
+                    systemOk ? "text-emerald-700" : "text-red-700"
+                  }`}>
+                    {systemOk 
+                      ? "API and services responding normally." 
+                      : "The health endpoint returned a failure response. Check server logs."}
+                  </p>
+                </div>
+              </div>
+              {!systemOk && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                  Service degradation detected. Review infrastructure logs and check connectivity to the API gateway.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats Card */}
+          <Card className="border-slate-200 bg-white">
+            <CardHeader>
+              <CardTitle className="text-slate-900">Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-600">Total Vendors</span>
+                <span className="text-lg font-semibold text-slate-900">{users.filter(u => u.role === "vendor").length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-600">Total Markets</span>
+                <span className="text-lg font-semibold text-slate-900">{markets.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-600">Active Stalls</span>
+                <span className="text-lg font-semibold text-slate-900">
+                  {markets.reduce((sum, m) => sum + (m.activeStallCount || 0), 0)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-600">Occupancy Rate</span>
+                <span className="text-lg font-semibold text-emerald-600">78%</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AdminDashboard;

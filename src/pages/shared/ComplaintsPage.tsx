@@ -22,8 +22,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileUploadCard } from "@/components/console/ConsolePage";
-import { MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
+import { FileUploadCard, EmptyState, DataTableFrame } from "@/components/console/ConsolePage";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
 import type { Ticket, TicketCategory, TicketPriority, TicketStatus } from "@/types";
 
 // ─── Types ───────────────────────────────────────────────
@@ -47,17 +50,6 @@ const priorityClasses: Record<TicketPriority, string> = {
   high: "border-red-200 bg-red-50 text-red-700",
   medium: "border-amber-200 bg-amber-50 text-amber-700",
   low: "border-slate-200 bg-slate-50 text-slate-600",
-};
-
-const statusClasses: Record<TicketStatus, string> = {
-  open: "border-amber-200 bg-amber-50 text-amber-700",
-  in_progress: "border-blue-200 bg-blue-50 text-blue-700",
-  resolved: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  closed: "border-slate-200 bg-slate-50 text-slate-500",
-};
-
-const statusLabels: Record<TicketStatus, string> = {
-  open: "Open", in_progress: "In Progress", resolved: "Resolved", closed: "Closed",
 };
 
 const complaintSteps = ["Submitted", "In Progress", "Resolved", "Closed"];
@@ -193,14 +185,14 @@ const ComplaintsPage = () => {
   const canUpdate = Boolean(selected) && (!requiresResolution || Boolean(managerUpdate.resolutionNote.trim()));
 
   return (
-    <MockupPage>
-      <MockupHeader
+    <PageLayout>
+      <PageHeader
         eyebrow="Ticket desk"
         title="Grievances & Appeals"
         subtitle={role === "vendor" ? "Submit and track market complaints." : "Review and resolve vendor disputes."}
         actions={
           role === "vendor" ? (
-            <Button onClick={() => setShowNew(true)} className="rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold">
+            <Button onClick={() => setShowNew(true)} className="rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold">
               <Plus className="mr-1 h-4 w-4" />
               New Complaint
             </Button>
@@ -216,7 +208,7 @@ const ComplaintsPage = () => {
           { label: "SLA risk", value: breachedCount, sub: "Overdue or escalated", tone: breachedCount ? "red" as const : "green" as const },
           { label: "Resolved / closed", value: resolvedCount, sub: "Completed lifecycle", tone: "green" as const },
         ].map((item) => (
-          <div key={item.label} className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-600">{item.label}</p>
             <p className="mt-2 text-2xl font-bold text-slate-950 font-heading">{item.value}</p>
             <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
@@ -224,60 +216,55 @@ const ComplaintsPage = () => {
         ))}
       </div>
 
-      {error && <div className="rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {/* Register table */}
-      <MockupPanel
-        title="Complaints Register"
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-[220px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input className="border-slate-300 pl-9 rounded-sm focus-visible:border-primary focus-visible:ring-0 h-9" placeholder="Search ticket, vendor, subject..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <Select value={categoryFilter} onValueChange={(v: CategoryFilter) => setCategoryFilter(v)}>
-              <SelectTrigger className="h-9 w-full border-slate-300 rounded-sm sm:w-[150px]"><SelectValue placeholder="Category" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={(v: StatusFilter) => setStatusFilter(v)}>
-              <SelectTrigger className="h-9 w-full border-slate-300 rounded-sm sm:w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={priorityFilter} onValueChange={(v: PriorityFilter) => setPriorityFilter(v)}>
-              <SelectTrigger className="h-9 w-full border-slate-300 rounded-sm sm:w-[130px]"><SelectValue placeholder="Priority" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <span className="hidden rounded-sm border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-500 sm:inline-flex">{filteredTickets.length} / {tickets.length}</span>
-            <Button variant="outline" size="sm" className="rounded-sm border-slate-300 h-9" onClick={() => { setSearch(""); setCategoryFilter("all"); setStatusFilter("all"); setPriorityFilter("all"); }}>
-              <Filter className="mr-1 h-3.5 w-3.5" />Reset
-            </Button>
+      <DataTableFrame title="Complaints Register" actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input className="border-slate-300 pl-9 rounded-lg focus-visible:border-primary focus-visible:ring-0 h-9" placeholder="Search ticket, vendor, subject..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-        }
-      >
+          <Select value={categoryFilter} onValueChange={(v: CategoryFilter) => setCategoryFilter(v)}>
+            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[150px]"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={(v: StatusFilter) => setStatusFilter(v)}>
+            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={priorityFilter} onValueChange={(v: PriorityFilter) => setPriorityFilter(v)}>
+            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[130px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priority</SelectItem>
+              {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-500 sm:inline-flex">{filteredTickets.length} / {tickets.length}</span>
+          <Button variant="outline" size="sm" className="rounded-lg border-slate-300 h-9" onClick={() => { setSearch(""); setCategoryFilter("all"); setStatusFilter("all"); setPriorityFilter("all"); }}>
+            <Filter className="mr-1 h-3.5 w-3.5" />Reset
+          </Button>
+        </div>
+      }>
         {isPending ? (
           <div className="space-y-2 p-4">
-            <Skeleton className="h-10 w-full rounded-sm" />
-            <Skeleton className="h-10 w-full rounded-sm" />
-            <Skeleton className="h-10 w-full rounded-sm" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
           </div>
         ) : isError ? (
           <div className="p-6 text-center text-sm text-red-600">Unable to load complaints. Please check your connection.</div>
         ) : filteredTickets.length === 0 ? (
-          <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-            No complaints match the current filters.
-          </div>
+          <EmptyState title="No complaints match the current filters." />
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -303,26 +290,24 @@ const ComplaintsPage = () => {
                       <p className="truncate text-sm font-semibold text-slate-900">{ticket.subject}</p>
                     </TableCell>
                     <TableCell>
-                      <span className="rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                      <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                         {categoryLabels[ticket.category]}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`rounded-sm border px-2 py-0.5 text-xs font-semibold ${priorityClasses[ticket.priority]}`}>
+                      <span className={`rounded-lg border px-2 py-0.5 text-xs font-semibold ${priorityClasses[ticket.priority]}`}>
                         {priorityLabels[ticket.priority]}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`rounded-sm border px-2 py-0.5 text-xs font-semibold ${statusClasses[ticket.status]}`}>
-                        {statusLabels[ticket.status]}
-                      </span>
+                      <StatusBadge status={ticket.status} context="ticket" />
                     </TableCell>
                     <TableCell className={`whitespace-nowrap text-xs ${ticket.breachedSla ? "font-bold text-red-600" : "text-slate-500"}`}>
                       {formatSla(ticket)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-slate-500">{formatHumanDateTime(ticket.createdAt)}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" className="h-7 rounded-sm border-slate-300 px-2 text-xs font-bold"
+                      <Button size="sm" variant="outline" className="h-7 rounded-lg border-slate-300 px-2 text-xs font-bold"
                         onClick={() => { setSelected(ticket); setManagerUpdate({ status: ticket.status, resolutionNote: ticket.resolution || "", note: "", internal: false }); }}>
                         View
                       </Button>
@@ -333,11 +318,11 @@ const ComplaintsPage = () => {
             </Table>
           </div>
         )}
-      </MockupPanel>
+      </DataTableFrame>
 
       {/* New complaint dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="sm:max-w-xl rounded-sm">
+        <DialogContent className="sm:max-w-xl rounded-lg">
           <DialogHeader>
             <DialogTitle className="font-bold text-slate-900">Lodge a Complaint</DialogTitle>
           </DialogHeader>
@@ -345,33 +330,33 @@ const ComplaintsPage = () => {
             <div className="space-y-1.5">
               <Label className="font-bold text-slate-700">Category</Label>
               <Select value={newTicket.category} onValueChange={(v: TicketCategory) => setNewTicket((c) => ({ ...c, category: v }))}>
-                <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="font-bold text-slate-700">Severity</Label>
               <Select value={newTicket.priority} onValueChange={(v: TicketPriority) => setNewTicket((c) => ({ ...c, priority: v }))}>
-                <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="font-bold text-slate-700">Subject</Label>
-              <Input className="border-slate-300 rounded-sm" value={newTicket.subject} onChange={(e) => setNewTicket((c) => ({ ...c, subject: e.target.value }))} />
+              <Input className="border-slate-300 rounded-lg" value={newTicket.subject} onChange={(e) => setNewTicket((c) => ({ ...c, subject: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="font-bold text-slate-700">Description</Label>
                 <span className={`text-xs ${newTicket.description.length < 20 ? "text-slate-400" : "text-emerald-600"}`}>{newTicket.description.length} / 20 min</span>
               </div>
-              <Textarea className="border-slate-300 rounded-sm" rows={4} value={newTicket.description} onChange={(e) => setNewTicket((c) => ({ ...c, description: e.target.value }))} placeholder="Describe the issue clearly — include location, what happened, and when." />
+              <Textarea className="border-slate-300 rounded-lg" rows={4} value={newTicket.description} onChange={(e) => setNewTicket((c) => ({ ...c, description: e.target.value }))} placeholder="Describe the issue clearly — include location, what happened, and when." />
               {newTicket.description.length > 0 && newTicket.description.length < 20 && (
                 <p className="text-xs text-amber-600">Please add more detail so the manager can understand the issue.</p>
               )}
             </div>
             <FileUploadCard id="complaint-attachment" label="Attachment (optional)" description="Add a photo or document if it helps resolve the case." accept=".pdf,.jpg,.jpeg,.png" value={newTicket.attachment?.name || "No file selected"} onChange={(file) => setNewTicket((c) => ({ ...c, attachment: file }))} />
-            <Button className="w-full rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => createTicket.mutate()} disabled={createTicket.isPending || !canSubmit}>
+            <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => createTicket.mutate()} disabled={createTicket.isPending || !canSubmit}>
               {createTicket.isPending ? "Submitting..." : "Submit Complaint"}
             </Button>
           </div>
@@ -380,7 +365,7 @@ const ComplaintsPage = () => {
 
       {/* Ticket detail dialog */}
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="sm:max-w-2xl rounded-sm max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl rounded-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-bold text-slate-900">
               {selected ? `${selected.ticketNumber} — ${selected.subject}` : "Ticket Detail"}
@@ -390,13 +375,13 @@ const ComplaintsPage = () => {
           {selected && (
             <div className="space-y-4 text-sm">
               {/* Meta rows */}
-              <div className="rounded-sm border border-slate-200 bg-slate-50 divide-y divide-slate-100">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 divide-y divide-slate-100">
                 {[
                   { label: "Reference", value: <span className="font-mono text-xs font-bold">{selected.ticketNumber}</span> },
                   { label: "Vendor", value: selected.vendorName },
                   { label: "Category", value: categoryLabels[selected.category] },
-                  { label: "Priority", value: <span className={`rounded-sm border px-2 py-0.5 text-xs font-semibold ${priorityClasses[selected.priority]}`}>{priorityLabels[selected.priority]}</span> },
-                  { label: "Status", value: <span className={`rounded-sm border px-2 py-0.5 text-xs font-semibold ${statusClasses[selected.status]}`}>{statusLabels[selected.status]}</span> },
+                  { label: "Priority", value: <span className={`rounded-lg border px-2 py-0.5 text-xs font-semibold ${priorityClasses[selected.priority]}`}>{priorityLabels[selected.priority]}</span> },
+                  { label: "Status", value: <StatusBadge status={selected.status} context="ticket" /> },
                   { label: "SLA", value: <span className={selected.breachedSla ? "font-bold text-red-600" : ""}>{formatSla(selected)}</span> },
                   ...(selected.assignedToName ? [{ label: "Assigned To", value: selected.assignedToName }] : []),
                 ].map((row) => (
@@ -411,20 +396,20 @@ const ComplaintsPage = () => {
               <ComplaintProgress status={selected.status} />
 
               {/* Description */}
-              <div className="rounded-sm border border-slate-200 bg-slate-50 p-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <p className="text-sm text-slate-700">{selected.description}</p>
               </div>
 
               {/* Attachments */}
               {selected.attachments.length > 0 && (
-                <div className="rounded-sm border border-slate-200 bg-slate-50 p-3">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <p className="mb-2 font-bold text-slate-900">Attachments</p>
                   {selected.attachments.map((a) => <p key={a.id} className="text-sm text-slate-500">{a.name}</p>)}
                 </div>
               )}
 
               {/* Timeline */}
-              <div className="rounded-sm border border-slate-200 bg-slate-50 p-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <p className="mb-3 font-bold text-slate-900">Timeline</p>
                 <div className="space-y-3">
                   {buildTimeline(selected).map((event) => (
@@ -435,7 +420,7 @@ const ComplaintsPage = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-slate-900">{event.label}</p>
-                          {event.internal && <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">Internal</span>}
+                          {event.internal && <span className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">Internal</span>}
                           <span className="text-xs text-slate-400">{formatHumanDateTime(event.timestamp)}</span>
                         </div>
                         <p className="text-xs text-slate-500">{event.actor}</p>
@@ -448,33 +433,33 @@ const ComplaintsPage = () => {
 
               {/* Manager actions */}
               {role === "manager" ? (
-                <div className="space-y-3 rounded-sm border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">Manager Response</p>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Update Status</Label>
                     <Select value={managerUpdate.status} onValueChange={(v: TicketStatus) => setManagerUpdate((c) => ({ ...c, status: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                       <SelectContent>{nextStatusOptions(selected.status).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500">Status changes are written to the audit log.</p>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Resolution / Closure Note</Label>
-                    <Textarea className="border-slate-300 rounded-sm" rows={3} value={managerUpdate.resolutionNote} onChange={(e) => setManagerUpdate((c) => ({ ...c, resolutionNote: e.target.value }))} />
+                    <Textarea className="border-slate-300 rounded-lg" rows={3} value={managerUpdate.resolutionNote} onChange={(e) => setManagerUpdate((c) => ({ ...c, resolutionNote: e.target.value }))} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Staff Note</Label>
-                    <Textarea className="border-slate-300 rounded-sm" rows={2} value={managerUpdate.note} onChange={(e) => setManagerUpdate((c) => ({ ...c, note: e.target.value }))} />
+                    <Textarea className="border-slate-300 rounded-lg" rows={2} value={managerUpdate.note} onChange={(e) => setManagerUpdate((c) => ({ ...c, note: e.target.value }))} />
                   </div>
-                  <label className="flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer">
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={managerUpdate.internal} onChange={(e) => setManagerUpdate((c) => ({ ...c, internal: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
                     <span className="font-medium text-slate-700">Mark note as internal</span>
                   </label>
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button className="flex-1 rounded-sm shadow-none bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => updateTicket.mutate()} disabled={updateTicket.isPending || !canUpdate}>
+                    <Button className="flex-1 rounded-lg shadow-none bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => updateTicket.mutate()} disabled={updateTicket.isPending || !canUpdate}>
                       Update Ticket
                     </Button>
-                    <Button type="button" variant="outline" className="flex-1 rounded-sm border-slate-300 font-bold" onClick={() => escalateTicket.mutate()} disabled={escalateTicket.isPending || selected.status === "closed"}>
+                    <Button type="button" variant="outline" className="flex-1 rounded-lg border-slate-300 font-bold" onClick={() => escalateTicket.mutate()} disabled={escalateTicket.isPending || selected.status === "closed"}>
                       <ArrowUpRight className="mr-1 h-4 w-4" />
                       Escalate
                     </Button>
@@ -482,27 +467,25 @@ const ComplaintsPage = () => {
                 </div>
               ) : (
                 selected.resolution && (
-                  <div className="rounded-sm border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
                     <p className="font-bold text-emerald-800">Resolution</p>
                     <p className="mt-1 text-sm text-emerald-700">{selected.resolution}</p>
                   </div>
                 )
               )}
 
-              {/* StatusPill summary footer */}
+              {/* Badge summary footer */}
               <div className="flex flex-wrap items-center gap-2 pt-2">
-                <StatusPill tone={selected.status === "resolved" || selected.status === "closed" ? "green" : selected.status === "in_progress" ? "blue" : "amber"}>
-                  {statusLabels[selected.status]}
-                </StatusPill>
-                <StatusPill tone={selected.priority === "urgent" || selected.priority === "high" ? "red" : selected.priority === "medium" ? "amber" : "slate"}>
+                <StatusBadge status={selected.status} context="ticket" />
+                <Badge variant={selected.priority === "urgent" || selected.priority === "high" ? "error" : selected.priority === "medium" ? "warning" : "secondary"}>
                   {priorityLabels[selected.priority]}
-                </StatusPill>
+                </Badge>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-    </MockupPage>
+    </PageLayout>
   );
 };
 

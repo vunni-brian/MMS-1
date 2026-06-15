@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
  CreditCard,
@@ -21,8 +21,12 @@ import {
 } from "@/components/ui/command";
 import { useAuth } from "@/contexts/AuthContext";
 
-export function CommandMenu() {
- const [open, setOpen] = useState(false);
+interface CommandMenuProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
  const navigate = useNavigate();
  const { user } = useAuth();
 
@@ -30,25 +34,25 @@ export function CommandMenu() {
  const down = (e: KeyboardEvent) => {
  if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
  e.preventDefault();
- setOpen((open) => !open);
+ onOpenChange(!open);
  }
  };
 
  document.addEventListener("keydown", down);
  return () => document.removeEventListener("keydown", down);
- }, []);
+ }, [open, onOpenChange]);
 
  const runCommand = (command: () => void) => {
- setOpen(false);
- command();
+  onOpenChange(false);
+  command();
  };
 
- if (!user) return null;
+  if (!user) return null;
 
- const basePath = `/${user.role}`;
+  const basePath = `/${user.role}`;
 
- return (
- <CommandDialog open={open} onOpenChange={setOpen}>
+  return (
+  <CommandDialog open={open} onOpenChange={onOpenChange}>
  <CommandInput placeholder="Type a command or search..." />
  <CommandList>
  <CommandEmpty>No results found.</CommandEmpty>

@@ -24,12 +24,9 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { LoadingState } from "@/components/console/ConsolePage";
-import {
-  MockupHeader,
-  MockupPage,
-  MockupPanel,
-  StatusPill,
-} from "@/components/mockup/MockupUI";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
@@ -42,12 +39,6 @@ import type { VendorActivityEvent, VendorProfile } from "@/types";
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 
 type OperationalVendorStatus = "active" | "late_payment" | "suspended";
-
-const operationalTone = (status: OperationalVendorStatus) => {
-  if (status === "late_payment") return "amber" as const;
-  if (status === "suspended") return "red" as const;
-  return "green" as const;
-};
 
 // ─────────────────────────────────────────────────────────
 // Document Preview
@@ -98,7 +89,7 @@ const DocumentPreview = ({
   const isPdf = attachment?.mimeType === "application/pdf";
 
   return (
-    <div className="rounded-sm border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-slate-900">{title}</p>
@@ -106,7 +97,7 @@ const DocumentPreview = ({
         </div>
         <FileText className="h-5 w-5 shrink-0 text-slate-400" />
       </div>
-      <div className="min-h-[280px] overflow-hidden rounded-sm border border-slate-200 bg-white">
+      <div className="min-h-[280px] overflow-hidden rounded-lg border border-slate-200 bg-white">
         {!attachment ? (
           <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">No document uploaded</div>
         ) : isLoading ? (
@@ -175,7 +166,7 @@ const VendorProfileCard = ({
     : vendor.status === "pending" ? "Pending review" : "Rejected";
 
   return (
-    <article className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-sm hover:border-slate-300">
+    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-sm hover:border-slate-300">
       <div className="flex items-start gap-3">
         <div className="relative shrink-0">
           <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-sm font-bold text-slate-600">
@@ -192,9 +183,7 @@ const VendorProfileCard = ({
               <p className="mt-0.5 truncate text-xs text-slate-500">{marketName}</p>
               <p className="mt-0.5 truncate text-xs text-slate-400">{statusLabel}</p>
             </div>
-            <StatusPill tone={vendor.status === "approved" ? "green" : vendor.status === "pending" ? "amber" : "red"}>
-              {vendor.status}
-            </StatusPill>
+            <StatusBadge status={vendor.status} context="vendor" />
           </div>
           <button type="button" onClick={onOpen} className="mt-2 text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline">
             View profile
@@ -203,11 +192,11 @@ const VendorProfileCard = ({
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-sm border border-slate-100 bg-slate-50 p-2">
+        <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
           <p className="text-slate-500">Outstanding</p>
           <p className="mt-1 truncate font-bold text-slate-900">{formatCurrency(row.totalOutstanding)}</p>
         </div>
-        <div className="rounded-sm border border-slate-100 bg-slate-50 p-2">
+        <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
           <p className="text-slate-500">Permit</p>
           <p className="mt-1 truncate font-bold text-slate-900">
             {row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No permit"}
@@ -216,9 +205,7 @@ const VendorProfileCard = ({
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <StatusPill tone={operationalTone(row.operationalStatus)}>
-          {row.operationalStatus.replace(/_/g, " ")}
-        </StatusPill>
+        <StatusBadge status={row.operationalStatus} />
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <a href={`tel:${vendor.phone}`} title={`Call ${vendor.name}`} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
             <Phone className="h-3.5 w-3.5" />
@@ -250,7 +237,7 @@ const activityTypeLabels: Record<VendorActivityEvent["type"], string> = {
 };
 
 const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityEvent[]; isLoading: boolean }) => (
-  <div className="rounded-sm border border-slate-200 bg-slate-50 p-4">
+  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
     <div className="mb-4 flex items-center justify-between gap-3">
       <div>
         <p className="font-bold text-slate-900">Activity Timeline</p>
@@ -259,15 +246,15 @@ const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityE
       <Activity className="h-5 w-5 shrink-0 text-slate-400" />
     </div>
     {isLoading ? (
-      <LoadingState rows={4} itemClassName="h-14 rounded-sm" />
+      <LoadingState rows={4} itemClassName="h-14 rounded-lg" />
     ) : events.length === 0 ? (
-      <div className="rounded-sm border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+      <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
         No operational activity recorded for this vendor yet.
       </div>
     ) : (
       <div className="space-y-2">
         {events.slice(0, 12).map((event) => (
-          <div key={event.id} className="grid gap-3 rounded-sm border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_auto]">
+          <div key={event.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_auto]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-semibold text-slate-900">{event.title}</span>
@@ -295,7 +282,7 @@ const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityE
 // Evidence field (matching mockup style)
 // ─────────────────────────────────────────────────────────
 const FieldRow = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
-  <div className="rounded-sm border border-slate-100 bg-slate-50 p-2.5">
+  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
     <p className="text-xs text-slate-500">{label}</p>
     <div className={`mt-1 break-words text-sm font-semibold text-slate-900 ${mono ? "font-mono text-xs" : ""}`}>{value}</div>
   </div>
@@ -417,8 +404,8 @@ const VendorsPage = () => {
   const selectedRow = allVendorRows.find((r) => r.vendor.id === selectedVendorId) || null;
 
   return (
-    <MockupPage>
-      <MockupHeader
+    <PageLayout>
+      <PageHeader
         eyebrow="Vendor operations"
         title="Vendors"
         subtitle={`Vendor status, applications, documents, and payment follow-up for ${user?.marketName || "your market"}.`}
@@ -432,7 +419,7 @@ const VendorsPage = () => {
           { label: "Payment follow-up", value: followUpRows.length, sub: formatCurrency(outstandingTotal) + " outstanding", tone: followUpRows.length ? "red" as const : "green" as const },
           { label: "Current view", value: vendorRows.length, sub: "Filtered records", tone: "slate" as const },
         ].map((item) => (
-          <div key={item.label} className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-600">{item.label}</p>
             <p className="mt-2 text-2xl font-bold text-slate-950 font-heading">{item.value}</p>
             <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
@@ -445,13 +432,13 @@ const VendorsPage = () => {
         <div className="relative flex-1 sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
-            className="border-slate-300 pl-9 rounded-sm focus-visible:border-primary focus-visible:ring-0"
+            className="border-slate-300 pl-9 rounded-lg focus-visible:border-primary focus-visible:ring-0"
             placeholder="Search by name, phone, or email"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-1 rounded-sm border border-slate-200 bg-slate-50 p-1" role="tablist">
+        <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist">
           {(["all", "pending", "approved", "rejected"] as const).map((s) => (
             <button
               key={s}
@@ -459,7 +446,7 @@ const VendorsPage = () => {
               role="tab"
               aria-selected={statusFilter === s}
               onClick={() => setStatusFilter(s)}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-sm px-3 text-xs font-bold transition-colors focus-visible:outline-none ${
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-colors focus-visible:outline-none ${
                 statusFilter === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
               }`}
             >
@@ -473,15 +460,19 @@ const VendorsPage = () => {
       </div>
 
       {error && (
-        <div className="rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
       {/* Vendor grid */}
-      <MockupPanel title={`Vendor Directory — ${vendorRows.length} records`}>
+      <Card>
+        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+          <CardTitle className="text-base font-medium">Vendor Directory — {vendorRows.length} records</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
         {isLoading ? (
-          <LoadingState rows={6} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" itemClassName="h-[180px] rounded-sm" />
+          <LoadingState rows={6} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" itemClassName="h-[180px] rounded-lg" />
         ) : vendorRows.length === 0 ? (
-          <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
             No vendors match the current search or filter.
           </div>
         ) : (
@@ -491,7 +482,8 @@ const VendorsPage = () => {
             ))}
           </div>
         )}
-      </MockupPanel>
+        </CardContent>
+      </Card>
 
       {/* Vendor detail sheet */}
       <Sheet open={Boolean(selectedVendorId)} onOpenChange={(open) => !open && setSelectedVendorId(null)}>
@@ -507,7 +499,7 @@ const VendorsPage = () => {
             <div className="mt-4 space-y-4 text-sm">
               <div className="grid gap-4 lg:grid-cols-[0.8fr_1.6fr]">
                 {/* User details */}
-                <div className="space-y-3 rounded-sm border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">User Input</p>
                   <FieldRow label="Full Name" value={selectedRow.vendor.name} />
                   <FieldRow label="Phone" value={selectedRow.vendor.phone} />
@@ -518,7 +510,7 @@ const VendorsPage = () => {
                 </div>
 
                 {/* Documents */}
-                <div className="space-y-3 rounded-sm border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">Submitted Documents</p>
                   <div className="grid gap-3 xl:grid-cols-2">
                     <DocumentPreview title="National ID" vendorId={selectedRow.vendor.id} documentType="national-id" attachment={selectedRow.vendor.idDocument} />
@@ -544,14 +536,14 @@ const VendorsPage = () => {
 
               {/* Password reset */}
               {selectedRow.vendor.status === "approved" && (
-                <div className="space-y-3 rounded-sm border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">Password Reset</p>
                   <p className="text-slate-600">Send the vendor a temporary password by SMS. A reason is required.</p>
                   <div className="space-y-1.5">
                     <Label htmlFor="reset-reason">Reset Reason</Label>
                     <Textarea id="reset-reason" value={resetReason} onChange={(e) => setResetReason(e.target.value)} rows={2} />
                   </div>
-                  {resetMessage && <div className="rounded-sm border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{resetMessage}</div>}
+                  {resetMessage && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{resetMessage}</div>}
                   <Button variant="outline" onClick={() => resetVendorPassword.mutate({ vendorId: selectedRow.vendor.id, reason: resetReason })} disabled={resetVendorPassword.isPending || !resetReason.trim()}>
                     <KeyRound className="mr-1 h-4 w-4" />
                     {resetVendorPassword.isPending ? "Sending..." : "Reset Password"}
@@ -561,7 +553,7 @@ const VendorsPage = () => {
 
               {/* Decision panel */}
               {selectedRow.vendor.status === "pending" && (
-                <div className="space-y-3 rounded-sm border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">Decision Panel</p>
                   <div className="space-y-1.5">
                     <Label>Manager Notes</Label>
@@ -573,7 +565,7 @@ const VendorsPage = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm shadow-none"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-none"
                       onClick={() => approveVendor.mutate({ vendorId: selectedRow.vendor.id, notes: managerNotes })}
                       disabled={approveVendor.isPending}
                     >
@@ -582,7 +574,7 @@ const VendorsPage = () => {
                     </Button>
                     <Button
                       variant="destructive"
-                      className="flex-1 rounded-sm shadow-none"
+                      className="flex-1 rounded-lg shadow-none"
                       onClick={() => rejectVendor.mutate({ vendorId: selectedRow.vendor.id, reason: rejectionReason })}
                       disabled={rejectVendor.isPending || !rejectionReason.trim()}
                     >
@@ -595,7 +587,7 @@ const VendorsPage = () => {
 
               {/* Mobile close button */}
               <div className="sticky bottom-0 mt-6 border-t border-slate-200 bg-white pt-3 sm:hidden">
-                <button type="button" onClick={() => setSelectedVendorId(null)} className="flex h-11 w-full items-center justify-center rounded-sm border border-slate-200 bg-slate-50 text-sm font-bold text-slate-900">
+                <button type="button" onClick={() => setSelectedVendorId(null)} className="flex h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-bold text-slate-900">
                   Close
                 </button>
               </div>
@@ -603,7 +595,7 @@ const VendorsPage = () => {
           )}
         </SheetContent>
       </Sheet>
-    </MockupPage>
+    </PageLayout>
   );
 };
 

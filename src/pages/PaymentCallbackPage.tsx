@@ -83,7 +83,7 @@ const PaymentCallbackPage = () => {
       </div>
 
       <header className="mx-auto flex max-w-5xl items-center justify-between py-4">
-        <Link to="/" className="flex items-center gap-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        <Link to="/" className="flex items-center gap-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <div className="flex h-12 w-12 items-center justify-center bg-primary text-white">
             <Landmark className="h-6 w-6" />
           </div>
@@ -98,7 +98,7 @@ const PaymentCallbackPage = () => {
       </header>
 
       <main className="mx-auto flex flex-1 w-full max-w-5xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
- <section className="w-full max-w-xl rounded-sm border border-slate-200 bg-white p-5 text-center shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] sm:p-8">
+ <section className="w-full max-w-xl rounded-lg border border-slate-200 bg-white p-5 text-center shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] sm:p-8">
  <div
  className={
  isSuccess
@@ -124,13 +124,13 @@ const PaymentCallbackPage = () => {
  </p>
 
  {isFailed ? (
- <p className="mx-auto mt-4 max-w-md rounded-sm border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
+ <p className="mx-auto mt-4 max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
  If you see a charge on your mobile money or bank statement, please contact market support with your transaction ID.
  </p>
  ) : null}
 
  {!isFailed ? (
- <div className="mt-6 rounded-sm border border-slate-200 bg-slate-50 p-4 text-left">
+ <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-left">
  <div className="mb-4 flex items-center justify-between gap-3">
  <div className="flex items-center gap-2">
  <ReceiptText className="h-4 w-4 text-primary" />

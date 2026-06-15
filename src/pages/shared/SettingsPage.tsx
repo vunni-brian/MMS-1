@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ElementType, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -35,37 +35,37 @@ import {
 } from "lucide-react";
 
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
+import { EmptyState } from "@/components/EmptyState";
 import {
- ConsolePage,
- EmptyState,
- EvidenceField,
- LoadingState,
- PageHeader,
- Panel,
+  ConsolePage,
+  EvidenceField,
+  LoadingState,
+  PageHeader,
+  Panel,
 } from "@/components/console/ConsolePage";
-import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, getSessionToken } from "@/lib/api";
 import { cn, formatCurrency, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
+import {
+  AccountSection,
+  NotificationsSection,
+  PaymentsSection,
+  PreferencesSection,
+  ReadOnlyRows,
+  SectionCard,
+  SecuritySection,
+  SettingInput,
+  SettingSelect,
+  SettingToggle,
+  type SettingsSection,
+} from "@/components/settings";
 import type { Role } from "@/types";
 
 type SettingValue = boolean | string;
 type SettingsState = Record<string, SettingValue>;
-
-interface SettingsSection {
- id: string;
- label: string;
- summary: string;
- icon: ElementType;
- keywords: string[];
- count?: number;
- content: ReactNode;
-}
 
 const roleLabels: Record<Role, string> = {
  vendor: "Vendor",
@@ -171,135 +171,6 @@ const loadStoredSettings = () => {
 const roleLabel = (role: Role) => roleLabels[role];
 
 const normalize = (value: string) => value.trim().toLowerCase();
-
-const SettingToggle = ({
- label,
- detail,
- checked,
- onCheckedChange,
-}: {
- label: string;
- detail: string;
- checked: boolean;
- onCheckedChange: (checked: boolean) => void;
-}) => (
- <div className="settings-control-row">
- <div className="min-w-0">
- <p className="settings-control-label">{label}</p>
- <p className="settings-control-detail">{detail}</p>
- </div>
- <Switch checked={checked} onCheckedChange={onCheckedChange} />
- </div>
-);
-
-const SettingSelect = ({
- id,
- label,
- detail,
- value,
- options,
- onValueChange,
-}: {
- id: string;
- label: string;
- detail?: string;
- value: string;
- options: Array<{ value: string; label: string }>;
- onValueChange: (value: string) => void;
-}) => (
- <div className="settings-field-row">
- <div className="min-w-0">
- <Label htmlFor={id} className="settings-control-label">
- {label}
- </Label>
- {detail && <p className="settings-control-detail">{detail}</p>}
- </div>
- <Select value={value} onValueChange={onValueChange}>
- <SelectTrigger id={id} className="settings-control-input">
- <SelectValue />
- </SelectTrigger>
- <SelectContent>
- {options.map((option) => (
- <SelectItem key={option.value} value={option.value}>
- {option.label}
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
- </div>
-);
-
-const SettingInput = ({
- id,
- label,
- detail,
- value,
- type = "text",
- onChange,
-}: {
- id: string;
- label: string;
- detail?: string;
- value: string;
- type?: string;
- onChange: (value: string) => void;
-}) => (
- <div className="settings-field-row">
- <div className="min-w-0">
- <Label htmlFor={id} className="settings-control-label">
- {label}
- </Label>
- {detail && <p className="settings-control-detail">{detail}</p>}
- </div>
- <Input
- id={id}
- type={type}
- value={value}
- onChange={(event) => onChange(event.target.value)}
- className="settings-control-input"
- />
- </div>
-);
-
-const ReadOnlyRows = ({ rows }: { rows: Array<{ label: string; value: ReactNode }> }) => (
- <div className="readonly-rows divide-y divide-border/70 rounded-sm border border-border/70 bg-background">
- {rows.map((row) => (
- <div key={row.label} className="grid gap-1 px-3 py-2.5 sm:grid-cols-[180px_1fr] sm:items-center">
- <p className="text-xs font-medium text-muted-foreground">{row.label}</p>
- <div className="min-w-0 text-sm font-medium">{row.value}</div>
- </div>
- ))}
- </div>
-);
-
-const SectionCard = ({
- section,
- active,
- onSelect,
-}: {
- section: SettingsSection;
- active: boolean;
- onSelect: () => void;
-}) => {
- const Icon = section.icon;
-
- return (
- <button
- type="button"
- onClick={onSelect}
- className={cn("settings-section-card", active && "is-active")}
- aria-current={active ? "true" : undefined}
- >
- <span className="settings-section-icon">
- <Icon className="h-4 w-4" />
- </span>
- <span className="min-w-0">
- <span className="block truncate text-sm font-semibold">{section.label}</span>
- <span className="mt-1 block text-xs leading-5 text-muted-foreground">{section.summary}</span>
- </span>
- </button>
- );
-};
 
 const SettingsPage = () => {
  const { user, logout } = useAuth();
@@ -464,530 +335,75 @@ const SettingsPage = () => {
  time: formatHumanDateTime(notification.createdAt),
  }));
 
- const accountSection = (
- <div className="space-y-4">
- <Panel
- title="Account Overview"
- description="Profile identity remains editable on the Profile page. Settings shows account state, access scope, and verification."
- actions={<UserCircle className="h-4 w-4 text-muted-foreground" />}
- >
- <ReadOnlyRows
- rows={[
- { label: "Account holder", value: user.name },
- { label: "Email", value: user.email },
- { label: "Phone", value: user.phone },
- { label: "Role", value: roleLabel(user.role) },
- { label: "Market scope", value: user.marketName || (user.role === "admin" ? "All markets" : "No market assigned") },
- {
- label: "Phone verification",
- value: user.phoneVerifiedAt ? `Verified ${formatHumanDate(user.phoneVerifiedAt)}` : "Pending",
- },
- {
- label: "Status",
- value: user.vendorStatus ? <StatusBadge status={user.vendorStatus} /> : "Active",
- },
- ]}
- />
- <div className="mt-3 flex flex-wrap gap-2">
- <Button type="button" variant="outline" onClick={() => navigate(`${roleHomePath}/profile`)}>
- <UserCircle className="h-4 w-4" />
- Edit Profile
- </Button>
- <Button type="button" variant="outline" onClick={() => setActiveSection("activity")}>
- <Activity className="h-4 w-4" />
- View Activity
- </Button>
- </div>
- </Panel>
+  const accountSection = (
+    <AccountSection
+      user={user}
+      navigate={navigate}
+      roleHomePath={roleHomePath}
+      setActiveSection={setActiveSection}
+      deactivationState={deactivationState}
+      setDeactivationState={setDeactivationState}
+      onRequestDeactivation={() => requestDeactivation.mutate()}
+    />
+  );
 
- {user.role === "vendor" && (
- <Panel
- title="Vendor Account"
- description="Market assignment and account lifecycle controls for the vendor workspace."
- actions={<Building2 className="h-4 w-4 text-muted-foreground" />}
- >
- <ReadOnlyRows
- rows={[
- { label: "Current market", value: user.marketName || "Pending manager assignment" },
- { label: "Product section", value: user.productSection || "Recorded on vendor profile" },
- { label: "Transfer handling", value: "Market transfer requests require manager approval" },
- ]}
- />
- <div className="mt-3 rounded-sm border border-destructive/20 bg-destructive/5 p-3">
- <p className="text-sm font-semibold text-destructive">Deactivate account</p>
- <p className="mt-1 text-xs leading-5 text-muted-foreground">
- Deactivation requests should be reviewed by market staff before stall access is released.
- </p>
- {deactivationState === "done" ? (
- <p className="mt-3 text-xs text-success font-medium">Request submitted. Market staff will contact you to complete the process.</p>
- ) : deactivationState === "error" ? (
- <p className="mt-3 text-xs text-destructive font-medium">Failed to submit request. Please try again or contact your market office directly.</p>
- ) : deactivationState === "confirm" ? (
- <div className="mt-3 space-y-2">
- <p className="text-xs font-semibold text-destructive">Are you sure? This will notify market staff to begin the deactivation process.</p>
- <div className="flex gap-2">
- <Button
- type="button"
- size="sm"
- variant="destructive"
- disabled={deactivationState === "submitting"}
- onClick={() => { setDeactivationState("submitting"); requestDeactivation.mutate(); }}
- >
- Yes, submit request
- </Button>
- <Button type="button" size="sm" variant="outline" onClick={() => setDeactivationState("idle")}>
- Cancel
- </Button>
- </div>
- </div>
- ) : (
- <Button
- type="button"
- variant="outline"
- className="mt-3 text-destructive hover:text-destructive"
- onClick={() => setDeactivationState("confirm")}
- >
- Request Deactivation
- </Button>
- )}
- </div>
- </Panel>
- )}
- </div>
- );
+  const securitySection = (
+    <SecuritySection
+      user={user}
+      settings={settings}
+      updateSetting={updateSetting}
+      getBoolean={getBoolean}
+      getString={getString}
+      passwordForm={passwordForm}
+      setPasswordForm={setPasswordForm}
+      showPasswords={showPasswords}
+      setShowPasswords={setShowPasswords}
+      passwordMessage={passwordMessage}
+      passwordError={passwordError}
+      onChangePassword={() => changePassword.mutate()}
+      isChangingPassword={changePassword.isPending}
+      onLogout={async () => { await logout(); navigate("/login"); }}
+      navigate={navigate}
+    />
+  );
 
- const securitySection = (
- <div className="space-y-4">
- <Panel
- title="Password"
- description="Use a strong password. Password changes are applied to your account immediately."
- actions={<KeyRound className="h-4 w-4 text-muted-foreground" />}
- >
- <div className="grid gap-4 md:grid-cols-3">
- <div className="space-y-1.5">
- <Label htmlFor="settings-current-password">Current Password</Label>
- <div className="relative">
- <Input
- id="settings-current-password"
- type={showPasswords.current ? "text" : "password"}
- autoComplete="current-password"
- className="pr-10"
- value={passwordForm.currentPassword}
- onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
- />
- <button
- type="button"
- aria-label={showPasswords.current ? "Hide password" : "Show password"}
- onClick={() => setShowPasswords((current) => ({ ...current, current: !current.current }))}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
- >
- {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
- </button>
- </div>
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="settings-new-password">New Password</Label>
- <div className="relative">
- <Input
- id="settings-new-password"
- type={showPasswords.next ? "text" : "password"}
- autoComplete="new-password"
- className="pr-10"
- value={passwordForm.newPassword}
- onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
- />
- <button
- type="button"
- aria-label={showPasswords.next ? "Hide password" : "Show password"}
- onClick={() => setShowPasswords((current) => ({ ...current, next: !current.next }))}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
- >
- {showPasswords.next ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
- </button>
- </div>
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="settings-confirm-password">Confirm Password</Label>
- <div className="relative">
- <Input
- id="settings-confirm-password"
- type={showPasswords.confirm ? "text" : "password"}
- autoComplete="new-password"
- className="pr-10"
- value={passwordForm.confirmPassword}
- onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
- />
- <button
- type="button"
- aria-label={showPasswords.confirm ? "Hide password" : "Show password"}
- onClick={() => setShowPasswords((current) => ({ ...current, confirm: !current.confirm }))}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
- >
- {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
- </button>
- </div>
- {passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
- <p className="text-xs text-destructive">Passwords do not match.</p>
- )}
- </div>
- </div>
+  const notificationsSection = (
+    <NotificationsSection
+      user={user}
+      settings={settings}
+      updateSetting={updateSetting}
+      getBoolean={getBoolean}
+      getString={getString}
+      notificationsQuery={notificationsQuery}
+      notifications={notifications}
+      canReadNotifications={canReadNotifications}
+    />
+  );
 
- {passwordMessage && <div className="mt-3 rounded-sm border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">{passwordMessage}</div>}
- {passwordError && <div className="mt-3 rounded-sm border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{passwordError}</div>}
+  const preferencesSection = (
+    <PreferencesSection
+      user={user}
+      settings={settings}
+      updateSetting={updateSetting}
+      getBoolean={getBoolean}
+      getString={getString}
+    />
+  );
 
- <Button
- type="button"
- className="mt-3"
- onClick={() => changePassword.mutate()}
- disabled={
- changePassword.isPending ||
- !passwordForm.currentPassword ||
- !passwordForm.newPassword ||
- passwordForm.newPassword.length < 8 ||
- passwordForm.newPassword !== passwordForm.confirmPassword
- }
- >
- <KeyRound className="h-4 w-4" />
- {changePassword.isPending ? "Updating Password..." : "Update Password"}
- </Button>
- </Panel>
-
- <Panel
- title="Sign-in Protection"
- description="Controls for login verification, session alerts, and privileged access."
- actions={<ShieldCheck className="h-4 w-4 text-muted-foreground" />}
- contentClassName="space-y-3"
- >
- <SettingToggle
- label={user.role === "admin" ? "Require 2FA for privileged users" : "Two-factor authentication"}
- detail="Add a verification challenge for sensitive account access."
- checked={getBoolean(user.role === "admin" ? "privilegedMfa" : "twoFactorRequired")}
- onCheckedChange={(checked) => updateSetting(user.role === "admin" ? "privilegedMfa" : "twoFactorRequired", checked)}
- />
- <SettingSelect
- id="settings-mfa-method"
- label="Preferred verification method"
- detail={`Primary phone: ${user.phone}`}
- value={getString("mfaMethod")}
- onValueChange={(value) => updateSetting("mfaMethod", value)}
- options={[
- { value: "sms", label: "SMS verification" },
- { value: "email", label: "Email verification" },
- { value: "authenticator", label: "Authenticator app" },
- ]}
- />
- <SettingToggle
- label="Session alerts"
- detail="Notify when a new browser or device signs in."
- checked={getBoolean("sessionAlerts")}
- onCheckedChange={(checked) => updateSetting("sessionAlerts", checked)}
- />
- </Panel>
-
- <Panel title="Active Sessions" description="Session management for this workspace." actions={<LockKeyhole className="h-4 w-4 text-muted-foreground" />}>
- <div className="rounded-md border border-border/70 bg-muted/15 p-2.5">
- <p className="text-xs text-muted-foreground">Current session</p>
- <p className="mt-1 text-sm font-medium">This device — signed in now</p>
- </div>
- <p className="mt-3 text-xs text-muted-foreground">
- Session management is handled server-side. Sign out from this device to invalidate your current token.
- </p>
- <Button type="button" variant="outline" className="mt-3 text-destructive hover:text-destructive" onClick={async () => { await logout(); navigate("/login"); }}>
- Sign Out This Device
- </Button>
- </Panel>
- </div>
- );
-
- const notificationsSection = (
- <div className="space-y-4">
- <Panel
- title="Notification Channels"
- description="Choose where operational, billing, and security updates are delivered."
- actions={<Bell className="h-4 w-4 text-muted-foreground" />}
- contentClassName="space-y-3"
- >
- <SettingToggle
- label="In-app notifications"
- detail="Show alerts in the dashboard and notification center."
- checked={getBoolean("inAppNotifications")}
- onCheckedChange={(checked) => updateSetting("inAppNotifications", checked)}
- />
- <SettingToggle
- label="SMS notifications"
- detail="Send important updates to the registered phone number."
- checked={getBoolean("smsNotifications")}
- onCheckedChange={(checked) => updateSetting("smsNotifications", checked)}
- />
- <SettingToggle
- label="Email notifications"
- detail="Send receipts, summaries, and account alerts by email."
- checked={getBoolean("emailNotifications")}
- onCheckedChange={(checked) => updateSetting("emailNotifications", checked)}
- />
- <SettingToggle
- label="Quiet hours"
- detail="Mute non-critical notifications between 10:00 PM and 7:00 AM."
- checked={getBoolean("quietHours")}
- onCheckedChange={(checked) => updateSetting("quietHours", checked)}
- />
- </Panel>
-
- <Panel
- title="Notification Topics"
- description="Control the categories that can interrupt your workflow."
- actions={<MessageSquare className="h-4 w-4 text-muted-foreground" />}
- contentClassName="grid gap-3 md:grid-cols-2"
- >
- <SettingToggle
- label="Payment reminders"
- detail="Upcoming dues, overdue fees, and charge assignments."
- checked={getBoolean("notifyPayments")}
- onCheckedChange={(checked) => updateSetting("notifyPayments", checked)}
- />
- <SettingToggle
- label="Payment receipts"
- detail="Receipt verification and gateway status updates."
- checked={getBoolean("notifyReceipts")}
- onCheckedChange={(checked) => updateSetting("notifyReceipts", checked)}
- />
- <SettingToggle
- label="Complaint updates"
- detail="Ticket replies, escalation, and resolution notices."
- checked={getBoolean("notifyComplaints")}
- onCheckedChange={(checked) => updateSetting("notifyComplaints", checked)}
- />
- <SettingToggle
- label="Stall assignment changes"
- detail="Allocation, renewal, and stall status changes."
- checked={getBoolean("notifyAssignments")}
- onCheckedChange={(checked) => updateSetting("notifyAssignments", checked)}
- />
- <SettingToggle
- label="Market notices"
- detail="Announcements and market-wide operating updates."
- checked={getBoolean("notifyNotices")}
- onCheckedChange={(checked) => updateSetting("notifyNotices", checked)}
- />
- </Panel>
-
- <Panel title="Recent Notifications" description="Latest in-app notifications for this account." actions={<Clock className="h-4 w-4 text-muted-foreground" />}>
- {notificationsQuery.isPending && canReadNotifications ? (
- <LoadingState rows={3} itemClassName="h-14 rounded-sm" />
- ) : notifications.length === 0 ? (
- <EmptyState title="No notifications loaded" description="Security, payment, complaint, and notice updates will appear here." icon={Bell} />
- ) : (
- <div className="settings-activity-list">
- {notifications.slice(0, 5).map((notification) => (
- <div key={notification.id} className="settings-activity-row">
- <span className={cn("mt-1 h-2.5 w-2.5 rounded-full", notification.read ? "bg-muted-foreground/25" : "bg-primary")} />
- <div className="min-w-0">
- <p className="truncate text-sm font-semibold">{notification.message}</p>
- <p className="mt-1 text-xs text-muted-foreground">{formatHumanDateTime(notification.createdAt)}</p>
- </div>
- </div>
- ))}
- </div>
- )}
- </Panel>
- </div>
- );
-
- const preferencesSection = (
- <div className="space-y-4">
- <div className="rounded-md border border-info/20 bg-info/5 px-3 py-2 text-xs text-info">
- These preferences are saved in your browser. They control display behaviour on this device and do not affect server configuration or other users.
- </div>
- <Panel
- title="Regional Preferences"
- description="Display choices used across dashboards, reports, and exports."
- actions={<Globe2 className="h-4 w-4 text-muted-foreground" />}
- contentClassName="space-y-3"
- >
- <SettingSelect
- id="settings-language"
- label="Language"
- value={getString("language")}
- onValueChange={(value) => updateSetting("language", value)}
- options={[
- { value: "English", label: "English" },
- { value: "Luganda", label: "Luganda" },
- { value: "Swahili", label: "Swahili" },
- ]}
- />
- <SettingSelect
- id="settings-time-zone"
- label="Time zone"
- value={getString("timeZone")}
- onValueChange={(value) => updateSetting("timeZone", value)}
- options={[
- { value: "Africa/Kampala", label: "Africa/Kampala" },
- { value: "UTC", label: "UTC" },
- ]}
- />
- <SettingSelect
- id="settings-date-format"
- label="Date format"
- value={getString("dateFormat")}
- onValueChange={(value) => updateSetting("dateFormat", value)}
- options={[
- { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
- { value: "YYYY-MM-DD", label: "YYYY-MM-DD" },
- ]}
- />
- <SettingSelect
- id="settings-currency"
- label="Currency"
- value={getString("currency")}
- onValueChange={(value) => updateSetting("currency", value)}
- options={[
- { value: "UGX", label: "UGX - Uganda Shillings" },
- { value: "USD", label: "USD - US Dollars" },
- ]}
- />
- </Panel>
-
- <Panel
- title="Dashboard Preferences"
- description="Control density and behavior for repeated operational work."
- actions={<SlidersHorizontal className="h-4 w-4 text-muted-foreground" />}
- contentClassName="grid gap-3 md:grid-cols-2"
- >
- <SettingToggle
- label="Dense tables"
- detail="Show more rows in market tables."
- checked={getBoolean("denseTables")}
- onCheckedChange={(checked) => updateSetting("denseTables", checked)}
- />
- <SettingToggle
- label="Remember filters"
- detail="Keep table filters between visits."
- checked={getBoolean("rememberFilters")}
- onCheckedChange={(checked) => updateSetting("rememberFilters", checked)}
- />
- <SettingToggle
- label="Payment reminder widgets"
- detail="Show due-date reminders on dashboards."
- checked={getBoolean("paymentReminders")}
- onCheckedChange={(checked) => updateSetting("paymentReminders", checked)}
- />
- <SettingToggle
- label="Dashboard hints"
- detail="Show additional helper notes in empty states."
- checked={getBoolean("dashboardHints")}
- onCheckedChange={(checked) => updateSetting("dashboardHints", checked)}
- />
- </Panel>
- </div>
- );
-
- const paymentsSection = (
- <div className="space-y-4">
- <Panel
- title={user.role === "admin" ? "Payment Gateway Configuration" : "Payment Preferences"}
- description={
- user.role === "admin"
- ? "Gateway status, allowed payment methods, and transaction fee policy."
- : "Default payment method, reminder timing, receipt handling, and payment history shortcuts."
- }
- actions={<WalletCards className="h-4 w-4 text-muted-foreground" />}
- contentClassName="space-y-3"
- >
- {user.role === "admin" ? (
- <>
- <SettingToggle
- label="Enable payment gateway"
- detail={`Current charge switch: ${paymentGateway?.isEnabled === false ? "Disabled" : "Enabled"}`}
- checked={paymentGateway?.isEnabled !== false}
- onCheckedChange={(checked) => updateSetting("paymentGatewayEnabled", checked)}
- />
- <SettingSelect
- id="settings-payment-gateway"
- label="Provider"
- value={getString("paymentGateway")}
- onValueChange={(value) => updateSetting("paymentGateway", value)}
- options={[
- { value: "pesapal", label: "Pesapal" },
- { value: "flutterwave", label: "Flutterwave" },
- { value: "manual", label: "Manual receipts only" },
- ]}
- />
- <SettingInput
- id="settings-platform-fee"
- label="Platform fee percent"
- value={getString("platformFeePercent")}
- onChange={(value) => updateSetting("platformFeePercent", value)}
- />
- <SettingToggle
- label="Vendor pays transaction fee"
- detail="Pass payment provider fees through to vendors."
- checked={getBoolean("vendorPaysFee")}
- onCheckedChange={(checked) => updateSetting("vendorPaysFee", checked)}
- />
- </>
- ) : (
- <>
- <SettingSelect
- id="settings-payment-method"
- label="Default payment method"
- value={getString("defaultPaymentMethod")}
- onValueChange={(value) => updateSetting("defaultPaymentMethod", value)}
- options={[
- { value: "mobile-money", label: "Mobile Money" },
- { value: "card", label: "Debit or credit card" },
- { value: "receipt", label: "Manual receipt upload" },
- ]}
- />
- <SettingSelect
- id="settings-reminder-window"
- label="Reminder window"
- value={getString("paymentReminderWindow")}
- onValueChange={(value) => updateSetting("paymentReminderWindow", value)}
- options={[
- { value: "1", label: "1 day before due date" },
- { value: "3", label: "3 days before due date" },
- { value: "7", label: "7 days before due date" },
- ]}
- />
- <SettingSelect
- id="settings-receipt-format"
- label="Receipt format"
- value={getString("receiptFormat")}
- onValueChange={(value) => updateSetting("receiptFormat", value)}
- options={[
- { value: "pdf", label: "PDF" },
- { value: "csv", label: "CSV" },
- ]}
- />
- <SettingToggle
- label="Auto-download receipts"
- detail="Prepare receipts for download after payment verification."
- checked={getBoolean("autoDownloadReceipts")}
- onCheckedChange={(checked) => updateSetting("autoDownloadReceipts", checked)}
- />
- </>
- )}
- </Panel>
-
- <Panel title="Billing Snapshot" description="Live payment records available to this role." actions={<ReceiptText className="h-4 w-4 text-muted-foreground" />}>
- <div className="grid gap-3 sm:grid-cols-3">
- <EvidenceField label="Verified payments" value={completedPayments.length} />
- <EvidenceField label="Verified total" value={formatCurrency(completedPaymentTotal)} />
- <EvidenceField label="Pending review" value={pendingPayments.length} />
- </div>
- <div className="mt-3 flex flex-wrap gap-2">
- <Button
- type="button"
- variant="outline"
- onClick={() => navigate(user.role === "vendor" || user.role === "manager" ? `/${user.role}/payments` : `/${user.role}/billing`)}
- >
- <CreditCard className="h-4 w-4" />
- Open Billing
- </Button>
- </div>
- </Panel>
- </div>
- );
+  const paymentsSection = (
+    <PaymentsSection
+      user={user}
+      settings={settings}
+      updateSetting={updateSetting}
+      getBoolean={getBoolean}
+      getString={getString}
+      paymentGateway={paymentGateway}
+      completedPayments={completedPayments}
+      completedPaymentTotal={completedPaymentTotal}
+      pendingPayments={pendingPayments}
+      navigate={navigate}
+    />
+  );
 
  const managerOperationsSection = (
  <div className="space-y-4">
@@ -1132,7 +548,7 @@ const SettingsPage = () => {
 
  {user.role === "admin" && (
  <Panel title="Danger Zone" description="Administrative cleanup actions require backend confirmation." actions={<AlertTriangle className="h-4 w-4 text-destructive" />}>
- <div className="rounded-sm border border-destructive/20 bg-destructive/5 p-3">
+ <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
  <p className="text-sm font-semibold text-destructive">Wipe test data</p>
  <p className="mt-1 text-xs leading-5 text-muted-foreground">Removes demo vendors, sample payments, and generated complaints after confirmation.</p>
  {wipeState === "done" ? (
@@ -1181,7 +597,7 @@ const SettingsPage = () => {
  actions={<Activity className="h-4 w-4 text-muted-foreground" />}
  >
  {auditQuery.isPending && canReadAudit ? (
- <LoadingState rows={5} itemClassName="h-14 rounded-sm" />
+ <LoadingState rows={5} itemClassName="h-14 rounded-lg" />
  ) : activityRows.length === 0 ? (
  <EmptyState title="No activity records loaded" description="Profile changes, password updates, receipts, and operational events will appear here." icon={Activity} />
  ) : (
@@ -1614,7 +1030,7 @@ const SettingsPage = () => {
  );
  })}
 
- <div className="mt-3 rounded-sm bg-muted/20 p-3">
+ <div className="mt-3 rounded-lg bg-muted/20 p-3">
  <p className="text-xs font-semibold text-muted-foreground">Current context</p>
  <p className="mt-2 truncate text-sm font-semibold">{user.marketName || (user.role === "admin" ? "All markets" : "No market assigned")}</p>
  <p className="mt-1 text-xs text-muted-foreground">{roleLabel(user.role)} access</p>
@@ -1642,13 +1058,13 @@ const SettingsPage = () => {
  </div>
  <div className="mt-3 space-y-2">
  {contextRows.map((row) => (
- <div key={row.label} className="rounded-sm border border-border/70 bg-background p-3">
+ <div key={row.label} className="rounded-lg border border-border/70 bg-background p-3">
  <p className="text-[11px] font-medium text-muted-foreground">{row.label}</p>
  <p className="mt-1 truncate text-sm font-semibold">{row.value}</p>
  </div>
  ))}
  </div>
- <div className="mt-3 rounded-sm border border-info/20 bg-info/10 p-3 text-xs leading-5 text-info">
+ <div className="mt-3 rounded-lg border border-info/20 bg-info/10 p-3 text-xs leading-5 text-info">
  Settings apply to the active market context unless a platform-wide permission overrides it.
  </div>
  </aside>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Landmark, Store } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Sparkles, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
@@ -32,7 +32,6 @@ const registrationSteps: Array<{ id: RegistrationStep; label: string; descriptio
  { id: "otp", label: "Verify", description: "Phone ownership confirmation" },
 ];
 
-// Keep registration validation client-side so vendors get guidance before an OTP is issued.
 const validatePhone = (phone: string) => {
  const cleaned = phone.replace(/\s/g, "");
  if (!cleaned) return "Phone number is required.";
@@ -54,9 +53,9 @@ const getPasswordStrength = (password: string): { score: number; label: string; 
  if (/[A-Z]/.test(password)) score++;
  if (/[0-9]/.test(password)) score++;
  if (/[^A-Za-z0-9]/.test(password)) score++;
- if (score <= 1) return { score, label: "Weak", color: "bg-destructive" };
- if (score <= 3) return { score, label: "Fair", color: "bg-warning" };
- return { score, label: "Strong", color: "bg-success" };
+ if (score <= 1) return { score, label: "Weak", color: "bg-red-500" };
+ if (score <= 3) return { score, label: "Fair", color: "bg-yellow-500" };
+ return { score, label: "Strong", color: "bg-emerald-500" };
 };
 
 const RegisterPage = () => {
@@ -193,380 +192,400 @@ const RegisterPage = () => {
  step === "details"
  ? true
  : step === "documents"
- ? Boolean(
- form.idFile &&
- form.lcLetterFile,
- )
+ ? Boolean(form.idFile && form.lcLetterFile)
  : otp.length === 6 && Boolean(challengeId);
 
   return (
-  <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 text-slate-900 font-sans">
-      {/* Modern Top Bar */}
-      <div className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 px-4 py-2.5 text-white shadow-lg">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between text-xs font-medium">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white shadow-inner">
-              <Landmark className="h-3 w-3" />
-            </span>
-            <span className="font-semibold tracking-wide">Official Market Management Portal</span>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
+      {/* Header - Matching landing page */}
+      <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-xl font-bold text-slate-900 transition-opacity hover:opacity-80"
+          >
+            <img
+              src="/images/mms-logo.svg"
+              alt="MMS"
+              className="h-8 w-8 rounded-lg border border-emerald-100"
+            />
+            <span>MMS</span>
+          </button>
 
-      <header className="mx-auto flex max-w-6xl items-center justify-between py-6 px-4 sm:px-6 lg:px-8 w-full">
-        <button type="button" onClick={() => navigate("/")} className="flex items-center gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-all hover:bg-white/50">
-          <div className="flex h-12 w-12 items-center justify-center bg-gradient-to-br from-primary to-primary/90 text-white rounded-xl shadow-lg shadow-primary/25">
-            <Landmark className="h-6 w-6" />
-          </div>
-          <div className="text-left hidden sm:block">
-            <span className="block text-xl font-bold leading-tight text-slate-900 tracking-tight">KAMPALA MARKETS</span>
-            <span className="block text-xs font-medium text-slate-500 uppercase tracking-wider">Management System</span>
-          </div>
-        </button>
-        <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="rounded-lg">
-          Login
-        </Button>
+          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+            <a href="/#features" className="transition-colors hover:text-emerald-600">Features</a>
+            <a href="/#process" className="transition-colors hover:text-emerald-600">Process</a>
+            <a href="/#reviews" className="transition-colors hover:text-emerald-600">Reviews</a>
+            <a href="/#pricing" className="transition-colors hover:text-emerald-600">Pricing</a>
+            <a href="/#faqs" className="transition-colors hover:text-emerald-600">FAQs</a>
+          </nav>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/login")}
+            className="text-slate-600 hover:text-emerald-600"
+          >
+            Login
+          </Button>
+        </div>
       </header>
 
       <main className="mx-auto grid flex-1 w-full max-w-6xl items-center gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:grid-cols-[0.72fr_1.28fr]">
- <aside className="hidden overflow-hidden rounded-2xl border border-white/20 bg-slate-900 shadow-2xl lg:block">
- <div className="relative min-h-[640px]">
- <img src="/images/market-hero.jpg" alt="Market walkway" className="absolute inset-0 h-full w-full object-cover" />
- <div className="absolute inset-0 bg-gradient-to-b from-primary/60 to-slate-900/80" />
- <div className="absolute left-6 right-6 top-6 rounded-2xl border border-white/20 bg-white/95 p-6 backdrop-blur-xl shadow-2xl">
- <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/90 text-white shadow-lg">
- <Store className="h-6 w-6" />
- </span>
- <h1 className="mt-6 text-3xl font-bold leading-tight font-heading text-slate-950">Vendor Registration</h1>
- <p className="mt-3 text-sm leading-6 text-slate-600">
- Create the vendor profile, submit verification documents, and confirm phone ownership in one flow.
- </p>
- </div>
- </div>
- </aside>
+        {/* Left Side - Image Card (KEPT ORIGINAL LAYOUT) */}
+        <aside className="hidden overflow-hidden rounded-2xl border border-emerald-100 bg-slate-900 shadow-2xl lg:block">
+          <div className="relative min-h-[640px]">
+            <img src="/images/market-hero.jpg" alt="Market walkway" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-emerald-600/60 to-emerald-900/80" />
+            <div className="absolute left-6 right-6 top-6 rounded-2xl border border-white/20 bg-white/95 p-6 backdrop-blur-xl shadow-2xl">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg">
+                <Store className="h-6 w-6" />
+              </span>
+              <h1 className="mt-6 text-3xl font-bold leading-tight font-heading text-slate-950">Vendor Registration</h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Create the vendor profile, submit verification documents, and confirm phone ownership in one flow.
+              </p>
+            </div>
+          </div>
+        </aside>
 
- <Card className="card-warm rounded-2xl border-border/60 shadow-2xl bg-white/80 backdrop-blur-xl">
- <CardHeader className="pb-4">
- <CardTitle className="text-lg font-heading">
- {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
- </CardTitle>
- <CardDescription>Step {step === "details" ? "1" : step === "documents" ? "2" : "3"} of 3</CardDescription>
- <div className="mt-4 grid gap-2 grid-cols-3">
- {registrationSteps.map((item, index) => {
- const activeIndex = registrationSteps.findIndex((candidate) => candidate.id === step);
- const isComplete = index < activeIndex;
- const isActive = item.id === step;
+        {/* Right Side - Registration Card (Theme changed to green) */}
+        <Card className="rounded-2xl border-emerald-100 shadow-lg bg-white/80 backdrop-blur-xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-heading text-slate-900">
+              {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
+            </CardTitle>
+            <CardDescription>Step {step === "details" ? "1" : step === "documents" ? "2" : "3"} of 3</CardDescription>
+            <div className="mt-4 grid gap-2 grid-cols-3">
+              {registrationSteps.map((item, index) => {
+                const activeIndex = registrationSteps.findIndex((candidate) => candidate.id === step);
+                const isComplete = index < activeIndex;
+                const isActive = item.id === step;
 
- return (
- <div
- key={item.id}
- className={`rounded-sm border px-3 py-2 ${
- isActive
- ? "border-primary/40 bg-primary/10"
- : isComplete
- ? "border-success/25 bg-success/10"
- : "border-border/70 bg-muted/20"
- }`}
- >
- <p className="text-xs font-semibold">{item.label}</p>
- <p className="mt-0.5 text-[11px] text-muted-foreground">{item.description}</p>
- </div>
- );
- })}
- </div>
- </CardHeader>
- <CardContent>
- <form className="space-y-5" onSubmit={handleSubmit} noValidate>
- {step === "details" ? (
- <FormSection
- title="Account & Market Details"
- description="Create the vendor account, identify the operator, and assign the correct market section before document review."
- className="shadow-none"
- >
- <div className="grid gap-4 md:grid-cols-2">
- <div className="space-y-1.5">
- <Label htmlFor="name">Full Name</Label>
- <Input
- id="name"
- value={form.name}
- onChange={(event) => updateField("name", event.target.value)}
- onBlur={() => touch("name")}
- aria-invalid={touched.name && Boolean(fieldErrors.name)}
- required
- />
- {touched.name && fieldErrors.name && (
- <p className="text-xs text-destructive">{fieldErrors.name}</p>
- )}
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="national-id-number">NIN / ID Number</Label>
- <Input
- id="national-id-number"
- value={form.nationalIdNumber}
- onChange={(event) => updateField("nationalIdNumber", event.target.value)}
- onBlur={() => touch("nationalIdNumber")}
- aria-invalid={touched.nationalIdNumber && Boolean(fieldErrors.nationalIdNumber)}
- required
- />
- {touched.nationalIdNumber && fieldErrors.nationalIdNumber && (
- <p className="text-xs text-destructive">{fieldErrors.nationalIdNumber}</p>
- )}
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="phone">Phone Number</Label>
- <Input
- id="phone"
- placeholder="+256 7XX XXX XXX"
- value={form.phone}
- onChange={(event) => {
- updateField("phone", event.target.value);
- if (touched.phone) {
- const err = validatePhone(event.target.value);
- setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
- }
- }}
- onBlur={() => {
- touch("phone");
- const err = validatePhone(form.phone);
- setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
- }}
- aria-invalid={touched.phone && Boolean(fieldErrors.phone)}
- autoComplete="tel"
- required
- />
- {touched.phone && fieldErrors.phone && (
- <p className="text-xs text-destructive">{fieldErrors.phone}</p>
- )}
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="email">Email Address</Label>
- <Input
- id="email"
- type="email"
- value={form.email}
- onChange={(event) => {
- updateField("email", event.target.value);
- if (touched.email) {
- const err = validateEmail(event.target.value);
- setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
- }
- }}
- onBlur={() => {
- touch("email");
- const err = validateEmail(form.email);
- setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
- }}
- aria-invalid={touched.email && Boolean(fieldErrors.email)}
- autoComplete="email"
- required
- />
- {touched.email && fieldErrors.email && (
- <p className="text-xs text-destructive">{fieldErrors.email}</p>
- )}
- </div>
- <div className="space-y-1.5 md:col-span-2">
- <Label htmlFor="password">Password</Label>
- <div className="relative">
- <Input
- id="password"
- type={showPassword ? "text" : "password"}
- value={form.password}
- onChange={(event) => {
- updateField("password", event.target.value);
- if (touched.password) {
- const err = event.target.value.length < 8 ? "Password must be at least 8 characters." : undefined;
- setFieldErrors((prev) => ({ ...prev, password: err }));
- }
- }}
- onBlur={() => {
- touch("password");
- const err = form.password.length < 8 ? "Password must be at least 8 characters." : undefined;
- setFieldErrors((prev) => ({ ...prev, password: err }));
- }}
- aria-invalid={touched.password && Boolean(fieldErrors.password)}
- autoComplete="new-password"
- className="pr-10"
- required
- />
- <button
- type="button"
- aria-label={showPassword ? "Hide password" : "Show password"}
- onClick={() => setShowPassword((v) => !v)}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none"
- >
- {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
- </button>
- </div>
- {form.password && (() => {
- const strength = getPasswordStrength(form.password);
- return (
- <div className="space-y-1">
- <div className="flex h-1.5 gap-1">
- {[1, 2, 3, 4, 5].map((i) => (
- <div
- key={i}
- className={`h-full flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : "bg-muted"}`}
- />
- ))}
- </div>
- <p className={`text-xs font-medium ${strength.score <= 1 ? "text-destructive" : strength.score <= 3 ? "text-warning" : "text-success"}`}>
- {strength.label} password
- </p>
- </div>
- );
- })()}
- {touched.password && fieldErrors.password && (
- <p className="text-xs text-destructive">{fieldErrors.password}</p>
- )}
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="market">Market</Label>
- <Select
- value={form.marketId}
- onValueChange={(value) => {
- updateField("marketId", value);
- touch("marketId");
- setFieldErrors((prev) => ({ ...prev, marketId: undefined }));
- }}
- >
- <SelectTrigger id="market" aria-invalid={touched.marketId && Boolean(fieldErrors.marketId)}>
- <SelectValue placeholder="Select your market" />
- </SelectTrigger>
- <SelectContent>
- {(marketsData?.markets || []).map((market) => (
- <SelectItem key={market.id} value={market.id}>
- {market.name} ({market.location})
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
- {touched.marketId && fieldErrors.marketId && (
- <p className="text-xs text-destructive">{fieldErrors.marketId}</p>
- )}
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="product-section">Product Section</Label>
- <Select
- value={form.productSection}
- onValueChange={(value) => {
- updateField("productSection", value);
- touch("productSection");
- setFieldErrors((prev) => ({ ...prev, productSection: undefined }));
- }}
- >
- <SelectTrigger id="product-section" aria-invalid={touched.productSection && Boolean(fieldErrors.productSection)}>
- <SelectValue placeholder="Select product section" />
- </SelectTrigger>
- <SelectContent>
- {productSections.map((section) => (
- <SelectItem key={section} value={section}>
- {section}
- </SelectItem>
- ))}
- </SelectContent>
- </Select>
- {touched.productSection && fieldErrors.productSection && (
- <p className="text-xs text-destructive">{fieldErrors.productSection}</p>
- )}
- </div>
- <div className="space-y-1.5 md:col-span-2">
- <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
- <Label htmlFor="district">Operating District</Label>
- {form.district && (
- <span className="text-[11px] text-muted-foreground">Auto-filled from market - you can edit this</span>
- )}
- </div>
- <Input
- id="district"
- value={form.district}
- onChange={(event) => updateField("district", event.target.value)}
- onBlur={() => touch("district")}
- aria-invalid={touched.district && Boolean(fieldErrors.district)}
- required
- />
- {touched.district && fieldErrors.district && (
- <p className="text-xs text-destructive">{fieldErrors.district}</p>
- )}
- </div>
- </div>
- </FormSection>
- ) : step === "documents" ? (
- <FormSection
- title="Document Upload"
- description="Upload a National ID and LC Letter for manager verification. Files must be PDF, JPG, JPEG, or PNG."
- className="shadow-none"
- >
- <div className="grid gap-4 md:grid-cols-2">
- <FileUploadCard
- id="national-id-upload"
- label="National ID"
- description="Primary identity document."
- accept=".pdf,.jpg,.jpeg,.png"
- value={formatFileLabel(form.idFile)}
- onChange={(file) => updateField("idFile", file)}
- />
- <FileUploadCard
- id="lc-letter-upload"
- label="LC Letter"
- description="Proof of residence in the selected district."
- accept=".pdf,.jpg,.jpeg,.png"
- value={formatFileLabel(form.lcLetterFile)}
- onChange={(file) => updateField("lcLetterFile", file)}
- />
- <FileUploadCard
- id="profile-photo"
- label="Profile Photo (Optional)"
- description="Used only for the vendor directory after approval."
- accept="image/*"
- value={formatFileLabel(form.profileImage)}
- className="md:col-span-2"
- onChange={(file) => updateField("profileImage", file)}
- />
- </div>
- </FormSection>
- ) : (
- <div className="space-y-3">
- <div className="rounded-sm border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
- Enter the verification code sent to <span className="font-medium text-foreground">{form.phone}</span>.
- </div>
- <div className="space-y-2">
- <Label htmlFor="otp">OTP Code</Label>
- <OtpCodeInput id="otp" value={otp} onChange={setOtp} disabled={isSubmitting} />
- </div>
- </div>
- )}
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-lg border px-3 py-2 transition-all ${
+                      isActive
+                        ? "border-emerald-400 bg-emerald-50"
+                        : isComplete
+                        ? "border-emerald-200 bg-emerald-50/50"
+                        : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    <p className={`text-xs font-semibold ${isActive ? "text-emerald-700" : isComplete ? "text-emerald-600" : "text-slate-600"}`}>
+                      {item.label}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{item.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+              {step === "details" ? (
+                <FormSection
+                  title="Account & Market Details"
+                  description="Create the vendor account, identify the operator, and assign the correct market section before document review."
+                  className="shadow-none"
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name" className="text-slate-900 font-semibold">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={form.name}
+                        onChange={(event) => updateField("name", event.target.value)}
+                        onBlur={() => touch("name")}
+                        className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
+                        required
+                      />
+                      {touched.name && fieldErrors.name && (
+                        <p className="text-xs text-red-600">{fieldErrors.name}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="national-id-number" className="text-slate-900 font-semibold">NIN / ID Number</Label>
+                      <Input
+                        id="national-id-number"
+                        value={form.nationalIdNumber}
+                        onChange={(event) => updateField("nationalIdNumber", event.target.value)}
+                        onBlur={() => touch("nationalIdNumber")}
+                        className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
+                        required
+                      />
+                      {touched.nationalIdNumber && fieldErrors.nationalIdNumber && (
+                        <p className="text-xs text-red-600">{fieldErrors.nationalIdNumber}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-slate-900 font-semibold">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        placeholder="+256 7XX XXX XXX"
+                        value={form.phone}
+                        onChange={(event) => {
+                          updateField("phone", event.target.value);
+                          if (touched.phone) {
+                            const err = validatePhone(event.target.value);
+                            setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
+                          }
+                        }}
+                        onBlur={() => {
+                          touch("phone");
+                          const err = validatePhone(form.phone);
+                          setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
+                        }}
+                        className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
+                        autoComplete="tel"
+                        required
+                      />
+                      {touched.phone && fieldErrors.phone && (
+                        <p className="text-xs text-red-600">{fieldErrors.phone}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-slate-900 font-semibold">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={form.email}
+                        onChange={(event) => {
+                          updateField("email", event.target.value);
+                          if (touched.email) {
+                            const err = validateEmail(event.target.value);
+                            setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
+                          }
+                        }}
+                        onBlur={() => {
+                          touch("email");
+                          const err = validateEmail(form.email);
+                          setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
+                        }}
+                        className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
+                        autoComplete="email"
+                        required
+                      />
+                      {touched.email && fieldErrors.email && (
+                        <p className="text-xs text-red-600">{fieldErrors.email}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label htmlFor="password" className="text-slate-900 font-semibold">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={form.password}
+                          onChange={(event) => {
+                            updateField("password", event.target.value);
+                            if (touched.password) {
+                              const err = event.target.value.length < 8 ? "Password must be at least 8 characters." : undefined;
+                              setFieldErrors((prev) => ({ ...prev, password: err }));
+                            }
+                          }}
+                          onBlur={() => {
+                            touch("password");
+                            const err = form.password.length < 8 ? "Password must be at least 8 characters." : undefined;
+                            setFieldErrors((prev) => ({ ...prev, password: err }));
+                          }}
+                          className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500 pr-10"
+                          autoComplete="new-password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {form.password && (() => {
+                        const strength = getPasswordStrength(form.password);
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex h-1.5 gap-1">
+                              {[1, 2, 3, 4, 5].map((i) => (
+                                <div
+                                  key={i}
+                                  className={`h-full flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : "bg-slate-200"}`}
+                                />
+                              ))}
+                            </div>
+                            <p className={`text-xs font-medium ${
+                              strength.score <= 1 ? "text-red-600" : strength.score <= 3 ? "text-yellow-600" : "text-emerald-600"
+                            }`}>
+                              {strength.label} password
+                            </p>
+                          </div>
+                        );
+                      })()}
+                      {touched.password && fieldErrors.password && (
+                        <p className="text-xs text-red-600">{fieldErrors.password}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="market" className="text-slate-900 font-semibold">Market</Label>
+                      <Select
+                        value={form.marketId}
+                        onValueChange={(value) => {
+                          updateField("marketId", value);
+                          touch("marketId");
+                          setFieldErrors((prev) => ({ ...prev, marketId: undefined }));
+                        }}
+                      >
+                        <SelectTrigger id="market" className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500">
+                          <SelectValue placeholder="Select your market" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(marketsData?.markets || []).map((market) => (
+                            <SelectItem key={market.id} value={market.id}>
+                              {market.name} ({market.location})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {touched.marketId && fieldErrors.marketId && (
+                        <p className="text-xs text-red-600">{fieldErrors.marketId}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="product-section" className="text-slate-900 font-semibold">Product Section</Label>
+                      <Select
+                        value={form.productSection}
+                        onValueChange={(value) => {
+                          updateField("productSection", value);
+                          touch("productSection");
+                          setFieldErrors((prev) => ({ ...prev, productSection: undefined }));
+                        }}
+                      >
+                        <SelectTrigger id="product-section" className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500">
+                          <SelectValue placeholder="Select product section" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productSections.map((section) => (
+                            <SelectItem key={section} value={section}>
+                              {section}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {touched.productSection && fieldErrors.productSection && (
+                        <p className="text-xs text-red-600">{fieldErrors.productSection}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <Label htmlFor="district" className="text-slate-900 font-semibold">Operating District</Label>
+                        {form.district && (
+                          <span className="text-[11px] text-emerald-600">Auto-filled from market - you can edit this</span>
+                        )}
+                      </div>
+                      <Input
+                        id="district"
+                        value={form.district}
+                        onChange={(event) => updateField("district", event.target.value)}
+                        onBlur={() => touch("district")}
+                        className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
+                        required
+                      />
+                      {touched.district && fieldErrors.district && (
+                        <p className="text-xs text-red-600">{fieldErrors.district}</p>
+                      )}
+                    </div>
+                  </div>
+                </FormSection>
+              ) : step === "documents" ? (
+                <FormSection
+                  title="Document Upload"
+                  description="Upload a National ID and LC Letter for manager verification. Files must be PDF, JPG, JPEG, or PNG."
+                  className="shadow-none"
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FileUploadCard
+                      id="national-id-upload"
+                      label="National ID"
+                      description="Primary identity document."
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      value={formatFileLabel(form.idFile)}
+                      onChange={(file) => updateField("idFile", file)}
+                    />
+                    <FileUploadCard
+                      id="lc-letter-upload"
+                      label="LC Letter"
+                      description="Proof of residence in the selected district."
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      value={formatFileLabel(form.lcLetterFile)}
+                      onChange={(file) => updateField("lcLetterFile", file)}
+                    />
+                    <FileUploadCard
+                      id="profile-photo"
+                      label="Profile Photo (Optional)"
+                      description="Used only for the vendor directory after approval."
+                      accept="image/*"
+                      value={formatFileLabel(form.profileImage)}
+                      className="md:col-span-2"
+                      onChange={(file) => updateField("profileImage", file)}
+                    />
+                  </div>
+                </FormSection>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-700">
+                    Enter the verification code sent to <span className="font-semibold text-emerald-700">{form.phone}</span>.
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="otp" className="text-slate-900 font-semibold">OTP Code</Label>
+                    <OtpCodeInput id="otp" value={otp} onChange={setOtp} disabled={isSubmitting} />
+                  </div>
+                </div>
+              )}
 
- {error && <div className="rounded-sm border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{error}</div>}
+              {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
- <div className="flex flex-col gap-2 pt-2 sm:flex-row">
- <Button
- type="button"
- variant="outline"
- onClick={() => {
- if (step === "details") {
- navigate("/login");
- } else if (step === "documents") {
- setStep("details");
- } else {
- setStep("documents");
- setOtp("");
- }
- }}
- className="w-full sm:flex-1"
- >
- <ArrowLeft className="w-4 h-4 mr-1" />
- Back
- </Button>
- <Button type="submit" className="w-full sm:flex-1" disabled={isSubmitting || !canSubmit}>
- {step === "details" ? "Continue to Verification" : step === "documents" ? "Send OTP" : "Verify & Open Dashboard"}
- </Button>
- </div>
- </form>
- </CardContent>
- </Card>
- </main>
- </div>
- );
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (step === "details") {
+                      navigate("/login");
+                    } else if (step === "documents") {
+                      setStep("details");
+                    } else {
+                      setStep("documents");
+                      setOtp("");
+                    }
+                  }}
+                  className="w-full sm:flex-1 border-slate-200 hover:bg-slate-50"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="w-full sm:flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-all hover:shadow-md" 
+                  disabled={isSubmitting || !canSubmit}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Processing...
+                    </div>
+                  ) : (
+                    step === "details" ? "Continue to Verification" : step === "documents" ? "Send OTP" : "Verify & Open Dashboard"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
 };
 
 export default RegisterPage;

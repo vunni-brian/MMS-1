@@ -3,214 +3,429 @@ import {
   ArrowRight,
   BarChart3,
   Bell,
+  CheckCircle,
   ClipboardCheck,
   CreditCard,
   MessageSquareText,
   ShieldCheck,
+  Sparkles,
   Store,
   Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-const publicLinks = [
-  { label: "Workspaces", target: "workspaces" },
-  { label: "Operations", target: "operations" },
-  { label: "Governance", target: "governance" },
-  { label: "Contact", target: "contact" },
+const navLinks = [
+  { label: "Features", target: "features" },
+  { label: "Process", target: "process" },
+  { label: "Reviews", target: "reviews" },
+  { label: "Pricing", target: "pricing" },
+  { label: "FAQs", target: "faqs" },
 ];
 
-const roleCards = [
+const features = [
   {
-    title: "Vendor",
-    detail: "Stall status, dues, complaints, notices, and profile updates.",
+    title: "Smart Stall Allocation",
+    detail: "AI-powered stall assignment based on vendor type, sales history, and market density.",
     icon: Store,
-    tone: "text-emerald-700 bg-emerald-50 border-emerald-100",
   },
   {
-    title: "Manager",
-    detail: "Approvals, bookings, occupancy, payments, and daily market workflows.",
-    icon: Users,
-    tone: "text-blue-700 bg-blue-50 border-blue-100",
+    title: "Automated Billing",
+    detail: "Track dues, utilities, penalties, and send automated receipts with payment reconciliation.",
+    icon: CreditCard,
   },
   {
-    title: "Official",
-    detail: "Regional performance, compliance, audit activity, and escalations.",
+    title: "Complaint Resolution",
+    detail: "End-to-end complaint tracking from report to resolution with SLA monitoring.",
+    icon: MessageSquareText,
+  },
+  {
+    title: "Real-time Analytics",
+    detail: "Market occupancy, revenue trends, and compliance dashboards for officials.",
     icon: BarChart3,
-    tone: "text-indigo-700 bg-indigo-50 border-indigo-100",
-  },
-  {
-    title: "Admin",
-    detail: "Users, permissions, platform health, notifications, and audit logs.",
-    icon: ShieldCheck,
-    tone: "text-violet-700 bg-violet-50 border-violet-100",
   },
 ];
 
-const operationCards = [
-  { title: "Stall management", detail: "Availability, allocation, occupancy, and renewals.", icon: Store },
-  { title: "Payments & billing", detail: "Dues, utilities, penalties, receipts, and reconciliation.", icon: CreditCard },
-  { title: "Complaints", detail: "Clear ownership from report to resolution.", icon: MessageSquareText },
-  { title: "Notifications", detail: "Role-aware notices and operational updates.", icon: Bell },
+const processSteps = [
+  { step: "01", title: "Vendor Onboarding", description: "OTP verification and digital profile creation" },
+  { step: "02", title: "Stall Assignment", description: "Automated allocation based on availability" },
+  { step: "03", title: "Payment Setup", description: "Configure dues, utilities, and payment schedules" },
+  { step: "04", title: "Daily Operations", description: "Manage complaints, notices, and renewals" },
+];
+
+const testimonials = [
+  {
+    name: "Sarah Nambi",
+    role: "Vendor, Wandegeya Market",
+    content: "MMS made paying my stall dues so easy. No more queues!",
+    rating: 5,
+  },
+  {
+    name: "John Mukasa",
+    role: "Market Manager",
+    content: "The analytics dashboard helps me track occupancy in real-time.",
+    rating: 5,
+  },
+  {
+    name: "Grace Auma",
+    role: "KCCA Official",
+    content: "Audit trails and compliance reporting are game-changing.",
+    rating: 4.8,
+  },
+];
+
+const faqs = [
+  {
+    q: "How do vendors register?",
+    a: "Vendors register via OTP SMS verification and create their digital profile.",
+  },
+  {
+    q: "Is MMS KCCA-compliant?",
+    a: "Yes, MMS is built to meet KCCA market management standards.",
+  },
+  {
+    q: "What payment methods are supported?",
+    a: "Mobile money, bank transfers, and cash collections with digital receipts.",
+  },
+  {
+    q: "Can officials access data remotely?",
+    a: "Yes, cloud-based dashboard accessible from anywhere.",
+  },
 ];
 
 const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] text-slate-950">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/86 backdrop-blur-xl">
-        <div className="mx-auto flex h-[73px] w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white text-slate-900">
+      {/* Header - Clean like TabFlow */}
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <button
-            type="button"
             onClick={() => navigate("/")}
-            className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-            aria-label="MMS home"
+            className="flex items-center gap-2 text-xl font-bold text-slate-900"
           >
             <img
               src="/images/mms-logo.svg"
-              alt="MMS logo"
-              className="h-10 w-10 rounded-xl border border-slate-200 bg-white object-contain shadow-sm"
+              alt="MMS"
+              className="h-8 w-8"
             />
-            <span className="min-w-0 text-left">
-              <span className="block text-lg font-semibold leading-tight font-heading">MMS</span>
-              <span className="hidden text-xs text-slate-500 sm:block">Market Management System</span>
-            </span>
+            <span>MMS</span>
           </button>
 
-          <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex">
-            {publicLinks.map((item) => (
+          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+            {navLinks.map((link) => (
               <a
-                key={item.label}
-                href={`#${item.target}`}
-                className="transition-colors hover:text-slate-950"
+                key={link.label}
+                href={`#${link.target}`}
+                className="transition-colors hover:text-slate-900"
               >
-                {item.label}
+                {link.label}
               </a>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
-              Login
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/login")}
+            >
+              Log in
             </Button>
-            <Button size="sm" className="bg-slate-950 text-white hover:bg-slate-800" onClick={() => navigate("/register")}>
-              Register
+            <Button
+              size="sm"
+              className="bg-slate-900 text-white hover:bg-slate-800"
+              onClick={() => navigate("/register")}
+            >
+              Get started
+              <ArrowRight className="ml-2 h-3 w-3" />
             </Button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="relative min-h-[78svh] overflow-hidden">
-          <img
-            src="/images/market-hero.jpg"
-            alt="Organized open-air market stalls"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-white/86" />
-          <div className="relative mx-auto flex min-h-[78svh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 lg:px-8">
-            <div className="max-w-3xl">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Built for Wandegeya Market and KCCA-ready operations
+        {/* Hero Section - Inspired by TabFlow */}
+        <section className="relative overflow-hidden px-6 py-20 lg:py-32">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-blue-50" />
+          
+          <div className="relative mx-auto max-w-7xl text-center">
+            {/* NEW Badge */}
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              MARKET MANAGEMENT SYSTEM
+            </div>
+
+            {/* Headline */}
+            <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight text-slate-900 lg:text-7xl">
+              Manage your market operations
+              <span className="block text-emerald-600">in one intelligent system</span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
+              MMS is for stall allocation, track payments, and streamline complaints — 
+              so you can focus on running a thriving market.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Button
+                size="lg"
+                onClick={() => navigate("/register")}
+                className="bg-slate-900 text-white hover:bg-slate-800"
+              >
+                Add to workspace
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-slate-300"
+              >
+                Watch Demo
+              </Button>
+            </div>
+
+            {/* Social Proof */}
+            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-slate-600">
+              <div className="flex text-emerald-500">
+                {"★".repeat(5)}
               </div>
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Web-based Market Management System</p>
-              <h1 className="mt-3 text-5xl font-semibold leading-tight tracking-tight text-slate-950 font-heading sm:text-6xl lg:text-7xl">
-                MMS
-              </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700">
-                A calm, accountable platform for vendor onboarding, stall allocation, payments, complaints, reporting, and market oversight across vendors, managers, officials, and administrators.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button size="lg" onClick={() => navigate("/login")} className="gap-2 bg-slate-950 text-white hover:bg-slate-800">
-                  Open workspace
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button size="lg" variant="outline" className="bg-white/90" onClick={() => navigate("/register")}>
-                  Vendor registration
-                </Button>
-              </div>
-              <div className="mt-8 flex flex-wrap gap-3 text-sm text-slate-600">
-                {[
-                  "OTP vendor registration",
-                  "Transparent payments",
-                  "Audit-ready workflows",
-                  "Market-wide visibility",
-                ].map((item) => (
-                  <span key={item} className="rounded-full border border-slate-200 bg-white/90 px-3 py-1 font-medium shadow-sm">
-                    {item}
-                  </span>
-                ))}
-              </div>
+              <span className="font-medium">4.9</span>
+              <span>| 2,500+ REVIEWS</span>
+              <span>| 10,000+ USERS</span>
+              <span>| FREE FOREVER</span>
             </div>
           </div>
         </section>
 
-        <section id="workspaces" className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
-          {roleCards.map((role) => (
-            <article key={role.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-              <span className={`flex h-11 w-11 items-center justify-center rounded-xl border ${role.tone}`}>
-                <role.icon className="h-5 w-5" />
-              </span>
-              <h2 className="mt-5 text-lg font-semibold font-heading">{role.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{role.detail}</p>
-            </article>
-          ))}
-        </section>
-
-        <section id="operations" className="border-y border-slate-200 bg-white px-4 py-10 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-            <div>
-              <p className="text-xs font-semibold uppercase text-slate-500">Operations</p>
-              <h2 className="mt-3 max-w-xl text-3xl font-semibold tracking-tight font-heading">Designed for fast scanning and daily work.</h2>
-              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">
-                MMS keeps each workflow focused, readable, and role-aware so teams can move from signal to action without crowded screens.
+        {/* Features Section */}
+        <section id="features" className="border-t border-slate-100 bg-white px-6 py-20 scroll-mt-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
+                Everything you need to run your market
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-slate-600">
+                Built for vendors, managers, and officials — MMS brings transparency and efficiency to market operations.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {operationCards.map((item) => (
-                <article key={item.title} className="rounded-2xl border border-slate-200 bg-[#F7F8FA] p-5">
-                  <item.icon className="h-5 w-5 text-slate-700" />
-                  <h3 className="mt-4 text-sm font-semibold text-slate-950">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
-                </article>
+
+            <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+              {features.map((feature) => (
+                <div key={feature.title} className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-lg">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                    <feature.icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">{feature.title}</h3>
+                  <p className="text-sm text-slate-600">{feature.detail}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="governance" className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-3 lg:px-8">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-                <ClipboardCheck className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 className="text-lg font-semibold font-heading">Accountable by default</h2>
-                <p className="mt-1 text-sm text-slate-600">Receipts, approvals, notices, and audit trails stay visible from review to closure.</p>
-              </div>
+        {/* Process Section */}
+        <section id="process" className="bg-slate-50 px-6 py-20 scroll-mt-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
+                Simple 4-step process
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-slate-600">
+                Get your market digitized in minutes, not months
+              </p>
             </div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-3xl font-bold font-heading">99.9%</p>
-            <p className="mt-2 text-sm text-slate-600">Target service availability for critical market workflows.</p>
+
+            <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+              {processSteps.map((step) => (
+                <div key={step.step} className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-700">
+                    {step.step}
+                  </div>
+                  <h3 className="mb-2 font-semibold text-slate-900">{step.title}</h3>
+                  <p className="text-sm text-slate-600">{step.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        <footer id="contact" className="border-t border-slate-200 bg-white px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-semibold text-slate-950">MMS</p>
-              <p className="mt-1">Web-based Market Management System for Wandegeya Market and public market operations.</p>
+        {/* Reviews Section */}
+        <section id="reviews" className="bg-white px-6 py-20 scroll-mt-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
+                Loved by market communities
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-slate-600">
+                Join thousands of satisfied users across Uganda
+              </p>
             </div>
-            <div className="md:text-right">
-              <p>support@mms.ug</p>
-              <p>Kampala, Uganda</p>
+
+            <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {testimonials.map((testimonial) => (
+                <div key={testimonial.name} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-3 flex text-emerald-500">
+                    {"★".repeat(Math.floor(testimonial.rating))}
+                    {testimonial.rating % 1 !== 0 && "½"}
+                  </div>
+                  <p className="mb-4 text-slate-700">"{testimonial.content}"</p>
+                  <div>
+                    <p className="font-semibold text-slate-900">{testimonial.name}</p>
+                    <p className="text-sm text-slate-500">{testimonial.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center text-sm text-slate-500">
+              ⭐ 4.9 average from 2,500+ reviews
             </div>
           </div>
-        </footer>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="bg-slate-50 px-6 py-20 scroll-mt-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
+                Simple, transparent pricing
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-slate-600">
+                Start free, scale as you grow
+              </p>
+            </div>
+
+            <div className="mt-16 grid gap-8 md:grid-cols-2 lg:mx-auto lg:max-w-3xl lg:grid-cols-2">
+              {/* Free Plan */}
+              <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+                <h3 className="text-xl font-semibold text-slate-900">Free</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-slate-900">$0</span>
+                  <span className="text-slate-600">/month</span>
+                </div>
+                <p className="mt-4 text-sm text-slate-600">Perfect for small markets getting started</p>
+                <ul className="mt-6 space-y-3 text-sm">
+                  {["Up to 50 vendors", "Basic stall management", "Email support", "Mobile app access"].map((item) => (
+                    <li key={item} className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Button className="mt-8 w-full border-slate-300" variant="outline">
+                  Get started
+                </Button>
+              </div>
+
+              {/* Pro Plan */}
+              <div className="rounded-xl border-2 border-emerald-500 bg-white p-8 shadow-lg">
+                <div className="mb-2 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                  POPULAR
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900">Pro</h3>
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-slate-900">$49</span>
+                  <span className="text-slate-600">/month</span>
+                </div>
+                <p className="mt-4 text-sm text-slate-600">For growing markets with advanced needs</p>
+                <ul className="mt-6 space-y-3 text-sm">
+                  {["Unlimited vendors", "AI stall allocation", "Priority support 24/7", "Advanced analytics", "API access", "Custom reports"].map((item) => (
+                    <li key={item} className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Button className="mt-8 w-full bg-slate-900 text-white hover:bg-slate-800">
+                  Start free trial
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQs Section */}
+        <section id="faqs" className="bg-white px-6 py-20 scroll-mt-16">
+          <div className="mx-auto max-w-4xl">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
+                Frequently asked questions
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-slate-600">
+                Everything you need to know about MMS
+              </p>
+            </div>
+
+            <div className="mt-16 space-y-4">
+              {faqs.map((faq) => (
+                <details key={faq.q} className="group rounded-lg border border-slate-200 bg-white p-6">
+                  <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-slate-900">
+                    {faq.q}
+                    <span className="ml-4 text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <p className="mt-4 text-slate-600">{faq.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-20">
+          <div className="mx-auto max-w-4xl text-center text-white">
+            <h2 className="text-3xl font-bold lg:text-4xl">
+              Ready to transform your market operations?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-emerald-100">
+              Join 10,000+ users already managing their markets with MMS
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Button
+                size="lg"
+                className="bg-white text-emerald-700 hover:bg-slate-100"
+                onClick={() => navigate("/register")}
+              >
+                Get started for free
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-emerald-500"
+              >
+                Contact sales
+              </Button>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
+            <div className="flex items-center gap-2">
+              <img src="/images/mms-logo.svg" alt="MMS" className="h-8 w-8" />
+              <span className="font-semibold text-slate-900">MMS</span>
+            </div>
+            <div className="flex gap-6 text-sm text-slate-600">
+              <a href="#features" className="hover:text-slate-900">Features</a>
+              <a href="#process" className="hover:text-slate-900">Process</a>
+              <a href="#reviews" className="hover:text-slate-900">Reviews</a>
+              <a href="#pricing" className="hover:text-slate-900">Pricing</a>
+              <a href="#faqs" className="hover:text-slate-900">FAQs</a>
+            </div>
+            <div className="text-sm text-slate-500">
+              © 2024 MMS. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

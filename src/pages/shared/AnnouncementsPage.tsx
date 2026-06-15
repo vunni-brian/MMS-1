@@ -11,7 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import { MockupCard, MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
 import type { Announcement, AnnouncementAudience, AnnouncementPriority } from "@/types";
 
 // ─── Constants ───────────────────────────────────────────
@@ -42,7 +45,7 @@ const AnnouncementCard = ({
   onArchive: (id: string) => void;
   archiving: boolean;
 }) => (
-  <MockupCard className={cn("p-4", announcement.priority === "high" && announcement.active && "border-red-200 bg-red-50/30")}>
+  <Card className={cn("enterprise-card p-4", announcement.priority === "high" && announcement.active && "border-red-200 bg-red-50/30")}>
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         {announcement.priority === "high" && announcement.active && (
@@ -52,10 +55,10 @@ const AnnouncementCard = ({
         )}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className={`rounded-sm border px-2 py-0.5 text-[11px] font-bold ${priorityClasses[announcement.priority]}`}>
+            <span className={`rounded-lg border px-2 py-0.5 text-[11px] font-bold ${priorityClasses[announcement.priority]}`}>
               {priorityLabels[announcement.priority]}
             </span>
-            <span className="rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+            <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
               {audienceLabels[announcement.audience]}
             </span>
             <span className="text-xs text-slate-400">{announcement.marketName || "All markets"}</span>
@@ -65,7 +68,7 @@ const AnnouncementCard = ({
         </div>
       </div>
       {canManage && announcement.active && (
-        <Button variant="outline" size="sm" className="shrink-0 gap-2 rounded-sm border-slate-300 font-bold" disabled={archiving} onClick={() => onArchive(announcement.id)}>
+        <Button variant="outline" size="sm" className="shrink-0 gap-2 rounded-lg border-slate-300 font-bold" disabled={archiving} onClick={() => onArchive(announcement.id)}>
           <Archive className="h-4 w-4" />
           Archive
         </Button>
@@ -78,13 +81,13 @@ const AnnouncementCard = ({
         { label: "Published", value: formatHumanDateTime(announcement.createdAt) },
         { label: "Lifecycle", value: formatExpiry(announcement) },
       ].map((field) => (
-        <div key={field.label} className="rounded-sm border border-slate-100 bg-slate-50 p-2">
+        <div key={field.label} className="rounded-lg border border-slate-100 bg-slate-50 p-2">
           <p className="text-slate-400">{field.label}</p>
           <p className="mt-1 font-semibold text-slate-700">{field.value}</p>
         </div>
       ))}
     </div>
-  </MockupCard>
+  </Card>
 );
 
 // ─── Page ─────────────────────────────────────────────────
@@ -162,19 +165,19 @@ const AnnouncementsPage = () => {
   const canSubmit = canManage && form.title.trim().length > 0 && form.body.trim().length > 0 && (!isManager || Boolean(user?.marketId));
 
   return (
-    <MockupPage>
-      <MockupHeader
+    <PageLayout>
+      <PageHeader
         eyebrow={isVendor ? "Vendor notices" : "News and alerts"}
         title="Notices"
         subtitle={isVendor ? "Active market notices, deadlines, inspections, and changes." : "Publish and monitor market-wide news and alerts for vendors and staff."}
         actions={
           !isVendor && !isManager ? (
-            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-sm border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
+            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
               <option value="all">All markets</option>
               {markets.map((market) => <option key={market.id} value={market.id}>{market.name}</option>)}
             </select>
           ) : !isVendor && isManager ? (
-            <div className="flex h-9 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
               {user?.marketName || "Assigned market"}
             </div>
           ) : undefined
@@ -183,21 +186,25 @@ const AnnouncementsPage = () => {
 
       {/* Summary */}
       <div className="flex flex-wrap items-center gap-3">
-        <StatusPill tone={activeAnnouncements.length > 0 ? "amber" : "green"}>{activeAnnouncements.length} active</StatusPill>
-        {!isVendor && <StatusPill tone="slate">{historicalAnnouncements.length} archived</StatusPill>}
+        <Badge variant={activeAnnouncements.length > 0 ? "warning" : "success"}>{activeAnnouncements.length} active</Badge>
+        {!isVendor && <Badge variant="secondary">{historicalAnnouncements.length} archived</Badge>}
         <span className="text-xs text-slate-500">{user?.marketName || (isVendor ? "Assigned market" : "All markets")}</span>
       </div>
 
       <div className={cn("grid gap-6", canManage && "xl:grid-cols-[minmax(0,1fr)_380px]")}>
         {/* Active notices */}
         <div className="space-y-4">
-          <MockupPanel title="Active Notices">
+          <Card>
+            <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+              <CardTitle className="text-base font-medium">Active Notices</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
             {announcementsQuery.isPending ? (
               <div className="space-y-3">
-                {[1, 2].map((i) => <div key={i} className="h-24 rounded-sm bg-slate-100 animate-pulse" />)}
+                {[1, 2].map((i) => <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />)}
               </div>
             ) : activeAnnouncements.length === 0 ? (
-              <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
                 No active notices. Important announcements will appear here when published.
               </div>
             ) : (() => {
@@ -226,12 +233,17 @@ const AnnouncementsPage = () => {
                 </div>
               );
             })()}
-          </MockupPanel>
+            </CardContent>
+          </Card>
 
           {!isVendor && (
-            <MockupPanel title="Archived Notices">
+            <Card>
+              <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+                <CardTitle className="text-base font-medium">Archived Notices</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
               {historicalAnnouncements.length === 0 ? (
-                <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">No archived notices.</div>
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">No archived notices.</div>
               ) : (
                 <div className="space-y-3">
                   {historicalAnnouncements.map((announcement) => (
@@ -239,25 +251,30 @@ const AnnouncementsPage = () => {
                   ))}
                 </div>
               )}
-            </MockupPanel>
+              </CardContent>
+            </Card>
           )}
         </div>
 
         {/* Compose panel */}
         {canManage && (
           <div className="space-y-4">
-            <MockupPanel title="Publish Notice">
+            <Card>
+              <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+                <CardTitle className="text-base font-medium">Publish Notice</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label className="font-bold text-slate-700">Title</Label>
-                  <Input className="border-2 border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" maxLength={140} value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="e.g. Sanitation inspection this Friday" />
+                  <Input className="border-2 border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" maxLength={140} value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="e.g. Sanitation inspection this Friday" />
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Priority</Label>
                     <Select value={form.priority} onValueChange={(v: AnnouncementPriority) => setForm((c) => ({ ...c, priority: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
                         <SelectItem value="normal">Normal</SelectItem>
@@ -268,7 +285,7 @@ const AnnouncementsPage = () => {
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Audience</Label>
                     <Select value={form.audience} onValueChange={(v: AnnouncementAudience) => setForm((c) => ({ ...c, audience: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="vendors">Vendors</SelectItem>
                         <SelectItem value="staff">Staff</SelectItem>
@@ -278,7 +295,7 @@ const AnnouncementsPage = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Expiry</Label>
-                    <Input type="datetime-local" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.expiresAt} onChange={(e) => setForm((c) => ({ ...c, expiresAt: e.target.value }))} />
+                    <Input type="datetime-local" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.expiresAt} onChange={(e) => setForm((c) => ({ ...c, expiresAt: e.target.value }))} />
                   </div>
                 </div>
 
@@ -286,7 +303,7 @@ const AnnouncementsPage = () => {
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700">Target market</Label>
                     <Select value={form.marketId} onValueChange={(v) => setForm((c) => ({ ...c, marketId: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue placeholder="All markets" /></SelectTrigger>
+                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue placeholder="All markets" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All markets</SelectItem>
                         {markets.map((market) => <SelectItem key={market.id} value={market.id}>{market.name}</SelectItem>)}
@@ -300,19 +317,20 @@ const AnnouncementsPage = () => {
                     <Label className="font-bold text-slate-700">Message</Label>
                     <span className={`text-xs ${form.body.length > 1800 ? "text-amber-600" : "text-slate-400"}`}>{form.body.length} / 2000</span>
                   </div>
-                  <Textarea className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(e) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder="Write the notice vendors or staff need to act on." />
+                  <Textarea className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(e) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder="Write the notice vendors or staff need to act on." />
                 </div>
 
-                <Button className="w-full gap-2 rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={!canSubmit || createAnnouncement.isPending} onClick={() => createAnnouncement.mutate()}>
+                <Button className="w-full gap-2 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={!canSubmit || createAnnouncement.isPending} onClick={() => createAnnouncement.mutate()}>
                   <Send className="h-4 w-4" />
                   {createAnnouncement.isPending ? "Publishing..." : "Publish Notice"}
                 </Button>
               </div>
-            </MockupPanel>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
-    </MockupPage>
+    </PageLayout>
   );
 };
 

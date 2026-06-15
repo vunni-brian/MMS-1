@@ -12,7 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingState } from "@/components/console/ConsolePage";
-import { MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentStatus } from "@/types";
 
@@ -40,14 +44,6 @@ const currentPeriod = () => {
  const now = new Date();
  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(now);
 };
-
-const statusTone: Record<PaymentStatus, "green" | "amber" | "red" | "slate"> = {
- completed: "green",
- pending: "amber",
- failed: "red",
- cancelled: "slate",
-};
-
 const formatDate = (value: string | null) =>
  value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : "Not recorded";
 
@@ -62,13 +58,13 @@ const ReceiptReviewRow = ({
  onVerify: (payment: Payment, status: "verified" | "rejected") => void;
  isBusy: boolean;
 }) => (
- <div className="rounded-sm border border-slate-200 bg-white p-4">
+ <div className="rounded-lg border border-slate-200 bg-white p-4">
  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
  <div className="min-w-0 space-y-2">
  <div className="flex flex-wrap items-center gap-2">
  <p className="font-semibold text-slate-950">{payment.vendorName}</p>
- <StatusPill tone={statusTone[payment.status]}>{payment.status}</StatusPill>
- <StatusPill tone="slate">{payment.method === "receipt" ? "Bank receipt" : payment.method}</StatusPill>
+ <StatusBadge status={payment.status} context="payment" />
+ <Badge variant="secondary">{payment.method === "receipt" ? "Bank receipt" : payment.method}</Badge>
  </div>
  <p className="text-sm text-slate-600">{getPaymentPurpose(payment)}</p>
  <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-2 xl:grid-cols-4">
@@ -272,31 +268,31 @@ const PaymentsPage = () => {
 
  if (isError) {
  return (
- <MockupPage>
+ <PageLayout>
  <Alert variant="destructive" className="max-w-xl">
  <AlertTitle>Error loading payments</AlertTitle>
  <AlertDescription>We could not reach the server to load payment details.</AlertDescription>
  </Alert>
- </MockupPage>
+ </PageLayout>
  );
  }
 
  if (isLoading) {
  return (
- <MockupPage>
- <LoadingState rows={4} itemClassName="h-28 rounded-sm" />
- </MockupPage>
+ <PageLayout>
+ <LoadingState rows={4} itemClassName="h-28 rounded-lg" />
+ </PageLayout>
  );
  }
 
  if (role !== "vendor") {
  return (
- <MockupPage>
- <MockupHeader
+ <PageLayout>
+ <PageHeader
  eyebrow="Payments > Receipt Review"
  title="Payment Review"
  subtitle="Review uploaded bank receipts, open the submitted proof, and approve payments after reconciliation."
- actions={<StatusPill tone={pendingReceiptPayments.length ? "amber" : "green"}>{pendingReceiptPayments.length} pending</StatusPill>}
+ actions={<Badge variant={pendingReceiptPayments.length ? "warning" : "success"}>{pendingReceiptPayments.length} pending</Badge>}
  />
 
  {onlinePaymentsPaused ? (
@@ -308,50 +304,60 @@ const PaymentsPage = () => {
  ) : null}
 
  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
- <MockupPanel title="Bank Receipt Queue">
- {pendingReceiptPayments.length === 0 ? (
- <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
- <FileText className="mx-auto h-8 w-8 text-slate-400" />
- <p className="mt-3 font-semibold text-slate-900">No receipts awaiting approval</p>
- <p className="mt-1 text-sm text-slate-500">Uploaded bank receipts will appear here for manager review.</p>
- </div>
- ) : (
- <div className="space-y-3">
- {pendingReceiptPayments.map((payment) => (
- <ReceiptReviewRow
- key={payment.id}
- payment={payment}
- onViewReceipt={viewReceipt}
- onVerify={(item, status) => verifyReceipt.mutate({ payment: item, status })}
- isBusy={verifyReceipt.isPending}
- />
- ))}
- </div>
- )}
- </MockupPanel>
+ <Card>
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Bank Receipt Queue</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
+  {pendingReceiptPayments.length === 0 ? (
+  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+  <FileText className="mx-auto h-8 w-8 text-slate-400" />
+  <p className="mt-3 font-semibold text-slate-900">No receipts awaiting approval</p>
+  <p className="mt-1 text-sm text-slate-500">Uploaded bank receipts will appear here for manager review.</p>
+  </div>
+  ) : (
+  <div className="space-y-3">
+  {pendingReceiptPayments.map((payment) => (
+  <ReceiptReviewRow
+  key={payment.id}
+  payment={payment}
+  onViewReceipt={viewReceipt}
+  onVerify={(item, status) => verifyReceipt.mutate({ payment: item, status })}
+  isBusy={verifyReceipt.isPending}
+  />
+  ))}
+  </div>
+  )}
+    </CardContent>
+  </Card>
 
- <MockupPanel title="Recent Payments">
- <div className="space-y-3">
- {recentPayments.map((payment) => (
- <div key={payment.id} className="rounded-sm border border-slate-100 bg-slate-50/80 p-3">
- <div className="flex items-center justify-between gap-3">
- <p className="text-sm font-semibold text-slate-900">{payment.vendorName}</p>
- <StatusPill tone={statusTone[payment.status]}>{payment.status}</StatusPill>
+ <Card>
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Recent Payments</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
+  <div className="space-y-3">
+  {recentPayments.map((payment) => (
+  <div key={payment.id} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+  <div className="flex items-center justify-between gap-3">
+  <p className="text-sm font-semibold text-slate-900">{payment.vendorName}</p>
+  <StatusBadge status={payment.status} context="payment" />
+  </div>
+  <p className="mt-1 text-xs text-slate-500">{getPaymentPurpose(payment)}</p>
+  <p className="mt-2 text-sm font-bold text-slate-950">{formatCurrency(payment.amount)}</p>
+  </div>
+  ))}
+  </div>
+    </CardContent>
+  </Card>
  </div>
- <p className="mt-1 text-xs text-slate-500">{getPaymentPurpose(payment)}</p>
- <p className="mt-2 text-sm font-bold text-slate-950">{formatCurrency(payment.amount)}</p>
- </div>
- ))}
- </div>
- </MockupPanel>
- </div>
- </MockupPage>
+ </PageLayout>
  );
  }
 
  return (
- <MockupPage>
- <MockupHeader
+ <PageLayout>
+ <PageHeader
  eyebrow="Payments > Make Payment"
  title="Make Payment"
  subtitle="Pay online or upload a bank receipt for manager approval."
@@ -365,40 +371,54 @@ const PaymentsPage = () => {
  </Alert>
  ) : null}
 
- {!payable ? (
- <MockupPanel title="Payment Details">
- <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
- <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
- <p className="mt-3 font-semibold text-slate-900">No payments due</p>
- <p className="mt-1 text-sm text-slate-500">
- You have no outstanding stall fees, utility charges, or penalties at this time.
- </p>
- </div>
- </MockupPanel>
- ) : (
+  {!payable ? (
+  <Card>
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Payment Details</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
+  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+  <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+  <p className="mt-3 font-semibold text-slate-900">No payments due</p>
+  <p className="mt-1 text-sm text-slate-500">
+  You have no outstanding stall fees, utility charges, or penalties at this time.
+  </p>
+  </div>
+    </CardContent>
+  </Card>
+  ) : (
  <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_260px]">
- <MockupPanel title="Payment Details">
- <div className="space-y-5 text-sm">
- <div>
- <p className="text-xs font-semibold text-slate-500">Stall</p>
- <p className="mt-1 font-bold text-slate-900">{payable.stall}</p>
- </div>
- <div>
- <p className="text-xs font-semibold text-slate-500">Payment Type</p>
- <p className="mt-1 font-bold text-slate-900">{payable.paymentType}</p>
- </div>
- <div>
- <p className="text-xs font-semibold text-slate-500">Period</p>
- <p className="mt-1 font-bold text-slate-900">{payable.period}</p>
- </div>
- <div>
- <p className="text-xs font-semibold text-slate-500">Amount</p>
- <p className="mt-1 text-lg font-bold text-slate-900">{formatCurrency(payable.amount)}</p>
- </div>
- </div>
- </MockupPanel>
+  <Card>
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Payment Details</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
+  <div className="space-y-5 text-sm">
+  <div>
+  <p className="text-xs font-semibold text-slate-500">Stall</p>
+  <p className="mt-1 font-bold text-slate-900">{payable.stall}</p>
+  </div>
+  <div>
+  <p className="text-xs font-semibold text-slate-500">Payment Type</p>
+  <p className="mt-1 font-bold text-slate-900">{payable.paymentType}</p>
+  </div>
+  <div>
+  <p className="text-xs font-semibold text-slate-500">Period</p>
+  <p className="mt-1 font-bold text-slate-900">{payable.period}</p>
+  </div>
+  <div>
+  <p className="text-xs font-semibold text-slate-500">Amount</p>
+  <p className="mt-1 text-lg font-bold text-slate-900">{formatCurrency(payable.amount)}</p>
+  </div>
+  </div>
+    </CardContent>
+  </Card>
 
- <MockupPanel title="Select Payment Method">
+  <Card>
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Select Payment Method</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
  <div className="space-y-3">
  {methodOptions.map((method) => {
  const Icon = method.icon;
@@ -414,7 +434,7 @@ const PaymentsPage = () => {
  onClick={() => {
  if (!disabled) setSelectedMethod(method.id);
  }}
- className={`flex w-full items-center justify-between rounded-sm border p-4 text-left transition-colors ${
+ className={`flex w-full items-center justify-between rounded-lg border p-4 text-left transition-colors ${
  disabled
  ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
  : selected
@@ -433,11 +453,11 @@ const PaymentsPage = () => {
  </span>
  </span>
  {disabled ? (
- <StatusPill tone="amber">Unavailable</StatusPill>
+ <Badge variant="warning">Unavailable</Badge>
  ) : method.id === "mobile" ? (
  <span className="flex shrink-0 gap-1">
- <StatusPill tone="slate">MTN</StatusPill>
- <StatusPill tone="red">airtel</StatusPill>
+ <Badge variant="secondary">MTN</Badge>
+ <Badge variant="error">airtel</Badge>
  </span>
  ) : null}
  </button>
@@ -446,9 +466,9 @@ const PaymentsPage = () => {
  </div>
 
  {selectedMethod === "bank" ? (
- <div className="mt-5 rounded-sm border border-slate-200 bg-slate-50 p-4">
+ <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
  <div className="mb-4 flex items-start gap-3">
- <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-emerald-200 bg-emerald-50 text-emerald-700">
+ <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700">
  <Upload className="h-4 w-4" />
  </span>
  <div>
@@ -518,9 +538,14 @@ const PaymentsPage = () => {
  {initiatePayment.isPending ? "Starting Payment..." : "Proceed to Pay"}
  </Button>
  )}
- </MockupPanel>
+    </CardContent>
+  </Card>
 
- <MockupPanel title="Payment Summary">
+  <Card>
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Payment Summary</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
  <div className="space-y-4 text-sm">
  <div className="flex items-center justify-between gap-3">
  <span className="text-slate-500">Amount</span>
@@ -547,19 +572,24 @@ const PaymentsPage = () => {
  ) : null}
  </div>
  </div>
- </MockupPanel>
- </div>
- )} {/* end payable conditional */}
+    </CardContent>
+  </Card>
+  </div>
+  )} {/* end payable conditional */}
 
- <MockupPanel title="Recent Payment Activity" className="mt-4">
+  <Card className="mt-4">
+    <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <CardTitle className="text-base font-medium">Recent Payment Activity</CardTitle>
+    </CardHeader>
+    <CardContent className="p-4">
  <div className="grid gap-3 lg:grid-cols-2">
  {recentPayments.length === 0 ? (
- <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+ <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
  Payment history will appear after you start a payment or upload a receipt.
  </div>
  ) : (
  recentPayments.map((payment) => (
- <div key={payment.id} className="flex items-start justify-between gap-4 rounded-sm border border-slate-200 bg-white p-4">
+ <div key={payment.id} className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4">
  <div className="min-w-0">
  <p className="font-semibold text-slate-950">{getPaymentPurpose(payment)}</p>
  <p className="mt-1 text-xs text-slate-500">{getPaymentReference(payment)}</p>
@@ -567,15 +597,16 @@ const PaymentsPage = () => {
  </div>
  <div className="shrink-0 text-right">
  <p className="text-sm font-bold text-slate-950">{formatCurrency(payment.amount)}</p>
- <StatusPill tone={statusTone[payment.status]} className="mt-2">{payment.status}</StatusPill>
+ <StatusBadge status={payment.status} context="payment" className="mt-2" />
  </div>
  </div>
  ))
  )}
- </div>
- </MockupPanel>
- </MockupPage>
- );
+  </div>
+    </CardContent>
+  </Card>
+  </PageLayout>
+  );
 };
 
 export default PaymentsPage;

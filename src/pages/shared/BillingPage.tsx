@@ -13,7 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { LoadingState } from "@/components/console/ConsolePage";
-import { MockupHeader, MockupPage, MockupPanel, StatusPill } from "@/components/mockup/MockupUI";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { PageHeader } from "@/components/PageHeader";
+import { PageLayout } from "@/components/PageLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { UtilityCalculationMethod, UtilityType } from "@/types";
 
 // ─── Constants ───────────────────────────────────────────
@@ -27,19 +31,6 @@ const calculationOptions: { value: UtilityCalculationMethod; label: string }[] =
   { value: "metered", label: "Metered" }, { value: "estimated", label: "Estimated" }, { value: "fixed", label: "Fixed" },
 ];
 
-const chargeStatusClasses: Record<string, string> = {
-  unpaid: "border-amber-200 bg-amber-50 text-amber-700",
-  overdue: "border-red-200 bg-red-50 text-red-700",
-  pending: "border-amber-200 bg-amber-50 text-amber-700",
-  pending_payment: "border-amber-200 bg-amber-50 text-amber-700",
-  paid: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  cancelled: "border-slate-200 bg-slate-50 text-slate-500",
-};
-
-const getObligationStatusLabel = (status: string) =>
-  status === "pending" || status === "pending_payment" ? "Pending Payment"
-  : status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
-
 const formatDate = (value: string | null, fallback = "Not available") =>
   formatHumanDate(value ? `${value}T00:00:00` : null, fallback);
 
@@ -48,7 +39,7 @@ const formatDateTime = (value: string | null, fallback = "Not available") =>
 
 // ─── Field row helper ─────────────────────────────────────
 const FieldRow = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
-  <div className="rounded-sm border border-slate-100 bg-slate-50 p-2.5">
+  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
     <p className="text-xs text-slate-400">{label}</p>
     <div className={`mt-1 break-words text-sm font-semibold text-slate-900 ${mono ? "font-mono text-xs" : ""}`}>{value}</div>
   </div>
@@ -157,19 +148,19 @@ const BillingPage = () => {
   const latestCharge = [...utilityCharges].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   return (
-    <MockupPage>
-      <MockupHeader
+    <PageLayout>
+      <PageHeader
         eyebrow="Revenue collection"
         title="Revenue & Dues"
         subtitle="Market fees, payments due, and payment records."
         actions={
           !isManager ? (
-            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-sm border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
+            <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
               <option value="all">All markets</option>
               {markets.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           ) : (
-            <div className="flex h-9 items-center rounded-sm border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
               {user?.marketName || "Assigned market"}
             </div>
           )
@@ -177,16 +168,16 @@ const BillingPage = () => {
       />
 
       {!canManageUtilities && (
-        <div className="flex items-start gap-3 rounded-sm border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 shadow-sm">
+        <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 shadow-sm">
           <ShieldCheck className="mt-0.5 h-5 w-5 text-slate-400 shrink-0" />
           <span>This view is read-only for your role. Utility charges and switches are shown for monitoring only.</span>
         </div>
       )}
 
-      {(error || loadError) && <div className="rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error || loadError}</div>}
+      {(error || loadError) && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error || loadError}</div>}
 
       {isPageLoading ? (
-        <LoadingState rows={5} itemClassName="h-32 rounded-sm" />
+        <LoadingState rows={5} itemClassName="h-32 rounded-lg" />
       ) : (
         <>
           {/* Summary strip */}
@@ -197,7 +188,7 @@ const BillingPage = () => {
               { label: "Paid charges", value: formatCurrency(paidTotal), sub: `${paidCharges.length} paid in register`, tone: "green" as const },
               { label: "Latest activity", value: latestCharge ? formatHumanDate(latestCharge.createdAt) : "None", sub: latestCharge?.description || "No activity", tone: "slate" as const },
             ].map((item) => (
-              <div key={item.label} className="rounded-sm border border-slate-200 bg-white p-4 shadow-sm">
+              <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="text-sm font-medium text-slate-600">{item.label}</p>
                 <p className="mt-2 text-xl font-bold text-slate-950 font-heading">{item.value}</p>
                 <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
@@ -209,24 +200,27 @@ const BillingPage = () => {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
 
             {/* Dues register */}
-            <MockupPanel title="Official Dues Register" actions={<span className="text-xs text-slate-400">{utilityCharges.length} charges</span>}>
+            <Card>
+              <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+                <CardTitle className="text-base font-medium">Official Dues Register</CardTitle>
+                <span className="text-xs text-slate-400">{utilityCharges.length} charges</span>
+              </CardHeader>
+              <CardContent className="p-4">
               {utilityCharges.length === 0 ? (
-                <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
                   No utility charges recorded. Create metered, estimated, or fixed charges for vendors in the selected market.
                 </div>
               ) : (
                 <div className="space-y-3">
                   {utilityCharges.map((charge) => (
-                    <div key={charge.id} className="rounded-sm border border-slate-200 bg-white p-4">
+                    <div key={charge.id} className="rounded-lg border border-slate-200 bg-white p-4">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900">{charge.description}</p>
                           <p className="mt-1 text-xs text-slate-500">{charge.vendorName} · {charge.marketName || charge.marketId} · {charge.billingPeriod}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`rounded-sm border px-2 py-0.5 text-[11px] font-bold ${chargeStatusClasses[charge.status] || "border-slate-200 bg-slate-50 text-slate-600"}`}>
-                            {getObligationStatusLabel(charge.status)}
-                          </span>
+                          <StatusBadge status={charge.status} context="obligation" />
                           <span className="font-bold text-slate-900">{formatCurrency(charge.amount)}</span>
                         </div>
                       </div>
@@ -244,7 +238,7 @@ const BillingPage = () => {
                           {charge.paidAt ? ` Paid on ${formatDateTime(charge.paidAt)}.` : ""}
                         </p>
                         {canManageUtilities && (charge.status === "unpaid" || charge.status === "overdue") && (
-                          <Button variant="outline" size="sm" className="rounded-sm border-slate-300 font-bold" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>
+                          <Button variant="outline" size="sm" className="rounded-lg border-slate-300 font-bold" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>
                             Cancel Charge
                           </Button>
                         )}
@@ -253,14 +247,20 @@ const BillingPage = () => {
                   ))}
                 </div>
               )}
-            </MockupPanel>
+              </CardContent>
+            </Card>
 
             {/* Right column */}
             <div className="space-y-4">
               {/* Billing switches */}
-              <MockupPanel title="Revenue Collection Policies" actions={<span className="text-xs text-slate-400">{chargeTypes.length} switches</span>}>
+              <Card>
+                <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+                  <CardTitle className="text-base font-medium">Revenue Collection Policies</CardTitle>
+                  <span className="text-xs text-slate-400">{chargeTypes.length} switches</span>
+                </CardHeader>
+                <CardContent className="p-4">
                 {chargeTypes.length === 0 ? (
-                  <div className="rounded-sm border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
                     No billing switches configured.
                   </div>
                 ) : (
@@ -270,11 +270,11 @@ const BillingPage = () => {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-bold text-slate-900">{chargeType.displayName}</p>
-                            <StatusPill tone={chargeType.isEnabled ? "green" : "red"}>
+                            <Badge variant={chargeType.isEnabled ? "success" : "error"}>
                               {chargeType.isEnabled ? "Enabled" : "Disabled"}
-                            </StatusPill>
+                            </Badge>
                             {!chargeType.isEnabled && (
-                              <span className="inline-flex items-center gap-1 rounded-sm border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                              <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
                                 <Lock className="h-3 w-3" />Admin locked
                               </span>
                             )}
@@ -285,7 +285,7 @@ const BillingPage = () => {
                         </div>
                         <Button
                           size="sm"
-                          className={`shrink-0 rounded-sm shadow-none font-bold ${chargeType.isEnabled ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+                          className={`shrink-0 rounded-lg shadow-none font-bold ${chargeType.isEnabled ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
                           variant={chargeType.isEnabled ? "default" : "outline"}
                           disabled={!canManageChargeTypes || updateChargeType.isPending}
                           onClick={() => updateChargeType.mutate({ chargeTypeId: chargeType.id, isEnabled: !chargeType.isEnabled })}
@@ -296,23 +296,29 @@ const BillingPage = () => {
                     ))}
                   </div>
                 )}
-              </MockupPanel>
+                </CardContent>
+              </Card>
 
               {/* Create utility charge */}
               {canManageUtilities && (
-                <MockupPanel title="Create Utility Charge" actions={<PlusCircle className="h-4 w-4 text-slate-400" />}>
+                <Card>
+                  <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+                    <CardTitle className="text-base font-medium">Create Utility Charge</CardTitle>
+                    <PlusCircle className="h-4 w-4 text-slate-400" />
+                  </CardHeader>
+                  <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <Label className="font-bold text-slate-700">Vendor</Label>
                       <Select value={form.vendorId} onValueChange={(v) => setForm((c) => ({ ...c, vendorId: v, bookingId: "none" }))} disabled={!utilityMarketId}>
-                        <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue placeholder={utilityMarketId ? "Select vendor" : "Select market first"} /></SelectTrigger>
+                        <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue placeholder={utilityMarketId ? "Select vendor" : "Select market first"} /></SelectTrigger>
                         <SelectContent>{vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="font-bold text-slate-700">Booking Reference</Label>
                       <Select value={form.bookingId} onValueChange={(v) => setForm((c) => ({ ...c, bookingId: v }))} disabled={!selectedVendor}>
-                        <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue placeholder="Optional" /></SelectTrigger>
+                        <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue placeholder="Optional" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">No booking link</SelectItem>
                           {bookings.map((b) => <SelectItem key={b.id} value={b.id}>{b.stallName} ({b.id})</SelectItem>)}
@@ -323,42 +329,42 @@ const BillingPage = () => {
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700">Utility Type</Label>
                         <Select value={form.utilityType} onValueChange={(v: UtilityType) => setForm((c) => ({ ...c, utilityType: v }))}>
-                          <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>{utilityTypeOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700">Method</Label>
                         <Select value={form.calculationMethod} onValueChange={(v: UtilityCalculationMethod) => setForm((c) => ({ ...c, calculationMethod: v }))}>
-                          <SelectTrigger className="border-slate-300 rounded-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>{calculationOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="font-bold text-slate-700">Billing Period</Label>
-                      <Input className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder="e.g. April 2026" />
+                      <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder="e.g. April 2026" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="font-bold text-slate-700">Description</Label>
-                      <Textarea className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Explain what the vendor is being billed for." />
+                      <Textarea className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Explain what the vendor is being billed for." />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700">Due Date</Label>
-                        <Input type="date" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.dueDate} onChange={(e) => setForm((c) => ({ ...c, dueDate: e.target.value }))} />
+                        <Input type="date" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.dueDate} onChange={(e) => setForm((c) => ({ ...c, dueDate: e.target.value }))} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700">Amount</Label>
-                        <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Leave blank to auto-calc" />
+                        <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Leave blank to auto-calc" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700">Usage Qty</Label>
-                        <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder="Optional for fixed" />
+                        <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder="Optional for fixed" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700">Rate Per Unit</Label>
-                        <Input type="number" className="border-slate-300 rounded-sm focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder="Optional" />
+                        <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder="Optional" />
                       </div>
                     </div>
 
@@ -371,7 +377,7 @@ const BillingPage = () => {
                       const preview = !isNaN(manual) && manual > 0 ? manual : calculated;
                       if (!preview) return null;
                       return (
-                        <div className="flex items-center gap-2 rounded-sm border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
                           <span className="text-slate-500">{!isNaN(manual) && manual > 0 ? "Manual amount:" : "Calculated:"}</span>
                           <span className="font-bold text-emerald-800">{formatCurrency(preview)}</span>
                           {calculated && !isNaN(manual) && manual > 0 && Math.abs(manual - calculated) > 0.01 && (
@@ -382,20 +388,21 @@ const BillingPage = () => {
                     })()}
 
                     <Button
-                      className="w-full rounded-sm shadow-none bg-primary hover:bg-primary/90 font-bold"
+                      className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold"
                       onClick={() => createUtilityCharge.mutate()}
                       disabled={createUtilityCharge.isPending || !form.vendorId || !form.description.trim() || !form.billingPeriod.trim() || !form.dueDate || !form.marketId}
                     >
                       {createUtilityCharge.isPending ? "Creating..." : "Create Utility Charge"}
                     </Button>
                   </div>
-                </MockupPanel>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>
         </>
       )}
-    </MockupPage>
+    </PageLayout>
   );
 };
 

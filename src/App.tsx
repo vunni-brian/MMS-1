@@ -2,10 +2,10 @@ import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, VendorApprovalGuard } from "@/components/ProtectedRoute";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -59,15 +59,15 @@ const queryClient = new QueryClient({
 const RouteFallback = () => (
  <div className="min-h-screen bg-[#F8FAFC] p-6 text-sm text-muted-foreground">
  <div className="mx-auto flex w-full max-w-[1360px] gap-6">
- <div className="hidden h-[calc(100vh-48px)] w-[248px] rounded-sm border border-slate-200 bg-white md:block" />
+ <div className="hidden h-[calc(100vh-48px)] w-[248px] rounded-lg border border-slate-200 bg-white md:block" />
  <div className="min-w-0 flex-1 space-y-6">
- <div className="h-16 rounded-sm border border-slate-200 bg-white" />
+ <div className="h-16 rounded-lg border border-slate-200 bg-white" />
  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
  {Array.from({ length: 4 }).map((_, index) => (
- <div key={index} className="h-24 rounded-sm border border-slate-200 bg-white" />
+ <div key={index} className="h-24 rounded-lg border border-slate-200 bg-white" />
  ))}
  </div>
- <div className="h-72 rounded-sm border border-slate-200 bg-white" />
+ <div className="h-72 rounded-lg border border-slate-200 bg-white" />
  </div>
  </div>
  </div>
@@ -78,16 +78,29 @@ const shouldRenderSpeedInsights = () => {
  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
 };
 
+const sharedChildRoutes = (basePath: string) => (
+  <>
+    <Route path="billing" element={<BillingPage />} />
+    <Route path="reports" element={<ReportsPage />} />
+    <Route path="audit" element={<AuditPage />} />
+    <Route path="coordination" element={<CoordinationPage />} />
+    <Route path="announcements" element={<AnnouncementsPage />} />
+    <Route path="notifications" element={<Navigate to={`${basePath}/settings?section=notifications`} replace />} />
+    <Route path="settings" element={<SettingsPage />} />
+    <Route path="profile" element={<ProfileSettingsPage />} />
+  </>
+);
+
 const App = () => (
  <QueryClientProvider client={queryClient}>
  <TooltipProvider>
- <Toaster />
- <Sonner />
+  <Sonner />
  {shouldRenderSpeedInsights() ? <SpeedInsights /> : null}
  <AuthProvider>
- <BrowserRouter>
- <Suspense fallback={<RouteFallback />}>
- <Routes>
+  <BrowserRouter>
+    <RouteErrorBoundary>
+  <Suspense fallback={<RouteFallback />}>
+   <Routes>
  <Route path="/" element={<Index />} />
  <Route path="/login" element={<LoginPage />} />
  <Route path="/register" element={<RegisterPage />} />
@@ -106,10 +119,7 @@ const App = () => (
  <Route path="stalls" element={<VendorApprovalGuard><StallsPage /></VendorApprovalGuard>} />
  <Route path="payments" element={<VendorApprovalGuard><PaymentsPage /></VendorApprovalGuard>} />
  <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
- <Route path="announcements" element={<AnnouncementsPage />} />
- <Route path="notifications" element={<Navigate to="/vendor/settings?section=notifications" replace />} />
- <Route path="settings" element={<SettingsPage />} />
- <Route path="profile" element={<ProfileSettingsPage />} />
+  {sharedChildRoutes("/vendor")}
  </Route>
 
  {/* Manager routes */}
@@ -126,14 +136,7 @@ const App = () => (
  <Route path="stalls" element={<StallsPage />} />
  <Route path="payments" element={<PaymentsPage />} />
  <Route path="complaints" element={<ComplaintsPage />} />
- <Route path="billing" element={<BillingPage />} />
- <Route path="reports" element={<ReportsPage />} />
- <Route path="audit" element={<AuditPage />} />
- <Route path="coordination" element={<CoordinationPage />} />
- <Route path="announcements" element={<AnnouncementsPage />} />
- <Route path="notifications" element={<Navigate to="/manager/settings?section=notifications" replace />} />
- <Route path="settings" element={<SettingsPage />} />
- <Route path="profile" element={<ProfileSettingsPage />} />
+  {sharedChildRoutes("/manager")}
  </Route>
 
  {/* Official routes */}
@@ -150,14 +153,7 @@ const App = () => (
  <Route path="vendors" element={<OfficialVendorDirectoryPage />} />
  <Route path="compliance" element={<OfficialCompliancePage />} />
  <Route path="analytics" element={<OfficialAnalyticsPage />} />
- <Route path="billing" element={<BillingPage />} />
- <Route path="reports" element={<ReportsPage />} />
- <Route path="audit" element={<AuditPage />} />
- <Route path="coordination" element={<CoordinationPage />} />
- <Route path="announcements" element={<AnnouncementsPage />} />
- <Route path="notifications" element={<Navigate to="/official/settings?section=notifications" replace />} />
- <Route path="settings" element={<SettingsPage />} />
- <Route path="profile" element={<ProfileSettingsPage />} />
+  {sharedChildRoutes("/official")}
  </Route>
 
  <Route
@@ -173,20 +169,14 @@ const App = () => (
  <Route path="markets" element={<AdminMarketsPage />} />
  <Route path="alerts" element={<AdminAlertsPage />} />
  <Route path="integrations" element={<AdminIntegrationsPage />} />
- <Route path="settings" element={<SettingsPage />} />
- <Route path="billing" element={<BillingPage />} />
- <Route path="reports" element={<ReportsPage />} />
- <Route path="audit" element={<AuditPage />} />
- <Route path="coordination" element={<CoordinationPage />} />
- <Route path="announcements" element={<AnnouncementsPage />} />
- <Route path="notifications" element={<Navigate to="/admin/settings?section=notifications" replace />} />
- <Route path="profile" element={<ProfileSettingsPage />} />
- </Route>
+  {sharedChildRoutes("/admin")}
+  </Route>
 
- <Route path="*" element={<NotFound />} />
- </Routes>
- </Suspense>
- </BrowserRouter>
+  <Route path="*" element={<NotFound />} />
+  </Routes>
+  </Suspense>
+    </RouteErrorBoundary>
+  </BrowserRouter>
  </AuthProvider>
  </TooltipProvider>
  </QueryClientProvider>

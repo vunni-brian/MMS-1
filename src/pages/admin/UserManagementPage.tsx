@@ -38,15 +38,15 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/EmptyState";
 import {
- ConsolePage,
- DataTableFrame,
- DetailSheet,
- EmptyState,
- LoadingState,
- PageHeader,
- Panel,
- SegmentedControl,
+  ConsolePage,
+  DataTableFrame,
+  DetailSheet,
+  LoadingState,
+  PageHeader,
+  Panel,
+  SegmentedControl,
 } from "@/components/console/ConsolePage";
 import type { Permission, Role, StaffAccount, StaffStatus } from "@/types";
 
@@ -260,9 +260,9 @@ const UserManagementPage = () => {
  if (isLoading) {
  return (
  <ConsolePage>
- <LoadingState rows={1} itemClassName="h-28 rounded-sm" />
- <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-24 rounded-sm" />
- <LoadingState rows={2} itemClassName="h-[320px] rounded-sm" />
+ <LoadingState rows={1} itemClassName="h-28 rounded-lg" />
+ <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-24 rounded-lg" />
+ <LoadingState rows={2} itemClassName="h-[320px] rounded-lg" />
  </ConsolePage>
  );
  }
@@ -478,7 +478,7 @@ const UserManagementPage = () => {
  </p>
  </div>
 
- <div className="rounded-sm border border-border/70 bg-muted/10 p-3">
+ <div className="rounded-lg border border-border/70 bg-muted/10 p-3">
  <div className="flex items-center justify-between gap-3">
  <div>
  <p className="text-sm font-semibold">Permission Scope</p>
@@ -505,7 +505,7 @@ const UserManagementPage = () => {
  {available.map((permission) => (
  <label
  key={permission}
- className="flex items-start gap-2 rounded-sm border border-border/70 bg-background px-2.5 py-2 text-sm"
+ className="flex items-start gap-2 rounded-lg border border-border/70 bg-background px-2.5 py-2 text-sm"
  >
  <Checkbox
  checked={inviteForm.permissions.includes(permission)}
@@ -557,33 +557,33 @@ const UserScopeSheet = ({
  {user && (
  <div className="space-y-4 text-sm">
  <div className="grid gap-3 sm:grid-cols-2">
- <div className="rounded-sm border border-border/70 bg-muted/15 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
  <p className="text-xs text-muted-foreground">Role</p>
  <div className="mt-1"><span className={roleClassName(user.role)}>{formatRole(user.role)}</span></div>
  </div>
- <div className="rounded-sm border border-border/70 bg-muted/15 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
  <p className="text-xs text-muted-foreground">Status</p>
  <div className="mt-1"><span className={statusClassName(user.status)}>{user.status.charAt(0).toUpperCase() + user.status.slice(1)}</span></div>
  </div>
- <div className="rounded-sm border border-border/70 bg-muted/15 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
  <p className="text-xs text-muted-foreground">Email</p>
  <p className="mt-1 break-all font-medium">{user.email}</p>
  </div>
- <div className="rounded-sm border border-border/70 bg-muted/15 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
  <p className="text-xs text-muted-foreground">Phone</p>
  <p className="mt-1 font-medium">{user.phone}</p>
  </div>
- <div className="rounded-sm border border-border/70 bg-muted/15 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
  <p className="text-xs text-muted-foreground">Department</p>
  <p className="mt-1 font-medium">{user.department || "—"}</p>
  </div>
- <div className="rounded-sm border border-border/70 bg-muted/15 p-2.5">
+ <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
  <p className="text-xs text-muted-foreground">Last Active</p>
  <p className="mt-1 font-medium">{getLastActiveLabel(user)}</p>
  </div>
  </div>
 
- <div className="rounded-sm border border-border/70 bg-muted/10 p-3">
+ <div className="rounded-lg border border-border/70 bg-muted/10 p-3">
  <div className="mb-3 flex items-center justify-between">
  <p className="text-sm font-semibold font-heading">Granted Permissions</p>
  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
@@ -603,7 +603,7 @@ const UserScopeSheet = ({
  </div>
 
  {user.responsibilities.length > 0 && (
- <div className="rounded-sm border border-border/70 bg-muted/10 p-3">
+ <div className="rounded-lg border border-border/70 bg-muted/10 p-3">
  <p className="mb-2 text-sm font-semibold font-heading">Responsibilities</p>
  <ul className="space-y-1">
  {user.responsibilities.map((item) => (
@@ -706,8 +706,8 @@ const RolesPermissionsPanel = () => (
  { label: "Dashboard Resolver", icon: Building2 },
  { label: "Module Access", icon: ClipboardList },
  ].map((item, index) => (
- <div key={item.label} className="flex items-center gap-3 rounded-sm border border-border/70 bg-background p-2.5">
- <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-muted text-muted-foreground">
+ <div key={item.label} className="flex items-center gap-3 rounded-lg border border-border/70 bg-background p-2.5">
+ <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground">
  <item.icon className="h-3.5 w-3.5" />
  </span>
  <div className="min-w-0">
@@ -764,11 +764,11 @@ const ActivityPanel = ({ rows }: { rows: StaffAccount[] }) => {
  return (
  <div className="grid gap-2">
  {rows.slice(0, 12).map((account) => (
- <div key={account.id} className="flex items-start justify-between gap-3 rounded-sm border border-border/70 bg-background p-2.5">
+ <div key={account.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-background p-2.5">
  <div className="flex min-w-0 items-start gap-2.5">
  <span
  className={cn(
- "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-sm",
+ "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
  account.lastActiveAt ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
  )}
  >

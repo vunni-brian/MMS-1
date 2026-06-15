@@ -32,6 +32,7 @@ import {
 import { api } from "@/lib/api";
 import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -117,7 +118,7 @@ const MetricCard = ({
   return (
     <Card>
       <CardContent className="flex items-center gap-4 p-4">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-sm ${toneClasses}`}>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClasses}`}>
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
@@ -132,13 +133,13 @@ const MetricCard = ({
 
 const LoadingGrid = () => (
   <div className="space-y-6">
-    <Skeleton className="h-24 w-full rounded-sm" />
+    <Skeleton className="h-24 w-full rounded-lg" />
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {[1, 2, 3, 4].map((item) => (
-        <Skeleton key={item} className="h-28 rounded-sm" />
+        <Skeleton key={item} className="h-28 rounded-lg" />
       ))}
     </div>
-    <Skeleton className="h-96 w-full rounded-sm" />
+    <Skeleton className="h-96 w-full rounded-lg" />
   </div>
 );
 
@@ -156,9 +157,6 @@ const ErrorState = ({ title }: { title: string }) => (
 
 const riskBadgeVariant = (risk: RiskLevel) =>
   risk === "High" ? "destructive" : risk === "Medium" ? "secondary" : "default";
-
-const statusBadgeVariant = (status: VendorProfile["status"]) =>
-  status === "approved" ? "default" : status === "rejected" ? "destructive" : "secondary";
 
 const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
@@ -348,7 +346,7 @@ export const OfficialMarketsPage = () => {
             <select
               value={riskFilter}
               onChange={(event) => setRiskFilter(event.target.value as "all" | RiskLevel)}
-              className="h-9 rounded-sm border border-input bg-background px-3 text-sm"
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             >
               <option value="all">All risk levels</option>
               <option value="High">High risk</option>
@@ -449,7 +447,7 @@ export const OfficialVendorDirectoryPage = () => {
         title="Vendor listings"
         subtitle="Read-only vendor registry for search, filtering, and export. Officials can inspect records without approving or modifying them."
         actions={
-          <Button onClick={exportCsv} className="h-9 gap-2 rounded-sm">
+          <Button onClick={exportCsv} className="h-9 gap-2 rounded-lg">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
@@ -474,13 +472,13 @@ export const OfficialVendorDirectoryPage = () => {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search vendors..." className="h-9 pl-9" />
             </div>
-            <select value={status} onChange={(event) => setStatus(event.target.value as "all" | VendorProfile["status"])} className="h-9 rounded-sm border border-input bg-background px-3 text-sm">
+            <select value={status} onChange={(event) => setStatus(event.target.value as "all" | VendorProfile["status"])} className="h-9 rounded-lg border border-input bg-background px-3 text-sm">
               <option value="all">All statuses</option>
               <option value="approved">Approved</option>
               <option value="pending">Pending</option>
               <option value="rejected">Rejected</option>
             </select>
-            <select value={marketId} onChange={(event) => setMarketId(event.target.value)} className="h-9 rounded-sm border border-input bg-background px-3 text-sm">
+            <select value={marketId} onChange={(event) => setMarketId(event.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm">
               <option value="all">All markets</option>
               {markets.map((market) => <option key={market.id} value={market.id}>{market.name}</option>)}
             </select>
@@ -517,7 +515,7 @@ export const OfficialVendorDirectoryPage = () => {
                         </Badge>
                       </td>
                       <td className="py-3">
-                        <Badge variant={statusBadgeVariant(vendor.status)} className="capitalize">{vendor.status}</Badge>
+                        <StatusBadge status={vendor.status} context="vendor" />
                       </td>
                     </tr>
                   );
@@ -574,7 +572,7 @@ export const OfficialCompliancePage = () => {
           <CardContent>
             <div className="space-y-4">
               {marketHealth.map((row) => (
-                <div key={row.id} className="rounded-sm border border-border p-4">
+                <div key={row.id} className="rounded-lg border border-border p-4">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="font-semibold text-foreground">{row.name}</p>
@@ -593,7 +591,7 @@ export const OfficialCompliancePage = () => {
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(row.alerts.length ? row.alerts : ["No active compliance alerts"]).map((alert) => (
-                      <span key={alert} className="rounded-sm bg-muted px-2 py-1 text-xs text-muted-foreground">{alert}</span>
+                      <span key={alert} className="rounded-lg bg-muted px-2 py-1 text-xs text-muted-foreground">{alert}</span>
                     ))}
                   </div>
                 </div>
@@ -615,7 +613,7 @@ export const OfficialCompliancePage = () => {
                 { label: "Overdue utility charges", value: overdueUtilityCharges.length, tone: overdueUtilityCharges.length ? "text-red-700" : "text-emerald-700" },
                 { label: "Unpaid penalties", value: unpaidPenalties.length, tone: unpaidPenalties.length ? "text-red-700" : "text-emerald-700" },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between rounded-sm bg-muted/40 p-3 text-sm">
+                <div key={item.label} className="flex items-center justify-between rounded-lg bg-muted/40 p-3 text-sm">
                   <span className="text-muted-foreground">{item.label}</span>
                   <span className={`font-bold ${item.tone}`}>{item.value}</span>
                 </div>
@@ -629,13 +627,13 @@ export const OfficialCompliancePage = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {escalated.slice(0, 5).map((ticket) => (
-                <div key={ticket.id} className="rounded-sm border border-border p-3 text-sm">
+                <div key={ticket.id} className="rounded-lg border border-border p-3 text-sm">
                   <p className="font-semibold text-foreground">{ticket.ticketNumber} - {ticket.subject}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{ticket.marketName || "Market"} | {formatHumanDateTime(ticket.updatedAt)}</p>
                 </div>
               ))}
               {!escalated.length ? (
-                <div className="flex items-center gap-2 rounded-sm bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+                <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
                   No escalated complaints.
                 </div>
@@ -727,7 +725,7 @@ export const OfficialAnalyticsPage = () => {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[300px] items-center justify-center rounded-sm border border-dashed text-sm text-muted-foreground">No completed payment data yet.</div>
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">No completed payment data yet.</div>
             )}
           </CardContent>
         </Card>
@@ -751,7 +749,7 @@ export const OfficialAnalyticsPage = () => {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[300px] items-center justify-center rounded-sm border border-dashed text-sm text-muted-foreground">No payment method data yet.</div>
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">No payment method data yet.</div>
             )}
           </CardContent>
         </Card>
@@ -779,7 +777,7 @@ export const OfficialAnalyticsPage = () => {
                   </div>
                 );
               })}
-              {!topMarkets.length ? <div className="rounded-sm border border-dashed p-8 text-center text-sm text-muted-foreground">No market revenue yet.</div> : null}
+              {!topMarkets.length ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No market revenue yet.</div> : null}
             </div>
           </CardContent>
         </Card>
@@ -805,7 +803,7 @@ export const OfficialAnalyticsPage = () => {
                   </div>
                 );
               })}
-              {!vendorCategories.length ? <div className="rounded-sm border border-dashed p-8 text-center text-sm text-muted-foreground">No vendor categories yet.</div> : null}
+              {!vendorCategories.length ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No vendor categories yet.</div> : null}
             </div>
           </CardContent>
         </Card>

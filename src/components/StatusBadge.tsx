@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import type { BookingStatus, PaymentStatus, PenaltyStatus, StallStatus, TicketStatus, UtilityChargeStatus, VendorApprovalStatus } from "@/types";
 
+type AllocationStatus = "available" | "allocated" | "reserved";
+
 const statusStyles: Record<string, string> = {
  active: "border-border bg-muted text-muted-foreground",
  inactive: "border-success/20 bg-success/15 text-success",
@@ -20,7 +22,10 @@ const statusStyles: Record<string, string> = {
  open: "border-info/20 bg-info/15 text-info",
  in_progress: "border-warning/25 bg-warning/15 text-warning",
  resolved: "border-success/20 bg-success/15 text-success",
- closed: "border-border bg-muted text-muted-foreground",
+  closed: "border-border bg-muted text-muted-foreground",
+  available: "border-success/20 bg-success/15 text-success",
+  allocated: "border-border bg-muted text-muted-foreground",
+  reserved: "border-border bg-muted text-muted-foreground",
 };
 
 const statusLabels: Record<string, string> = {
@@ -67,9 +72,10 @@ interface StatusBadgeProps {
  | TicketStatus
  | UtilityChargeStatus
  | VendorApprovalStatus
- | "active"
- | "late_payment"
- | "suspended";
+  | "active"
+  | "late_payment"
+  | "suspended"
+  | AllocationStatus;
  className?: string;
  label?: string;
  context?: StatusContext;

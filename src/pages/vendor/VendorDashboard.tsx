@@ -22,7 +22,7 @@ import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/uti
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -260,9 +260,7 @@ const VendorDashboard = () => {
  : "Your dashboard will show stall details after a stall has been assigned."}
  </p>
  </div>
- <Badge variant={activeStall ? "default" : "secondary"} className="text-xs">
- {activeStall ? "Active" : "Pending"}
- </Badge>
+  <StatusBadge status={activeStall ? "active" : "pending"} label={activeStall ? "Active" : "Pending"} className="text-xs" />
  </div>
  </CardContent>
  </Card>

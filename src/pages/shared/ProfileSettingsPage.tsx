@@ -265,8 +265,8 @@ const ProfileSettingsPage = () => {
  </Alert>
  ) : isPending ? (
  <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
- <LoadingState rows={4} itemClassName="h-16 rounded-sm" />
- <LoadingState rows={4} itemClassName="h-28 rounded-sm" />
+ <LoadingState rows={4} itemClassName="h-16 rounded-lg" />
+ <LoadingState rows={4} itemClassName="h-28 rounded-lg" />
  </div>
  ) : (
  <div className="profile-settings-shell profile-only-shell">
@@ -461,7 +461,7 @@ const ProfileSettingsPage = () => {
  <div
  key={item.label}
  className={cn(
- "flex flex-col items-center gap-1.5 rounded-sm border p-3 text-center",
+ "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center",
  item.done ? "border-success/25 bg-success/10" : "border-dashed border-border/70 bg-muted/15",
  )}
  >
@@ -480,8 +480,8 @@ const ProfileSettingsPage = () => {
  </FormSection>
  )}
 
- {profileMessage && <div className="rounded-sm border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">{profileMessage}</div>}
- {profileError && <div className="rounded-sm border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{profileError}</div>}
+ {profileMessage && <div className="rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">{profileMessage}</div>}
+ {profileError && <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{profileError}</div>}
 
  <div className="flex flex-wrap items-center gap-2">
  <Button type="button" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending || !canSaveProfile}>

@@ -17,7 +17,7 @@ const SelectTrigger = React.forwardRef<
  <SelectPrimitive.Trigger
  ref={ref}
  className={cn(
- "flex h-9 w-full items-center justify-between rounded-sm border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:opacity-70 [&>span]:line-clamp-1",
+ "flex h-9 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:opacity-70 [&>span]:line-clamp-1",
  className,
  )}
  {...props}
@@ -66,7 +66,7 @@ const SelectContent = React.forwardRef<
  <SelectPrimitive.Content
  ref={ref}
  className={cn(
- "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-sm border border-border/80 bg-popover text-popover-foreground shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in- data-[side=left]:slide-in- data-[side=right]:slide-in- data-[side=top]:slide-in-",
+ "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground shadow-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in- data-[side=left]:slide-in- data-[side=right]:slide-in- data-[side=top]:slide-in-",
  position === "popper" &&
  "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
  className,
@@ -105,7 +105,7 @@ const SelectItem = React.forwardRef<
  <SelectPrimitive.Item
  ref={ref}
  className={cn(
- "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 focus:bg-muted focus:text-foreground",
+ "relative flex w-full cursor-default select-none items-center rounded-lg py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 focus:bg-muted focus:text-foreground",
  className,
  )}
  {...props}

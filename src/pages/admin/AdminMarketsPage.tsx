@@ -1,7 +1,20 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Download, Search, Store, Users } from "lucide-react";
+import { 
+  Download, 
+  Search, 
+  Store, 
+  Users, 
+  Filter,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Building2,
+  CreditCard,
+} from "lucide-react";
 
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { api } from "@/lib/api";
@@ -9,333 +22,424 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
- Select,
- SelectContent,
- SelectItem,
- SelectTrigger,
- SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
- ConsolePage,
- EmptyState,
- LoadingState,
- WorkspacePage,
-} from "@/components/console/ConsolePage";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 type MarketHealth = "healthy" | "watch" | "attention";
 type MarketSort = "name" | "vendors" | "stalls" | "status";
 
-const healthLabels: Record<MarketHealth, string> = {
- healthy: "Healthy",
- watch: "Watch",
- attention: "Attention",
-};
-
-const healthClassName = (health: MarketHealth) => {
- if (health === "healthy") return "status-badge border-success/20 bg-success/15 text-success";
- if (health === "watch") return "status-badge border-warning/25 bg-warning/15 text-warning";
- return "status-badge border-destructive/20 bg-destructive/15 text-destructive";
-};
-
-const getMarketHealth = ({
- failedPayments,
- openComplaints,
- unpaidUtilityAmount,
-}: {
- failedPayments: number;
- openComplaints: number;
- unpaidUtilityAmount: number;
-}): MarketHealth => {
- if (failedPayments > 1 || openComplaints > 4 || unpaidUtilityAmount >= 2_000_000) return "attention";
- if (failedPayments > 0 || openComplaints > 0 || unpaidUtilityAmount > 0) return "watch";
- return "healthy";
+const healthConfig = {
+  healthy: { label: "Healthy", className: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle },
+  watch: { label: "Watch", className: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
+  attention: { label: "Attention", className: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle },
 };
 
 const AdminMarketsPage = () => {
- const navigate = useNavigate();
- const [search, setSearch] = useState("");
- const [healthFilter, setHealthFilter] = useState<"all" | MarketHealth>("all");
- const [sortBy, setSortBy] = useState<MarketSort>("name");
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [healthFilter, setHealthFilter] = useState<"all" | MarketHealth>("all");
+  const [sortBy, setSortBy] = useState<MarketSort>("name");
 
- const marketsQuery = useQuery({
- queryKey: ["markets", "admin-markets-page"],
- queryFn: () => api.getMarkets(),
- gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
- });
+  const marketsQuery = useQuery({
+    queryKey: ["markets", "admin-markets-page"],
+    queryFn: () => api.getMarkets(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
+  });
 
- const vendorsQuery = useQuery({
- queryKey: ["vendors", "admin-markets-page"],
- queryFn: () => api.getVendors(),
- gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
- });
+  const vendorsQuery = useQuery({
+    queryKey: ["vendors", "admin-markets-page"],
+    queryFn: () => api.getVendors(),
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
+  });
 
- const paymentsQuery = useQuery({
- queryKey: ["payments", "admin-markets-page"],
- queryFn: () => api.getPayments(),
- refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL,
- gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
- });
+  const paymentsQuery = useQuery({
+    queryKey: ["payments", "admin-markets-page"],
+    queryFn: () => api.getPayments(),
+    refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL,
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
+  });
 
- const ticketsQuery = useQuery({
- queryKey: ["tickets", "admin-markets-page"],
- queryFn: () => api.getTickets(),
- gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
- });
+  const ticketsQuery = useQuery({
+    queryKey: ["tickets", "admin-markets-page"],
+    queryFn: () => api.getTickets(),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
+  });
 
- const utilitiesQuery = useQuery({
- queryKey: ["utility-charges", "admin-markets-page"],
- queryFn: () => api.getUtilityCharges(),
- gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
- });
+  const utilitiesQuery = useQuery({
+    queryKey: ["utility-charges", "admin-markets-page"],
+    queryFn: () => api.getUtilityCharges(),
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
+  });
 
- const markets = useMemo(() => marketsQuery.data?.markets ?? [], [marketsQuery.data?.markets]);
- const vendors = useMemo(() => vendorsQuery.data?.vendors ?? [], [vendorsQuery.data?.vendors]);
- const payments = useMemo(() => paymentsQuery.data?.payments ?? [], [paymentsQuery.data?.payments]);
- const tickets = useMemo(() => ticketsQuery.data?.tickets ?? [], [ticketsQuery.data?.tickets]);
- const utilityCharges = useMemo(() => utilitiesQuery.data?.utilityCharges ?? [], [utilitiesQuery.data?.utilityCharges]);
- const isLoading =
- marketsQuery.isPending ||
- vendorsQuery.isPending ||
- paymentsQuery.isPending ||
- ticketsQuery.isPending ||
- utilitiesQuery.isPending;
+  const markets = useMemo(() => marketsQuery.data?.markets ?? [], [marketsQuery.data?.markets]);
+  const vendors = useMemo(() => vendorsQuery.data?.vendors ?? [], [vendorsQuery.data?.vendors]);
+  const payments = useMemo(() => paymentsQuery.data?.payments ?? [], [paymentsQuery.data?.payments]);
+  const tickets = useMemo(() => ticketsQuery.data?.tickets ?? [], [ticketsQuery.data?.tickets]);
+  const utilityCharges = useMemo(() => utilitiesQuery.data?.utilityCharges ?? [], [utilitiesQuery.data?.utilityCharges]);
+  
+  const isLoading = marketsQuery.isPending || vendorsQuery.isPending || paymentsQuery.isPending || ticketsQuery.isPending || utilitiesQuery.isPending;
 
- const marketRows = useMemo(() => {
- return markets.map((market) => {
- const marketPayments = payments.filter((payment) => payment.marketId === market.id);
- const marketTickets = tickets.filter((ticket) => ticket.marketId === market.id && ticket.status !== "resolved");
- const marketUtilities = utilityCharges.filter((charge) => charge.marketId === market.id);
- const revenue = marketPayments
- .filter((payment) => payment.status === "completed")
- .reduce((sum, payment) => sum + payment.amount, 0);
- const failedPayments = marketPayments.filter((payment) => payment.status === "failed").length;
- const unpaidUtilityAmount = marketUtilities
- .filter((charge) => ["unpaid", "pending", "pending_payment", "overdue"].includes(charge.status))
- .reduce((sum, charge) => sum + charge.amount, 0);
- const activeRate = market.stallCount ? Math.round((market.activeStallCount / market.stallCount) * 100) : 0;
- const vendorShare = vendors.length ? Math.round((market.vendorCount / vendors.length) * 100) : 0;
- const health = getMarketHealth({
- failedPayments,
- openComplaints: marketTickets.length,
- unpaidUtilityAmount,
- });
+  const marketRows = useMemo(() => {
+    return markets.map((market) => {
+      const marketPayments = payments.filter((payment) => payment.marketId === market.id);
+      const marketTickets = tickets.filter((ticket) => ticket.marketId === market.id && ticket.status !== "resolved");
+      const marketUtilities = utilityCharges.filter((charge) => charge.marketId === market.id);
+      const revenue = marketPayments
+        .filter((payment) => payment.status === "completed")
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      const failedPayments = marketPayments.filter((payment) => payment.status === "failed").length;
+      const unpaidUtilityAmount = marketUtilities
+        .filter((charge) => ["unpaid", "pending", "pending_payment", "overdue"].includes(charge.status))
+        .reduce((sum, charge) => sum + charge.amount, 0);
+      const activeRate = market.stallCount ? Math.round((market.activeStallCount / market.stallCount) * 100) : 0;
+      const vendorShare = vendors.length ? Math.round((market.vendorCount / vendors.length) * 100) : 0;
+      const health = getMarketHealth({
+        failedPayments,
+        openComplaints: marketTickets.length,
+        unpaidUtilityAmount,
+      });
 
- return {
- ...market,
- activeRate,
- vendorShare,
- revenue,
- failedPayments,
- unpaidUtilityAmount,
- openComplaints: marketTickets.length,
- health,
- };
- });
- }, [markets, payments, tickets, utilityCharges, vendors.length]);
+      return {
+        ...market,
+        activeRate,
+        vendorShare,
+        revenue,
+        failedPayments,
+        unpaidUtilityAmount,
+        openComplaints: marketTickets.length,
+        health,
+      };
+    });
+  }, [markets, payments, tickets, utilityCharges, vendors.length]);
 
- const filteredMarkets = useMemo(() => {
- const term = search.trim().toLowerCase();
+  const filteredMarkets = useMemo(() => {
+    const term = search.trim().toLowerCase();
 
- return [...marketRows]
- .filter((market) => {
- const matchesHealth = healthFilter === "all" || market.health === healthFilter;
- const matchesSearch =
- !term ||
- [market.name, market.code, market.location, market.managerName || "", market.regionName || ""]
- .join(" ")
- .toLowerCase()
- .includes(term);
+    return [...marketRows]
+      .filter((market) => {
+        const matchesHealth = healthFilter === "all" || market.health === healthFilter;
+        const matchesSearch =
+          !term ||
+          [market.name, market.code, market.location, market.managerName || "", market.regionName || ""]
+            .join(" ")
+            .toLowerCase()
+            .includes(term);
 
- return matchesHealth && matchesSearch;
- })
- .sort((left, right) => {
- if (sortBy === "vendors") return right.vendorCount - left.vendorCount;
- if (sortBy === "stalls") return right.stallCount - left.stallCount;
- if (sortBy === "status") return left.health.localeCompare(right.health);
- return left.name.localeCompare(right.name);
- });
- }, [healthFilter, marketRows, search, sortBy]);
+        return matchesHealth && matchesSearch;
+      })
+      .sort((left, right) => {
+        if (sortBy === "vendors") return right.vendorCount - left.vendorCount;
+        if (sortBy === "stalls") return right.stallCount - left.stallCount;
+        if (sortBy === "status") return left.health.localeCompare(right.health);
+        return left.name.localeCompare(right.name);
+      });
+  }, [healthFilter, marketRows, search, sortBy]);
 
- const attentionCount = marketRows.filter((market) => market.health === "attention").length;
- const context = `${markets.length} markets - ${vendors.length} vendors - ${attentionCount} need attention`;
+  const getMarketHealth = ({
+    failedPayments,
+    openComplaints,
+    unpaidUtilityAmount,
+  }: {
+    failedPayments: number;
+    openComplaints: number;
+    unpaidUtilityAmount: number;
+  }): MarketHealth => {
+    if (failedPayments > 1 || openComplaints > 4 || unpaidUtilityAmount >= 2_000_000) return "attention";
+    if (failedPayments > 0 || openComplaints > 0 || unpaidUtilityAmount > 0) return "watch";
+    return "healthy";
+  };
 
- return (
- <ConsolePage>
- <WorkspacePage
- title="Markets"
- subtitle="Manage market setup, capacity, managers, and operating health."
- context={context}
- actions={
- <Button
- variant="outline"
- className="gap-2"
- disabled={isLoading || filteredMarkets.length === 0}
- onClick={() => {
- const headers = ["Name", "Code", "Location", "Region", "Manager", "Vendors", "Stalls", "Active Stalls", "Occupancy %", "Revenue (UGX)", "Open Complaints", "Health"];
- const rows = filteredMarkets.map((m) => [
- m.name,
- m.code,
- m.location,
- m.regionName ?? "",
- m.managerName ?? "",
- m.vendorCount,
- m.stallCount,
- m.activeStallCount,
- m.activeRate,
- m.revenue,
- m.openComplaints,
- healthLabels[m.health],
- ]);
- const csv = [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
- const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
- const url = URL.createObjectURL(blob);
- const a = document.createElement("a");
- a.href = url;
- a.download = `markets-export-${new Date().toISOString().slice(0, 10)}.csv`;
- a.click();
- URL.revokeObjectURL(url);
- }}
- >
- <Download className="h-4 w-4" />
- Export
- </Button>
- }
- filters={
- <>
- <div className="w-full min-w-[220px] flex-1 lg:max-w-[420px]">
- <label className="mb-1 block text-xs font-medium text-muted-foreground">Search</label>
- <div className="relative">
- <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
- <Input
- className="pl-9"
- placeholder="Search market, region, code, manager..."
- value={search}
- onChange={(event) => setSearch(event.target.value)}
- />
- </div>
- </div>
- <div className="w-full sm:w-[180px]">
- <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
- <Select value={healthFilter} onValueChange={(value) => setHealthFilter(value as "all" | MarketHealth)}>
- <SelectTrigger>
- <SelectValue />
- </SelectTrigger>
- <SelectContent>
- <SelectItem value="all">All statuses</SelectItem>
- <SelectItem value="healthy">Healthy</SelectItem>
- <SelectItem value="watch">Watch</SelectItem>
- <SelectItem value="attention">Attention</SelectItem>
- </SelectContent>
- </Select>
- </div>
- <div className="w-full sm:w-[180px]">
- <label className="mb-1 block text-xs font-medium text-muted-foreground">Sort</label>
- <Select value={sortBy} onValueChange={(value) => setSortBy(value as MarketSort)}>
- <SelectTrigger>
- <SelectValue />
- </SelectTrigger>
- <SelectContent>
- <SelectItem value="name">Name</SelectItem>
- <SelectItem value="vendors">Vendors</SelectItem>
- <SelectItem value="stalls">Stalls</SelectItem>
- <SelectItem value="status">Status</SelectItem>
- </SelectContent>
- </Select>
- </div>
- </>
- }
- >
- {isLoading ? (
- <div className="p-4">
- <LoadingState rows={8} className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" itemClassName="h-[190px] rounded-sm" />
- </div>
- ) : filteredMarkets.length === 0 ? (
- <div className="p-4">
- <EmptyState title="No markets found" description="Try a different search, status, or sort option." />
- </div>
- ) : (
- <div className="admin-market-grid p-4">
- {filteredMarkets.map((market) => (
- <article
- key={market.id}
- className="admin-market-card cursor-pointer transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
- onClick={() => navigate(`/admin/billing?market=${market.id}`)}
- title={`View billing for ${market.name}`}
- tabIndex={0}
- role="button"
- onKeyDown={(e) => e.key === "Enter" && navigate(`/admin/billing?market=${market.id}`)}
- >
- <div className="flex items-start justify-between gap-3">
- <div className="min-w-0">
- <p className="truncate text-base font-semibold font-heading">{market.name}</p>
- <p className="mt-1 truncate text-xs text-muted-foreground">
- {market.location || market.regionName || "Location pending"} - {market.code}
- </p>
- </div>
- <span className={healthClassName(market.health)}>{healthLabels[market.health]}</span>
- </div>
+  const totalVendors = vendors.length;
+  const totalMarkets = markets.length;
+  const totalRevenue = marketRows.reduce((sum, m) => sum + m.revenue, 0);
+  const avgOccupancy = marketRows.length ? Math.round(marketRows.reduce((sum, m) => sum + m.activeRate, 0) / marketRows.length) : 0;
+  // const attentionCount = marketRows.filter((market) => market.health === "attention").length;
 
- <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
- <div className="admin-market-metric">
- <Users className="h-4 w-4 text-primary" />
- <span>{market.vendorCount}</span>
- <small>Vendors</small>
- </div>
- <div className="admin-market-metric">
- <Store className="h-4 w-4 text-primary" />
- <span>{market.stallCount}</span>
- <small>Stalls</small>
- </div>
- <div className="admin-market-metric">
- <span className="text-sm font-bold text-primary">{market.activeRate}%</span>
- <small>Active</small>
- </div>
- </div>
+  const handleExport = () => {
+    const headers = ["Name", "Code", "Location", "Region", "Manager", "Vendors", "Stalls", "Active Stalls", "Occupancy %", "Revenue (UGX)", "Open Complaints", "Health"];
+    const rows = filteredMarkets.map((m) => [
+      m.name,
+      m.code,
+      m.location,
+      m.regionName ?? "",
+      m.managerName ?? "",
+      m.vendorCount,
+      m.stallCount,
+      m.activeStallCount,
+      m.activeRate,
+      m.revenue,
+      m.openComplaints,
+      healthConfig[m.health].label,
+    ]);
+    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `markets-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
- <div className="mt-4 space-y-3">
- <div>
- <div className="mb-1 flex items-center justify-between text-xs">
- <span className="text-muted-foreground">Capacity in use</span>
- <span className="font-semibold">{market.activeStallCount}/{market.stallCount}</span>
- </div>
- <div className="admin-progress-track">
- <span style={{ width: `${Math.min(market.activeRate, 100)}%` }} />
- </div>
- </div>
- <div>
- <div className="mb-1 flex items-center justify-between text-xs">
- <span className="text-muted-foreground">Vendor share</span>
- <span className="font-semibold">{market.vendorShare}%</span>
- </div>
- <div className="admin-progress-track is-muted">
- <span style={{ width: `${Math.min(market.vendorShare, 100)}%` }} />
- </div>
- </div>
- </div>
+  if (marketsQuery.isError || vendorsQuery.isError || paymentsQuery.isError || ticketsQuery.isError || utilitiesQuery.isError) {
+    return (
+      <Card className="max-w-xl border-red-200 bg-red-50">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-6 w-6 text-red-600" />
+            <div>
+              <h3 className="font-semibold text-red-900">Could not load markets</h3>
+              <p className="text-sm text-red-700">Market data is currently unavailable. Please refresh or check connection.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
- <div className="mt-4 grid gap-2 border-t border-border/70 pt-3 text-xs text-muted-foreground">
- <div className="flex justify-between gap-3">
- <span>Manager</span>
- <strong className="truncate text-foreground">{market.managerName || "Unassigned"}</strong>
- </div>
- <div className="flex justify-between gap-3">
- <span>Collections</span>
- <strong className="text-foreground">{formatCurrency(market.revenue)}</strong>
- </div>
- <div className="flex justify-between gap-3">
- <span>Open complaints</span>
- <strong className={cn("text-foreground", market.openComplaints > 0 && "text-warning")}>
- {market.openComplaints}
- </strong>
- </div>
- </div>
- </article>
- ))}
- </div>
- )}
- </WorkspacePage>
- </ConsolePage>
- );
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-slate-900">Markets</h1>
+                  <Badge className="bg-emerald-100 text-emerald-700">Admin Console</Badge>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Manage market setup, capacity, managers, and operating health across all locations.
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="gap-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50"
+                onClick={handleExport}
+                disabled={isLoading || filteredMarkets.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Export Data
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="mb-6 grid gap-4 md:grid-cols-4">
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Total Markets</p>
+                    <p className="text-2xl font-bold text-slate-900">{totalMarkets}</p>
+                  </div>
+                  <Building2 className="h-8 w-8 text-slate-400" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Total Vendors</p>
+                    <p className="text-2xl font-bold text-emerald-600">{totalVendors}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-emerald-400" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Total Revenue</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatCurrency(totalRevenue)}</p>
+                  </div>
+                  <CreditCard className="h-8 w-8 text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-500">Avg. Occupancy</p>
+                    <p className="text-2xl font-bold text-purple-600">{avgOccupancy}%</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-purple-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters */}
+          <div className="mb-6 flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  className="pl-9 border-slate-200 focus-visible:border-emerald-500"
+                  placeholder="Search markets by name, code, location..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </div>
+            </div>
+            
+            <Select value={healthFilter} onValueChange={(value) => setHealthFilter(value as "all" | MarketHealth)}>
+              <SelectTrigger className="w-[180px] border-slate-200">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="healthy">Healthy</SelectItem>
+                <SelectItem value="watch">Watch</SelectItem>
+                <SelectItem value="attention">Attention</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as MarketSort)}>
+              <SelectTrigger className="w-[180px] border-slate-200">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="vendors">Vendors</SelectItem>
+                <SelectItem value="stalls">Stalls</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Markets Grid */}
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
+              <p className="mt-2 text-sm text-slate-500">Loading markets...</p>
+            </div>
+          ) : filteredMarkets.length === 0 ? (
+            <Card className="border-slate-200 bg-white">
+              <CardContent className="p-12 text-center">
+                <Store className="mx-auto h-12 w-12 text-slate-300" />
+                <h3 className="mt-4 text-lg font-semibold text-slate-900">No markets found</h3>
+                <p className="mt-1 text-sm text-slate-500">Try a different search or filter option.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredMarkets.map((market) => {
+                const HealthIcon = healthConfig[market.health].icon;
+                return (
+                  <Card
+                    key={market.id}
+                    className="cursor-pointer border-slate-200 bg-white transition-all hover:shadow-lg hover:-translate-y-1"
+                    onClick={() => navigate(`/admin/billing?market=${market.id}`)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="truncate text-lg text-slate-900">{market.name}</CardTitle>
+                          <CardDescription className="mt-1 flex items-center gap-2">
+                            <MapPin className="h-3 w-3" />
+                            {market.location || market.regionName || "Location pending"} • {market.code}
+                          </CardDescription>
+                        </div>
+                        <Badge className={healthConfig[market.health].className}>
+                          <HealthIcon className="mr-1 h-3 w-3" />
+                          {healthConfig[market.health].label}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-4">
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="text-center">
+                          <Users className="mx-auto h-4 w-4 text-emerald-600" />
+                          <p className="mt-1 text-lg font-bold text-slate-900">{market.vendorCount}</p>
+                          <p className="text-xs text-slate-500">Vendors</p>
+                        </div>
+                        <div className="text-center">
+                          <Store className="mx-auto h-4 w-4 text-emerald-600" />
+                          <p className="mt-1 text-lg font-bold text-slate-900">{market.stallCount}</p>
+                          <p className="text-xs text-slate-500">Stalls</p>
+                        </div>
+                        <div className="text-center">
+                          <TrendingUp className="mx-auto h-4 w-4 text-emerald-600" />
+                          <p className="mt-1 text-lg font-bold text-slate-900">{market.activeRate}%</p>
+                          <p className="text-xs text-slate-500">Active</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Bars */}
+                      <div className="space-y-3">
+                        <div>
+                          <div className="mb-1 flex items-center justify-between text-xs">
+                            <span className="text-slate-500">Capacity in use</span>
+                            <span className="font-semibold text-slate-700">{market.activeStallCount}/{market.stallCount}</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                            <div 
+                              className="h-full rounded-full bg-emerald-500 transition-all"
+                              style={{ width: `${Math.min(market.activeRate, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-1 flex items-center justify-between text-xs">
+                            <span className="text-slate-500">Vendor share</span>
+                            <span className="font-semibold text-slate-700">{market.vendorShare}%</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                            <div 
+                              className="h-full rounded-full bg-blue-500 transition-all"
+                              style={{ width: `${Math.min(market.vendorShare, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Details */}
+                      <div className="space-y-2 border-t border-slate-100 pt-3 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Manager</span>
+                          <span className="font-medium text-slate-700">{market.managerName || "Unassigned"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Collections</span>
+                          <span className="font-medium text-emerald-600">{formatCurrency(market.revenue)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Open complaints</span>
+                          <span className={cn("font-medium", market.openComplaints > 0 ? "text-yellow-600" : "text-slate-700")}>
+                            {market.openComplaints}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+    </div>
+  );
 };
 
 export default AdminMarketsPage;
+
