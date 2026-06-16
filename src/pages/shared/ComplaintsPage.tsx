@@ -22,10 +22,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileUploadCard, EmptyState, DataTableFrame } from "@/components/console/ConsolePage";
+import { FileUploadCard, EmptyState, DataTableFrame, PageHeader } from "@/components/console/ConsolePage";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { PageHeader } from "@/components/PageHeader";
 import { PageLayout } from "@/components/PageLayout";
 import type { Ticket, TicketCategory, TicketPriority, TicketStatus } from "@/types";
 

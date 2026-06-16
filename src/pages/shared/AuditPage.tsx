@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { PageHeader } from "@/components/PageHeader";
 import { PageLayout } from "@/components/PageLayout";
-import { EmptyState, DataTableFrame } from "@/components/console/ConsolePage";
+import { EmptyState, DataTableFrame, PageHeader } from "@/components/console/ConsolePage";
 
 const AuditPage = () => {
   const { user } = useAuth();

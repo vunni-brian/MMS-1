@@ -38,13 +38,13 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState } from "@/components/EmptyState";
 import {
   DataTableFrame,
   DetailSheet,
   LoadingState,
   PageHeader,
   Panel,
+  EmptyState,
   SegmentedControl,
 } from "@/components/console/ConsolePage";
 import type { Permission, Role, StaffAccount, StaffStatus } from "@/types";

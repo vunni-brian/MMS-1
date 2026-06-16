@@ -23,8 +23,7 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import { LoadingState } from "@/components/console/ConsolePage";
-import { PageHeader } from "@/components/PageHeader";
+import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {

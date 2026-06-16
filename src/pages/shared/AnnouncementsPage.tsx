@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/console/ConsolePage";
 import { PageLayout } from "@/components/PageLayout";
 import type { Announcement, AnnouncementAudience, AnnouncementPriority } from "@/types";
 

@@ -17,7 +17,7 @@ import {
 
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { api } from "@/lib/api";
-import { cn, formatHumanDateTime } from "@/lib/utils";
+import { formatHumanDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Select,

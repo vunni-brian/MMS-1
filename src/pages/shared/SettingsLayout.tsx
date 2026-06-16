@@ -20,8 +20,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
-import { EmptyState } from "@/components/EmptyState";
-import { ConsolePage, PageHeader } from "@/components/console/ConsolePage";
+import { ConsolePage, EmptyState, PageHeader } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn, formatHumanDate, formatHumanDateTime } from "@/lib/utils";

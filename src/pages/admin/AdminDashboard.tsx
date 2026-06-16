@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAreaChart } from "@/components/charts/MiniCharts";
 import { KpiStrip } from "@/components/console/ConsolePage";
-import { Button } from "@/components/ui/button";
 
 const getAuditSeverity = (action: string) =>
  /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";

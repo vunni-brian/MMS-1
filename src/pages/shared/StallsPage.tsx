@@ -11,9 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LoadingState } from "@/components/console/ConsolePage";
+import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
 import { StatusBadge } from "@/components/StatusBadge";
-import { PageHeader } from "@/components/PageHeader";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
@@ -265,7 +264,6 @@ const StallsPage = () => {
               <div className="space-y-2">
                 {historyRows.map((booking) => {
                   const isCurrent = booking.status === "approved" && myStall?.name === booking.stallName;
-                  const badgeVariant = booking.status === "rejected" ? "error" : isCurrent ? "success" : "secondary";
                   const label = booking.status === "rejected" ? "Rejected" : isCurrent ? "Active" : "Ended";
                   return (
                     <div key={booking.id} className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">

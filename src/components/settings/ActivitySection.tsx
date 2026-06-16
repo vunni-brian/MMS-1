@@ -1,6 +1,5 @@
 import { Activity } from "lucide-react";
-import { Panel, LoadingState } from "@/components/console/ConsolePage";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, LoadingState, Panel } from "@/components/console/ConsolePage";
 
 interface ActivityRow {
   id: string;

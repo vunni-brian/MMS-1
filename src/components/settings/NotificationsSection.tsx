@@ -1,6 +1,5 @@
 import { Bell, Clock, MessageSquare } from "lucide-react";
-import { EmptyState } from "@/components/EmptyState";
-import { LoadingState, Panel } from "@/components/console/ConsolePage";
+import { EmptyState, LoadingState, Panel } from "@/components/console/ConsolePage";
 import { SettingToggle } from "@/components/settings";
 import { cn, formatHumanDateTime } from "@/lib/utils";
 import type { SettingsContext } from "@/components/settings/settingsProps";
