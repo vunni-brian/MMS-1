@@ -126,7 +126,7 @@ const DocumentPreview = ({
 // Vendor card
 // ─────────────────────────────────────────────────────────
 const getInitials = (name: string) =>
-  name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "V";
+  (name || "").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "V";
 
 const VendorProfileCard = ({
   row,
@@ -361,21 +361,21 @@ const VendorsPage = () => {
   const isLoading = vendorsPending || bookingsPending || paymentsPending;
 
   const paidByBooking = payments.reduce<Record<string, number>>((acc, payment) => {
-    if (payment.status === "completed" && payment.bookingId) {
+    if (payment?.status === "completed" && payment?.bookingId) {
       acc[payment.bookingId] = (acc[payment.bookingId] || 0) + payment.amount;
     }
     return acc;
   }, {});
 
-  const allVendorRows = vendors.map((vendor) => {
-    const vendorBookings = bookings.filter((b) => b.vendorId === vendor.id);
+  const allVendorRows = vendors.filter(Boolean).map((vendor) => {
+    const vendorBookings = bookings.filter((b) => b?.vendorId === vendor.id);
     const nextPermitExpiry = vendorBookings
-      .filter((b) => ["approved", "paid"].includes(b.status))
-      .sort((a, b) => endOfDay(a.endDate).getTime() - endOfDay(b.endDate).getTime())[0] || null;
-    const totalOutstanding = vendorBookings.reduce((sum, b) => sum + Math.max(b.amount - (paidByBooking[b.id] || 0), 0), 0);
+      .filter((b) => b && ["approved", "paid"].includes(b.status))
+      .sort((a, b) => endOfDay(a?.endDate ?? "").getTime() - endOfDay(b?.endDate ?? "").getTime())[0] || null;
+    const totalOutstanding = vendorBookings.reduce((sum, b) => sum + Math.max((b?.amount ?? 0) - (paidByBooking[b?.id ?? ""] || 0), 0), 0);
     const hasLatePayment = vendorBookings.some((b) => {
-      const outstanding = Math.max(b.amount - (paidByBooking[b.id] || 0), 0);
-      return outstanding > 0 && (b.status === "approved" || endOfDay(b.endDate).getTime() < Date.now());
+      const outstanding = Math.max((b?.amount ?? 0) - (paidByBooking[b?.id ?? ""] || 0), 0);
+      return outstanding > 0 && (b?.status === "approved" || endOfDay(b?.endDate ?? "").getTime() < Date.now());
     });
     return {
       vendor,
