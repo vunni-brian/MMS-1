@@ -57,9 +57,7 @@ class RateLimiter {
                remoteAddress ||
                "unknown";
 
-    // Add user agent to make it more specific
-    const userAgent = req.headers["user-agent"] || "unknown";
-    return `${ip}:${userAgent}`;
+    return ip;
   }
 
   private checkRateLimit(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
@@ -116,20 +114,30 @@ class RateLimiter {
   }
 }
 
+const envWindow = (key: string, def: number) => {
+  const val = process.env[key];
+  return val ? Number(val) * 60 * 1000 : def;
+};
+
+const envMax = (key: string, def: number) => {
+  const val = process.env[key];
+  return val ? Number(val) : def;
+};
+
 // Create singleton instances for different rate limit strategies
 const globalRateLimiter = new RateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 100,
+  windowMs: envWindow("RATE_LIMIT_GLOBAL_WINDOW_MINUTES", 15),
+  maxRequests: envMax("RATE_LIMIT_GLOBAL_MAX", 100),
 });
 
 const authRateLimiter = new RateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 5, // Stricter for auth endpoints
+  windowMs: envWindow("RATE_LIMIT_AUTH_WINDOW_MINUTES", 15),
+  maxRequests: envMax("RATE_LIMIT_AUTH_MAX", 5),
 });
 
 const apiRateLimiter = new RateLimiter({
-  windowMs: 60 * 1000, // 1 minute
-  maxRequests: 30,
+  windowMs: envWindow("RATE_LIMIT_API_WINDOW_MINUTES", 1),
+  maxRequests: envMax("RATE_LIMIT_API_MAX", 30),
 });
 
 export const rateLimitMiddleware = (strategy: "global" | "auth" | "api" = "global") => {

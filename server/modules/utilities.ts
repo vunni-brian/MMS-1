@@ -2,6 +2,7 @@ import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
+import { assertMaxLength, MAX_BILLING_PERIOD_LENGTH, MAX_DESCRIPTION_LENGTH, MAX_UNIT_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 import {
   calculateUtilityChargeAmount,
@@ -302,6 +303,9 @@ export const utilityChargeRoutes: RouteDefinition[] = [
         params.push(statusFilter);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const utilityCharges = await all<{
         id: string;
@@ -345,8 +349,9 @@ export const utilityChargeRoutes: RouteDefinition[] = [
              ELSE 4
            END,
            utility_charges.due_date ASC,
-           utility_charges.created_at DESC`,
-        params,
+           utility_charges.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
       );
 
       sendJson(res, 200, { utilityCharges: utilityCharges.map(mapUtilityCharge) });
@@ -383,6 +388,12 @@ export const utilityChargeRoutes: RouteDefinition[] = [
       if (!body.utilityType || !body.description?.trim() || !body.billingPeriod?.trim() || !body.calculationMethod || !body.dueDate?.trim()) {
         throw new HttpError(400, "Vendor, utility type, description, billing period, calculation method, and due date are required.");
       }
+      body.description = sanitizeText(body.description!.trim());
+      body.billingPeriod = sanitizeText(body.billingPeriod!.trim());
+      body.unit = sanitizeText(body.unit?.trim() || null) || undefined;
+      assertMaxLength(body.description, MAX_DESCRIPTION_LENGTH, "Description");
+      assertMaxLength(body.billingPeriod, MAX_BILLING_PERIOD_LENGTH, "Billing period");
+      assertMaxLength(body.unit, MAX_UNIT_LENGTH, "Unit");
 
       await assertChargeEnabled("utilities", marketId);
 

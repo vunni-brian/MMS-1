@@ -187,7 +187,7 @@ const StallsPage = () => {
                     <StatusBadge status="active" />
                   </div>
                   <p className="mt-2 text-sm text-slate-600">{myStall.zone} — {myStall.size}</p>
-                  <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">Monthly dues</p>
+                  <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">Monthly dues</p>
                   <p className="mt-1 text-2xl font-bold text-slate-950">{formatCurrency(myStall.pricePerMonth)}</p>
                 </div>
                 <div className="grid gap-2 sm:w-52">
@@ -254,7 +254,7 @@ const StallsPage = () => {
 
             if (historyRows.length === 0) {
               return (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                   No stall assignment history yet. Past and current allocations will appear here.
                 </div>
               );
@@ -336,10 +336,10 @@ const StallsPage = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search stall..." className="h-9 pl-9 w-full border-slate-300 rounded-lg sm:w-52 focus-visible:border-primary focus-visible:ring-0" />
             </div>
-            <select value={rowFilter} onChange={(e) => setRowFilter(e.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+            <select aria-label="Filter by row" value={rowFilter} onChange={(e) => setRowFilter(e.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
               <option value="all">All Rows</option>
               {rows.map((row) => <option key={row} value={row}>Row {row}</option>)}
             </select>
@@ -348,7 +348,7 @@ const StallsPage = () => {
 
         {/* Grid */}
         {filteredStalls.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
             No stalls match the current filters.
           </div>
         ) : (
@@ -424,7 +424,7 @@ const StallsPage = () => {
                   {selectedStall.original.isPublished ? "Unpublish Stall" : "Publish Stall"}
                 </Button>
                 {selectedStall.stallStatus === "active" && (
-                  <p className="text-xs text-slate-400 text-center">Occupied stalls are released through booking review outcomes, not manual changes.</p>
+                  <p className="text-xs text-slate-500 text-center">Occupied stalls are released through booking review outcomes, not manual changes.</p>
                 )}
               </div>
             </div>
@@ -441,21 +441,21 @@ const StallsPage = () => {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="font-bold text-slate-700">Stall Number</Label>
-              <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.name} onChange={(e) => setStallForm((c) => ({ ...c, name: e.target.value }))} placeholder="A-07" />
+              <Label htmlFor="stall-number" className="font-bold text-slate-700">Stall Number</Label>
+              <Input id="stall-number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.name} onChange={(e) => setStallForm((c) => ({ ...c, name: e.target.value }))} placeholder="A-07" />
             </div>
             <div className="space-y-1.5">
-              <Label className="font-bold text-slate-700">Section / Zone</Label>
-              <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.zone} onChange={(e) => setStallForm((c) => ({ ...c, zone: e.target.value }))} placeholder="Row A" />
+              <Label htmlFor="stall-zone" className="font-bold text-slate-700">Section / Zone</Label>
+              <Input id="stall-zone" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.zone} onChange={(e) => setStallForm((c) => ({ ...c, zone: e.target.value }))} placeholder="Row A" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="font-bold text-slate-700">Size</Label>
-                <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.size} onChange={(e) => setStallForm((c) => ({ ...c, size: e.target.value }))} placeholder="3m × 3m" />
+                <Label htmlFor="stall-size" className="font-bold text-slate-700">Size</Label>
+                <Input id="stall-size" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.size} onChange={(e) => setStallForm((c) => ({ ...c, size: e.target.value }))} placeholder="3m × 3m" />
               </div>
               <div className="space-y-1.5">
-                <Label className="font-bold text-slate-700">Monthly Rent</Label>
-                <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.pricePerMonth} onChange={(e) => setStallForm((c) => ({ ...c, pricePerMonth: Number(e.target.value) }))} />
+                <Label htmlFor="stall-rent" className="font-bold text-slate-700">Monthly Rent</Label>
+                <Input id="stall-rent" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={stallForm.pricePerMonth} onChange={(e) => setStallForm((c) => ({ ...c, pricePerMonth: Number(e.target.value) }))} />
               </div>
             </div>
             <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={createStall.isPending || !stallForm.name.trim() || !stallForm.zone.trim()} onClick={() => createStall.mutate()}>

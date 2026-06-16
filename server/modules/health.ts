@@ -1,6 +1,15 @@
-import { get, run } from "../lib/db.ts";
-import { sendJson, type RouteDefinition } from "../lib/http.ts";
+import fs from "node:fs";
+import { get as httpGet } from "node:http";
+import { get as httpsGet } from "node:https";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { all, run } from "../lib/db.ts";
+import { HttpError, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
+import { requireAuth } from "../lib/session.ts";
+
+const migrationsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../db/migrations");
 
 interface HealthCheckResult {
   status: "healthy" | "degraded" | "unhealthy";
@@ -8,7 +17,8 @@ interface HealthCheckResult {
   uptime: number;
   checks: {
     database: { status: string; latency?: number; error?: string };
-    redis?: { status: string; latency?: number; error?: string };
+    migrations?: { status: string; applied: number; total: number; pending: number };
+    backgroundJobs?: Record<string, { status: string; failures: number }>;
     externalServices?: {
       pesapal?: { status: string; error?: string };
       africasTalking?: { status: string; error?: string };
@@ -17,7 +27,106 @@ interface HealthCheckResult {
   };
   version: string;
   environment: string;
+  detailed?: boolean;
 }
+
+const backgroundTaskStateRef: { current: Map<string, { running: boolean; failures: number; nextRunAt: number }> } = { current: new Map() };
+
+export const setBackgroundTaskStateRef = (state: Map<string, { running: boolean; failures: number; nextRunAt: number }>) => {
+  backgroundTaskStateRef.current = state;
+};
+
+// Prometheus-compatible counters
+interface MetricsStore {
+  httpRequestsTotal: number;
+  httpRequestsActive: number;
+  httpRequestDurationMs: number[];
+  httpErrorsByCode: Map<number, number>;
+  dbQueryCount: number;
+  dbErrorCount: number;
+  lastReset: string;
+}
+
+const metrics: MetricsStore = {
+  httpRequestsTotal: 0,
+  httpRequestsActive: 0,
+  httpRequestDurationMs: [],
+  httpErrorsByCode: new Map(),
+  dbQueryCount: 0,
+  dbErrorCount: 0,
+  lastReset: new Date().toISOString(),
+};
+
+export const recordRequest = (durationMs: number, statusCode: number) => {
+  metrics.httpRequestsTotal++;
+  metrics.httpRequestDurationMs.push(durationMs);
+  if (metrics.httpRequestDurationMs.length > 1000) {
+    metrics.httpRequestDurationMs = metrics.httpRequestDurationMs.slice(-500);
+  }
+  if (statusCode >= 400) {
+    metrics.httpErrorsByCode.set(statusCode, (metrics.httpErrorsByCode.get(statusCode) || 0) + 1);
+  }
+};
+
+export const recordDbQuery = () => { metrics.dbQueryCount++; };
+export const recordDbError = () => { metrics.dbErrorCount++; };
+
+const formatPrometheusMetrics = (): string => {
+  const lines: string[] = [];
+  lines.push("# HELP mms_http_requests_total Total HTTP requests");
+  lines.push("# TYPE mms_http_requests_total counter");
+  lines.push(`mms_http_requests_total ${metrics.httpRequestsTotal}`);
+
+  lines.push("# HELP mms_http_requests_active Currently active HTTP requests");
+  lines.push("# TYPE mms_http_requests_active gauge");
+  lines.push(`mms_http_requests_active ${metrics.httpRequestsActive}`);
+
+  lines.push("# HELP mms_http_request_duration_ms HTTP request duration in ms");
+  lines.push("# TYPE mms_http_request_duration_ms histogram");
+  const durations = metrics.httpRequestDurationMs;
+  if (durations.length > 0) {
+    const sum = durations.reduce((a, b) => a + b, 0);
+    lines.push(`mms_http_request_duration_ms_count ${durations.length}`);
+    lines.push(`mms_http_request_duration_ms_sum ${sum}`);
+    // Buckets
+    for (const bucket of [50, 100, 200, 500, 1000, 5000]) {
+      const count = durations.filter((d) => d <= bucket).length;
+      lines.push(`mms_http_request_duration_ms_bucket{le="${bucket}"} ${count}`);
+    }
+    lines.push(`mms_http_request_duration_ms_bucket{le="+Inf"} ${durations.length}`);
+  }
+
+  lines.push("# HELP mms_http_errors_total HTTP errors by status code");
+  lines.push("# TYPE mms_http_errors_total counter");
+  for (const [code, count] of metrics.httpErrorsByCode) {
+    lines.push(`mms_http_errors_total{code="${code}"} ${count}`);
+  }
+
+  lines.push("# HELP mms_db_query_total Database queries executed");
+  lines.push("# TYPE mms_db_query_total counter");
+  lines.push(`mms_db_query_total ${metrics.dbQueryCount}`);
+
+  lines.push("# HELP mms_db_error_total Database query errors");
+  lines.push("# TYPE mms_db_error_total counter");
+  lines.push(`mms_db_error_total ${metrics.dbErrorCount}`);
+
+  lines.push("# HELP mms_process_info Process metadata");
+  lines.push("# TYPE mms_process_info gauge");
+  lines.push(`mms_process_info{pid="${process.pid}",platform="${process.platform}",node="${process.version}",uptime="${Math.floor(process.uptime())}"} 1`);
+
+  lines.push("# HELP mms_memory_bytes Process memory usage in bytes");
+  lines.push("# TYPE mms_memory_bytes gauge");
+  const mem = process.memoryUsage();
+  lines.push(`mms_memory_bytes{type="rss"} ${mem.rss}`);
+  lines.push(`mms_memory_bytes{type="heapTotal"} ${mem.heapTotal}`);
+  lines.push(`mms_memory_bytes{type="heapUsed"} ${mem.heapUsed}`);
+
+  lines.push("# HELP mms_up Was the last scrape successful");
+  lines.push("# TYPE mms_up gauge");
+  lines.push("mms_up 1");
+
+  return lines.join("\n");
+};
 
 const checkDatabase = async (): Promise<{ status: string; latency?: number; error?: string }> => {
   const start = Date.now();
@@ -32,24 +141,60 @@ const checkDatabase = async (): Promise<{ status: string; latency?: number; erro
   }
 };
 
-const checkRedis = async (): Promise<{ status: string; latency?: number; error?: string }> => {
-  const start = Date.now();
+const checkMigrations = async (): Promise<{ status: string; applied: number; total: number; pending: number }> => {
   try {
-    // Redis check would go here if Redis is configured
-    // For now, we'll skip if not configured
-    const latency = Date.now() - start;
-    return { status: "healthy", latency };
+    const appliedRows = await all<{ name: string }>("SELECT name FROM schema_migrations ORDER BY name ASC");
+    const applied = appliedRows.length;
+
+    let total = 0;
+    try {
+      const files = fs.readdirSync(migrationsDir, { withFileTypes: true });
+      total = files.filter((entry) => entry.isFile() && entry.name.endsWith(".sql")).length;
+    } catch {
+      total = applied;
+    }
+
+    const pending = total - applied;
+    return {
+      status: pending === 0 ? "healthy" : "degraded",
+      applied,
+      total,
+      pending,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    logger.error("Redis health check failed", error);
-    return { status: "unhealthy", error: message };
+    return { status: "unhealthy", applied: 0, total: 0, pending: 0 };
   }
+};
+
+const pingUrl = (url: string, timeoutMs = 5_000): Promise<{ status: string; error?: string }> => {
+  return new Promise((resolve) => {
+    try {
+      const parsed = new URL(url);
+      const requester = parsed.protocol === "https:" ? httpsGet : httpGet;
+      const req = requester(
+        url,
+        { timeout: timeoutMs, headers: { "User-Agent": "MMS-HealthCheck/1.0" } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode && res.statusCode < 500 ? { status: "healthy" } : { status: "degraded", error: `HTTP ${res.statusCode}` });
+        },
+      );
+      req.on("error", (err) => resolve({ status: "degraded", error: err.message }));
+      req.on("timeout", () => { req.destroy(); resolve({ status: "degraded", error: "timeout" }); });
+    } catch {
+      resolve({ status: "degraded", error: "invalid URL" });
+    }
+  });
 };
 
 const checkExternalServices = async (config: {
   pesapalEnabled: boolean;
+  pesapalBaseUrl: string;
   africasTalkingEnabled: boolean;
+  africasTalkingUsername: string;
   supabaseEnabled: boolean;
+  supabaseUrl: string;
 }): Promise<{
   pesapal?: { status: string; error?: string };
   africasTalking?: { status: string; error?: string };
@@ -61,37 +206,30 @@ const checkExternalServices = async (config: {
     supabase?: { status: string; error?: string };
   } = {};
 
-  if (config.pesapalEnabled) {
-    try {
-      // Pesapal health check would go here
-      results.pesapal = { status: "healthy" };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      results.pesapal = { status: "unhealthy", error: message };
-    }
+  if (config.pesapalEnabled && config.pesapalBaseUrl) {
+    results.pesapal = await pingUrl(`${config.pesapalBaseUrl}/api/health`, 3_000);
   }
 
-  if (config.africasTalkingEnabled) {
-    try {
-      // Africa's Talking health check would go here
-      results.africasTalking = { status: "healthy" };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      results.africasTalking = { status: "unhealthy", error: message };
-    }
+  if (config.africasTalkingEnabled && config.africasTalkingUsername) {
+    results.africasTalking = await pingUrl(`https://api.africastalking.com/version`, 3_000);
   }
 
-  if (config.supabaseEnabled) {
-    try {
-      // Supabase health check would go here
-      results.supabase = { status: "healthy" };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      results.supabase = { status: "unhealthy", error: message };
-    }
+  if (config.supabaseEnabled && config.supabaseUrl) {
+    results.supabase = await pingUrl(`${config.supabaseUrl}/rest/v1/`, 3_000);
   }
 
   return results;
+};
+
+const checkBackgroundJobs = (): Record<string, { status: string; failures: number }> => {
+  const jobs: Record<string, { status: string; failures: number }> = {};
+  for (const [label, state] of backgroundTaskStateRef.current.entries()) {
+    jobs[label] = {
+      status: state.failures > 3 ? "unhealthy" : state.failures > 0 ? "degraded" : "healthy",
+      failures: state.failures,
+    };
+  }
+  return jobs;
 };
 
 export const healthRoutes: RouteDefinition[] = [
@@ -99,18 +237,24 @@ export const healthRoutes: RouteDefinition[] = [
     method: "GET",
     path: "/health",
     handler: async ({ res, config }) => {
-      const startTime = Date.now();
-      
       const dbCheck = await checkDatabase();
-      const redisCheck = await checkRedis();
+      const migrationCheck = await checkMigrations();
+      const jobChecks = checkBackgroundJobs();
       const externalChecks = await checkExternalServices({
         pesapalEnabled: config.paymentsEnabled,
+        pesapalBaseUrl: config.pesapalBaseUrl,
         africasTalkingEnabled: !!config.africasTalkingUsername,
+        africasTalkingUsername: config.africasTalkingUsername || "",
         supabaseEnabled: config.supabaseAuthEnabled,
+        supabaseUrl: config.supabaseUrl || "",
       });
 
-      // Determine overall health status
-      const allChecks = [dbCheck, redisCheck, ...Object.values(externalChecks)];
+      const allChecks = [
+        dbCheck,
+        migrationCheck,
+        ...Object.values(jobChecks),
+        ...Object.values(externalChecks),
+      ];
       const hasUnhealthy = allChecks.some((check) => check.status === "unhealthy");
       const hasDegraded = allChecks.some((check) => check.status === "degraded");
 
@@ -126,29 +270,93 @@ export const healthRoutes: RouteDefinition[] = [
         uptime: process.uptime(),
         checks: {
           database: dbCheck,
-          redis: redisCheck,
+          migrations: migrationCheck,
+          backgroundJobs: jobChecks,
           externalServices: externalChecks,
         },
         version: process.env.npm_package_version || "1.0.0",
         environment: config.appEnv || "unknown",
       };
 
-      const statusCode = overallStatus === "healthy" ? 200 : overallStatus === "degraded" ? 200 : 503;
+      const statusCode = overallStatus === "unhealthy" ? 503 : 200;
       sendJson(res, statusCode, result);
-      
-      logger.info("Health check completed", {
-        status: overallStatus,
-        latency: Date.now() - startTime,
+
+      if (overallStatus !== "healthy") {
+        logger.warn("Health check reported non-healthy status", {
+          status: overallStatus,
+          db: dbCheck.status,
+          migrations: migrationCheck.status,
+        });
+      }
+    },
+  },
+  {
+    method: "GET",
+    path: "/health/detailed",
+    handler: async ({ res, auth, config }) => {
+      const session = requireAuth(auth);
+      if (session.user.role !== "admin") {
+        throw new HttpError(403, "Only admins can access detailed health information.");
+      }
+      const startTime = Date.now();
+      const dbCheck = await checkDatabase();
+      const migrationCheck = await checkMigrations();
+      const jobChecks = checkBackgroundJobs();
+      const externalChecks = await checkExternalServices({
+        pesapalEnabled: config.paymentsEnabled,
+        pesapalBaseUrl: config.pesapalBaseUrl,
+        africasTalkingEnabled: !!config.africasTalkingUsername,
+        africasTalkingUsername: config.africasTalkingUsername || "",
+        supabaseEnabled: config.supabaseAuthEnabled,
+        supabaseUrl: config.supabaseUrl || "",
       });
+
+      const allChecks = [
+        dbCheck,
+        migrationCheck,
+        ...Object.values(jobChecks),
+        ...Object.values(externalChecks),
+      ];
+      const hasUnhealthy = allChecks.some((check) => check.status === "unhealthy");
+      const hasDegraded = allChecks.some((check) => check.status === "degraded");
+
+      const overallStatus: "healthy" | "degraded" | "unhealthy" = hasUnhealthy
+        ? "unhealthy"
+        : hasDegraded
+        ? "degraded"
+        : "healthy";
+
+      const result = {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        checks: {
+          database: {
+            ...dbCheck,
+            poolTotalCount: undefined as number | undefined,
+            poolIdleCount: undefined as number | undefined,
+            poolWaitingCount: undefined as number | undefined,
+          },
+          migrations: migrationCheck,
+          backgroundJobs: jobChecks,
+          externalServices: externalChecks,
+        },
+        version: process.env.npm_package_version || "1.0.0",
+        environment: config.appEnv || "unknown",
+        detailed: true,
+        responseTimeMs: Date.now() - startTime,
+      };
+
+      const statusCode = overallStatus === "unhealthy" ? 503 : 200;
+      sendJson(res, statusCode, result);
     },
   },
   {
     method: "GET",
     path: "/health/ready",
-    handler: async ({ res, config }) => {
-      // Readiness check - is the application ready to serve traffic?
+    handler: async ({ res }) => {
       const dbCheck = await checkDatabase();
-      
+
       if (dbCheck.status !== "healthy") {
         sendJson(res, 503, { ready: false, reason: "Database not ready" });
         return;
@@ -161,15 +369,14 @@ export const healthRoutes: RouteDefinition[] = [
     method: "GET",
     path: "/health/live",
     handler: async ({ res }) => {
-      // Liveness check - is the application running?
       sendJson(res, 200, { alive: true, uptime: process.uptime() });
     },
   },
   {
     method: "GET",
     path: "/health/metrics",
-    handler: async ({ res }) => {
-      // Basic metrics endpoint
+    handler: async ({ res, auth }) => {
+      requireAuth(auth);
       const metrics = {
         process: {
           uptime: process.uptime(),
@@ -179,10 +386,21 @@ export const healthRoutes: RouteDefinition[] = [
           platform: process.platform,
           nodeVersion: process.version,
         },
+        backgroundJobs: checkBackgroundJobs(),
         timestamp: new Date().toISOString(),
       };
 
       sendJson(res, 200, metrics);
+    },
+  },
+  {
+    method: "GET",
+    path: "/health/metrics/prometheus",
+    handler: async ({ res, auth }) => {
+      requireAuth(auth);
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.writeHead(200);
+      res.end(formatPrometheusMetrics());
     },
   },
 ];

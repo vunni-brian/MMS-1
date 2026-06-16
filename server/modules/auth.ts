@@ -13,7 +13,11 @@ import {
   serializeAuthUser,
   transaction,
 } from "../lib/db.ts";
+
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MINUTES = 15;
 import { HttpError, readJsonBody, sendEmpty, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { assertMaxLength, MAX_DEPARTMENT_LENGTH, MAX_DESCRIPTION_LENGTH, MAX_EMAIL_LENGTH, MAX_IDENTIFIER_LENGTH, MAX_NAME_LENGTH, MAX_NOTE_LENGTH, MAX_REASON_LENGTH, MAX_REGION_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { getOtpNotificationMessage } from "../lib/otp-messages.ts";
 import { applyUserPassword, revokeUserSessions, validatePasswordStrength } from "../lib/passwords.ts";
 import { rolePermissions } from "../lib/permissions.ts";
@@ -111,6 +115,7 @@ const logLoginFailure = async (
     phone: string;
     role: "vendor" | "manager" | "official" | "admin";
     market_id: string | null;
+    failed_login_attempts?: number;
   },
   reason: string,
 ) => {
@@ -127,6 +132,19 @@ const logLoginFailure = async (
       reason,
     },
   });
+
+  if (reason === "invalid_password") {
+    const attempts = (user.failed_login_attempts ?? 0) + 1;
+    if (attempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+      const lockDuration = `${LOCKOUT_DURATION_MINUTES} minutes`;
+      await run(
+        `UPDATE users SET failed_login_attempts = ?, locked_until = NOW() + INTERVAL ? WHERE id = ?`,
+        [attempts, lockDuration, user.id],
+      );
+    } else {
+      await run(`UPDATE users SET failed_login_attempts = ? WHERE id = ?`, [attempts, user.id]);
+    }
+  }
 };
 
 const issueRegistrationChallenge = async ({
@@ -294,7 +312,7 @@ const mapStaffAccount = (row: StaffAccountRow): StaffAccount => ({
   vendorStatus: row.vendor_status as StaffAccount["vendorStatus"],
 });
 
-const listStaffAccounts = async () =>
+const listStaffAccounts = async (limit = 50, offset = 0) =>
   (
     await all<StaffAccountRow>(
       `${staffAccountSelect}
@@ -305,7 +323,9 @@ const listStaffAccounts = async () =>
                   WHEN 'vendor' THEN 4
                   ELSE 5
                 END,
-                users.created_at DESC`,
+                users.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset],
     )
   ).map(mapStaffAccount);
 
@@ -324,16 +344,42 @@ const assertCanManageUsers = (user: { permissions: Permission[] }) => {
   }
 };
 
+const handleVerifyMfa: RouteDefinition["handler"] = async ({ req, res }) => {
+  const body = await readJsonBody<{ challengeId: string; code: string }>(req);
+  const challenge = await validateOtpChallenge({
+    challengeId: body.challengeId,
+    code: body.code,
+    purpose: "manager_mfa",
+  });
+
+  const timestamp = nowIso();
+  await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
+
+  const user = await getUserRecordById(challenge.user_id!);
+  if (!user) {
+    throw new HttpError(404, "User not found for MFA challenge.");
+  }
+
+  const token = await createSessionForUser(user.id);
+  await logLoginSuccess(user, true);
+  sendJson(res, 200, {
+    token,
+    user: serializeAuthUser(user),
+  });
+};
+
 export const authRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/auth/users",
-    handler: async ({ res, auth }) => {
+    handler: async ({ res, auth, url }) => {
       const session = requireAuth(auth);
       assertCanManageUsers(session.user);
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
 
       sendJson(res, 200, {
-        users: await listStaffAccounts(),
+        users: await listStaffAccounts(limit, offset),
       });
     },
   },
@@ -369,11 +415,11 @@ export const authRoutes: RouteDefinition[] = [
       const role = body.role;
       const firstName = body.firstName?.trim();
       const lastName = body.lastName?.trim();
-      const name = body.name?.trim() || [firstName, lastName].filter(Boolean).join(" ").trim();
+      let name = body.name?.trim() || [firstName, lastName].filter(Boolean).join(" ").trim();
       const email = body.email?.trim().toLowerCase();
       const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
-      const department = body.department?.trim();
-      const assignedRegion = body.assignedRegion?.trim();
+      let department = body.department?.trim();
+      let assignedRegion = body.assignedRegion?.trim();
       const staffIdentifier = body.staffIdentifier?.trim() || null;
       const accessLevel = body.accessLevel?.trim() || (role === "official" ? "regional_compliance" : "market_supervision");
       const status: StaffStatus =
@@ -383,6 +429,14 @@ export const authRoutes: RouteDefinition[] = [
       if (!name || !email || !phone || !department || !assignedRegion) {
         throw new HttpError(400, "Name, email, phone, department, and assigned region are required.");
       }
+      assertMaxLength(name, MAX_NAME_LENGTH, "Name");
+      assertMaxLength(email, MAX_EMAIL_LENGTH, "Email");
+      assertMaxLength(department, MAX_DEPARTMENT_LENGTH, "Department");
+      assertMaxLength(assignedRegion, MAX_REGION_LENGTH, "Assigned region");
+      assertMaxLength(staffIdentifier, MAX_IDENTIFIER_LENGTH, "Staff identifier");
+      name = sanitizeText(name);
+      department = sanitizeText(department);
+      assignedRegion = sanitizeText(assignedRegion);
       if (role === "manager" && !marketId) {
         throw new HttpError(400, "Managers must be assigned to a market.");
       }
@@ -540,16 +594,25 @@ export const authRoutes: RouteDefinition[] = [
         lcLetter: FilePayload | null;
       }>(req);
 
-      const name = body.name?.trim();
+      let name = body.name?.trim();
       const email = body.email?.trim().toLowerCase();
-      const nationalIdNumber = body.nationalIdNumber?.trim().toUpperCase();
-      const district = body.district?.trim();
-      const productSection = body.productSection?.trim();
+      let nationalIdNumber = body.nationalIdNumber?.trim().toUpperCase();
+      let district = body.district?.trim();
+      let productSection = body.productSection?.trim();
       const normalizedPhone = normalizePhoneNumber(body.phone || "");
 
       if (!name || !email || !normalizedPhone || !body.password || !body.marketId || !nationalIdNumber || !district || !productSection) {
         throw new HttpError(400, "Name, email, phone, password, market, NIN, district, and product section are required.");
       }
+      assertMaxLength(name, MAX_NAME_LENGTH, "Name");
+      assertMaxLength(email, MAX_EMAIL_LENGTH, "Email");
+      assertMaxLength(nationalIdNumber, MAX_IDENTIFIER_LENGTH, "National ID number");
+      assertMaxLength(district, MAX_DEPARTMENT_LENGTH, "District");
+      assertMaxLength(productSection, MAX_DESCRIPTION_LENGTH, "Product section");
+      name = sanitizeText(name);
+      nationalIdNumber = sanitizeText(nationalIdNumber);
+      district = sanitizeText(district);
+      productSection = sanitizeText(productSection);
       if (!isValidEmailAddress(email)) {
         throw new HttpError(400, "A valid email address is required.");
       }
@@ -783,7 +846,7 @@ export const authRoutes: RouteDefinition[] = [
         marketId?: string;
       }>(req);
 
-      const name = body.name?.trim();
+      let name = body.name?.trim();
       const email = body.email?.trim().toLowerCase();
       const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
       const marketId = body.marketId?.trim();
@@ -791,6 +854,9 @@ export const authRoutes: RouteDefinition[] = [
       if (!name || !email || !phone || !marketId) {
         throw new HttpError(400, "Name, email, phone, and market are required.");
       }
+      assertMaxLength(name, MAX_NAME_LENGTH, "Name");
+      assertMaxLength(email, MAX_EMAIL_LENGTH, "Email");
+      name = sanitizeText(name);
       if (!isValidEmailAddress(email)) {
         throw new HttpError(400, "A valid email address is required.");
       }
@@ -974,6 +1040,11 @@ export const authRoutes: RouteDefinition[] = [
         throw new HttpError(401, "Invalid phone number or password.");
       }
 
+      if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
+        const remainingMinutes = Math.ceil((new Date(user.locked_until).getTime() - Date.now()) / 60_000);
+        throw new HttpError(429, `Account temporarily locked. Try again in ${remainingMinutes} minute(s).`);
+      }
+
       const password = body.password || "";
       const isLocalPasswordValid = verifyPassword(password, user.password_hash);
       const supabaseUser =
@@ -988,6 +1059,10 @@ export const authRoutes: RouteDefinition[] = [
       if (!isPasswordValid) {
         await logLoginFailure(user, "invalid_password");
         throw new HttpError(401, "Invalid phone number or password.");
+      }
+
+      if (user.failed_login_attempts > 0 || user.locked_until) {
+        await run(`UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?`, [user.id]);
       }
 
       if (user.role === "vendor") {
@@ -1052,56 +1127,12 @@ export const authRoutes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/auth/verify-manager-mfa",
-    handler: async ({ req, res }) => {
-      const body = await readJsonBody<{ challengeId: string; code: string }>(req);
-      const challenge = await validateOtpChallenge({
-        challengeId: body.challengeId,
-        code: body.code,
-        purpose: "manager_mfa",
-      });
-
-      const timestamp = nowIso();
-      await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
-
-      const user = await getUserRecordById(challenge.user_id!);
-      if (!user) {
-        throw new HttpError(404, "User not found for MFA challenge.");
-      }
-
-      const token = await createSessionForUser(user.id);
-      await logLoginSuccess(user, true);
-      sendJson(res, 200, {
-        token,
-        user: serializeAuthUser(user),
-      });
-    },
+    handler: handleVerifyMfa,
   },
   {
     method: "POST",
     path: "/auth/verify-privileged-mfa",
-    handler: async ({ req, res }) => {
-      const body = await readJsonBody<{ challengeId: string; code: string }>(req);
-      const challenge = await validateOtpChallenge({
-        challengeId: body.challengeId,
-        code: body.code,
-        purpose: "manager_mfa",
-      });
-
-      const timestamp = nowIso();
-      await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
-
-      const user = await getUserRecordById(challenge.user_id!);
-      if (!user) {
-        throw new HttpError(404, "User not found for MFA challenge.");
-      }
-
-      const token = await createSessionForUser(user.id);
-      await logLoginSuccess(user, true);
-      sendJson(res, 200, {
-        token,
-        user: serializeAuthUser(user),
-      });
-    },
+    handler: handleVerifyMfa,
   },
   {
     method: "POST",
@@ -1167,13 +1198,16 @@ export const authRoutes: RouteDefinition[] = [
         profileImage?: FilePayload | null;
         removeProfileImage?: boolean;
       }>(req);
-      const name = body.name?.trim();
+      let name = body.name?.trim();
       const email = body.email?.trim().toLowerCase();
       const phone = body.phone ? normalizePhoneNumber(body.phone) : undefined;
 
       if (!name || !email || !phone) {
         throw new HttpError(400, "Name, email, and phone are required.");
       }
+      assertMaxLength(name, MAX_NAME_LENGTH, "Name");
+      assertMaxLength(email, MAX_EMAIL_LENGTH, "Email");
+      name = sanitizeText(name);
       if (!isValidEmailAddress(email)) {
         throw new HttpError(400, "A valid email address is required.");
       }
@@ -1352,6 +1386,30 @@ export const authRoutes: RouteDefinition[] = [
     handler: ({ res, auth }) => {
       const session = requireAuth(auth);
       sendJson(res, 200, { user: session.user });
+    },
+  },
+  {
+    method: "POST",
+    path: "/auth/unlock/:userId",
+    handler: async ({ res, auth, params }) => {
+      const session = requireAuth(auth);
+      assertCanManageUsers(session.user);
+      const user = await getUserRecordById(params.userId);
+      if (!user) {
+        throw new HttpError(404, "User not found.");
+      }
+      await run(`UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?`, [params.userId]);
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: session.user.marketId,
+        action: "UNLOCK_ACCOUNT",
+        entityType: "user",
+        entityId: params.userId,
+        details: { unlockedBy: session.user.id, reason: "manual_admin_unlock" },
+      });
+      sendJson(res, 200, { ok: true, message: "Account unlocked." });
     },
   },
 ];

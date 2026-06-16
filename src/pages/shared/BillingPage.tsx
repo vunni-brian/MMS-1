@@ -308,16 +308,16 @@ const BillingPage = () => {
                   <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Vendor</Label>
+                      <Label htmlFor="billing-vendor" className="font-bold text-slate-700">Vendor</Label>
                       <Select value={form.vendorId} onValueChange={(v) => setForm((c) => ({ ...c, vendorId: v, bookingId: "none" }))} disabled={!utilityMarketId}>
-                        <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue placeholder={utilityMarketId ? "Select vendor" : "Select market first"} /></SelectTrigger>
+                        <SelectTrigger id="billing-vendor" className="border-slate-300 rounded-lg"><SelectValue placeholder={utilityMarketId ? "Select vendor" : "Select market first"} /></SelectTrigger>
                         <SelectContent>{vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Booking Reference</Label>
+                      <Label htmlFor="billing-booking" className="font-bold text-slate-700">Booking Reference</Label>
                       <Select value={form.bookingId} onValueChange={(v) => setForm((c) => ({ ...c, bookingId: v }))} disabled={!selectedVendor}>
-                        <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue placeholder="Optional" /></SelectTrigger>
+                        <SelectTrigger id="billing-booking" className="border-slate-300 rounded-lg"><SelectValue placeholder="Optional" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">No booking link</SelectItem>
                           {bookings.map((b) => <SelectItem key={b.id} value={b.id}>{b.stallName} ({b.id})</SelectItem>)}
@@ -325,45 +325,45 @@ const BillingPage = () => {
                       </Select>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="font-bold text-slate-700">Utility Type</Label>
-                        <Select value={form.utilityType} onValueChange={(v: UtilityType) => setForm((c) => ({ ...c, utilityType: v }))}>
-                          <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="billing-utility-type" className="font-bold text-slate-700">Utility Type</Label>
+                      <Select value={form.utilityType} onValueChange={(v: UtilityType) => setForm((c) => ({ ...c, utilityType: v }))}>
+                        <SelectTrigger id="billing-utility-type" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>{utilityTypeOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="font-bold text-slate-700">Method</Label>
-                        <Select value={form.calculationMethod} onValueChange={(v: UtilityCalculationMethod) => setForm((c) => ({ ...c, calculationMethod: v }))}>
-                          <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="billing-method" className="font-bold text-slate-700">Method</Label>
+                      <Select value={form.calculationMethod} onValueChange={(v: UtilityCalculationMethod) => setForm((c) => ({ ...c, calculationMethod: v }))}>
+                        <SelectTrigger id="billing-method" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>{calculationOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Billing Period</Label>
-                      <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder="e.g. April 2026" />
+                      <Label htmlFor="billing-period" className="font-bold text-slate-700">Billing Period</Label>
+                      <Input id="billing-period" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder="e.g. April 2026" />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Description</Label>
-                      <Textarea className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Explain what the vendor is being billed for." />
+                      <Label htmlFor="billing-description" className="font-bold text-slate-700">Description</Label>
+                      <Textarea id="billing-description" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Explain what the vendor is being billed for." />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="font-bold text-slate-700">Due Date</Label>
-                        <Input type="date" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.dueDate} onChange={(e) => setForm((c) => ({ ...c, dueDate: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="font-bold text-slate-700">Amount</Label>
-                        <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Leave blank to auto-calc" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="font-bold text-slate-700">Usage Qty</Label>
-                        <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder="Optional for fixed" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="font-bold text-slate-700">Rate Per Unit</Label>
-                        <Input type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder="Optional" />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="billing-due-date" className="font-bold text-slate-700">Due Date</Label>
+                      <Input id="billing-due-date" type="date" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.dueDate} onChange={(e) => setForm((c) => ({ ...c, dueDate: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="billing-amount" className="font-bold text-slate-700">Amount</Label>
+                      <Input id="billing-amount" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Leave blank to auto-calc" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="billing-usage-qty" className="font-bold text-slate-700">Usage Qty</Label>
+                      <Input id="billing-usage-qty" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder="Optional for fixed" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="billing-rate" className="font-bold text-slate-700">Rate Per Unit</Label>
+                      <Input id="billing-rate" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder="Optional" />
                       </div>
                     </div>
 

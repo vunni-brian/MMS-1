@@ -1299,18 +1299,6 @@
  box-shadow: none;
 }
 
-.app-role-admin .admin-brand-mark {
- height: 32px;
- width: 32px;
- background: hsl(var(--sidebar-primary)) !important;
- color: hsl(var(--sidebar-primary-foreground)) !important;
-}
-
-.app-role-admin .admin-brand-mark svg {
- height: 16px;
- width: 16px;
- stroke-width: 2.2;
-}
 
 
 

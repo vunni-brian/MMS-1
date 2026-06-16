@@ -1,6 +1,7 @@
 import { all, createId, get, logAuditEvent, queueNotification, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { requirePermission } from "../lib/session.ts";
+import { assertMaxLength, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 import type { Role } from "../types.ts";
 
@@ -188,6 +189,9 @@ export const announcementRoutes: RouteDefinition[] = [
         params.push(requestedMarketId);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
       const announcements = await all<{
         id: string;
@@ -209,8 +213,9 @@ export const announcementRoutes: RouteDefinition[] = [
          ${whereClause}
          ORDER BY
            CASE announcements.priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END,
-           announcements.created_at DESC`,
-        params,
+           announcements.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
       );
 
       sendJson(res, 200, { announcements: announcements.map(mapAnnouncement) });
@@ -234,20 +239,18 @@ export const announcementRoutes: RouteDefinition[] = [
         expiresAt?: string | null;
       }>(req);
 
-      const title = body.title?.trim();
-      const announcementBody = body.body?.trim();
+      let title = body.title?.trim();
+      let announcementBody = body.body?.trim();
       const priority = body.priority || "normal";
       const audience = body.audience || "vendors";
 
       if (!title || !announcementBody) {
         throw new HttpError(400, "Title and announcement body are required.");
       }
-      if (title.length > 140) {
-        throw new HttpError(400, "Announcement title must be 140 characters or less.");
-      }
-      if (announcementBody.length > 2000) {
-        throw new HttpError(400, "Announcement body must be 2000 characters or less.");
-      }
+      assertMaxLength(title, 140, "Announcement title");
+      assertMaxLength(announcementBody, 2000, "Announcement body");
+      title = sanitizeText(title);
+      announcementBody = sanitizeText(announcementBody);
       if (!priorities.has(priority)) {
         throw new HttpError(400, "Announcement priority is invalid.");
       }

@@ -1,6 +1,7 @@
 import { all, createId, get, getManagerForMarket, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, requirePermission, resolveScopedMarket } from "../lib/session.ts";
+import { assertMaxLength, MAX_NOTE_LENGTH, MAX_REASON_LENGTH, MAX_REFERENCE_LENGTH, MAX_STALL_NAME_LENGTH, MAX_SIZE_LENGTH, MAX_ZONE_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 
 const monthsBetween = (startDate: string, endDate: string) => {
@@ -374,6 +375,9 @@ export const stallRoutes: RouteDefinition[] = [
         params.push(zone);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const stalls = await all<{
         id: string;
@@ -390,7 +394,7 @@ export const stallRoutes: RouteDefinition[] = [
         active_booking_id: string | null;
         active_booking_status: string | null;
         active_booking_amount: number | null;
-      }>(`${stallsSelect} ${whereClause} ORDER BY stalls.zone, stalls.name`, params);
+      }>(`${stallsSelect} ${whereClause} ORDER BY stalls.zone, stalls.name LIMIT ? OFFSET ?`, [...params, limit, offset]);
 
       sendJson(res, 200, { stalls: stalls.map(mapStall) });
     },
@@ -415,6 +419,12 @@ export const stallRoutes: RouteDefinition[] = [
       if (!body.name || !body.zone || !body.size || !body.pricePerMonth) {
         throw new HttpError(400, "Name, zone, size, and price are required.");
       }
+      assertMaxLength(body.name?.trim(), MAX_STALL_NAME_LENGTH, "Stall name");
+      assertMaxLength(body.zone?.trim(), MAX_ZONE_LENGTH, "Zone");
+      assertMaxLength(body.size?.trim(), MAX_SIZE_LENGTH, "Size");
+      body.name = sanitizeText(body.name.trim());
+      body.zone = sanitizeText(body.zone.trim());
+      body.size = sanitizeText(body.size.trim());
 
       const stallId = createId("stall");
       const timestamp = nowIso();
@@ -486,6 +496,12 @@ export const stallRoutes: RouteDefinition[] = [
       if (stall.status === "active" && body.status && body.status !== "active") {
         throw new HttpError(409, "Occupied stalls cannot be reassigned manually.");
       }
+      assertMaxLength(body.name?.trim(), MAX_STALL_NAME_LENGTH, "Stall name");
+      assertMaxLength(body.zone?.trim(), MAX_ZONE_LENGTH, "Zone");
+      assertMaxLength(body.size?.trim(), MAX_SIZE_LENGTH, "Size");
+      if (body.name) body.name = sanitizeText(body.name.trim());
+      if (body.zone) body.zone = sanitizeText(body.zone.trim());
+      if (body.size) body.size = sanitizeText(body.size.trim());
 
       const timestamp = nowIso();
       await run(
@@ -557,6 +573,9 @@ export const stallRoutes: RouteDefinition[] = [
         params.push(session.user.id);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const bookings = await all<{
         id: string;
@@ -578,7 +597,7 @@ export const stallRoutes: RouteDefinition[] = [
         stall_zone: string;
         vendor_name: string;
         reviewed_by_name: string | null;
-      }>(`${bookingSelect} ${whereClause} ORDER BY bookings.created_at DESC`, params);
+      }>(`${bookingSelect} ${whereClause} ORDER BY bookings.created_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
       sendJson(res, 200, { bookings: bookings.map(mapBooking) });
     },
   },
@@ -696,6 +715,7 @@ export const stallRoutes: RouteDefinition[] = [
       assertMarketAccess(session, booking.marketId);
 
       const body = await readJsonBody<{ reviewNote?: string }>(req);
+      assertMaxLength(body.reviewNote?.trim(), MAX_NOTE_LENGTH, "Review notes");
       const approved = await approveBookingApplication({
         bookingId: params.id,
         actor: {
@@ -722,6 +742,8 @@ export const stallRoutes: RouteDefinition[] = [
       assertMarketAccess(session, booking.marketId);
 
       const body = await readJsonBody<{ reason?: string }>(req);
+      if (body.reason) body.reason = sanitizeText(body.reason.trim());
+      assertMaxLength(body.reason?.trim(), MAX_REASON_LENGTH, "Rejection reason");
       const rejected = await rejectBookingApplication({
         bookingId: params.id,
         actor: {
@@ -751,6 +773,7 @@ export const stallRoutes: RouteDefinition[] = [
       }
 
       const body = await readJsonBody<{ transactionId?: string }>(req);
+      assertMaxLength(body.transactionId?.trim(), MAX_REFERENCE_LENGTH, "Transaction ID");
       const timestamp = nowIso();
       await run(`UPDATE bookings SET status = 'paid', updated_at = ? WHERE id = ?`, [timestamp, params.id]);
 
@@ -786,6 +809,7 @@ export const stallRoutes: RouteDefinition[] = [
       assertMarketAccess(session, booking.marketId);
 
       const body = await readJsonBody<{ reviewNote?: string }>(req);
+      assertMaxLength(body.reviewNote?.trim(), MAX_NOTE_LENGTH, "Review notes");
       const approved = await approveBookingApplication({
         bookingId: params.id,
         actor: {

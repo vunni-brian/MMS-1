@@ -45,3 +45,13 @@ export const VendorApprovalGuard = ({ children }: { children: ReactNode }) => {
 
  return <>{children}</>;
 };
+
+export const RoleRoute = ({ children, allowedRoles }: { children: ReactNode; allowedRoles: Role[] }) => {
+ const { user } = useAuth();
+
+ if (user && !allowedRoles.includes(user.role)) {
+ return <Navigate to={`/${user.role}/settings`} replace />;
+ }
+
+ return <>{children}</>;
+};

@@ -6,6 +6,7 @@ import { getNotificationPriority } from "../lib/notification-priority.ts";
 import { applyUserPassword, buildVendorPasswordResetMessage, revokeUserSessions } from "../lib/passwords.ts";
 import { assertMarketAccess, requireAuth, requirePermission, resolveScopedMarket } from "../lib/session.ts";
 import { createTemporaryPassword, normalizePhoneNumber, nowIso } from "../lib/security.ts";
+import { assertMaxLength, MAX_DESCRIPTION_LENGTH, MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_NOTE_LENGTH, MAX_REASON_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { downloadSupabaseStorageObject, findSupabaseAuthUser, updateSupabaseAuthUser } from "../lib/supabase.ts";
 import type { Role, VendorActivityEvent } from "../types.ts";
 
@@ -472,7 +473,9 @@ export const vendorRoutes: RouteDefinition[] = [
     path: "/vendors",
     handler: async ({ res, auth, url }) => {
       const { marketId } = resolveScopedMarket(auth, "vendor:read", url.searchParams.get("marketId"));
-      const params = marketId ? [marketId] : [];
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+      const params = marketId ? [marketId, limit, offset] : [limit, offset];
       const vendors = await all<{
         id: string;
         name: string;
@@ -499,7 +502,7 @@ export const vendorRoutes: RouteDefinition[] = [
         lc_letter_path: string | null;
         lc_letter_mime_type: string | null;
         lc_letter_size: number | null;
-      }>(`${vendorSelect} ${marketId ? "WHERE users.market_id = ?" : ""} ORDER BY users.created_at DESC`, params);
+      }>(`${vendorSelect} ${marketId ? "WHERE users.market_id = ?" : ""} ORDER BY users.created_at DESC LIMIT ? OFFSET ?`, params);
 
       sendJson(res, 200, { vendors: vendors.map(mapVendor) });
     },
@@ -602,15 +605,20 @@ export const vendorRoutes: RouteDefinition[] = [
         productSection?: string | null;
       }>(req);
 
-      const name = body.name?.trim() || vendor.name;
+      let name = body.name?.trim() || vendor.name;
       const email = body.email?.trim().toLowerCase() || vendor.email;
       const phone = body.phone ? normalizePhoneNumber(body.phone) : vendor.phone;
       const marketId = body.marketId?.trim() || vendor.marketId;
-      const productSection = body.productSection?.trim() || vendor.productSection || null;
+      let productSection = body.productSection?.trim() || vendor.productSection || null;
 
       if (!name || !email || !phone || !marketId) {
         throw new HttpError(400, "Name, email, phone, and market are required.");
       }
+      assertMaxLength(name, MAX_NAME_LENGTH, "Name");
+      assertMaxLength(email, MAX_EMAIL_LENGTH, "Email");
+      assertMaxLength(productSection, MAX_DESCRIPTION_LENGTH, "Product section");
+      name = sanitizeText(name);
+      productSection = sanitizeText(productSection) || null;
 
       const market = await get<{ id: string; name: string }>(`SELECT id, name FROM markets WHERE id = ?`, [marketId]);
       if (!market) {
@@ -769,10 +777,11 @@ export const vendorRoutes: RouteDefinition[] = [
       assertMarketAccess(session, vendor.market_id);
 
       const body = await readJsonBody<{ reason?: string }>(req);
-      const reason = body.reason?.trim();
+      const reason = sanitizeText(body.reason?.trim());
       if (!reason) {
         throw new HttpError(400, "A reset reason is required.");
       }
+      assertMaxLength(reason, MAX_REASON_LENGTH, "Reset reason");
       if (!vendor.phone_verified_at) {
         throw new HttpError(409, "Password reset is only available after the vendor verifies their phone number.");
       }
@@ -831,7 +840,8 @@ export const vendorRoutes: RouteDefinition[] = [
       }
 
       const body = await readJsonBody<{ notes?: string }>(req);
-      const notes = body.notes?.trim() || null;
+      const notes = sanitizeText(body.notes?.trim()) || null;
+      assertMaxLength(notes, MAX_NOTE_LENGTH, "Approval notes");
 
       const timestamp = nowIso();
       await run(
@@ -880,10 +890,11 @@ export const vendorRoutes: RouteDefinition[] = [
       assertMarketAccess(session, vendor.marketId);
 
       const body = await readJsonBody<{ reason?: string }>(req);
-      const reason = body.reason?.trim();
+      const reason = sanitizeText(body.reason?.trim());
       if (!reason) {
         throw new HttpError(400, "A rejection reason is required.");
       }
+      assertMaxLength(reason, MAX_REASON_LENGTH, "Rejection reason");
 
       const timestamp = nowIso();
       await run(

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Sparkles, Store } from "lucide-react";
 
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
@@ -202,14 +203,9 @@ const RegisterPage = () => {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-xl font-bold text-slate-900 transition-opacity hover:opacity-80"
+            className="flex items-center gap-2 transition-opacity hover:opacity-80"
           >
-            <img
-              src="/images/mms-logo.svg"
-              alt="MMS"
-              className="h-8 w-8 rounded-lg border border-emerald-100"
-            />
-            <span>MMS</span>
+            <BrandLogo variant="light" size="md" />
           </button>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">

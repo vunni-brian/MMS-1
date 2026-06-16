@@ -10,6 +10,7 @@ import {
 } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
+import { assertMaxLength, MAX_DESCRIPTION_LENGTH, MAX_MESSAGE_LENGTH, MAX_NOTE_LENGTH, MAX_REASON_LENGTH, MAX_SUBJECT_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 import { persistFilePayload, validateFilePayload } from "../lib/storage.ts";
 import {
@@ -228,6 +229,124 @@ const loadAuditLog = async (ticketId: string) =>
     performedAt: item.performed_at,
     details: item.details_json ? JSON.parse(item.details_json) : null,
   }));
+
+const batchLoadAttachments = async (ticketIds: string[]) => {
+  if (ticketIds.length === 0) return new Map<string, Array<{ id: string; name: string; mimeType: string; size: number; storagePath: string; createdAt: string }>>();
+  const rows = await all<{ id: string; ticket_id: string; file_name: string; mime_type: string; file_size: number; storage_path: string; created_at: string }>(
+    `SELECT id, ticket_id, file_name, mime_type, file_size, storage_path, created_at
+     FROM ticket_attachments
+     WHERE ticket_id = ANY(?)
+     ORDER BY created_at ASC`,
+    [ticketIds],
+  );
+  const map = new Map<string, Array<{ id: string; name: string; mimeType: string; size: number; storagePath: string; createdAt: string }>>();
+  for (const row of rows) {
+    const item = { id: row.id, name: row.file_name, mimeType: row.mime_type, size: row.file_size, storagePath: row.storage_path, createdAt: row.created_at };
+    const existing = map.get(row.ticket_id);
+    if (existing) existing.push(item);
+    else map.set(row.ticket_id, [item]);
+  }
+  return map;
+};
+
+const batchLoadUpdates = async (ticketIds: string[], includeInternal: boolean) => {
+  if (ticketIds.length === 0) return new Map<string, Array<{ id: string; commentNumber: string; actorUserId: string; actorName: string; authorRole: Role; status: TicketStatus; note: string; internal: boolean; createdAt: string }>>();
+  const rows = await all<{ id: string; ticket_id: string; comment_number: string; actor_user_id: string; actor_role: Role; status: TicketStatus; note: string; is_internal: boolean; created_at: string; actor_name: string }>(
+    `SELECT ticket_updates.id,
+            ticket_updates.ticket_id,
+            ticket_updates.comment_number,
+            ticket_updates.actor_user_id,
+            ticket_updates.author_role AS actor_role,
+            ticket_updates.status,
+            ticket_updates.note,
+            ticket_updates.is_internal,
+            ticket_updates.created_at,
+            users.name AS actor_name
+     FROM ticket_updates
+     INNER JOIN users ON users.id = ticket_updates.actor_user_id
+     WHERE ticket_updates.ticket_id = ANY(?)
+       ${includeInternal ? "" : "AND ticket_updates.is_internal = FALSE"}
+     ORDER BY ticket_updates.created_at ASC`,
+    [ticketIds],
+  );
+  const map = new Map<string, Array<{ id: string; commentNumber: string; actorUserId: string; actorName: string; authorRole: Role; status: TicketStatus; note: string; internal: boolean; createdAt: string }>>();
+  for (const row of rows) {
+    const item = { id: row.id, commentNumber: row.comment_number, actorUserId: row.actor_user_id, actorName: row.actor_name, authorRole: row.actor_role, status: row.status, note: row.note, internal: row.is_internal, createdAt: row.created_at };
+    const existing = map.get(row.ticket_id);
+    if (existing) existing.push(item);
+    else map.set(row.ticket_id, [item]);
+  }
+  return map;
+};
+
+const batchLoadAuditLog = async (ticketIds: string[]) => {
+  if (ticketIds.length === 0) return new Map<string, Array<{ id: string; logNumber: string; action: string; previousValue: string | null; newValue: string | null; performedBy: string; performedByName: string; performedAt: string; details: Record<string, unknown> | null }>>();
+  const rows = await all<{ id: string; ticket_id: string; log_number: string; action: string; previous_value: string | null; new_value: string | null; performed_by: string; performed_by_name: string; performed_at: string; details_json: string | null }>(
+    `SELECT ticket_audit_log.id,
+            ticket_audit_log.ticket_id,
+            ticket_audit_log.log_number,
+            ticket_audit_log.action,
+            ticket_audit_log.previous_value,
+            ticket_audit_log.new_value,
+            ticket_audit_log.performed_by,
+            users.name AS performed_by_name,
+            ticket_audit_log.performed_at,
+            ticket_audit_log.details_json
+     FROM ticket_audit_log
+     INNER JOIN users ON users.id = ticket_audit_log.performed_by
+     WHERE ticket_audit_log.ticket_id = ANY(?)
+     ORDER BY ticket_audit_log.performed_at ASC`,
+    [ticketIds],
+  );
+  const map = new Map<string, Array<{ id: string; logNumber: string; action: string; previousValue: string | null; newValue: string | null; performedBy: string; performedByName: string; performedAt: string; details: Record<string, unknown> | null }>>();
+  for (const row of rows) {
+    const item = { id: row.id, logNumber: row.log_number, action: row.action, previousValue: row.previous_value, newValue: row.new_value, performedBy: row.performed_by, performedByName: row.performed_by_name, performedAt: row.performed_at, details: row.details_json ? JSON.parse(row.details_json) : null };
+    const existing = map.get(row.ticket_id);
+    if (existing) existing.push(item);
+    else map.set(row.ticket_id, [item]);
+  }
+  return map;
+};
+
+const batchMapTickets = async (tickets: TicketRow[], includeInternal: boolean) => {
+  if (tickets.length === 0) return [];
+  const ticketIds = tickets.map((t) => t.id);
+  const [attachmentsMap, updatesMap, auditLogMap] = await Promise.all([
+    batchLoadAttachments(ticketIds),
+    batchLoadUpdates(ticketIds, includeInternal),
+    includeInternal ? batchLoadAuditLog(ticketIds) : Promise.resolve(new Map()),
+  ]);
+  return tickets.map((ticket) => ({
+    id: ticket.id,
+    ticketNumber: ticket.ticket_number,
+    marketId: ticket.market_id,
+    marketName: ticket.market_name,
+    vendorId: ticket.vendor_id,
+    vendorName: ticket.vendor_name,
+    assignedTo: ticket.assigned_to,
+    assignedToName: ticket.assigned_to_name,
+    priority: ticket.priority,
+    category: ticket.category,
+    subject: ticket.subject,
+    description: ticket.description,
+    status: ticket.status,
+    resolution: ticket.resolution_note,
+    slaDueAt: ticket.sla_due_at,
+    firstResponseAt: ticket.first_response_at,
+    breachedSla: isSlaBreached(ticket),
+    resolvedAt: ticket.resolved_at,
+    closedAt: ticket.closed_at,
+    escalatedAt: ticket.escalated_at,
+    escalationReason: ticket.escalation_reason,
+    escalationReference: ticket.escalation_reference,
+    resolutionReference: ticket.resolution_reference,
+    createdAt: ticket.created_at,
+    updatedAt: ticket.updated_at,
+    attachments: attachmentsMap.get(ticket.id) ?? [],
+    updates: updatesMap.get(ticket.id) ?? [],
+    auditLog: includeInternal ? (auditLogMap.get(ticket.id) ?? []) : [],
+  }));
+};
 
 const mapTicket = async (ticket: TicketRow, includeInternal = false) => ({
   id: ticket.id,
@@ -554,7 +673,7 @@ export const ticketRoutes: RouteDefinition[] = [
            tickets.updated_at DESC`,
         params,
       );
-      sendJson(res, 200, { tickets: await Promise.all(tickets.map((ticket) => mapTicket(ticket, session.user.role !== "vendor"))) });
+      sendJson(res, 200, { tickets: await batchMapTickets(tickets, session.user.role !== "vendor") });
     },
   },
   {
@@ -593,7 +712,7 @@ export const ticketRoutes: RouteDefinition[] = [
            tickets.updated_at DESC`,
         params,
       );
-      sendJson(res, 200, { tickets: await Promise.all(tickets.map((ticket) => mapTicket(ticket, session.user.role !== "vendor"))) });
+      sendJson(res, 200, { tickets: await batchMapTickets(tickets, session.user.role !== "vendor") });
     },
   },
   {
@@ -618,6 +737,10 @@ export const ticketRoutes: RouteDefinition[] = [
       if (!body.category || !body.subject?.trim() || !body.description?.trim()) {
         throw new HttpError(400, "Category, subject, and description are required.");
       }
+      assertMaxLength(body.subject, MAX_SUBJECT_LENGTH, "Subject");
+      assertMaxLength(body.description, MAX_DESCRIPTION_LENGTH, "Description");
+      body.subject = sanitizeText(body.subject?.trim());
+      body.description = sanitizeText(body.description?.trim());
 
       validateFilePayload(body.attachment, ["application/pdf", "image/jpeg", "image/png"], false);
 
@@ -725,7 +848,7 @@ export const ticketRoutes: RouteDefinition[] = [
     method: "POST",
     path: "/tickets/:ticketNumber/comments",
     handler: async ({ req, res, auth, params }) => {
-      const { session } = resolveScopedMarket(auth, "ticket:read");
+      const { session } = resolveScopedMarket(auth, "ticket:update");
       const ticket = await getTicketByIdentifier(params.ticketNumber, true);
       if (!ticket) {
         throw new HttpError(404, "Ticket not found.");
@@ -733,10 +856,11 @@ export const ticketRoutes: RouteDefinition[] = [
       assertTicketAccess(session, ticket);
 
       const body = await readJsonBody<{ message?: string; internal?: boolean }>(req);
-      const message = body.message?.trim();
+      const message = sanitizeText(body.message?.trim());
       if (!message) {
         throw new HttpError(400, "A comment message is required.");
       }
+      assertMaxLength(message, MAX_MESSAGE_LENGTH, "Comment message");
       const internal = session.user.role !== "vendor" && Boolean(body.internal);
 
       await transaction(async () => {
@@ -791,6 +915,12 @@ export const ticketRoutes: RouteDefinition[] = [
       if (!body.status) {
         throw new HttpError(400, "A ticket status is required.");
       }
+      body.note = sanitizeText(body.note?.trim()) || undefined;
+      body.resolutionNote = sanitizeText(body.resolutionNote?.trim()) || undefined;
+      body.assignmentReason = sanitizeText(body.assignmentReason?.trim()) || undefined;
+      assertMaxLength(body.resolutionNote, MAX_NOTE_LENGTH, "Resolution note");
+      assertMaxLength(body.note, MAX_MESSAGE_LENGTH, "Status update note");
+      assertMaxLength(body.assignmentReason, MAX_REASON_LENGTH, "Assignment reason");
 
       const updatedTicket = await transaction(async () =>
         updateTicketLifecycle({
@@ -835,6 +965,10 @@ export const ticketRoutes: RouteDefinition[] = [
       assertTicketAccess(session, ticket);
 
       const body = await readJsonBody<{ resolutionNote?: string; note?: string }>(req);
+      body.note = sanitizeText(body.note?.trim()) || undefined;
+      body.resolutionNote = sanitizeText(body.resolutionNote?.trim()) || undefined;
+      assertMaxLength(body.resolutionNote, MAX_NOTE_LENGTH, "Resolution note");
+      assertMaxLength(body.note, MAX_MESSAGE_LENGTH, "Resolution note");
       const updatedTicket = await transaction(async () =>
         updateTicketLifecycle({
           ticket,
@@ -862,7 +996,8 @@ export const ticketRoutes: RouteDefinition[] = [
       assertTicketAccess(session, ticket);
 
       const body = await readJsonBody<{ reason?: string; escalatedTo?: string | null }>(req);
-      const reason = body.reason?.trim() || "Complaint requires senior operational review.";
+      const reason = sanitizeText(body.reason?.trim()) || "Complaint requires senior operational review.";
+      assertMaxLength(reason, MAX_REASON_LENGTH, "Escalation reason");
       const escalationReference = getEscalationReference(ticket.ticketNumber);
       const official =
         body.escalatedTo ||
@@ -961,6 +1096,10 @@ export const ticketRoutes: RouteDefinition[] = [
       assertTicketAccess(session, ticket);
 
       const body = await readJsonBody<{ status?: TicketStatus; resolutionNote?: string; note?: string }>(req);
+      body.note = sanitizeText(body.note?.trim()) || undefined;
+      body.resolutionNote = sanitizeText(body.resolutionNote?.trim()) || undefined;
+      assertMaxLength(body.resolutionNote, MAX_NOTE_LENGTH, "Resolution note");
+      assertMaxLength(body.note, MAX_MESSAGE_LENGTH, "Update note");
       const status = body.status || ticket.status;
       const updatedTicket = await transaction(async () =>
         updateTicketLifecycle({

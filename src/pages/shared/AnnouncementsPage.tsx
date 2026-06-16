@@ -266,15 +266,15 @@ const AnnouncementsPage = () => {
               <CardContent className="p-4">
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="font-bold text-slate-700">Title</Label>
-                  <Input className="border-2 border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" maxLength={140} value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="e.g. Sanitation inspection this Friday" />
+                  <Label htmlFor="announce-title" className="font-bold text-slate-700">Title</Label>
+                  <Input id="announce-title" className="border-2 border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" maxLength={140} value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="e.g. Sanitation inspection this Friday" />
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Priority</Label>
+                    <Label htmlFor="announce-priority" className="font-bold text-slate-700">Priority</Label>
                     <Select value={form.priority} onValueChange={(v: AnnouncementPriority) => setForm((c) => ({ ...c, priority: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="announce-priority" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
                         <SelectItem value="normal">Normal</SelectItem>
@@ -283,9 +283,9 @@ const AnnouncementsPage = () => {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Audience</Label>
+                    <Label htmlFor="announce-audience" className="font-bold text-slate-700">Audience</Label>
                     <Select value={form.audience} onValueChange={(v: AnnouncementAudience) => setForm((c) => ({ ...c, audience: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="announce-audience" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="vendors">Vendors</SelectItem>
                         <SelectItem value="staff">Staff</SelectItem>
@@ -294,16 +294,16 @@ const AnnouncementsPage = () => {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Expiry</Label>
-                    <Input type="datetime-local" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.expiresAt} onChange={(e) => setForm((c) => ({ ...c, expiresAt: e.target.value }))} />
+                    <Label htmlFor="announce-expiry" className="font-bold text-slate-700">Expiry</Label>
+                    <Input id="announce-expiry" type="datetime-local" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.expiresAt} onChange={(e) => setForm((c) => ({ ...c, expiresAt: e.target.value }))} />
                   </div>
                 </div>
 
                 {!isManager && (
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Target market</Label>
+                    <Label htmlFor="announce-market" className="font-bold text-slate-700">Target market</Label>
                     <Select value={form.marketId} onValueChange={(v) => setForm((c) => ({ ...c, marketId: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue placeholder="All markets" /></SelectTrigger>
+                      <SelectTrigger id="announce-market" className="border-slate-300 rounded-lg"><SelectValue placeholder="All markets" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All markets</SelectItem>
                         {markets.map((market) => <SelectItem key={market.id} value={market.id}>{market.name}</SelectItem>)}
@@ -314,10 +314,10 @@ const AnnouncementsPage = () => {
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="font-bold text-slate-700">Message</Label>
-                    <span className={`text-xs ${form.body.length > 1800 ? "text-amber-600" : "text-slate-400"}`}>{form.body.length} / 2000</span>
+                    <Label htmlFor="announce-message" className="font-bold text-slate-700">Message</Label>
+                    <span className={`text-xs ${form.body.length > 1800 ? "text-amber-600" : "text-slate-500"}`}>{form.body.length} / 2000</span>
                   </div>
-                  <Textarea className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(e) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder="Write the notice vendors or staff need to act on." />
+                  <Textarea id="announce-message" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(c) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder="Write the notice vendors or staff need to act on." />
                 </div>
 
                 <Button className="w-full gap-2 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={!canSubmit || createAnnouncement.isPending} onClick={() => createAnnouncement.mutate()}>

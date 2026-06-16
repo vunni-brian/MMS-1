@@ -196,6 +196,7 @@ export interface AppConfig {
   pesapalUseIframe: boolean;
   paymentsEnabled: boolean;
   devMode: boolean;
+  cspDirectives?: string;
 }
 
 export interface ChargeType {
@@ -208,6 +209,7 @@ export interface ChargeType {
   updatedBy: string | null;
   updatedByName: string | null;
   updatedAt: string;
+  createdAt: string;
 }
 
 export interface CoordinationMessage {

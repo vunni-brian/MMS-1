@@ -1,6 +1,23 @@
 import { all, createId, get, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { assertMaxLength, MAX_INPUT_LENGTH, MAX_PHONE_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
+
+const fallbackRateLimitStore = new Map<string, number[]>();
+const FALLBACK_WINDOW_MS = 60_000;
+const FALLBACK_MAX_PER_PHONE = 5;
+
+const checkFallbackRateLimit = (phone: string) => {
+  const now = Date.now();
+  const cutoff = now - FALLBACK_WINDOW_MS;
+  const timestamps = fallbackRateLimitStore.get(phone) || [];
+  const valid = timestamps.filter((ts) => ts > cutoff);
+  if (valid.length >= FALLBACK_MAX_PER_PHONE) {
+    throw new HttpError(429, "Too many requests. Please try again later.");
+  }
+  valid.push(now);
+  fallbackRateLimitStore.set(phone, valid);
+};
 
 const buildAvailabilityResponse = async () => {
   const stalls = await all<{ name: string; zone: string }>(
@@ -68,6 +85,10 @@ export const fallbackRoutes: RouteDefinition[] = [
       if (!body.phone || !body.input) {
         throw new HttpError(400, "Phone and input are required.");
       }
+      assertMaxLength(body.phone, MAX_PHONE_LENGTH, "Phone");
+      assertMaxLength(body.input, MAX_INPUT_LENGTH, "Input");
+      body.input = sanitizeText(body.input.trim());
+      checkFallbackRateLimit(body.phone);
 
       const responseText = await resolveFallbackResponse(body.input, body.phone);
       await logQuery(await resolveUserIdByPhone(body.phone), "ussd", body.phone, body.input, responseText);
@@ -86,6 +107,10 @@ export const fallbackRoutes: RouteDefinition[] = [
       if (!body.phone || !body.message) {
         throw new HttpError(400, "Phone and message are required.");
       }
+      assertMaxLength(body.phone, MAX_PHONE_LENGTH, "Phone");
+      assertMaxLength(body.message, MAX_INPUT_LENGTH, "Message");
+      body.message = sanitizeText(body.message.trim());
+      checkFallbackRateLimit(body.phone);
 
       const responseText = await resolveFallbackResponse(body.message, body.phone);
       await logQuery(await resolveUserIdByPhone(body.phone), "sms", body.phone, body.message, responseText);

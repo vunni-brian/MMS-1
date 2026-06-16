@@ -189,15 +189,15 @@ const useOfficialOversightData = () => {
     resourcesQuery,
   ];
 
-  const markets = marketsQuery.data?.markets ?? [];
-  const vendors = vendorsQuery.data?.vendors ?? [];
-  const stalls = stallsQuery.data?.stalls ?? [];
-  const payments = paymentsQuery.data?.payments ?? [];
-  const tickets = ticketsQuery.data?.tickets ?? [];
-  const utilityCharges = utilitiesQuery.data?.utilityCharges ?? [];
-  const penalties = penaltiesQuery.data?.penalties ?? [];
-  const auditEvents = auditQuery.data?.events ?? [];
-  const resourceRequests = resourcesQuery.data?.requests ?? [];
+  const markets = useMemo(() => marketsQuery.data?.markets ?? [], [marketsQuery.data]);
+  const vendors = useMemo(() => vendorsQuery.data?.vendors ?? [], [vendorsQuery.data]);
+  const stalls = useMemo(() => stallsQuery.data?.stalls ?? [], [stallsQuery.data]);
+  const payments = useMemo(() => paymentsQuery.data?.payments ?? [], [paymentsQuery.data]);
+  const tickets = useMemo(() => ticketsQuery.data?.tickets ?? [], [ticketsQuery.data]);
+  const utilityCharges = useMemo(() => utilitiesQuery.data?.utilityCharges ?? [], [utilitiesQuery.data]);
+  const penalties = useMemo(() => penaltiesQuery.data?.penalties ?? [], [penaltiesQuery.data]);
+  const auditEvents = useMemo(() => auditQuery.data?.events ?? [], [auditQuery.data]);
+  const resourceRequests = useMemo(() => resourcesQuery.data?.requests ?? [], [resourcesQuery.data]);
 
   const marketHealth = useMemo(
     () => buildMarketHealth(markets, vendors, stalls, payments, tickets, utilityCharges, penalties),
@@ -499,7 +499,7 @@ export const OfficialVendorDirectoryPage = () => {
               </thead>
               <tbody className="divide-y">
                 {filtered.map((vendor) => {
-                  const documentsComplete = vendor.documentValidation.nationalIdPresent && vendor.documentValidation.lcLetterPresent;
+                  const documentsComplete = vendor.documentValidation?.nationalIdPresent && vendor.documentValidation?.lcLetterPresent;
                   return (
                     <tr key={vendor.id} className="hover:bg-muted/40">
                       <td className="py-3 pr-4">

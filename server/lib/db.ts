@@ -518,8 +518,10 @@ export const getUserRecordById = async (userId: string) => {
     profile_image_size: number | null;
     permission_scope_json: string | null;
     product_section: string | null;
+    failed_login_attempts: number;
+    locked_until: string | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, vendor_profiles.product_section AS product_section, markets.name AS market_name, staff_profiles.permission_scope_json
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, vendor_profiles.product_section AS product_section, markets.name AS market_name, staff_profiles.permission_scope_json, users.failed_login_attempts, users.locked_until
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id
@@ -550,8 +552,10 @@ export const getUserRecordByPhone = async (phone: string) => {
     profile_image_size: number | null;
     permission_scope_json: string | null;
     product_section: string | null;
+    failed_login_attempts: number;
+    locked_until: string | null;
   }>(
-    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, vendor_profiles.product_section AS product_section, markets.name AS market_name, staff_profiles.permission_scope_json
+    `SELECT users.id, users.auth_user_id, users.name, users.email, users.phone, users.password_hash, users.role, users.market_id, users.mfa_enabled, users.phone_verified_at, users.created_at, users.profile_image_name, users.profile_image_path, users.profile_image_mime_type, users.profile_image_size, vendor_profiles.approval_status AS vendor_status, vendor_profiles.product_section AS product_section, markets.name AS market_name, staff_profiles.permission_scope_json, users.failed_login_attempts, users.locked_until
      FROM users
      LEFT JOIN vendor_profiles ON vendor_profiles.user_id = users.id
      LEFT JOIN staff_profiles ON staff_profiles.user_id = users.id

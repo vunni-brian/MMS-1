@@ -97,7 +97,8 @@ export const notificationRoutes: RouteDefinition[] = [
     path: "/notifications",
     handler: async ({ res, auth, url }) => {
       const session = requirePermission(auth, "notification:read");
-      const limit = Number(url.searchParams.get("limit") || 0);
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
       const notifications = await all<{
         id: string;
         user_id: string;
@@ -110,8 +111,8 @@ export const notificationRoutes: RouteDefinition[] = [
          FROM notifications
          WHERE user_id = ?
          ORDER BY created_at DESC
-         ${limit > 0 ? `LIMIT ${limit}` : ""}`,
-        [session.user.id],
+         LIMIT ? OFFSET ?`,
+        [session.user.id, limit, offset],
       );
       sendJson(res, 200, { notifications: notifications.map(mapNotification) });
     },

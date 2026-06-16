@@ -1,6 +1,7 @@
 import { all, createId, get, logAuditEvent, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { resolveScopedMarket } from "../lib/session.ts";
+import { assertMaxLength, MAX_MESSAGE_LENGTH, MAX_SUBJECT_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 
 const mapMessage = (row: {
@@ -34,6 +35,8 @@ export const coordinationRoutes: RouteDefinition[] = [
       if (!["manager", "official", "admin"].includes(session.user.role)) {
         throw new HttpError(403, "Only managers, officials, and admins can access coordination messages.");
       }
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
 
       const messages = await all<{
         id: string;
@@ -58,8 +61,9 @@ export const coordinationRoutes: RouteDefinition[] = [
          FROM coordination_messages
          LEFT JOIN markets ON markets.id = coordination_messages.market_id
          WHERE (?::text IS NULL OR coordination_messages.market_id = ? OR coordination_messages.market_id IS NULL)
-         ORDER BY coordination_messages.created_at DESC`,
-        [marketId, marketId],
+         ORDER BY coordination_messages.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [marketId, marketId, limit, offset],
       );
 
       sendJson(res, 200, { messages: messages.map(mapMessage) });
@@ -75,12 +79,16 @@ export const coordinationRoutes: RouteDefinition[] = [
       }
 
       const body = await readJsonBody<{ subject?: string; body?: string; marketId?: string | null }>(req);
-      const subject = body.subject?.trim();
-      const messageBody = body.body?.trim();
+      let subject = body.subject?.trim();
+      let messageBody = body.body?.trim();
 
       if (!subject || !messageBody) {
         throw new HttpError(400, "Subject and message body are required.");
       }
+      assertMaxLength(subject, MAX_SUBJECT_LENGTH, "Subject");
+      assertMaxLength(messageBody, MAX_MESSAGE_LENGTH, "Message body");
+      subject = sanitizeText(subject);
+      messageBody = sanitizeText(messageBody);
 
       const marketId =
         session.user.role === "official" || session.user.role === "admin"

@@ -213,6 +213,9 @@ export const reportRoutes: RouteDefinition[] = [
       const clauses = ["1 = 1"];
       const params: Array<string | null> = [];
       appendMarketScope(clauses, params, "audit_events.market_id", marketId);
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const rows = await all<{
         id: string;
         actor_user_id: string | null;
@@ -240,8 +243,9 @@ export const reportRoutes: RouteDefinition[] = [
          FROM audit_events
          LEFT JOIN markets ON markets.id = audit_events.market_id
          WHERE ${clauses.join(" AND ")}
-         ORDER BY audit_events.created_at DESC`,
-        params,
+         ORDER BY audit_events.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
       );
       sendJson(res, 200, {
         events: rows.map((row) => ({
@@ -447,6 +451,8 @@ export const reportRoutes: RouteDefinition[] = [
       const depositClauses = ["bank_deposits.deposited_at::date BETWEEN ?::date AND ?::date"];
       const depositParams: Array<string | null> = [range.from, range.to];
       appendMarketScope(depositClauses, depositParams, "bank_deposits.market_id", marketId);
+      const depositLimit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const depositOffset = Math.max(0, Number(url.searchParams.get("offset") || 0));
       const deposits = await all<{
         id: string;
         market_id: string | null;
@@ -464,8 +470,9 @@ export const reportRoutes: RouteDefinition[] = [
          FROM bank_deposits
          LEFT JOIN markets ON markets.id = bank_deposits.market_id
          WHERE ${depositClauses.join(" AND ")}
-         ORDER BY bank_deposits.deposited_at DESC`,
-        depositParams,
+         ORDER BY bank_deposits.deposited_at DESC
+         LIMIT ? OFFSET ?`,
+        [...depositParams, depositLimit, depositOffset],
       );
 
       const collectedTotal = collection.reduce((total, row) => total + row.amount, 0);

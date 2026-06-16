@@ -146,9 +146,9 @@ const CoordinationPage = () => {
                 {canCreateResourceRequest && (
                   <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Request type</Label>
+                      <Label htmlFor="request-type" className="font-bold text-slate-700">Request type</Label>
                       <Select value={requestCategory} onValueChange={(v) => setRequestCategory(v as ResourceRequestCategory)}>
-                        <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="request-type" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="budget">Budget support</SelectItem>
                           <SelectItem value="structural">Structural work</SelectItem>
@@ -156,16 +156,16 @@ const CoordinationPage = () => {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Title</Label>
-                      <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestTitle} onChange={(e) => setRequestTitle(e.target.value)} placeholder="Drainage repair, electrical inspection..." />
+                      <Label htmlFor="request-title" className="font-bold text-slate-700">Title</Label>
+                      <Input id="request-title" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestTitle} onChange={(e) => setRequestTitle(e.target.value)} placeholder="Drainage repair, electrical inspection..." />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Amount requested</Label>
-                      <Input type="number" min="0" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} placeholder="0" />
+                      <Label htmlFor="request-amount" className="font-bold text-slate-700">Amount requested</Label>
+                      <Input id="request-amount" type="number" min="0" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} placeholder="0" />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="font-bold text-slate-700">Need</Label>
-                      <Textarea className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={4} value={requestDescription} onChange={(e) => setRequestDescription(e.target.value)} placeholder="Explain the operational risk, affected section, and expected outcome." />
+                      <Label htmlFor="request-need" className="font-bold text-slate-700">Need</Label>
+                      <Textarea id="request-need" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={4} value={requestDescription} onChange={(e) => setRequestDescription(e.target.value)} placeholder="Explain the operational risk, affected section, and expected outcome." />
                     </div>
                     <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => createResourceRequest.mutate()} disabled={createResourceRequest.isPending}>
                       Submit Request
@@ -268,12 +268,12 @@ const CoordinationPage = () => {
             <CardContent className="p-4">
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label className="font-bold text-slate-700">Subject</Label>
-                <Input className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Weekly update, monitoring note, action request..." />
+                <Label htmlFor="coord-subject" className="font-bold text-slate-700">Subject</Label>
+                <Input id="coord-subject" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Weekly update, monitoring note, action request..." />
               </div>
               <div className="space-y-1.5">
-                <Label className="font-bold text-slate-700">Message</Label>
-                <Textarea className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a concise operational update or request." />
+                <Label htmlFor="coord-message" className="font-bold text-slate-700">Message</Label>
+                <Textarea id="coord-message" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a concise operational update or request." />
               </div>
 
               {success && (

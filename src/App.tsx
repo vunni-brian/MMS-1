@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute, VendorApprovalGuard } from "@/components/ProtectedRoute";
+import { ProtectedRoute, VendorApprovalGuard, RoleRoute } from "@/components/ProtectedRoute";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -95,13 +95,8 @@ const shouldRenderSpeedInsights = () => {
  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
 };
 
-const sharedChildRoutes = (basePath: string) => (
+const sharedSettingsRoutes = (basePath: string) => (
   <>
-    <Route path="billing" element={<BillingPage />} />
-    <Route path="reports" element={<ReportsPage />} />
-    <Route path="audit" element={<AuditPage />} />
-    <Route path="coordination" element={<CoordinationPage />} />
-    <Route path="announcements" element={<AnnouncementsPage />} />
     <Route path="notifications" element={<Navigate to={`${basePath}/settings/notifications`} replace />} />
     <Route path="settings" element={<SettingsLayout />}>
       <Route path="account" element={<AccountSettingsPage />} />
@@ -111,17 +106,39 @@ const sharedChildRoutes = (basePath: string) => (
       <Route path="payments" element={<PaymentsSettingsPage />} />
       <Route path="data" element={<DataSettingsPage />} />
       <Route path="activity" element={<ActivitySettingsPage />} />
-      <Route path="general" element={<AdminGeneralSettingsPage />} />
-      <Route path="system" element={<AdminSystemSettingsPage />} />
-      <Route path="integrations" element={<IntegrationsSettingsPage />} />
-      <Route path="features" element={<FeatureManagementSettingsPage />} />
-      <Route path="email" element={<EmailSettingsPage />} />
-      <Route path="sms" element={<SmsSettingsPage />} />
-      <Route path="logging" element={<LoggingSettingsPage />} />
-      <Route path="market-operations" element={<ManagerOperationsSettingsPage />} />
-      <Route path="oversight" element={<ComplianceOversightSettingsPage />} />
+      <Route path="general" element={<RoleRoute allowedRoles={["admin"]}><AdminGeneralSettingsPage /></RoleRoute>} />
+      <Route path="system" element={<RoleRoute allowedRoles={["admin"]}><AdminSystemSettingsPage /></RoleRoute>} />
+      <Route path="integrations" element={<RoleRoute allowedRoles={["admin"]}><IntegrationsSettingsPage /></RoleRoute>} />
+      <Route path="features" element={<RoleRoute allowedRoles={["admin"]}><FeatureManagementSettingsPage /></RoleRoute>} />
+      <Route path="email" element={<RoleRoute allowedRoles={["admin"]}><EmailSettingsPage /></RoleRoute>} />
+      <Route path="sms" element={<RoleRoute allowedRoles={["admin"]}><SmsSettingsPage /></RoleRoute>} />
+      <Route path="logging" element={<RoleRoute allowedRoles={["admin"]}><LoggingSettingsPage /></RoleRoute>} />
+      <Route path="market-operations" element={<RoleRoute allowedRoles={["manager"]}><ManagerOperationsSettingsPage /></RoleRoute>} />
+      <Route path="oversight" element={<RoleRoute allowedRoles={["official"]}><ComplianceOversightSettingsPage /></RoleRoute>} />
     </Route>
     <Route path="profile" element={<ProfileSettingsPage />} />
+  </>
+);
+
+const sharedChildRoutes = (basePath: string) => (
+  <>
+    <Route path="billing" element={<BillingPage />} />
+    <Route path="reports" element={<ReportsPage />} />
+    <Route path="audit" element={<AuditPage />} />
+    <Route path="coordination" element={<CoordinationPage />} />
+    <Route path="announcements" element={<AnnouncementsPage />} />
+    {sharedSettingsRoutes(basePath)}
+  </>
+);
+
+const vendorChildRoutes = (basePath: string) => (
+  <>
+    <Route path="billing" element={<VendorApprovalGuard><BillingPage /></VendorApprovalGuard>} />
+    <Route path="reports" element={<VendorApprovalGuard><ReportsPage /></VendorApprovalGuard>} />
+    <Route path="audit" element={<VendorApprovalGuard><AuditPage /></VendorApprovalGuard>} />
+    <Route path="coordination" element={<VendorApprovalGuard><CoordinationPage /></VendorApprovalGuard>} />
+    <Route path="announcements" element={<VendorApprovalGuard><AnnouncementsPage /></VendorApprovalGuard>} />
+    {sharedSettingsRoutes(basePath)}
   </>
 );
 
@@ -152,8 +169,8 @@ const App = () => (
  <Route index element={<VendorDashboard />} />
  <Route path="stalls" element={<VendorApprovalGuard><StallsPage /></VendorApprovalGuard>} />
  <Route path="payments" element={<VendorApprovalGuard><PaymentsPage /></VendorApprovalGuard>} />
- <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
-  {sharedChildRoutes("/vendor")}
+  <Route path="complaints" element={<VendorApprovalGuard><ComplaintsPage /></VendorApprovalGuard>} />
+   {vendorChildRoutes("/vendor")}
  </Route>
 
  {/* Manager routes */}

@@ -82,10 +82,10 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge = ({ status, className, label, context = "default" }: StatusBadgeProps) => (
- <span className={cn('status-badge', statusStyles[status], className)}>
- {label ||
- contextLabels[context]?.[status] ||
- statusLabels[status] ||
-  typeof status === "string" ? status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ") : "Unknown"}
- </span>
+  <span className={cn('status-badge', typeof status === "string" ? statusStyles[status] : undefined, className)}>
+  {label ||
+  contextLabels[context]?.[status] ||
+  statusLabels[status] ||
+  (typeof status === "string" ? status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ") : "Unknown")}
+  </span>
 );

@@ -270,7 +270,7 @@ const statusConfig = {
     if (chargeTypesQuery.isError) entries.push({ label: "Charge Types", error: chargeTypesQuery.error as Error, retry: () => chargeTypesQuery.refetch() });
     if (auditQuery.isError) entries.push({ label: "Audit Events", error: auditQuery.error as Error, retry: () => auditQuery.refetch() });
     return entries;
-  }, [paymentsQuery.isError, paymentsQuery.error, paymentsQuery.refetch, ticketsQuery.isError, ticketsQuery.error, ticketsQuery.refetch, utilityChargesQuery.isError, utilityChargesQuery.error, utilityChargesQuery.refetch, penaltiesQuery.isError, penaltiesQuery.error, penaltiesQuery.refetch, chargeTypesQuery.isError, chargeTypesQuery.error, chargeTypesQuery.refetch, auditQuery.isError, auditQuery.error, auditQuery.refetch]);
+  }, [paymentsQuery, ticketsQuery, utilityChargesQuery, penaltiesQuery, chargeTypesQuery, auditQuery]);
 
   const handleRetryAll = () => {
     errorEntries.forEach((entry) => entry.retry());

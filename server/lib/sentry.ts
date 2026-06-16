@@ -1,3 +1,6 @@
+import crypto from "node:crypto";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 import type { IncomingMessage } from "node:http";
 
 interface SentryConfig {
@@ -108,16 +111,74 @@ class SentryClient {
     return { frames };
   }
 
+  private parseDsn(): { host: string; projectId: string; publicKey: string; secretKey: string } | null {
+    try {
+      const url = new URL(this.config.dsn);
+      const [publicKey, secretKey] = (url.username || "").split(":");
+      return {
+        host: url.hostname,
+        projectId: url.pathname.replace(/^\//, ""),
+        publicKey,
+        secretKey: secretKey || "",
+      };
+    } catch {
+      return null;
+    }
+  }
+
   private sendEvent(event: unknown) {
-    // In a real implementation, this would send to Sentry API
-    // For now, we'll log it (can be replaced with actual HTTP call)
-    console.error("[Sentry]", JSON.stringify(event));
+    const parsed = this.parseDsn();
+    if (!parsed) {
+      console.error("[Sentry] Invalid DSN, cannot send event");
+      return;
+    }
+
+    const body = JSON.stringify({
+      event_id: crypto.randomUUID().replace(/-/g, ""),
+      sent_at: new Date().toISOString(),
+      ...(event as Record<string, unknown>),
+    });
+
+    const isHttps = this.config.dsn.startsWith("https");
+    const requester = isHttps ? httpsRequest : httpRequest;
+
+    const req = requester(
+      {
+        hostname: parsed.host,
+        port: isHttps ? 443 : 80,
+        path: `/api/${parsed.projectId}/store/`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+          "X-Sentry-Auth": `Sentry sentry_version=7, sentry_client=mmSentry/1.0.0, sentry_key=${parsed.publicKey}`,
+        },
+        timeout: 5_000,
+      },
+      (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          console.error(`[Sentry] API returned ${res.statusCode}`);
+        }
+        res.resume();
+      },
+    );
+
+    req.on("error", (err) => {
+      console.error("[Sentry] Failed to send event:", err.message);
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      console.error("[Sentry] Request timed out");
+    });
+
+    req.write(body);
+    req.end();
   }
 
   setUser(user: SentryContext["user"]) {
-    // Store user context for subsequent events
     if (this.enabled) {
-      console.debug("[Sentry] User context set:", user);
+      console.debug("[Sentry] User context set:", user?.id);
     }
   }
 

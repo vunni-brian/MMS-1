@@ -100,3 +100,31 @@ export const setLogLevel = (level: string) => {
   const newLogger = new PinoLikeLogger({}, level);
   Object.assign(defaultLogger, newLogger);
 };
+
+// Enable JSON log output by setting MMS_JSON_LOG=true
+const useJsonLog = process.env.MMS_JSON_LOG === "true" || process.env.NODE_ENV === "production";
+
+if (useJsonLog) {
+  const jsonLogger: Logger = {
+    info: (message: string, context?: LogContext) => {
+      if (defaultLogger["level"] !== "debug" && defaultLogger["level"] !== "info") return;
+      console.log(JSON.stringify({ level: "info", msg: message, time: new Date().toISOString(), ...context }));
+    },
+    error: (message: string, error?: Error, context?: LogContext) => {
+      console.error(JSON.stringify({
+        level: "error", msg: message, time: new Date().toISOString(),
+        error: error ? { message: error.message, stack: error.stack } : undefined,
+        ...context,
+      }));
+    },
+    warn: (message: string, context?: LogContext) => {
+      console.warn(JSON.stringify({ level: "warn", msg: message, time: new Date().toISOString(), ...context }));
+    },
+    debug: (message: string, context?: LogContext) => {
+      if (defaultLogger["level"] !== "debug") return;
+      console.debug(JSON.stringify({ level: "debug", msg: message, time: new Date().toISOString(), ...context }));
+    },
+    child: () => jsonLogger,
+  };
+  Object.assign(defaultLogger, jsonLogger);
+}

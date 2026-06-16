@@ -327,29 +327,29 @@ const ComplaintsPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="font-bold text-slate-700">Category</Label>
+              <Label htmlFor="complaint-category" className="font-bold text-slate-700">Category</Label>
               <Select value={newTicket.category} onValueChange={(v: TicketCategory) => setNewTicket((c) => ({ ...c, category: v }))}>
-                <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="complaint-category" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="font-bold text-slate-700">Severity</Label>
+              <Label htmlFor="complaint-severity" className="font-bold text-slate-700">Severity</Label>
               <Select value={newTicket.priority} onValueChange={(v: TicketPriority) => setNewTicket((c) => ({ ...c, priority: v }))}>
-                <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="complaint-severity" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="font-bold text-slate-700">Subject</Label>
-              <Input className="border-slate-300 rounded-lg" value={newTicket.subject} onChange={(e) => setNewTicket((c) => ({ ...c, subject: e.target.value }))} />
+              <Label htmlFor="complaint-subject" className="font-bold text-slate-700">Subject</Label>
+              <Input id="complaint-subject" className="border-slate-300 rounded-lg" value={newTicket.subject} onChange={(e) => setNewTicket((c) => ({ ...c, subject: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="font-bold text-slate-700">Description</Label>
+                <Label htmlFor="complaint-description" className="font-bold text-slate-700">Description</Label>
                 <span className={`text-xs ${newTicket.description.length < 20 ? "text-slate-400" : "text-emerald-600"}`}>{newTicket.description.length} / 20 min</span>
               </div>
-              <Textarea className="border-slate-300 rounded-lg" rows={4} value={newTicket.description} onChange={(e) => setNewTicket((c) => ({ ...c, description: e.target.value }))} placeholder="Describe the issue clearly — include location, what happened, and when." />
+              <Textarea id="complaint-description" className="border-slate-300 rounded-lg" rows={4} value={newTicket.description} onChange={(e) => setNewTicket((c) => ({ ...c, description: e.target.value }))} placeholder="Describe the issue clearly — include location, what happened, and when." />
               {newTicket.description.length > 0 && newTicket.description.length < 20 && (
                 <p className="text-xs text-amber-600">Please add more detail so the manager can understand the issue.</p>
               )}
@@ -435,20 +435,20 @@ const ComplaintsPage = () => {
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">Manager Response</p>
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Update Status</Label>
+                    <Label htmlFor="ticket-update-status" className="font-bold text-slate-700">Update Status</Label>
                     <Select value={managerUpdate.status} onValueChange={(v: TicketStatus) => setManagerUpdate((c) => ({ ...c, status: v }))}>
-                      <SelectTrigger className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
+                      <SelectTrigger id="ticket-update-status" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                       <SelectContent>{nextStatusOptions(selected.status).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500">Status changes are written to the audit log.</p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Resolution / Closure Note</Label>
-                    <Textarea className="border-slate-300 rounded-lg" rows={3} value={managerUpdate.resolutionNote} onChange={(e) => setManagerUpdate((c) => ({ ...c, resolutionNote: e.target.value }))} />
+                    <Label htmlFor="ticket-resolution-note" className="font-bold text-slate-700">Resolution / Closure Note</Label>
+                    <Textarea id="ticket-resolution-note" className="border-slate-300 rounded-lg" rows={3} value={managerUpdate.resolutionNote} onChange={(e) => setManagerUpdate((c) => ({ ...c, resolutionNote: e.target.value }))} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700">Staff Note</Label>
-                    <Textarea className="border-slate-300 rounded-lg" rows={2} value={managerUpdate.note} onChange={(e) => setManagerUpdate((c) => ({ ...c, note: e.target.value }))} />
+                    <Label htmlFor="ticket-staff-note" className="font-bold text-slate-700">Staff Note</Label>
+                    <Textarea id="ticket-staff-note" className="border-slate-300 rounded-lg" rows={2} value={managerUpdate.note} onChange={(e) => setManagerUpdate((c) => ({ ...c, note: e.target.value }))} />
                   </div>
                   <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={managerUpdate.internal} onChange={(e) => setManagerUpdate((c) => ({ ...c, internal: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />

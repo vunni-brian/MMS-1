@@ -4,6 +4,7 @@ import type { ServerResponse } from "node:http";
 import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, readRawBody, sendJson, type RouteDefinition } from "../lib/http.ts";
+import { assertMaxLength, MAX_NOTE_LENGTH, MAX_REASON_LENGTH, MAX_REFERENCE_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { getPaymentItemLabel, getPaymentReference, getPaymentSuccessMessage, getVendorPaymentNotification } from "../lib/payment-notifications.ts";
 import { getPenaltyDisplayName } from "../lib/penalties.ts";
 import { getPesapalPaymentOutcome, getPesapalTransactionStatus, submitPesapalOrder } from "../lib/pesapal.ts";
@@ -768,6 +769,9 @@ export const paymentRoutes: RouteDefinition[] = [
         params.push(session.user.id);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const payments = await all<{
         id: string;
@@ -801,7 +805,7 @@ export const paymentRoutes: RouteDefinition[] = [
         utility_charge_type: string | null;
         utility_charge_billing_period: string | null;
         penalty_reason: string | null;
-      }>(`${paymentSelect} ${whereClause} ORDER BY payments.created_at DESC`, params);
+      }>(`${paymentSelect} ${whereClause} ORDER BY payments.created_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
       sendJson(res, 200, { payments: payments.map(mapPayment) });
     },
   },
@@ -838,6 +842,10 @@ export const paymentRoutes: RouteDefinition[] = [
       }
 
       if (body.receiptFile) {
+        assertMaxLength(body.receiptNumber?.trim(), MAX_REFERENCE_LENGTH, "Receipt number");
+        assertMaxLength(body.receiptNote?.trim(), MAX_NOTE_LENGTH, "Receipt note");
+        if (body.receiptNumber) body.receiptNumber = sanitizeText(body.receiptNumber.trim());
+        if (body.receiptNote) body.receiptNote = sanitizeText(body.receiptNote.trim());
         validateFilePayload(body.receiptFile, allowedReceiptTypes, true);
         const target = await getManualPaymentTarget({
           bookingId,
@@ -1503,7 +1511,7 @@ export const paymentRoutes: RouteDefinition[] = [
     method: "POST",
     path: "/payments/:id/verify",
     handler: async ({ req, res, auth, params }) => {
-      const { session } = resolveScopedMarket(auth, "payment:read");
+      const { session } = resolveScopedMarket(auth, "payment:create");
       if (!["manager", "official", "admin"].includes(session.user.role)) {
         throw new HttpError(403, "Only staff can verify payment receipts.");
       }
@@ -1524,10 +1532,11 @@ export const paymentRoutes: RouteDefinition[] = [
       if (!body.status || !["verified", "rejected"].includes(body.status)) {
         throw new HttpError(400, "Use verified or rejected as the receipt review status.");
       }
-      const reason = body.reason?.trim() || null;
+      const reason = sanitizeText(body.reason?.trim()) || null;
       if (body.status === "rejected" && !reason) {
         throw new HttpError(400, "A rejection reason is required.");
       }
+      assertMaxLength(reason, MAX_REASON_LENGTH, "Verification reason");
 
       await completePayment({
         paymentId: payment.id,

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import {
   ArrowRight,
   BarChart3,
@@ -103,14 +104,9 @@ const Index = () => {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-xl font-bold text-slate-900"
+            className="flex items-center gap-2"
           >
-            <img
-              src="/images/mms-logo.svg"
-              alt="MMS"
-              className="h-8 w-8"
-            />
-            <span>MMS</span>
+            <BrandLogo size="md" />
           </button>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
@@ -409,10 +405,7 @@ const Index = () => {
       <footer className="border-t border-slate-200 bg-white px-6 py-12">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="flex items-center gap-2">
-              <img src="/images/mms-logo.svg" alt="MMS" className="h-8 w-8" />
-              <span className="font-semibold text-slate-900">MMS</span>
-            </div>
+            <BrandLogo size="sm" />
             <div className="flex gap-6 text-sm text-slate-600">
               <a href="#features" className="hover:text-slate-900">Features</a>
               <a href="#process" className="hover:text-slate-900">Process</a>

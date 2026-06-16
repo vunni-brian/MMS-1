@@ -3,6 +3,7 @@ import { all, createId, get, logAuditEvent, queueNotification, run } from "../li
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { getPenaltyCancelledMessage, getPenaltyCreatedMessage, getPenaltyNotificationChannels } from "../lib/penalties.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
+import { assertMaxLength, MAX_REASON_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 
 const penaltySelect = `
@@ -157,6 +158,9 @@ export const penaltyRoutes: RouteDefinition[] = [
         params.push(statusFilter);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const penalties = await all<Parameters<typeof mapPenalty>[0]>(
         `${penaltySelect}
@@ -168,8 +172,9 @@ export const penaltyRoutes: RouteDefinition[] = [
              WHEN 'paid' THEN 2
              ELSE 3
            END,
-           penalties.created_at DESC`,
-        params,
+           penalties.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, limit, offset],
       );
 
       sendJson(res, 200, { penalties: penalties.map(mapPenalty) });
@@ -194,6 +199,8 @@ export const penaltyRoutes: RouteDefinition[] = [
       if (!body.vendorId || !body.reason?.trim()) {
         throw new HttpError(400, "Vendor and reason are required.");
       }
+      body.reason = sanitizeText(body.reason!.trim());
+      assertMaxLength(body.reason, MAX_REASON_LENGTH, "Penalty reason");
       const amount = Number(body.amount || 0);
       if (!Number.isFinite(amount) || amount <= 0) {
         throw new HttpError(400, "Penalty amount must be greater than zero.");

@@ -3,6 +3,7 @@ import { LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { getNavigationIdentity } from "@/config/pageIdentity";
 import { roleDescriptions, getNavTarget, getInitials } from "./navigation";
@@ -92,14 +93,7 @@ export const Sidebar = ({
         )}
       >
         <div className="mms-sidebar-brand flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border/20 px-4 bg-gradient-to-r from-sidebar/50 to-transparent">
-          <div className="relative">
-            <img src="/images/mms-logo.svg" alt="MMS logo" className="h-9 w-9 shrink-0 rounded-xl border border-white/10 bg-white/10 backdrop-blur-sm object-contain shadow-lg" />
-            <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 border-2 border-sidebar shadow-sm" />
-          </div>
-          <div className={cn("min-w-0 flex-1", sidebarCollapsed && "lg:hidden")}>
-            <p className="truncate text-base font-bold leading-tight tracking-tight text-white">MMS</p>
-            <p className="truncate text-[10px] font-medium leading-4 text-white/70 uppercase tracking-widest">Market Management</p>
-          </div>
+          <BrandLogo variant="sidebar" size="lg" showText={!sidebarCollapsed} showTagline={!sidebarCollapsed} showStatusDot />
           <button
             type="button"
             aria-label="Close navigation"

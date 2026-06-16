@@ -1,6 +1,7 @@
 import { all, createId, get, logAuditEvent, queueNotification, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
+import { assertMaxLength, MAX_DESCRIPTION_LENGTH, MAX_NOTE_LENGTH, MAX_TITLE_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 
 const mapRequest = (row: {
@@ -78,6 +79,9 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         params.push(session.user.id);
       }
 
+      const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 50)), 100);
+      const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
       const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
       const rows = await all<{
         id: string;
@@ -96,7 +100,7 @@ export const resourceRequestRoutes: RouteDefinition[] = [
         reviewed_by_name: string | null;
         created_at: string;
         updated_at: string;
-      }>(`${selectSql} ${whereClause} ORDER BY resource_requests.created_at DESC`, params);
+      }>(`${selectSql} ${whereClause} ORDER BY resource_requests.created_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
 
       sendJson(res, 200, { requests: rows.map(mapRequest) });
     },
@@ -126,6 +130,10 @@ export const resourceRequestRoutes: RouteDefinition[] = [
       if (!body.title?.trim() || !body.description?.trim()) {
         throw new HttpError(400, "Title and description are required.");
       }
+      assertMaxLength(body.title?.trim(), MAX_TITLE_LENGTH, "Title");
+      assertMaxLength(body.description?.trim(), MAX_DESCRIPTION_LENGTH, "Description");
+      body.title = sanitizeText(body.title!.trim());
+      body.description = sanitizeText(body.description!.trim());
       if (!body.amountRequested || body.amountRequested <= 0) {
         throw new HttpError(400, "Amount requested must be greater than zero.");
       }
@@ -228,6 +236,8 @@ export const resourceRequestRoutes: RouteDefinition[] = [
       if (body.status === "approved" && (!body.approvedAmount || body.approvedAmount <= 0)) {
         throw new HttpError(400, "Approved amount must be greater than zero.");
       }
+      if (body.reviewNote) body.reviewNote = sanitizeText(body.reviewNote.trim());
+      assertMaxLength(body.reviewNote?.trim(), MAX_NOTE_LENGTH, "Review note");
 
       const timestamp = nowIso();
       await run(

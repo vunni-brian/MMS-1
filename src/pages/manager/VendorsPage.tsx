@@ -555,12 +555,12 @@ const VendorsPage = () => {
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                   <p className="font-bold text-slate-900">Decision Panel</p>
                   <div className="space-y-1.5">
-                    <Label>Manager Notes</Label>
-                    <Textarea value={managerNotes} onChange={(e) => setManagerNotes(e.target.value)} rows={2} />
+                    <Label htmlFor="manager-notes">Manager Notes</Label>
+                    <Textarea id="manager-notes" value={managerNotes} onChange={(e) => setManagerNotes(e.target.value)} rows={2} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Reject Reason</Label>
-                    <Textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows={2} />
+                    <Label htmlFor="reject-reason">Reject Reason</Label>
+                    <Textarea id="reject-reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows={2} />
                   </div>
                   <div className="flex gap-2">
                     <Button

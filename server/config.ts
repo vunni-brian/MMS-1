@@ -149,4 +149,5 @@ export const config: AppConfig = {
   pesapalUseIframe,
   paymentsEnabled,
   devMode,
+  cspDirectives: process.env.CSP_DIRECTIVES?.trim() || undefined,
 };

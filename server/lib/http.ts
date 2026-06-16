@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { AppConfig, SessionAuth } from "../types.ts";
+import { logger } from "./logger.ts";
 import { nowIso } from "./security.ts";
 
 export class HttpError extends Error {
@@ -42,7 +43,7 @@ export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Credentials", "true");
 };
 
@@ -87,7 +88,7 @@ export const sendError = (res: ServerResponse, error: unknown) => {
     });
   }
 
-  console.error(error);
+  logger.error("Unhandled request error", error instanceof Error ? error : undefined, { error: String(error) });
   return sendJson(res, 500, {
     error: "Internal server error.",
     timestamp: nowIso(),
