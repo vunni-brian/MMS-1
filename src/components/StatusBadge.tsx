@@ -86,6 +86,6 @@ export const StatusBadge = ({ status, className, label, context = "default" }: S
  {label ||
  contextLabels[context]?.[status] ||
  statusLabels[status] ||
- status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ")}
+  typeof status === "string" ? status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ") : "Unknown"}
  </span>
 );
