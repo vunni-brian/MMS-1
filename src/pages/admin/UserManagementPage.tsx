@@ -40,7 +40,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/EmptyState";
 import {
-  ConsolePage,
   DataTableFrame,
   DetailSheet,
   LoadingState,
@@ -257,19 +256,16 @@ const UserManagementPage = () => {
  });
  };
 
- if (isLoading) {
- return (
- <ConsolePage>
- <LoadingState rows={1} itemClassName="h-28 rounded-lg" />
- <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-24 rounded-lg" />
- <LoadingState rows={2} itemClassName="h-[320px] rounded-lg" />
- </ConsolePage>
- );
- }
+  if (isLoading) {
+  return (<>
+  <LoadingState rows={1} itemClassName="h-28 rounded-lg" />
+  <LoadingState rows={4} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" itemClassName="h-24 rounded-lg" />
+  <LoadingState rows={2} itemClassName="h-[320px] rounded-lg" />
+  </>);
+  }
 
- return (
- <ConsolePage>
- <PageHeader
+  return (<>
+  <PageHeader
  eyebrow="Personnel administration"
  title="Personnel & Access Control"
  description="Invite staff, assign roles, scope permissions, and keep manager and official access under admin control."
@@ -537,8 +533,7 @@ const UserManagementPage = () => {
  </form>
  </DialogContent>
  </Dialog>
- </ConsolePage>
- );
+  </>);
 };
 
 const UserScopeSheet = ({

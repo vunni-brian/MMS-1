@@ -7,7 +7,7 @@ interface SettingsSection {
   icon: ElementType;
   keywords: string[];
   count?: number;
-  content: ReactNode;
+  content?: ReactNode;
 }
 
 export type { SettingsSection };

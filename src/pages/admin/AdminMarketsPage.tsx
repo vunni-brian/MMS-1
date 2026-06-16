@@ -209,8 +209,7 @@ const AdminMarketsPage = () => {
     );
   }
 
-  return (
-    <div className="space-y-6">
+  return (<>
       {/* Header */}
       <div>
         <div className="flex items-center justify-between">
@@ -437,8 +436,7 @@ const AdminMarketsPage = () => {
               })}
             </div>
           )}
-    </div>
-  );
+  </>);
 };
 
 export default AdminMarketsPage;

@@ -87,8 +87,7 @@ const AdminDashboard = () => {
  const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
  const systemStatus = systemOk ? "healthy" : "degraded";
 
-  return (
-    <div className="space-y-6">
+  return (<>
       {/* Header */}
       <div>
         <div className="flex items-center gap-3">
@@ -247,8 +246,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+  </>);
 };
 
 export default AdminDashboard;

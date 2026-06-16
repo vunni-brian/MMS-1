@@ -29,6 +29,7 @@ const OfficialAnalyticsPage = lazy(() =>
  import("./pages/official/OversightPages").then((module) => ({ default: module.OfficialAnalyticsPage })),
 );
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminUsersPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
 const AdminAlertsPage = lazy(() => import("./pages/admin/AdminAlertsPage"));
@@ -42,7 +43,23 @@ const BillingPage = lazy(() => import("./pages/shared/BillingPage"));
 const CoordinationPage = lazy(() => import("./pages/shared/CoordinationPage"));
 const AnnouncementsPage = lazy(() => import("./pages/shared/AnnouncementsPage"));
 const ProfileSettingsPage = lazy(() => import("./pages/shared/ProfileSettingsPage"));
-const SettingsPage = lazy(() => import("./pages/shared/SettingsPage"));
+const SettingsLayout = lazy(() => import("./pages/shared/SettingsLayout"));
+const AccountSettingsPage = lazy(() => import("./pages/shared/settings/AccountSettingsPage"));
+const SecuritySettingsPage = lazy(() => import("./pages/shared/settings/SecuritySettingsPage"));
+const NotificationsSettingsPage = lazy(() => import("./pages/shared/settings/NotificationsSettingsPage"));
+const PreferencesSettingsPage = lazy(() => import("./pages/shared/settings/PreferencesSettingsPage"));
+const PaymentsSettingsPage = lazy(() => import("./pages/shared/settings/PaymentsSettingsPage"));
+const DataSettingsPage = lazy(() => import("./pages/shared/settings/DataSettingsPage"));
+const ActivitySettingsPage = lazy(() => import("./pages/shared/settings/ActivitySettingsPage"));
+const AdminGeneralSettingsPage = lazy(() => import("./pages/shared/settings/AdminGeneralSettingsPage"));
+const AdminSystemSettingsPage = lazy(() => import("./pages/shared/settings/AdminSystemSettingsPage"));
+const IntegrationsSettingsPage = lazy(() => import("./pages/shared/settings/IntegrationsSettingsPage"));
+const FeatureManagementSettingsPage = lazy(() => import("./pages/shared/settings/FeatureManagementSettingsPage"));
+const EmailSettingsPage = lazy(() => import("./pages/shared/settings/EmailSettingsPage"));
+const SmsSettingsPage = lazy(() => import("./pages/shared/settings/SmsSettingsPage"));
+const LoggingSettingsPage = lazy(() => import("./pages/shared/settings/LoggingSettingsPage"));
+const ManagerOperationsSettingsPage = lazy(() => import("./pages/shared/settings/ManagerOperationsSettingsPage"));
+const ComplianceOversightSettingsPage = lazy(() => import("./pages/shared/settings/ComplianceOversightSettingsPage"));
 const VendorsPage = lazy(() => import("./pages/manager/VendorsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -85,8 +102,25 @@ const sharedChildRoutes = (basePath: string) => (
     <Route path="audit" element={<AuditPage />} />
     <Route path="coordination" element={<CoordinationPage />} />
     <Route path="announcements" element={<AnnouncementsPage />} />
-    <Route path="notifications" element={<Navigate to={`${basePath}/settings?section=notifications`} replace />} />
-    <Route path="settings" element={<SettingsPage />} />
+    <Route path="notifications" element={<Navigate to={`${basePath}/settings/notifications`} replace />} />
+    <Route path="settings" element={<SettingsLayout />}>
+      <Route path="account" element={<AccountSettingsPage />} />
+      <Route path="security" element={<SecuritySettingsPage />} />
+      <Route path="notifications" element={<NotificationsSettingsPage />} />
+      <Route path="preferences" element={<PreferencesSettingsPage />} />
+      <Route path="payments" element={<PaymentsSettingsPage />} />
+      <Route path="data" element={<DataSettingsPage />} />
+      <Route path="activity" element={<ActivitySettingsPage />} />
+      <Route path="general" element={<AdminGeneralSettingsPage />} />
+      <Route path="system" element={<AdminSystemSettingsPage />} />
+      <Route path="integrations" element={<IntegrationsSettingsPage />} />
+      <Route path="features" element={<FeatureManagementSettingsPage />} />
+      <Route path="email" element={<EmailSettingsPage />} />
+      <Route path="sms" element={<SmsSettingsPage />} />
+      <Route path="logging" element={<LoggingSettingsPage />} />
+      <Route path="market-operations" element={<ManagerOperationsSettingsPage />} />
+      <Route path="oversight" element={<ComplianceOversightSettingsPage />} />
+    </Route>
     <Route path="profile" element={<ProfileSettingsPage />} />
   </>
 );
@@ -164,12 +198,14 @@ const App = () => (
  </ProtectedRoute>
  }
  >
- <Route index element={<AdminDashboard />} />
- <Route path="users" element={<AdminUsersPage />} />
- <Route path="markets" element={<AdminMarketsPage />} />
- <Route path="alerts" element={<AdminAlertsPage />} />
- <Route path="integrations" element={<AdminIntegrationsPage />} />
-  {sharedChildRoutes("/admin")}
+  <Route element={<AdminLayout />}>
+    <Route index element={<AdminDashboard />} />
+    <Route path="users" element={<AdminUsersPage />} />
+    <Route path="markets" element={<AdminMarketsPage />} />
+    <Route path="alerts" element={<AdminAlertsPage />} />
+    <Route path="integrations" element={<AdminIntegrationsPage />} />
+  </Route>
+   {sharedChildRoutes("/admin")}
   </Route>
 
   <Route path="*" element={<NotFound />} />
