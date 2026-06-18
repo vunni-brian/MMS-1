@@ -256,8 +256,16 @@ const SettingsLayout = () => {
     : roleSections;
 
   if (!user) {
-    return null;
+    return (
+      <div className="px-4 py-10">
+        <div className="mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="text-sm font-medium text-slate-900">Loading settings…</div>
+          <div className="mt-2 text-xs text-slate-500">Restoring your session.</div>
+        </div>
+      </div>
+    );
   }
+
 
   const isRootPath = location.pathname.endsWith("/settings");
   const legacySection = searchParams.get("section");
@@ -294,16 +302,19 @@ const SettingsLayout = () => {
         />
 
         <section className="settings-search-panel">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            aria-label={t("settings:layout.searchLabel")}
-            placeholder={t("settings:layout.searchPlaceholder")}
-            value={settingsSearch}
-            onChange={(event) => setSettingsSearch(event.target.value)}
-            className="pl-9"
-          />
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              aria-label={t("settings:layout.searchLabel")}
+              placeholder={t("settings:layout.searchPlaceholder")}
+              value={settingsSearch}
+              onChange={(event) => setSettingsSearch(event.target.value)}
+              className="pl-9"
+            />
+          </div>
         </section>
+
 
         <section className="settings-section-grid" aria-label={settingsSearch ? t("settings:layout.searchResultsLabel") : t("settings:layout.sectionsLabel")}>
           {matchingSections.length === 0 ? (
@@ -357,10 +368,13 @@ const SettingsLayout = () => {
           <div className="settings-content">
             <div className={cn("settings-detail-grid", showContextPanel && "has-context")}>
               <DashboardErrorBoundary>
-                <main className="min-w-0 space-y-4" aria-label={active?.label}>
-                  <Outlet />
-                </main>
+                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <main className="min-w-0 space-y-4 p-5" aria-label={active?.label}>
+                    <Outlet />
+                  </main>
+                </div>
               </DashboardErrorBoundary>
+
 
               {showContextPanel && (
                 <aside className="settings-context-panel">
