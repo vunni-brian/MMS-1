@@ -352,3 +352,8 @@
 [2m20:47:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
 [2m20:47:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
 [2m20:47:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m20:58:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/contexts/AuthContext.tsx, /src/index.css[22m
+[2m20:59:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m21:32:09[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+[2m21:32:09[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+[2m21:32:09[22m [36m[1m[vite][22m[39m server restarted.
