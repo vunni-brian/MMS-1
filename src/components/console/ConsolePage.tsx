@@ -1,4 +1,5 @@
 import type { ChangeEvent, ElementType, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 import { Inbox } from "lucide-react";
 
@@ -42,8 +43,8 @@ export const ConsolePage = ({ children, className, kind, accent }: ConsolePagePr
  data-page-type={pageType}
  >
  {children}
- </div>
- );
+   </div>
+  );
 };
 
 interface WorkspacePageProps {
@@ -218,12 +219,12 @@ const kpiToneStyles: Record<NonNullable<KpiItem["tone"]>, string> = {
  info: "border-info/25 bg-info/10 text-info",
 };
 
-const kpiTrendLabels: Record<NonNullable<KpiItem["tone"]>, string> = {
- default: "Stable",
- success: "On track",
- warning: "Watch",
- destructive: "Critical",
- info: "Live",
+const kpiTrendLabelKeys: Record<NonNullable<KpiItem["tone"]>, string> = {
+  default: "kpi:stable",
+  success: "kpi:onTrack",
+  warning: "kpi:watch",
+  destructive: "kpi:critical",
+  info: "kpi:live",
 };
 
 const kpiSparklineStyles: Record<NonNullable<KpiItem["tone"]>, string> = {
@@ -292,8 +293,9 @@ interface KpiStripProps {
 }
 
 export const KpiStrip = ({ items, columns = "grid-cols-2 lg:grid-cols-4" }: KpiStripProps) => {
- const location = useLocation();
- const pageType = getPageType(location.pathname);
+  const { t } = useTranslation();
+  const location = useLocation();
+  const pageType = getPageType(location.pathname);
 
  if (pageType !== "dashboard") {
  return null;
@@ -323,7 +325,7 @@ export const KpiStrip = ({ items, columns = "grid-cols-2 lg:grid-cols-4" }: KpiS
  <div className="mt-2 flex items-end justify-between gap-2">
  <div className="min-w-0">
  <div className={cn("inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-4", kpiToneStyles[tone])}>
- {item.trend || kpiTrendLabels[tone]}
+  {item.trend || t(kpiTrendLabelKeys[tone])}
  </div>
  {item.detail && <div className="mt-1 text-[11px] leading-4 text-muted-foreground">{item.detail}</div>}
  </div>
@@ -439,36 +441,39 @@ interface FileUploadCardProps {
  onChange: (file: File | null) => void;
 }
 
-export const FileUploadCard = ({ id, label, description, value, accept, capture, disabled = false, className, onChange }: FileUploadCardProps) => (
- <label
- htmlFor={id}
- className={cn(
- "group block rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 transition-colors",
- disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-primary/40 hover:bg-muted/20",
- className,
- )}
- >
- <div className="flex items-center justify-between gap-3">
- <div>
- <p className="text-sm font-medium">{label}</p>
- {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
- </div>
- <span className="inline-flex h-8 items-center justify-center rounded-lg border border-border/70 bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
- Choose File
- </span>
- </div>
- <p className="mt-2 truncate rounded-lg bg-background px-2.5 py-1.5 text-xs text-muted-foreground">{value || "No file selected"}</p>
- <input
- id={id}
- type="file"
- accept={accept}
- capture={capture}
- disabled={disabled}
- className="sr-only"
- onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.files?.[0] || null)}
- />
- </label>
-);
+export const FileUploadCard = ({ id, label, description, value, accept, capture, disabled = false, className, onChange }: FileUploadCardProps) => {
+  const { t } = useTranslation();
+  return (
+  <label
+  htmlFor={id}
+  className={cn(
+  "group block rounded-lg border border-dashed border-border/80 bg-muted/10 p-3 transition-colors",
+  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-primary/40 hover:bg-muted/20",
+  className,
+  )}
+  >
+  <div className="flex items-center justify-between gap-3">
+  <div>
+  <p className="text-sm font-medium">{label}</p>
+  {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
+  </div>
+  <span className="inline-flex h-8 items-center justify-center rounded-lg border border-border/70 bg-background px-3 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+  {t("console:chooseFile")}
+  </span>
+  </div>
+  <p className="mt-2 truncate rounded-lg bg-background px-2.5 py-1.5 text-xs text-muted-foreground">{value || t("common:noFileSelected")}</p>
+  <input
+  id={id}
+  type="file"
+  accept={accept}
+  capture={capture}
+  disabled={disabled}
+  className="sr-only"
+  onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.files?.[0] || null)}
+  />
+  </label>
+  );
+};
 
 interface PanelProps {
  title?: string;
@@ -548,8 +553,10 @@ export const SegmentedControl = <Value extends string,>({
  options,
  onChange,
  className,
-}: SegmentedControlProps<Value>) => (
- <div className={cn("flex flex-wrap gap-1 rounded-lg bg-muted p-1", className)} role="tablist" aria-label="Tab navigation">
+}: SegmentedControlProps<Value>) => {
+ const { t } = useTranslation();
+ return (
+ <div className={cn("flex flex-wrap gap-1 rounded-lg bg-muted p-1", className)} role="tablist" aria-label={t("console:tabNavigation")}>
  {options.map((option) => {
  const selected = option.value === value;
  return (
@@ -584,8 +591,9 @@ export const SegmentedControl = <Value extends string,>({
  </button>
  );
  })}
- </div>
-);
+  </div>
+ );
+};
 
 interface DetailSheetProps {
  open: boolean;
@@ -596,27 +604,30 @@ interface DetailSheetProps {
  className?: string;
 }
 
-export const DetailSheet = ({ open, onOpenChange, title, description, children, className }: DetailSheetProps) => (
- <Sheet open={open} onOpenChange={onOpenChange}>
- <SheetContent 
- className={cn("w-full overflow-y-auto sm:max-w-xl lg:max-w-2xl", className)}
- aria-describedby={description ? "detail-description" : undefined}
- >
- <SheetHeader className="pr-6">
- <SheetTitle className="font-heading">{title}</SheetTitle>
- {description && <SheetDescription id="detail-description">{description}</SheetDescription>}
- </SheetHeader>
- <div className="mt-4">{children}</div>
- {/* Mobile close action. */}
- <div className="sticky bottom-0 mt-6 border-t border-border/70 bg-background pt-3 sm:hidden">
- <button
- type="button"
- onClick={() => onOpenChange(false)}
- className="flex h-11 w-full items-center justify-center rounded-lg border border-border/70 bg-muted/40 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
- >
- Close
- </button>
- </div>
- </SheetContent>
- </Sheet>
-);
+export const DetailSheet = ({ open, onOpenChange, title, description, children, className }: DetailSheetProps) => {
+  const { t } = useTranslation();
+  return (
+  <Sheet open={open} onOpenChange={onOpenChange}>
+  <SheetContent 
+  className={cn("w-full overflow-y-auto sm:max-w-xl lg:max-w-2xl", className)}
+  aria-describedby={description ? "detail-description" : undefined}
+  >
+  <SheetHeader className="pr-6">
+  <SheetTitle className="font-heading">{title}</SheetTitle>
+  {description && <SheetDescription id="detail-description">{description}</SheetDescription>}
+  </SheetHeader>
+  <div className="mt-4">{children}</div>
+  {/* Mobile close action. */}
+  <div className="sticky bottom-0 mt-6 border-t border-border/70 bg-background pt-3 sm:hidden">
+  <button
+  type="button"
+  onClick={() => onOpenChange(false)}
+  className="flex h-11 w-full items-center justify-center rounded-lg border border-border/70 bg-muted/40 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+  >
+  {t("common:close")}
+  </button>
+  </div>
+  </SheetContent>
+  </Sheet>
+  );
+};

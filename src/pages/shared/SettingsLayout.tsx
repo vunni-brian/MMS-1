@@ -1,5 +1,6 @@
 import { createContext, useMemo, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   Bell,
@@ -27,22 +28,6 @@ import { cn, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { SectionCard, useSettings, type SettingsSection } from "@/components/settings";
 import type { Role } from "@/types";
 
-const roleLabels: Record<Role, string> = {
-  vendor: "Vendor",
-  manager: "Manager",
-  official: "Official",
-  admin: "Admin",
-};
-
-const settingsDescriptions: Record<Role, string> = {
-  vendor: "Account, security, payments, notifications, preferences, data, and activity controls.",
-  manager: "Market account controls, operations defaults, security, notifications, reports, and activity.",
-  official: "Oversight, compliance alerts, security, preferences, data access, and account activity.",
-  admin: "Platform configuration, system controls, integrations, feature management, security, and audit policy.",
-};
-
-const roleLabel = (role: Role) => roleLabels[role];
-
 const normalize = (value: string) => value.trim().toLowerCase();
 
 type SettingsData = ReturnType<typeof useSettings>;
@@ -52,6 +37,7 @@ export { SettingsDataContext };
 
 const SettingsLayout = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const hook = useSettings(user);
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,28 +50,44 @@ const SettingsLayout = () => {
     activityRows,
   } = hook;
 
+  const roleLabels: Record<Role, string> = {
+    vendor: t("common:roleVendor"),
+    manager: t("common:roleManager"),
+    official: t("common:roleOfficial"),
+    admin: t("common:roleAdmin"),
+  };
+
+  const settingsDescriptions: Record<Role, string> = {
+    vendor: t("settings:description.vendor"),
+    manager: t("settings:description.manager"),
+    official: t("settings:description.official"),
+    admin: t("settings:description.admin"),
+  };
+
+  const roleLabel = (role: Role) => roleLabels[role];
+
   const roleSections: SettingsSection[] = useMemo(() => {
     if (!user) return [];
     const account: SettingsSection = {
       id: "account",
-      label: "Account",
-      summary: "Identity, verification, role scope, and profile shortcut.",
+      label: t("settings:section.account"),
+      summary: t("settings:section.accountSummary"),
       icon: UserCircle,
       keywords: ["account", "profile", "identity", "phone", "email", "market"],
     };
 
     const security: SettingsSection = {
       id: "security",
-      label: "Security",
-      summary: "Password, 2FA, sessions, and sign-in alerts.",
+      label: t("settings:section.security"),
+      summary: t("settings:section.securitySummary"),
       icon: ShieldCheck,
       keywords: ["security", "password", "2fa", "mfa", "sessions", "login"],
     };
 
     const notifications: SettingsSection = {
       id: "notifications",
-      label: "Notifications",
-      summary: "Email, SMS, in-app alerts, and quiet hours.",
+      label: t("settings:section.notifications"),
+      summary: t("settings:section.notificationsSummary"),
       icon: Bell,
       keywords: ["notifications", "sms", "email", "alerts", "quiet hours", "receipts"],
       count: unreadNotifications.length,
@@ -93,24 +95,24 @@ const SettingsLayout = () => {
 
     const preferences: SettingsSection = {
       id: "preferences",
-      label: "Preferences",
-      summary: "Language, time zone, currency, and dashboard behavior.",
+      label: t("settings:section.preferences"),
+      summary: t("settings:section.preferencesSummary"),
       icon: SlidersHorizontal,
       keywords: ["preferences", "language", "time zone", "currency", "date", "dashboard"],
     };
 
     const data: SettingsSection = {
       id: "data",
-      label: user.role === "admin" ? "Data" : "Privacy and Data",
-      summary: "Exports, retention, backups, and data access.",
+      label: user.role === "admin" ? t("settings:section.data") : t("settings:section.privacyAndData"),
+      summary: t("settings:section.dataSummary"),
       icon: Database,
       keywords: ["data", "privacy", "exports", "backup", "retention"],
     };
 
     const activity: SettingsSection = {
       id: "activity",
-      label: "Activity",
-      summary: "Audit events, profile changes, and recent account activity.",
+      label: t("settings:section.activity"),
+      summary: t("settings:section.activitySummary"),
       icon: Activity,
       keywords: ["activity", "audit", "history", "login", "events"],
       count: activityRows.length,
@@ -120,59 +122,59 @@ const SettingsLayout = () => {
       return [
         {
           id: "general",
-          label: "General",
-          summary: "Platform state, runtime mode, and system scope.",
+          label: t("settings:section.general"),
+          summary: t("settings:section.generalSummary"),
           icon: Settings,
           keywords: ["general", "runtime", "platform", "mode", "scope"],
         },
         {
           id: "system",
-          label: "System",
-          summary: "Runtime controls and maintenance behavior.",
+          label: t("settings:section.system"),
+          summary: t("settings:section.systemSummary"),
           icon: Server,
           keywords: ["system", "maintenance", "runtime", "mode"],
         },
         security,
         {
           id: "integrations",
-          label: "Integrations",
-          summary: "Payment, SMS, email, and registry connections.",
+          label: t("settings:section.integrations"),
+          summary: t("settings:section.integrationsSummary"),
           icon: Plug,
           keywords: ["integrations", "pesapal", "sms", "email", "registry", "sendgrid"],
         },
         {
           id: "features",
-          label: "Feature Management",
-          summary: "Enable modules during phased deployment.",
+          label: t("settings:section.featureManagement"),
+          summary: t("settings:section.featureManagementSummary"),
           icon: Flag,
           keywords: ["features", "feature flags", "modules", "rollout"],
         },
         {
           id: "email",
-          label: "Email",
-          summary: "SMTP provider, sender identity, and templates.",
+          label: t("settings:section.email"),
+          summary: t("settings:section.emailSummary"),
           icon: Mail,
           keywords: ["email", "smtp", "sendgrid", "templates"],
         },
         {
           id: "sms",
-          label: "SMS",
-          summary: "SMS provider, sender ID, triggers, and usage.",
+          label: t("settings:section.sms"),
+          summary: t("settings:section.smsSummary"),
           icon: Phone,
           keywords: ["sms", "africa's talking", "sender", "phone"],
         },
         {
           id: "payments",
-          label: "Payments",
-          summary: "Gateway, payment methods, receipts, and fees.",
+          label: t("settings:section.payments"),
+          summary: t("settings:section.paymentsSummary"),
           icon: CreditCard,
           keywords: ["payments", "gateway", "pesapal", "fees", "receipts"],
         },
         data,
         {
           id: "logging",
-          label: "Logging",
-          summary: "Log levels, retention, destinations, and monitoring.",
+          label: t("settings:section.logging"),
+          summary: t("settings:section.loggingSummary"),
           icon: ListChecks,
           keywords: ["logging", "monitoring", "retention", "audit"],
         },
@@ -187,15 +189,15 @@ const SettingsLayout = () => {
         notifications,
         {
           id: "market-operations",
-          label: "Market Operations",
-          summary: "Rent cycle, complaint routing, escalation, and report automation.",
+          label: t("settings:section.marketOperations"),
+          summary: t("settings:section.marketOperationsSummary"),
           icon: Building2,
           keywords: ["market", "operations", "rent", "complaints", "escalation", "reports"],
         },
         {
           id: "payments",
-          label: "Billing",
-          summary: "Payment reminders, receipts, and billing shortcuts.",
+          label: t("settings:section.billing"),
+          summary: t("settings:section.billingSummary"),
           icon: CreditCard,
           keywords: ["billing", "payments", "receipts", "fees"],
         },
@@ -212,8 +214,8 @@ const SettingsLayout = () => {
         notifications,
         {
           id: "oversight",
-          label: "Compliance and Oversight",
-          summary: "SLA thresholds, monitoring alerts, and approval thresholds.",
+          label: t("settings:section.complianceAndOversight"),
+          summary: t("settings:section.complianceAndOversightSummary"),
           icon: ShieldCheck,
           keywords: ["oversight", "compliance", "sla", "monitoring", "approvals", "alerts"],
         },
@@ -229,8 +231,8 @@ const SettingsLayout = () => {
       notifications,
       {
         id: "payments",
-        label: "Payments",
-        summary: "Default payment method, receipts, reminders, and billing history.",
+        label: t("settings:section.payments"),
+        summary: t("settings:section.vendorPaymentsSummary"),
         icon: CreditCard,
         keywords: ["payments", "billing", "receipts", "mobile money"],
       },
@@ -238,7 +240,7 @@ const SettingsLayout = () => {
       data,
       activity,
     ];
-  }, [user, unreadNotifications.length, activityRows.length]);
+  }, [user, unreadNotifications.length, activityRows.length, t]);
 
   const activeSection = location.pathname.split("/").pop() || "account";
   const effectiveActiveSection = roleSections.some((section) => section.id === activeSection)
@@ -248,8 +250,8 @@ const SettingsLayout = () => {
   const searchValue = normalize(settingsSearch);
   const matchingSections = searchValue
     ? roleSections.filter((section) =>
-        normalize([section.label, section.summary, ...section.keywords].join(" ")).includes(searchValue),
-      )
+      normalize([section.label, section.summary, ...section.keywords].join(" ")).includes(searchValue),
+    )
     : roleSections;
 
   if (!user) {
@@ -266,25 +268,25 @@ const SettingsLayout = () => {
   }
 
   const contextRows = [
-    { label: "Current role", value: roleLabel(user.role) },
-    { label: "Market context", value: user.marketName || (user.role === "admin" ? "All markets" : "No market assigned") },
-    { label: "Account created", value: formatHumanDate(user.createdAt) },
+    { label: t("settings:layout.currentRole"), value: roleLabel(user.role) },
+    { label: t("settings:layout.marketContext"), value: user.marketName || (user.role === "admin" ? t("common:allMarkets") : t("common:noMarketAssigned")) },
+    { label: t("settings:layout.accountCreated"), value: formatHumanDate(user.createdAt) },
   ];
 
-  const savedLabel = savedAt ? `Saved ${formatHumanDateTime(savedAt)}` : "Ready";
+  const savedLabel = savedAt ? t("settings:layout.saved", { date: formatHumanDateTime(savedAt) }) : t("settings:layout.ready");
   const showContextPanel = user.role === "manager" || user.role === "official";
 
   return (
     <SettingsDataContext.Provider value={hook}>
       <ConsolePage>
         <PageHeader
-          eyebrow={`${roleLabel(user.role)} workspace`}
-          title={user.role === "admin" ? "Platform Settings" : "Settings"}
+          eyebrow={t("settings:layout.workspace", { role: roleLabel(user.role) })}
+          title={user.role === "admin" ? t("settings:layout.platformSettings") : t("settings:layout.title")}
           description={settingsDescriptions[user.role]}
           meta={
             <>
               <span className="rounded-full bg-muted px-2.5 py-1">{roleLabel(user.role)}</span>
-              <span className="rounded-full bg-muted px-2.5 py-1">{user.marketName || (user.role === "admin" ? "All markets" : "No market assigned")}</span>
+              <span className="rounded-full bg-muted px-2.5 py-1">{user.marketName || (user.role === "admin" ? t("common:allMarkets") : t("common:noMarketAssigned"))}</span>
               <span className="rounded-full bg-muted px-2.5 py-1">{savedLabel}</span>
             </>
           }
@@ -294,18 +296,18 @@ const SettingsLayout = () => {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            aria-label="Search settings"
-            placeholder="Search settings..."
+            aria-label={t("settings:layout.searchLabel")}
+            placeholder={t("settings:layout.searchPlaceholder")}
             value={settingsSearch}
             onChange={(event) => setSettingsSearch(event.target.value)}
             className="pl-9"
           />
         </section>
 
-        <section className="settings-section-grid" aria-label={settingsSearch ? "Settings search results" : "Settings sections"}>
+        <section className="settings-section-grid" aria-label={settingsSearch ? t("settings:layout.searchResultsLabel") : t("settings:layout.sectionsLabel")}>
           {matchingSections.length === 0 ? (
             <div className="col-span-full">
-              <EmptyState title="No matching settings" description="Try searching for password, notifications, receipts, exports, SMS, or 2FA." icon={Search} />
+              <EmptyState title={t("settings:layout.noResults")} description={t("settings:layout.searchHint")} icon={Search} />
             </div>
           ) : (
             matchingSections.map((section) => (
@@ -325,7 +327,7 @@ const SettingsLayout = () => {
         <section className="settings-layout">
           <aside className="settings-nav-panel">
             <div className="mb-2 px-2 py-1">
-              <p className="text-xs font-semibold text-muted-foreground">Settings menu</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("settings:layout.menu")}</p>
             </div>
             {roleSections.map((section) => {
               const Icon = section.icon;
@@ -345,9 +347,9 @@ const SettingsLayout = () => {
             })}
 
             <div className="mt-3 rounded-lg bg-muted/20 p-3">
-              <p className="text-xs font-semibold text-muted-foreground">Current context</p>
-              <p className="mt-2 truncate text-sm font-semibold">{user.marketName || (user.role === "admin" ? "All markets" : "No market assigned")}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{roleLabel(user.role)} access</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("settings:layout.currentContext")}</p>
+              <p className="mt-2 truncate text-sm font-semibold">{user.marketName || (user.role === "admin" ? t("common:allMarkets") : t("common:noMarketAssigned"))}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("settings:layout.roleAccess", { role: roleLabel(user.role) })}</p>
             </div>
           </aside>
 
@@ -366,8 +368,8 @@ const SettingsLayout = () => {
                       <Building2 className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold font-heading">Current Context</p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">Visible on every manager and official settings section.</p>
+                      <p className="text-sm font-semibold font-heading">{t("settings:layout.currentContext")}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("settings:layout.contextHint")}</p>
                     </div>
                   </div>
                   <div className="mt-3 space-y-2">
@@ -379,7 +381,7 @@ const SettingsLayout = () => {
                     ))}
                   </div>
                   <div className="mt-3 rounded-lg border border-info/20 bg-info/10 p-3 text-xs leading-5 text-info">
-                    Settings apply to the active market context unless a platform-wide permission overrides it.
+                    {t("settings:layout.contextNote")}
                   </div>
                 </aside>
               )}
@@ -387,7 +389,7 @@ const SettingsLayout = () => {
 
             <div className="settings-status-note">
               <CheckCircle2 className="h-4 w-4" />
-              <span>Settings changes on this page are stored locally unless a dedicated backend workflow is available.</span>
+              <span>{t("settings:layout.statusNote")}</span>
             </div>
           </div>
         </section>

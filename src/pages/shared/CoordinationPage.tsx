@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Send, Shield, UserCog } from "lucide-react";
 
@@ -32,6 +33,7 @@ const resourceCategoryLabels: Record<ResourceRequestCategory, string> = {
 };
 
 const CoordinationPage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [subject, setSubject] = useState("");
@@ -61,9 +63,9 @@ const CoordinationPage = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["coordination-messages"] });
       setSubject(""); setBody("");
-      setSuccess("Message sent successfully.");
+      setSuccess(t("coordination:messageSent"));
     },
-    onError: (error) => { setError(error instanceof ApiError ? error.message : "Unable to send request update."); },
+    onError: (error) => { setError(error instanceof ApiError ? error.message : t("coordination:unableToSend")); },
   });
 
   const createResourceRequest = useMutation({
@@ -72,21 +74,21 @@ const CoordinationPage = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["resource-requests"] });
       setRequestCategory("budget"); setRequestTitle(""); setRequestDescription(""); setRequestAmount("");
-      setSuccess("Resource request submitted successfully.");
+      setSuccess(t("coordination:requestSubmitted"));
     },
-    onError: (error) => { setError(error instanceof ApiError ? error.message : "Unable to submit resource request."); },
+    onError: (error) => { setError(error instanceof ApiError ? error.message : t("coordination:unableToSubmit")); },
   });
 
   const reviewResourceRequest = useMutation({
     mutationFn: ({ request, status }: { request: ResourceRequest; status: "approved" | "rejected" }) =>
-      api.reviewResourceRequest(request.id, { status, approvedAmount: status === "approved" ? request.amountRequested : null, reviewNote: status === "approved" ? "Approved for operational follow-up." : "Rejected from request review." }),
+      api.reviewResourceRequest(request.id, { status, approvedAmount: status === "approved" ? request.amountRequested : null, reviewNote: status === "approved" ? t("coordination:approvedNote") : t("coordination:rejectedNote") }),
     onMutate: () => { setError(null); setSuccess(null); },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["resource-requests"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setSuccess("Resource request reviewed successfully.");
+      setSuccess(t("coordination:requestReviewed"));
     },
-    onError: (error) => { setError(error instanceof ApiError ? error.message : "Unable to review resource request."); },
+    onError: (error) => { setError(error instanceof ApiError ? error.message : t("coordination:unableToReview")); },
   });
 
   const messages = data?.messages || [];
@@ -98,13 +100,13 @@ const CoordinationPage = () => {
   return (
     <PageLayout>
       <PageHeader
-        eyebrow="Operations queue"
-        title="Requests"
-        subtitle="Review resource requests and post market coordination updates."
+        eyebrow={t("coordination:eyebrow")}
+        title={t("coordination:title")}
+        subtitle={t("coordination:subtitle")}
         actions={
           canScopeMarkets ? (
             <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
-              <option value="all">All Markets</option>
+              <option value="all">{t("coordination:allMarkets")}</option>
               {(marketsData?.markets || []).map((market) => <option key={market.id} value={market.id}>{market.name}</option>)}
             </select>
           ) : undefined
@@ -115,9 +117,9 @@ const CoordinationPage = () => {
       {showResourceRequests && (
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Pending requests", value: pendingRequests.length, sub: `${formatCurrency(requestedTotal)} awaiting decision`, tone: pendingRequests.length ? "amber" as const : "green" as const },
-            { label: "Approved", value: approvedRequests.length, sub: "Ready for follow-up", tone: "green" as const },
-            { label: "Updates posted", value: messages.length, sub: "Coordination notes in scope", tone: "slate" as const },
+            { label: t("coordination:pendingRequests"), value: pendingRequests.length, sub: t("coordination:pendingAmount", { amount: formatCurrency(requestedTotal) }), tone: pendingRequests.length ? "amber" as const : "green" as const },
+            { label: t("coordination:approved"), value: approvedRequests.length, sub: t("coordination:readyForFollowUp"), tone: "green" as const },
+            { label: t("coordination:updatesPosted"), value: messages.length, sub: t("coordination:coordinationNotes"), tone: "slate" as const },
           ].map((item) => (
             <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-sm font-medium text-slate-600">{item.label}</p>
@@ -137,8 +139,8 @@ const CoordinationPage = () => {
           <div className="space-y-4">
             <Card>
               <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-                <CardTitle className="text-base font-medium">Resource Requests</CardTitle>
-                <Badge variant={pendingRequests.length ? "warning" : "success"}>{pendingRequests.length} pending</Badge>
+                <CardTitle className="text-base font-medium">{t("coordination:resourceRequests")}</CardTitle>
+                <Badge variant={pendingRequests.length ? "warning" : "success"}>{t("coordination:pendingBadge", { count: pendingRequests.length })}</Badge>
               </CardHeader>
               <CardContent className="p-4">
               <div className={canCreateResourceRequest ? "grid gap-4 lg:grid-cols-[1fr_1.2fr]" : ""}>
@@ -146,29 +148,29 @@ const CoordinationPage = () => {
                 {canCreateResourceRequest && (
                   <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="request-type" className="font-bold text-slate-700">Request type</Label>
+                      <Label htmlFor="request-type" className="font-bold text-slate-700">{t("coordination:requestType")}</Label>
                       <Select value={requestCategory} onValueChange={(v) => setRequestCategory(v as ResourceRequestCategory)}>
                         <SelectTrigger id="request-type" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="budget">Budget support</SelectItem>
-                          <SelectItem value="structural">Structural work</SelectItem>
+                          <SelectItem value="budget">{resourceCategoryLabels.budget}</SelectItem>
+                          <SelectItem value="structural">{resourceCategoryLabels.structural}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="request-title" className="font-bold text-slate-700">Title</Label>
-                      <Input id="request-title" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestTitle} onChange={(e) => setRequestTitle(e.target.value)} placeholder="Drainage repair, electrical inspection..." />
+                      <Label htmlFor="request-title" className="font-bold text-slate-700">{t("coordination:title")}</Label>
+                      <Input id="request-title" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestTitle} onChange={(e) => setRequestTitle(e.target.value)} placeholder={t("coordination:titlePlaceholder")} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="request-amount" className="font-bold text-slate-700">Amount requested</Label>
+                      <Label htmlFor="request-amount" className="font-bold text-slate-700">{t("coordination:amountRequested")}</Label>
                       <Input id="request-amount" type="number" min="0" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} placeholder="0" />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="request-need" className="font-bold text-slate-700">Need</Label>
-                      <Textarea id="request-need" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={4} value={requestDescription} onChange={(e) => setRequestDescription(e.target.value)} placeholder="Explain the operational risk, affected section, and expected outcome." />
+                      <Label htmlFor="request-need" className="font-bold text-slate-700">{t("coordination:need")}</Label>
+                      <Textarea id="request-need" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={4} value={requestDescription} onChange={(e) => setRequestDescription(e.target.value)} placeholder={t("coordination:needPlaceholder")} />
                     </div>
                     <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => createResourceRequest.mutate()} disabled={createResourceRequest.isPending}>
-                      Submit Request
+                      {t("coordination:submitRequest")}
                     </Button>
                   </div>
                 )}
@@ -177,7 +179,7 @@ const CoordinationPage = () => {
                 <div className={`space-y-3 ${!canCreateResourceRequest ? "lg:col-span-2" : ""}`}>
                   {resourceRequests.slice(0, 6).length === 0 ? (
                     <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
-                      No resource requests yet. Manager requests for budget or structural support will appear here.
+                      {t("coordination:noRequests")}
                     </div>
                   ) : (
                     resourceRequests.slice(0, 6).map((request) => (
@@ -195,15 +197,15 @@ const CoordinationPage = () => {
                           <div className="shrink-0 text-left md:text-right">
                             <p className="font-bold text-slate-900">{formatCurrency(request.amountRequested)}</p>
                             {request.approvedAmount && (
-                              <p className="mt-1 text-xs text-emerald-600">Approved: {formatCurrency(request.approvedAmount)}</p>
+                              <p className="mt-1 text-xs text-emerald-600">{t("coordination:approvedAmount", { amount: formatCurrency(request.approvedAmount) })}</p>
                             )}
                             {canReviewResourceRequest && request.status === "pending" && (
                               <div className="mt-3 flex flex-wrap gap-2 md:justify-end">
                                 <Button size="sm" className="rounded-lg shadow-none bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => setConfirmReview({ request, action: "approved" })} disabled={reviewResourceRequest.isPending}>
-                                  Approve
+                                  {t("coordination:approve")}
                                 </Button>
                                 <Button size="sm" variant="outline" className="rounded-lg border-slate-300 font-bold" onClick={() => setConfirmReview({ request, action: "rejected" })} disabled={reviewResourceRequest.isPending}>
-                                  Reject
+                                  {t("coordination:reject")}
                                 </Button>
                               </div>
                             )}
@@ -224,12 +226,12 @@ const CoordinationPage = () => {
           {/* Updates feed */}
           <Card>
             <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-              <CardTitle className="text-base font-medium">Updates</CardTitle>
-              <span className="text-xs text-slate-400">{messages.length} notes</span>
+              <CardTitle className="text-base font-medium">{t("coordination:updates")}</CardTitle>
+              <span className="text-xs text-slate-400">{t("coordination:notesCount", { count: messages.length })}</span>
             </CardHeader>
             <CardContent className="p-4">
             {messages.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">No request updates yet.</div>
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">{t("coordination:noUpdates")}</div>
             ) : (
               <div className="space-y-3">
                 {messages.map((message) => {
@@ -243,7 +245,7 @@ const CoordinationPage = () => {
                           </div>
                           <div>
                             <p className="text-sm font-bold text-slate-900">{message.senderName}</p>
-                            <p className="text-xs capitalize text-slate-400">{message.senderRole}{message.marketName ? ` · ${message.marketName}` : " · All markets"}</p>
+                            <p className="text-xs capitalize text-slate-400">{message.senderRole}{message.marketName ? ` · ${message.marketName}` : t("coordination:allMarketsSuffix")}</p>
                           </div>
                         </div>
                         <p className="whitespace-nowrap text-xs text-slate-400">{formatHumanDateTime(message.createdAt)}</p>
@@ -263,17 +265,17 @@ const CoordinationPage = () => {
           {/* Compose */}
           <Card>
             <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-              <CardTitle className="text-base font-medium">Send Update</CardTitle>
+              <CardTitle className="text-base font-medium">{t("coordination:sendUpdate")}</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="coord-subject" className="font-bold text-slate-700">Subject</Label>
-                <Input id="coord-subject" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Weekly update, monitoring note, action request..." />
+                <Label htmlFor="coord-subject" className="font-bold text-slate-700">{t("coordination:subject")}</Label>
+                <Input id="coord-subject" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={t("coordination:subjectPlaceholder")} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="coord-message" className="font-bold text-slate-700">Message</Label>
-                <Textarea id="coord-message" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a concise operational update or request." />
+                <Label htmlFor="coord-message" className="font-bold text-slate-700">{t("coordination:message")}</Label>
+                <Textarea id="coord-message" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder={t("coordination:messagePlaceholder")} />
               </div>
 
               {success && (
@@ -285,7 +287,7 @@ const CoordinationPage = () => {
 
               <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold gap-2" onClick={() => postMessage.mutate()} disabled={postMessage.isPending || !subject.trim() || !body.trim()}>
                 <Send className="h-4 w-4" />
-                {postMessage.isPending ? "Sending..." : "Send Update"}
+                {postMessage.isPending ? t("coordination:sending") : t("coordination:sendUpdate")}
               </Button>
             </div>
             </CardContent>
@@ -298,16 +300,16 @@ const CoordinationPage = () => {
         <DialogContent className="rounded-lg">
           <DialogHeader>
             <DialogTitle className="font-bold text-slate-900">
-              {confirmReview?.action === "approved" ? "Approve Request" : "Reject Request"}
+              {confirmReview?.action === "approved" ? t("coordination:approveRequest") : t("coordination:rejectRequest")}
             </DialogTitle>
             <DialogDescription>
               {confirmReview?.action === "approved"
-                ? `Approve "${confirmReview.request.title}" from ${confirmReview.request.managerName} for ${formatCurrency(confirmReview.request.amountRequested)}? This will notify the manager.`
-                : `Reject "${confirmReview?.request.title}" from ${confirmReview?.request.managerName}? The manager will be notified.`}
+                ? t("coordination:approveConfirm", { title: confirmReview.request.title, name: confirmReview.request.managerName, amount: formatCurrency(confirmReview.request.amountRequested) })
+                : t("coordination:rejectConfirm", { title: confirmReview.request.title, name: confirmReview.request.managerName })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-lg border-slate-300 font-bold" onClick={() => setConfirmReview(null)}>Cancel</Button>
+            <Button variant="outline" className="rounded-lg border-slate-300 font-bold" onClick={() => setConfirmReview(null)}>{t("common:cancel")}</Button>
             <Button
               className={`rounded-lg shadow-none font-bold ${confirmReview?.action === "approved" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}
               disabled={reviewResourceRequest.isPending}
@@ -317,7 +319,7 @@ const CoordinationPage = () => {
                 setConfirmReview(null);
               }}
             >
-              {confirmReview?.action === "approved" ? "Yes, Approve" : "Yes, Reject"}
+              {confirmReview?.action === "approved" ? t("coordination:yesApprove") : t("coordination:yesReject")}
             </Button>
           </DialogFooter>
         </DialogContent>

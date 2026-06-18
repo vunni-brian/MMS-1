@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
+import { useTranslation } from "react-i18next";
+
 import { LoadingAnimation } from "@/components/LoadingAnimation";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Role } from "@/types";
@@ -12,13 +14,14 @@ export const ProtectedRoute = ({
  children: ReactNode;
  allowedRoles: Role[];
 }) => {
+ const { t } = useTranslation();
  const { user, isLoading } = useAuth();
  const location = useLocation();
 
  // Only block on the very first session restore (no user yet and still loading).
  // Once a user is known, navigate immediately without a loading flash.
  if (isLoading && !user) {
- return <LoadingAnimation label="Loading your secure session…" />;
+ return <LoadingAnimation label={t("layout:loadingSession")} />;
  }
 
  if (!user) {
@@ -33,10 +36,11 @@ export const ProtectedRoute = ({
 };
 
 export const VendorApprovalGuard = ({ children }: { children: ReactNode }) => {
+ const { t } = useTranslation();
  const { user, isLoading } = useAuth();
 
  if (isLoading && !user) {
- return <LoadingAnimation label="Loading your secure session…" />;
+ return <LoadingAnimation label={t("layout:loadingSession")} />;
  }
 
  if (user?.role === "vendor" && user.vendorStatus !== "approved") {

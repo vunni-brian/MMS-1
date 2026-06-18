@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ElementType, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   BarChart3,
@@ -143,30 +144,34 @@ const LoadingGrid = () => (
   </div>
 );
 
-const ErrorState = ({ title }: { title: string }) => (
-  <Card className="border-red-200 bg-red-50">
-    <CardContent className="flex items-start gap-3 p-4 text-sm text-red-700">
-      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-      <div>
-        <p className="font-semibold">{title}</p>
-        <p className="mt-1">Oversight data could not be loaded. Refresh the page or check the API connection.</p>
-      </div>
-    </CardContent>
-  </Card>
-);
+const ErrorState = ({ title }: { title: string }) => {
+  const { t } = useTranslation();
+  return (
+    <Card className="border-red-200 bg-red-50">
+      <CardContent className="flex items-start gap-3 p-4 text-sm text-red-700">
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <p className="font-semibold">{title}</p>
+          <p className="mt-1">{t("common:errorLoading")}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const riskBadgeVariant = (risk: RiskLevel) =>
   risk === "High" ? "destructive" : risk === "Medium" ? "secondary" : "default";
 
 const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
-const getMonthKey = (value: string) => {
+const getMonthKey = (value: string, t: (key: string) => string) => {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
+  if (Number.isNaN(date.getTime())) return t("common:notAvailable");
   return new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" }).format(date);
 };
 
 const useOfficialOversightData = () => {
+  const { t } = useTranslation();
   const marketsQuery = useQuery({ queryKey: ["markets", "official-oversight"], queryFn: () => api.getMarkets() });
   const vendorsQuery = useQuery({ queryKey: ["vendors", "official-oversight"], queryFn: () => api.getVendors() });
   const stallsQuery = useQuery({ queryKey: ["stalls", "official-oversight"], queryFn: () => api.getStalls() });
@@ -200,8 +205,8 @@ const useOfficialOversightData = () => {
   const resourceRequests = useMemo(() => resourcesQuery.data?.requests ?? [], [resourcesQuery.data]);
 
   const marketHealth = useMemo(
-    () => buildMarketHealth(markets, vendors, stalls, payments, tickets, utilityCharges, penalties),
-    [markets, vendors, stalls, payments, tickets, utilityCharges, penalties],
+    () => buildMarketHealth(markets, vendors, stalls, payments, tickets, utilityCharges, penalties, t),
+    [markets, vendors, stalls, payments, tickets, utilityCharges, penalties, t],
   );
 
   return {
@@ -217,6 +222,7 @@ const useOfficialOversightData = () => {
     auditEvents,
     resourceRequests,
     marketHealth,
+    t,
   };
 };
 
@@ -228,6 +234,7 @@ const buildMarketHealth = (
   tickets: Ticket[],
   utilityCharges: UtilityCharge[],
   penalties: Penalty[],
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): MarketHealthRow[] => {
   return markets.map((market) => {
     const marketVendors = vendors.filter((vendor) => vendor.marketId === market.id);
@@ -263,10 +270,10 @@ const buildMarketHealth = (
     );
 
     const alerts = [
-      escalatedComplaints.length ? `${escalatedComplaints.length} escalated complaint(s)` : null,
-      sanitationComplaints.length ? `${sanitationComplaints.length} sanitation complaint(s)` : null,
-      maintenanceStalls ? `${maintenanceStalls} stall(s) in maintenance` : null,
-      overdueObligations ? `${overdueObligations} overdue obligation(s)` : null,
+      escalatedComplaints.length ? t("official:markets.escalatedComplaints", { n: escalatedComplaints.length }) : null,
+      sanitationComplaints.length ? t("official:markets.sanitationIssues", { n: sanitationComplaints.length }) : null,
+      maintenanceStalls ? t("official:markets.stallsMaintenance", { n: maintenanceStalls }) : null,
+      overdueObligations ? t("official:markets.overdueObligations", { n: overdueObligations }) : null,
     ].filter(Boolean) as string[];
 
     const risk: RiskLevel = complianceScore < 65 || escalatedComplaints.length > 2
@@ -278,8 +285,8 @@ const buildMarketHealth = (
     return {
       id: market.id,
       name: market.name,
-      location: market.locationName || market.location || market.subAreaName || "Location not set",
-      managerName: market.managerName || "Unassigned",
+      location: market.locationName || market.location || market.subAreaName || t("common:notSet"),
+      managerName: market.managerName || t("common:notAssigned"),
       vendors: marketVendors.length || market.vendorCount || 0,
       approvedVendors,
       stalls: marketStalls.length || market.stallCount || 0,
@@ -299,7 +306,7 @@ const buildMarketHealth = (
 };
 
 export const OfficialMarketsPage = () => {
-  const { isLoading, isError, marketHealth, vendors, stalls, tickets, payments } = useOfficialOversightData();
+  const { t, isLoading, isError, marketHealth, vendors, stalls, tickets, payments } = useOfficialOversightData();
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState<"all" | RiskLevel>("all");
 
@@ -315,43 +322,43 @@ export const OfficialMarketsPage = () => {
   const openComplaints = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status)).length;
 
   if (isLoading) return <LoadingGrid />;
-  if (isError) return <ErrorState title="Could not load market monitoring" />;
+  if (isError) return <ErrorState title={t("official:markets.errorTitle")} />;
 
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="KCCA oversight"
-        title="Market monitoring"
-        subtitle="Read-only supervision across markets, stall occupancy, revenue movement, complaints, and compliance risk."
+        eyebrow={t("official:markets.eyebrow")}
+        title={t("official:markets.title")}
+        subtitle={t("official:markets.subtitle")}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Markets monitored" value={marketHealth.length} subtitle="KCCA scope" icon={Landmark} tone="blue" />
-        <MetricCard title="Registered vendors" value={vendors.length.toLocaleString()} subtitle="All markets" icon={Users} tone="teal" />
-        <MetricCard title="Stall occupancy" value={`${occupancyRate}%`} subtitle={`${occupiedStalls}/${stalls.length} occupied`} icon={Store} tone="green" />
-        <MetricCard title="Open complaints" value={openComplaints} subtitle={formatCurrency(totalRevenue)} icon={AlertTriangle} tone={openComplaints ? "amber" : "green"} />
+        <MetricCard title={t("official:markets.marketsMonitored")} value={marketHealth.length} subtitle={t("official:markets.kccaScope")} icon={Landmark} tone="blue" />
+        <MetricCard title={t("official:markets.registeredVendors")} value={vendors.length.toLocaleString()} subtitle={t("official:markets.allMarkets")} icon={Users} tone="teal" />
+        <MetricCard title={t("official:markets.stallOccupancy")} value={`${occupancyRate}%`} subtitle={t("official:markets.occupiedFraction", { occupied: occupiedStalls, total: stalls.length })} icon={Store} tone="green" />
+        <MetricCard title={t("official:markets.openComplaints")} value={openComplaints} subtitle={formatCurrency(totalRevenue)} icon={AlertTriangle} tone={openComplaints ? "amber" : "green"} />
       </div>
 
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle>Market performance register</CardTitle>
-            <CardDescription>Ranked by current compliance risk so officials see problem markets first.</CardDescription>
+            <CardTitle>{t("official:markets.performanceRegister")}</CardTitle>
+            <CardDescription>{t("official:markets.performanceDesc")}</CardDescription>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search markets..." className="h-9 w-full pl-9 sm:w-64" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("official:markets.searchMarkets")} className="h-9 w-full pl-9 sm:w-64" />
             </div>
             <select
               value={riskFilter}
               onChange={(event) => setRiskFilter(event.target.value as "all" | RiskLevel)}
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             >
-              <option value="all">All risk levels</option>
-              <option value="High">High risk</option>
-              <option value="Medium">Medium risk</option>
-              <option value="Low">Low risk</option>
+              <option value="all">{t("official:markets.allRiskLevels")}</option>
+              <option value="High">{t("official:markets.highRisk")}</option>
+              <option value="Medium">{t("official:markets.mediumRisk")}</option>
+              <option value="Low">{t("official:markets.lowRisk")}</option>
             </select>
           </div>
         </CardHeader>
@@ -360,14 +367,14 @@ export const OfficialMarketsPage = () => {
             <table className="w-full min-w-[980px] text-left text-sm">
               <thead>
                 <tr className="border-b text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="py-3 pr-4 font-semibold">Market</th>
-                  <th className="py-3 pr-4 font-semibold">Manager</th>
-                  <th className="py-3 pr-4 text-right font-semibold">Vendors</th>
-                  <th className="py-3 pr-4 text-right font-semibold">Occupancy</th>
-                  <th className="py-3 pr-4 text-right font-semibold">Revenue</th>
-                  <th className="py-3 pr-4 text-right font-semibold">Open Issues</th>
-                  <th className="py-3 pr-4 text-right font-semibold">Score</th>
-                  <th className="py-3 font-semibold">Risk</th>
+                  <th className="py-3 pr-4 font-semibold">{t("official:markets.market")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("official:markets.manager")}</th>
+                  <th className="py-3 pr-4 text-right font-semibold">{t("official:markets.vendors")}</th>
+                  <th className="py-3 pr-4 text-right font-semibold">{t("official:markets.occupancy")}</th>
+                  <th className="py-3 pr-4 text-right font-semibold">{t("official:markets.revenue")}</th>
+                  <th className="py-3 pr-4 text-right font-semibold">{t("official:markets.openIssues")}</th>
+                  <th className="py-3 pr-4 text-right font-semibold">{t("official:markets.score")}</th>
+                  <th className="py-3 font-semibold">{t("official:markets.risk")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -399,7 +406,7 @@ export const OfficialMarketsPage = () => {
 };
 
 export const OfficialVendorDirectoryPage = () => {
-  const { isLoading, isError, markets, vendors } = useOfficialOversightData();
+  const { t, isLoading, isError, markets, vendors } = useOfficialOversightData();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | VendorProfile["status"]>("all");
   const [marketId, setMarketId] = useState("all");
@@ -417,7 +424,7 @@ export const OfficialVendorDirectoryPage = () => {
   const rejected = vendors.filter((vendor) => vendor.status === "rejected").length;
 
   const exportCsv = () => {
-    const header = "Name,Phone,Email,Market,Product Section,District,Status,Documents\n";
+    const header = `${t("official:vendors.vendor")},${t("common:phone")},${t("common:email")},${t("common:market")},${t("official:vendors.business")},${t("official:vendors.district")},${t("common:status")},${t("official:vendors.documents")}\n`;
     const body = filtered.map((vendor) => [
       vendor.name,
       vendor.phone,
@@ -438,48 +445,48 @@ export const OfficialVendorDirectoryPage = () => {
   };
 
   if (isLoading) return <LoadingGrid />;
-  if (isError) return <ErrorState title="Could not load vendor listings" />;
+  if (isError) return <ErrorState title={t("official:vendors.errorTitle")} />;
 
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="KCCA oversight"
-        title="Vendor listings"
-        subtitle="Read-only vendor registry for search, filtering, and export. Officials can inspect records without approving or modifying them."
+        eyebrow={t("official:vendors.eyebrow")}
+        title={t("official:vendors.title")}
+        subtitle={t("official:vendors.subtitle")}
         actions={
           <Button onClick={exportCsv} className="h-9 gap-2 rounded-lg">
             <Download className="h-4 w-4" />
-            Export CSV
+            {t("common:exportCsv")}
           </Button>
         }
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Total vendors" value={vendors.length.toLocaleString()} subtitle="Registered records" icon={Users} tone="blue" />
-        <MetricCard title="Approved" value={approved} subtitle="Active market access" icon={CheckCircle2} tone="green" />
-        <MetricCard title="Pending" value={pending} subtitle="Awaiting manager review" icon={FileSearch} tone="amber" />
-        <MetricCard title="Rejected" value={rejected} subtitle="Not cleared" icon={ShieldAlert} tone={rejected ? "red" : "slate"} />
+        <MetricCard title={t("official:vendors.totalVendors")} value={vendors.length.toLocaleString()} subtitle={t("official:vendors.registeredRecords")} icon={Users} tone="blue" />
+        <MetricCard title={t("official:vendors.approved")} value={approved} subtitle={t("official:vendors.activeMarketAccess")} icon={CheckCircle2} tone="green" />
+        <MetricCard title={t("official:vendors.pending")} value={pending} subtitle={t("official:vendors.awaitingReview")} icon={FileSearch} tone="amber" />
+        <MetricCard title={t("official:vendors.rejected")} value={rejected} subtitle={t("official:vendors.notCleared")} icon={ShieldAlert} tone={rejected ? "red" : "slate"} />
       </div>
 
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle>Read-only registry</CardTitle>
-            <CardDescription>{filtered.length} vendor record(s) match the current filters.</CardDescription>
+            <CardTitle>{t("official:vendors.readOnlyRegistry")}</CardTitle>
+            <CardDescription>{t("official:vendors.recordsMatch", { n: filtered.length })}</CardDescription>
           </div>
           <div className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_160px_190px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search vendors..." className="h-9 pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("official:vendors.searchVendors")} className="h-9 pl-9" />
             </div>
             <select value={status} onChange={(event) => setStatus(event.target.value as "all" | VendorProfile["status"])} className="h-9 rounded-lg border border-input bg-background px-3 text-sm">
-              <option value="all">All statuses</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">{t("official:vendors.allStatuses")}</option>
+              <option value="approved">{t("common:approved")}</option>
+              <option value="pending">{t("common:pending")}</option>
+              <option value="rejected">{t("common:rejected")}</option>
             </select>
             <select value={marketId} onChange={(event) => setMarketId(event.target.value)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm">
-              <option value="all">All markets</option>
+              <option value="all">{t("common:allMarkets")}</option>
               {markets.map((market) => <option key={market.id} value={market.id}>{market.name}</option>)}
             </select>
           </div>
@@ -489,12 +496,12 @@ export const OfficialVendorDirectoryPage = () => {
             <table className="w-full min-w-[940px] text-left text-sm">
               <thead>
                 <tr className="border-b text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="py-3 pr-4 font-semibold">Vendor</th>
-                  <th className="py-3 pr-4 font-semibold">Market</th>
-                  <th className="py-3 pr-4 font-semibold">Business</th>
-                  <th className="py-3 pr-4 font-semibold">District</th>
-                  <th className="py-3 pr-4 font-semibold">Documents</th>
-                  <th className="py-3 font-semibold">Status</th>
+                  <th className="py-3 pr-4 font-semibold">{t("official:vendors.vendor")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("common:market")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("official:vendors.business")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("official:vendors.district")}</th>
+                  <th className="py-3 pr-4 font-semibold">{t("official:vendors.documents")}</th>
+                  <th className="py-3 font-semibold">{t("common:status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -506,12 +513,12 @@ export const OfficialVendorDirectoryPage = () => {
                         <p className="font-semibold text-foreground">{vendor.name}</p>
                         <p className="text-xs text-muted-foreground">{vendor.phone} | {vendor.email}</p>
                       </td>
-                      <td className="py-3 pr-4 text-muted-foreground">{vendor.marketName || "Unassigned"}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">{vendor.productSection || "Not set"}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">{vendor.district || "Not set"}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">{vendor.marketName || t("official:vendors.unassigned")}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">{vendor.productSection || t("common:notSet")}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">{vendor.district || t("common:notSet")}</td>
                       <td className="py-3 pr-4">
                         <Badge variant={documentsComplete ? "default" : "secondary"}>
-                          {documentsComplete ? "Complete" : "Incomplete"}
+                          {documentsComplete ? t("official:vendors.complete") : t("official:vendors.incomplete")}
                         </Badge>
                       </td>
                       <td className="py-3">
@@ -530,7 +537,7 @@ export const OfficialVendorDirectoryPage = () => {
 };
 
 export const OfficialCompliancePage = () => {
-  const { isLoading, isError, marketHealth, tickets, stalls, utilityCharges, penalties, resourceRequests } = useOfficialOversightData();
+  const { t, isLoading, isError, marketHealth, tickets, stalls, utilityCharges, penalties, resourceRequests } = useOfficialOversightData();
 
   const green = marketHealth.filter((row) => row.complianceScore >= 80).length;
   const amber = marketHealth.filter((row) => row.complianceScore >= 65 && row.complianceScore < 80).length;
@@ -546,28 +553,28 @@ export const OfficialCompliancePage = () => {
   const pendingResources = resourceRequests.filter((request) => request.status === "pending");
 
   if (isLoading) return <LoadingGrid />;
-  if (isError) return <ErrorState title="Could not load compliance reporting" />;
+  if (isError) return <ErrorState title={t("official:compliance.errorTitle")} />;
 
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Governance"
-        title="Compliance reporting"
-        subtitle="Operational compliance indicators covering complaint SLA, sanitation issues, overdue dues, maintenance, and unresolved resource needs."
+        eyebrow={t("official:compliance.eyebrow")}
+        title={t("official:compliance.title")}
+        subtitle={t("official:compliance.subtitle")}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Average score" value={`${avgScore}%`} subtitle={`${green} green, ${amber} medium, ${red} high risk`} icon={ShieldCheck} tone={avgScore >= 80 ? "green" : avgScore >= 65 ? "amber" : "red"} />
-        <MetricCard title="Escalated complaints" value={escalated.length} subtitle="SLA breach or escalated" icon={AlertTriangle} tone={escalated.length ? "red" : "green"} />
-        <MetricCard title="Sanitation issues" value={openSanitation.length} subtitle="Open sanitation tickets" icon={ShieldAlert} tone={openSanitation.length ? "amber" : "green"} />
-        <MetricCard title="Overdue obligations" value={overdueUtilityCharges.length + unpaidPenalties.length} subtitle="Utilities and penalties" icon={ReceiptText} tone={overdueUtilityCharges.length + unpaidPenalties.length ? "amber" : "green"} />
+        <MetricCard title={t("official:compliance.avgScore")} value={`${avgScore}%`} subtitle={t("official:compliance.scoreBreakdown", { green, amber, red })} icon={ShieldCheck} tone={avgScore >= 80 ? "green" : avgScore >= 65 ? "amber" : "red"} />
+        <MetricCard title={t("official:compliance.escalatedComplaints")} value={escalated.length} subtitle={t("official:compliance.slaBreach")} icon={AlertTriangle} tone={escalated.length ? "red" : "green"} />
+        <MetricCard title={t("official:compliance.sanitationIssues")} value={openSanitation.length} subtitle={t("official:compliance.openSanitationTickets")} icon={ShieldAlert} tone={openSanitation.length ? "amber" : "green"} />
+        <MetricCard title={t("official:compliance.overdueObligations")} value={overdueUtilityCharges.length + unpaidPenalties.length} subtitle={t("official:compliance.utilitiesPenalties")} icon={ReceiptText} tone={overdueUtilityCharges.length + unpaidPenalties.length ? "amber" : "green"} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <CardHeader>
-            <CardTitle>Market compliance scorecard</CardTitle>
-            <CardDescription>Scores combine vendor verification, payment completion, complaint resolution, occupancy, and maintenance signals.</CardDescription>
+            <CardTitle>{t("official:compliance.complianceScorecard")}</CardTitle>
+            <CardDescription>{t("official:compliance.scorecardDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -590,7 +597,7 @@ export const OfficialCompliancePage = () => {
                     />
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {(row.alerts.length ? row.alerts : ["No active compliance alerts"]).map((alert) => (
+                    {(row.alerts.length ? row.alerts : [t("official:compliance.noAlerts")]).map((alert) => (
                       <span key={alert} className="rounded-lg bg-muted px-2 py-1 text-xs text-muted-foreground">{alert}</span>
                     ))}
                   </div>
@@ -603,15 +610,15 @@ export const OfficialCompliancePage = () => {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Attention queue</CardTitle>
-              <CardDescription>Items requiring official follow-up.</CardDescription>
+              <CardTitle>{t("official:compliance.attentionQueue")}</CardTitle>
+              <CardDescription>{t("official:compliance.attentionDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: "Pending resource requests", value: pendingResources.length, tone: pendingResources.length ? "text-amber-700" : "text-emerald-700" },
-                { label: "Stalls in maintenance", value: maintenanceStalls.length, tone: maintenanceStalls.length ? "text-amber-700" : "text-emerald-700" },
-                { label: "Overdue utility charges", value: overdueUtilityCharges.length, tone: overdueUtilityCharges.length ? "text-red-700" : "text-emerald-700" },
-                { label: "Unpaid penalties", value: unpaidPenalties.length, tone: unpaidPenalties.length ? "text-red-700" : "text-emerald-700" },
+                { label: t("official:compliance.pendingResourceRequests"), value: pendingResources.length, tone: pendingResources.length ? "text-amber-700" : "text-emerald-700" },
+                { label: t("official:compliance.stallsInMaintenance"), value: maintenanceStalls.length, tone: maintenanceStalls.length ? "text-amber-700" : "text-emerald-700" },
+                { label: t("official:compliance.overdueUtilityCharges"), value: overdueUtilityCharges.length, tone: overdueUtilityCharges.length ? "text-red-700" : "text-emerald-700" },
+                { label: t("official:compliance.unpaidPenalties"), value: unpaidPenalties.length, tone: unpaidPenalties.length ? "text-red-700" : "text-emerald-700" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between rounded-lg bg-muted/40 p-3 text-sm">
                   <span className="text-muted-foreground">{item.label}</span>
@@ -623,19 +630,19 @@ export const OfficialCompliancePage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent escalations</CardTitle>
+              <CardTitle>{t("official:compliance.recentEscalations")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {escalated.slice(0, 5).map((ticket) => (
                 <div key={ticket.id} className="rounded-lg border border-border p-3 text-sm">
                   <p className="font-semibold text-foreground">{ticket.ticketNumber} - {ticket.subject}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{ticket.marketName || "Market"} | {formatHumanDateTime(ticket.updatedAt)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{ticket.marketName || t("common:market")} | {formatHumanDateTime(ticket.updatedAt)}</p>
                 </div>
               ))}
               {!escalated.length ? (
                 <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" />
-                  No escalated complaints.
+                  {t("official:compliance.noEscalations")}
                 </div>
               ) : null}
             </CardContent>
@@ -647,12 +654,12 @@ export const OfficialCompliancePage = () => {
 };
 
 export const OfficialAnalyticsPage = () => {
-  const { isLoading, isError, marketHealth, vendors, payments } = useOfficialOversightData();
+  const { t, isLoading, isError, marketHealth, vendors, payments } = useOfficialOversightData();
 
   const completedPayments = payments.filter((payment) => payment.status === "completed");
   const revenueByMonth = Object.values(
     completedPayments.reduce<Record<string, { period: string; amount: number; transactions: number }>>((acc, payment) => {
-      const key = getMonthKey(payment.createdAt);
+      const key = getMonthKey(payment.createdAt, t);
       acc[key] = acc[key] || { period: key, amount: 0, transactions: 0 };
       acc[key].amount += payment.amount;
       acc[key].transactions += 1;
@@ -684,28 +691,28 @@ export const OfficialAnalyticsPage = () => {
   const avgCompliance = marketHealth.length ? Math.round(marketHealth.reduce((sum, row) => sum + row.complianceScore, 0) / marketHealth.length) : 0;
 
   if (isLoading) return <LoadingGrid />;
-  if (isError) return <ErrorState title="Could not load revenue analytics" />;
+  if (isError) return <ErrorState title={t("official:analytics.errorTitle")} />;
 
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Analytics"
-        title="Revenue analytics"
-        subtitle="Revenue, payment method, vendor distribution, and market performance trends for decision support."
+        eyebrow={t("official:analytics.eyebrow")}
+        title={t("official:analytics.title")}
+        subtitle={t("official:analytics.subtitle")}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Collected revenue" value={formatCurrency(totalRevenue)} subtitle={`${completedPayments.length} completed payment(s)`} icon={TrendingUp} tone="green" />
-        <MetricCard title="Payment completion" value={`${paymentCompletionRate}%`} subtitle={`${payments.length} total payment records`} icon={ReceiptText} tone={paymentCompletionRate >= 90 ? "green" : "amber"} />
-        <MetricCard title="Average compliance" value={`${avgCompliance}%`} subtitle="Across monitored markets" icon={ShieldCheck} tone={avgCompliance >= 80 ? "green" : "amber"} />
-        <MetricCard title="Vendor categories" value={vendorCategories.length} subtitle={`${vendors.length} vendor records`} icon={BarChart3} tone="blue" />
+        <MetricCard title={t("official:analytics.collectedRevenue")} value={formatCurrency(totalRevenue)} subtitle={t("official:analytics.completedPayments", { n: completedPayments.length })} icon={TrendingUp} tone="green" />
+        <MetricCard title={t("official:analytics.paymentCompletion")} value={`${paymentCompletionRate}%`} subtitle={t("official:analytics.totalPaymentRecords", { n: payments.length })} icon={ReceiptText} tone={paymentCompletionRate >= 90 ? "green" : "amber"} />
+        <MetricCard title={t("official:analytics.avgCompliance")} value={`${avgCompliance}%`} subtitle={t("official:analytics.acrossMonitoredMarkets")} icon={ShieldCheck} tone={avgCompliance >= 80 ? "green" : "amber"} />
+        <MetricCard title={t("official:analytics.vendorCategories")} value={vendorCategories.length} subtitle={t("official:analytics.vendorRecords", { n: vendors.length })} icon={BarChart3} tone="blue" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.8fr)]">
         <Card>
           <CardHeader>
-            <CardTitle>Monthly collections</CardTitle>
-            <CardDescription>Completed payments grouped by month.</CardDescription>
+            <CardTitle>{t("official:analytics.monthlyCollections")}</CardTitle>
+            <CardDescription>{t("official:analytics.monthlyCollectionsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {revenueByMonth.length ? (
@@ -720,20 +727,20 @@ export const OfficialAnalyticsPage = () => {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
                   <XAxis dataKey="period" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(value: number) => `${Math.round(value / 1_000_000)}M`} tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(value: number) => [formatCurrency(value), "Revenue"]} />
+                  <Tooltip formatter={(value: number) => [formatCurrency(value), t("official:analytics.revenueLabel")]} />
                   <Area type="monotone" dataKey="amount" stroke="#0f766e" strokeWidth={2} fill="url(#officialRevenue)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">No completed payment data yet.</div>
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">{t("official:analytics.noPaymentData")}</div>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Payment methods</CardTitle>
-            <CardDescription>Completed revenue split by channel.</CardDescription>
+            <CardTitle>{t("official:analytics.paymentMethods")}</CardTitle>
+            <CardDescription>{t("official:analytics.paymentMethodsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {revenueByMethod.length ? (
@@ -742,14 +749,14 @@ export const OfficialAnalyticsPage = () => {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/60" />
                   <XAxis dataKey="method" tick={{ fontSize: 12 }} />
                   <YAxis tickFormatter={(value: number) => `${Math.round(value / 1_000_000)}M`} tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(value: number) => [formatCurrency(value), "Revenue"]} />
+                  <Tooltip formatter={(value: number) => [formatCurrency(value), t("official:analytics.revenueLabel")]} />
                   <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
                     {revenueByMethod.map((_, index) => <Cell key={index} fill={chartColors[index % chartColors.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">No payment method data yet.</div>
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">{t("official:analytics.noPaymentMethodData")}</div>
             )}
           </CardContent>
         </Card>
@@ -758,8 +765,8 @@ export const OfficialAnalyticsPage = () => {
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue by market</CardTitle>
-            <CardDescription>Highest revenue markets in the current dataset.</CardDescription>
+            <CardTitle>{t("official:analytics.revenueByMarket")}</CardTitle>
+            <CardDescription>{t("official:analytics.revenueByMarketDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -777,15 +784,15 @@ export const OfficialAnalyticsPage = () => {
                   </div>
                 );
               })}
-              {!topMarkets.length ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No market revenue yet.</div> : null}
+              {!topMarkets.length ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{t("official:analytics.noMarketRevenue")}</div> : null}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Vendor category distribution</CardTitle>
-            <CardDescription>Most common product sections in the registry.</CardDescription>
+            <CardTitle>{t("official:analytics.vendorDistribution")}</CardTitle>
+            <CardDescription>{t("official:analytics.vendorDistributionDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -795,7 +802,7 @@ export const OfficialAnalyticsPage = () => {
                   <div key={item.category}>
                     <div className="mb-1 flex items-center justify-between gap-3 text-sm">
                       <span className="truncate font-medium">{item.category}</span>
-                      <span className="shrink-0 text-muted-foreground">{item.count} vendor(s)</span>
+                      <span className="shrink-0 text-muted-foreground">{t("official:analytics.vendorSuffix", { n: item.count })}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted">
                       <div className="h-2 rounded-full" style={{ width: `${width}%`, backgroundColor: chartColors[index % chartColors.length] }} />
@@ -803,7 +810,7 @@ export const OfficialAnalyticsPage = () => {
                   </div>
                 );
               })}
-              {!vendorCategories.length ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No vendor categories yet.</div> : null}
+              {!vendorCategories.length ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{t("official:analytics.noVendorCategories")}</div> : null}
             </div>
           </CardContent>
         </Card>

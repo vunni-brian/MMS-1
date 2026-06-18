@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import {
@@ -16,12 +17,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-const navLinks = [
-  { label: "Features", target: "features" },
-  { label: "Process", target: "process" },
-  { label: "Reviews", target: "reviews" },
-  { label: "Pricing", target: "pricing" },
-  { label: "FAQs", target: "faqs" },
+const navLinkKeys = [
+  { key: "features", target: "features" },
+  { key: "process", target: "process" },
+  { key: "reviews", target: "reviews" },
+  { key: "pricing", target: "pricing" },
+  { key: "faqs", target: "faqs" },
 ];
 
 const features = [
@@ -95,6 +96,7 @@ const faqs = [
 ];
 
 const Index = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -110,13 +112,13 @@ const Index = () => {
           </button>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            {navLinks.map((link) => (
+            {navLinkKeys.map((link) => (
               <a
-                key={link.label}
+                key={link.key}
                 href={`#${link.target}`}
                 className="transition-colors hover:text-slate-900"
               >
-                {link.label}
+                {t(`landing:${link.key}`)}
               </a>
             ))}
           </nav>
@@ -127,14 +129,14 @@ const Index = () => {
               size="sm"
               onClick={() => navigate("/login")}
             >
-              Log in
+              {t("auth:login")}
             </Button>
             <Button
               size="sm"
               className="bg-slate-900 text-white hover:bg-slate-800"
               onClick={() => navigate("/register")}
             >
-              Get started
+              {t("landing:getStarted")}
               <ArrowRight className="ml-2 h-3 w-3" />
             </Button>
           </div>
@@ -151,19 +153,18 @@ const Index = () => {
             {/* NEW Badge */}
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
               <Sparkles className="h-3.5 w-3.5" />
-              MARKET MANAGEMENT SYSTEM
+              {t("landing:heroBadge")}
             </div>
 
             {/* Headline */}
             <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight text-slate-900 lg:text-7xl">
-              Manage your market operations
-              <span className="block text-emerald-600">in one intelligent system</span>
+              {t("landing:heroTitle")}
+              <span className="block text-emerald-600">{t("landing:heroTitleAccent")}</span>
             </h1>
 
             {/* Subheadline */}
             <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-              MMS is for stall allocation, track payments, and streamline complaints — 
-              so you can focus on running a thriving market.
+              {t("landing:heroSubtitle")}
             </p>
 
             {/* CTA Buttons */}
@@ -173,7 +174,7 @@ const Index = () => {
                 onClick={() => navigate("/register")}
                 className="bg-slate-900 text-white hover:bg-slate-800"
               >
-                Add to workspace
+                {t("landing:addToWorkspace")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button
@@ -181,7 +182,7 @@ const Index = () => {
                 variant="outline"
                 className="border-slate-300"
               >
-                Watch Demo
+                {t("landing:watchDemo")}
               </Button>
             </div>
 
@@ -191,9 +192,9 @@ const Index = () => {
                 {"★".repeat(5)}
               </div>
               <span className="font-medium">4.9</span>
-              <span>| 2,500+ REVIEWS</span>
-              <span>| 10,000+ USERS</span>
-              <span>| FREE FOREVER</span>
+              <span>| {t("landing:reviewsStat")}</span>
+              <span>| {t("landing:usersStat")}</span>
+              <span>| {t("landing:freeForever")}</span>
             </div>
           </div>
         </section>
@@ -203,10 +204,10 @@ const Index = () => {
           <div className="mx-auto max-w-7xl">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
-                Everything you need to run your market
+                {t("landing:featuresTitle")}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-                Built for vendors, managers, and officials — MMS brings transparency and efficiency to market operations.
+                {t("landing:featuresSubtitle")}
               </p>
             </div>
 
@@ -229,10 +230,10 @@ const Index = () => {
           <div className="mx-auto max-w-7xl">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
-                Simple 4-step process
+                {t("landing:processTitle")}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-                Get your market digitized in minutes, not months
+                {t("landing:processSubtitle")}
               </p>
             </div>
 
@@ -255,10 +256,10 @@ const Index = () => {
           <div className="mx-auto max-w-7xl">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
-                Loved by market communities
+                {t("landing:reviewsTitle")}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-                Join thousands of satisfied users across Uganda
+                {t("landing:reviewsSubtitle")}
               </p>
             </div>
 
@@ -279,7 +280,7 @@ const Index = () => {
             </div>
 
             <div className="mt-8 text-center text-sm text-slate-500">
-              ⭐ 4.9 average from 2,500+ reviews
+              {t("landing:reviewsAverage")}
             </div>
           </div>
         </section>
@@ -289,24 +290,24 @@ const Index = () => {
           <div className="mx-auto max-w-7xl">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
-                Simple, transparent pricing
+                {t("landing:pricingTitle")}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-                Start free, scale as you grow
+                {t("landing:pricingSubtitle")}
               </p>
             </div>
 
             <div className="mt-16 grid gap-8 md:grid-cols-2 lg:mx-auto lg:max-w-3xl lg:grid-cols-2">
               {/* Free Plan */}
               <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-                <h3 className="text-xl font-semibold text-slate-900">Free</h3>
+                <h3 className="text-xl font-semibold text-slate-900">{t("landing:freePlan")}</h3>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-slate-900">$0</span>
-                  <span className="text-slate-600">/month</span>
+                  <span className="text-slate-600">{t("landing:perMonth")}</span>
                 </div>
-                <p className="mt-4 text-sm text-slate-600">Perfect for small markets getting started</p>
+                <p className="mt-4 text-sm text-slate-600">{t("landing:freePlanDesc")}</p>
                 <ul className="mt-6 space-y-3 text-sm">
-                  {["Up to 50 vendors", "Basic stall management", "Email support", "Mobile app access"].map((item) => (
+                  {(t("landing:freePlanFeatures", { returnObjects: true }) as string[]).map((item: string) => (
                     <li key={item} className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                       {item}
@@ -314,23 +315,23 @@ const Index = () => {
                   ))}
                 </ul>
                 <Button className="mt-8 w-full border-slate-300" variant="outline">
-                  Get started
+                  {t("landing:getStarted")}
                 </Button>
               </div>
 
               {/* Pro Plan */}
               <div className="rounded-xl border-2 border-emerald-500 bg-white p-8 shadow-lg">
                 <div className="mb-2 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                  POPULAR
+                  {t("landing:popular")}
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900">Pro</h3>
+                <h3 className="text-xl font-semibold text-slate-900">{t("landing:proPlan")}</h3>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-slate-900">$49</span>
-                  <span className="text-slate-600">/month</span>
+                  <span className="text-slate-600">{t("landing:perMonth")}</span>
                 </div>
-                <p className="mt-4 text-sm text-slate-600">For growing markets with advanced needs</p>
+                <p className="mt-4 text-sm text-slate-600">{t("landing:proPlanDesc")}</p>
                 <ul className="mt-6 space-y-3 text-sm">
-                  {["Unlimited vendors", "AI stall allocation", "Priority support 24/7", "Advanced analytics", "API access", "Custom reports"].map((item) => (
+                  {(t("landing:proPlanFeatures", { returnObjects: true }) as string[]).map((item: string) => (
                     <li key={item} className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-emerald-600" />
                       {item}
@@ -338,7 +339,7 @@ const Index = () => {
                   ))}
                 </ul>
                 <Button className="mt-8 w-full bg-slate-900 text-white hover:bg-slate-800">
-                  Start free trial
+                  {t("landing:startFreeTrial")}
                 </Button>
               </div>
             </div>
@@ -350,10 +351,10 @@ const Index = () => {
           <div className="mx-auto max-w-4xl">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
-                Frequently asked questions
+                {t("landing:faqTitle")}
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-                Everything you need to know about MMS
+                {t("landing:faqSubtitle")}
               </p>
             </div>
 
@@ -375,10 +376,10 @@ const Index = () => {
         <section className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-20">
           <div className="mx-auto max-w-4xl text-center text-white">
             <h2 className="text-3xl font-bold lg:text-4xl">
-              Ready to transform your market operations?
+              {t("landing:ctaTitle")}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-emerald-100">
-              Join 10,000+ users already managing their markets with MMS
+              {t("landing:ctaSubtitle")}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button
@@ -386,7 +387,7 @@ const Index = () => {
                 className="bg-white text-emerald-700 hover:bg-slate-100"
                 onClick={() => navigate("/register")}
               >
-                Get started for free
+                {t("landing:getStartedFree")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button
@@ -394,7 +395,7 @@ const Index = () => {
                 variant="outline"
                 className="border-white text-white hover:bg-emerald-500"
               >
-                Contact sales
+                {t("landing:contactSales")}
               </Button>
             </div>
           </div>
@@ -407,14 +408,14 @@ const Index = () => {
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <BrandLogo size="sm" />
             <div className="flex gap-6 text-sm text-slate-600">
-              <a href="#features" className="hover:text-slate-900">Features</a>
-              <a href="#process" className="hover:text-slate-900">Process</a>
-              <a href="#reviews" className="hover:text-slate-900">Reviews</a>
-              <a href="#pricing" className="hover:text-slate-900">Pricing</a>
-              <a href="#faqs" className="hover:text-slate-900">FAQs</a>
+              <a href="#features" className="hover:text-slate-900">{t("landing:features")}</a>
+              <a href="#process" className="hover:text-slate-900">{t("landing:process")}</a>
+              <a href="#reviews" className="hover:text-slate-900">{t("landing:reviews")}</a>
+              <a href="#pricing" className="hover:text-slate-900">{t("landing:pricing")}</a>
+              <a href="#faqs" className="hover:text-slate-900">{t("landing:faqs")}</a>
             </div>
             <div className="text-sm text-slate-500">
-              © 2024 MMS. All rights reserved.
+              {t("landing:copyright")}
             </div>
           </div>
         </div>

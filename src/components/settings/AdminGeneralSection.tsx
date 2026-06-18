@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Settings } from "lucide-react";
 import { Panel } from "@/components/console/ConsolePage";
 import { EvidenceField } from "@/components/console/ConsolePage";
@@ -10,24 +11,27 @@ interface AdminGeneralSectionProps {
   payments: { length: number }[];
 }
 
-const AdminGeneralSection = ({ markets, chargeTypes, payments }: AdminGeneralSectionProps) => (
-  <div className="space-y-4">
-    <Panel title="Platform Overview" description="High-level platform state for municipal administration." actions={<Settings className="h-4 w-4 text-muted-foreground" />}>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <EvidenceField label="Markets" value={markets.length || "Not loaded"} />
-        <EvidenceField label="Billing switches" value={chargeTypes.length || "Not loaded"} />
-        <EvidenceField label="Payment records" value={payments.length || "Not loaded"} />
-      </div>
-      <ReadOnlyRows
-        rows={[
-          { label: "Runtime mode", value: import.meta.env.MODE },
-          { label: "API base URL", value: import.meta.env.VITE_API_BASE_URL || "http://localhost:3001" },
-          { label: "Workspace scope", value: "All markets" },
-        ]}
-      />
-    </Panel>
-  </div>
-);
+const AdminGeneralSection = ({ markets, chargeTypes, payments }: AdminGeneralSectionProps) => {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-4">
+      <Panel title={t("settings:adminGeneral.title")} description={t("settings:adminGeneral.description")} actions={<Settings className="h-4 w-4 text-muted-foreground" />}>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <EvidenceField label={t("settings:adminGeneral.markets")} value={markets.length || t("common:notAvailable")} />
+          <EvidenceField label={t("settings:adminGeneral.billingSwitches")} value={chargeTypes.length || t("common:notAvailable")} />
+          <EvidenceField label={t("settings:adminGeneral.paymentRecords")} value={payments.length || t("common:notAvailable")} />
+        </div>
+        <ReadOnlyRows
+          rows={[
+            { label: t("settings:adminGeneral.runtimeMode"), value: import.meta.env.MODE },
+            { label: t("settings:adminGeneral.apiBaseUrl"), value: import.meta.env.VITE_API_BASE_URL || "http://localhost:3001" },
+            { label: t("settings:adminGeneral.workspaceScope"), value: t("common:allMarkets") },
+          ]}
+        />
+      </Panel>
+    </div>
+  );
+};
 
 export default AdminGeneralSection;
 export type { AdminGeneralSectionProps };

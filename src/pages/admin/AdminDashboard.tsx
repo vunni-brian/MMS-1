@@ -1,13 +1,14 @@
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
 import {
- Activity,
- AlertCircle,
- Landmark,
- ShieldAlert,
- ShieldCheck,
- Terminal,
- Users,
+  Activity,
+  AlertCircle,
+  Landmark,
+  ShieldAlert,
+  ShieldCheck,
+  Terminal,
+  Users,
 } from "lucide-react";
 
 import { api } from "@/lib/api";
@@ -21,23 +22,7 @@ import { MiniAreaChart } from "@/components/charts/MiniCharts";
 import { KpiStrip } from "@/components/console/ConsolePage";
 
 const getAuditSeverity = (action: string) =>
- /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";
-
-const getAuditDetailLabel = (details: Record<string, unknown> | null) => {
- if (!details) return "No details recorded";
-
- const ipAddress = details.ipAddress ?? details.ip ?? details.clientIp;
- if (typeof ipAddress === "string" && ipAddress.trim()) {
- return ipAddress;
- }
-
- const status = details.status ?? details.reason ?? details.message;
- if (typeof status === "string" && status.trim()) {
- return status;
- }
-
- return "Details attached";
-};
+  /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";
 
 const DashboardSkeleton = () => (
   <div className="space-y-6">
@@ -53,59 +38,75 @@ const DashboardSkeleton = () => (
 );
 
 const AdminDashboard = () => {
- const usersQuery = useQuery({ queryKey: ["users", "admin"], queryFn: () => api.getUsers(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
- const marketsQuery = useQuery({ queryKey: ["markets", "admin"], queryFn: () => api.getMarkets(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
- const auditQuery = useQuery({ queryKey: ["audit", "admin"], queryFn: () => api.getAudit(), refetchInterval: 30000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
- const systemHealthQuery = useQuery({ queryKey: ["system-health"], queryFn: () => api.health(), refetchInterval: 60000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
+  const { t } = useTranslation();
+  const usersQuery = useQuery({ queryKey: ["users", "admin"], queryFn: () => api.getUsers(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
+  const marketsQuery = useQuery({ queryKey: ["markets", "admin"], queryFn: () => api.getMarkets(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });
+  const auditQuery = useQuery({ queryKey: ["audit", "admin"], queryFn: () => api.getAudit(), refetchInterval: 30000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
+  const systemHealthQuery = useQuery({ queryKey: ["system-health"], queryFn: () => api.health(), refetchInterval: 60000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
 
- const isLoading = usersQuery.isPending || marketsQuery.isPending || auditQuery.isPending || systemHealthQuery.isPending;
- const isError = usersQuery.isError || marketsQuery.isError || auditQuery.isError || systemHealthQuery.isError;
+  const isLoading = usersQuery.isPending || marketsQuery.isPending || auditQuery.isPending || systemHealthQuery.isPending;
+  const isError = usersQuery.isError || marketsQuery.isError || auditQuery.isError || systemHealthQuery.isError;
 
- 
- if (isError) {
-   return (
-    <Alert variant="destructive" className="max-w-xl mx-auto">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Could not load admin dashboard</AlertTitle>
-          <AlertDescription>System data is currently unavailable. Please refresh or check connection.</AlertDescription>
-        </Alert>
-   );
- }
+  const getAuditDetailLabel = (details: Record<string, unknown> | null) => {
+    if (!details) return t("admin:dashboard.noDetailsRecorded");
 
- if (isLoading) {
-   return <DashboardSkeleton />;
- }
+    const ipAddress = details.ipAddress ?? details.ip ?? details.clientIp;
+    if (typeof ipAddress === "string" && ipAddress.trim()) {
+      return ipAddress;
+    }
 
- const users = usersQuery.data?.users || [];
- const markets = marketsQuery.data?.markets || [];
- const auditEvents = auditQuery.data?.events || [];
- const systemOk = systemHealthQuery.data?.ok ?? false;
+    const status = details.status ?? details.reason ?? details.message;
+    if (typeof status === "string" && status.trim()) {
+      return status;
+    }
 
- const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
- const activeMarkets = markets.filter((market) => market.stallCount > 0 || market.activeStallCount > 0);
- const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
- const systemStatus = systemOk ? "healthy" : "degraded";
+    return t("admin:dashboard.detailsAttached");
+  };
+
+  if (isError) {
+    return (
+      <Alert variant="destructive" className="max-w-xl mx-auto">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>{t("admin:dashboard.errorTitle")}</AlertTitle>
+        <AlertDescription>{t("admin:dashboard.errorDescription")}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  const users = usersQuery.data?.users || [];
+  const markets = marketsQuery.data?.markets || [];
+  const auditEvents = auditQuery.data?.events || [];
+  const systemOk = systemHealthQuery.data?.ok ?? false;
+
+  const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
+  const activeMarkets = markets.filter((market) => market.stallCount > 0 || market.activeStallCount > 0);
+  const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
+  const systemStatus = systemOk ? "healthy" : "degraded";
 
   return (<>
       {/* Header */}
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t("admin:dashboard.title")}</h1>
           <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-            Admin Console
+            {t("admin:badge")}
           </Badge>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          Monitor infrastructure health, security events, and platform usage across all regions.
+          {t("admin:dashboard.subtitle")}
         </p>
       </div>
 
        {/* Stats Grid */}
        <KpiStrip columns="grid-cols-2 xl:grid-cols-4" items={[
-         { label: "Total Users", value: users.length.toLocaleString(), detail: `${internalUsers.length} staff / ${users.length - internalUsers.length} vendors`, tone: "info", icon: Users },
-         { label: "Active Markets", value: activeMarkets.length, detail: `${markets.length} registered total`, tone: "success", icon: Landmark },
-         { label: "Security Events", value: failedEvents.length, detail: "Failed logins / Denied access", tone: failedEvents.length > 0 ? "warning" : "success", icon: failedEvents.length > 0 ? ShieldAlert : ShieldCheck },
-         { label: "System Health", value: systemStatus === "healthy" ? "100%" : "Degraded", detail: systemStatus === "healthy" ? "All systems operational" : "Degraded performance", tone: systemStatus === "healthy" ? "success" : "destructive", icon: Activity },
+         { label: t("admin:dashboard.totalUsers"), value: users.length.toLocaleString(), detail: t("admin:dashboard.staffVendors", { staff: internalUsers.length, vendors: users.length - internalUsers.length }), tone: "info", icon: Users },
+         { label: t("admin:dashboard.activeMarkets"), value: activeMarkets.length, detail: t("admin:dashboard.registeredTotal", { count: markets.length }), tone: "success", icon: Landmark },
+         { label: t("admin:dashboard.securityEvents"), value: failedEvents.length, detail: t("admin:dashboard.failedLoginsDeniedAccess"), tone: failedEvents.length > 0 ? "warning" : "success", icon: failedEvents.length > 0 ? ShieldAlert : ShieldCheck },
+         { label: t("admin:dashboard.systemHealth"), value: systemStatus === "healthy" ? "100%" : t("admin:dashboard.degraded"), detail: systemStatus === "healthy" ? t("admin:dashboard.allSystemsOperational") : t("admin:dashboard.degradedPerformance"), tone: systemStatus === "healthy" ? "success" : "destructive", icon: Activity },
        ]} />
 
       {/* Charts and Activity */}
@@ -115,10 +116,10 @@ const AdminDashboard = () => {
           {/* Chart Card */}
           <Card className="border-slate-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-slate-900">Platform Activity (Last 30 Days)</CardTitle>
+              <CardTitle className="text-slate-900">{t("admin:dashboard.platformActivity")}</CardTitle>
               <div className="flex gap-2">
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">Logins</Badge>
-                <Badge variant="outline" className="border-slate-200">API Calls</Badge>
+                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">{t("admin:dashboard.logins")}</Badge>
+                <Badge variant="outline" className="border-slate-200">{t("admin:dashboard.apiCalls")}</Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
@@ -129,7 +130,7 @@ const AdminDashboard = () => {
           {/* Security & Audit Log */}
           <Card className="border-slate-200 bg-white">
             <CardHeader>
-              <CardTitle className="text-slate-900">Security & Audit Log</CardTitle>
+              <CardTitle className="text-slate-900">{t("admin:dashboard.securityAuditLog")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -158,7 +159,7 @@ const AdminDashboard = () => {
                       </div>
                       <div className="text-right">
                         <Badge variant={severity === "failure" ? "destructive" : "secondary"} className="text-[10px] uppercase">
-                          {severity === "failure" ? "Review" : "Recorded"}
+                          {severity === "failure" ? t("admin:dashboard.review") : t("admin:dashboard.recorded")}
                         </Badge>
                         <p className="mt-1 text-xs text-slate-500">{formatHumanDateTime(event.createdAt)}</p>
                       </div>
@@ -167,7 +168,7 @@ const AdminDashboard = () => {
                 })}
                 {!auditEvents.length && (
                   <div className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-500">
-                    No recent audit events.
+                    {t("admin:dashboard.noRecentAuditEvents")}
                   </div>
                 )}
               </div>
@@ -179,7 +180,7 @@ const AdminDashboard = () => {
         <div className="space-y-6">
           <Card className="border-slate-200 bg-white">
             <CardHeader>
-              <CardTitle className="text-slate-900">Infrastructure Health</CardTitle>
+              <CardTitle className="text-slate-900">{t("admin:dashboard.infrastructureHealth")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className={`flex items-center gap-4 rounded-xl border p-4 ${
@@ -198,20 +199,20 @@ const AdminDashboard = () => {
                   <p className={`text-sm font-semibold ${
                     systemOk ? "text-emerald-900" : "text-red-900"
                   }`}>
-                    {systemOk ? "All systems operational" : "Platform health check failed"}
+                    {systemOk ? t("admin:dashboard.allSystemsOperational") : t("admin:dashboard.healthCheckFailed")}
                   </p>
                   <p className={`mt-0.5 text-xs ${
                     systemOk ? "text-emerald-700" : "text-red-700"
                   }`}>
                     {systemOk 
-                      ? "API and services responding normally." 
-                      : "The health endpoint returned a failure response. Check server logs."}
+                      ? t("admin:dashboard.apiServicesNormal") 
+                      : t("admin:dashboard.healthEndpointFailure")}
                   </p>
                 </div>
               </div>
               {!systemOk && (
                 <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  Service degradation detected. Review infrastructure logs and check connectivity to the API gateway.
+                  {t("admin:dashboard.serviceDegradation")}
                 </div>
               )}
             </CardContent>
@@ -220,25 +221,25 @@ const AdminDashboard = () => {
           {/* Quick Stats Card */}
           <Card className="border-slate-200 bg-white">
             <CardHeader>
-              <CardTitle className="text-slate-900">Quick Stats</CardTitle>
+              <CardTitle className="text-slate-900">{t("admin:dashboard.quickStats")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Total Vendors</span>
+                <span className="text-sm text-slate-600">{t("admin:dashboard.totalVendors")}</span>
                 <span className="text-lg font-semibold text-slate-900">{users.filter(u => u.role === "vendor").length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Total Markets</span>
+                <span className="text-sm text-slate-600">{t("admin:dashboard.totalMarkets")}</span>
                 <span className="text-lg font-semibold text-slate-900">{markets.length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Active Stalls</span>
+                <span className="text-sm text-slate-600">{t("admin:dashboard.activeStalls")}</span>
                 <span className="text-lg font-semibold text-slate-900">
                   {markets.reduce((sum, m) => sum + (m.activeStallCount || 0), 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Occupancy Rate</span>
+                <span className="text-sm text-slate-600">{t("admin:dashboard.occupancyRate")}</span>
                 <span className="text-lg font-semibold text-emerald-600">78%</span>
               </div>
             </CardContent>

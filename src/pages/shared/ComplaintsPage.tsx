@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
@@ -34,14 +35,18 @@ type CategoryFilter = "all" | TicketCategory;
 type PriorityFilter = "all" | TicketPriority;
 
 // ─── Constants ───────────────────────────────────────────
-const categoryLabels: Record<TicketCategory, string> = {
-  billing: "Billing", maintenance: "Maintenance", dispute: "Dispute",
-  payment: "Payment", stall: "Stall", sanitation: "Sanitation",
-  harassment: "Harassment", other: "Other",
+const categoryLabelKeys: Record<TicketCategory, string> = {
+  billing: "complaints:categories.billing", maintenance: "complaints:categories.maintenance", dispute: "complaints:categories.dispute",
+  payment: "complaints:categories.payment", stall: "complaints:categories.stall", sanitation: "complaints:categories.sanitation",
+  harassment: "complaints:categories.harassment", other: "complaints:categories.other",
 };
 
-const priorityLabels: Record<TicketPriority, string> = {
-  low: "Low", medium: "Medium", high: "High", urgent: "Urgent",
+const priorityLabelKeys: Record<TicketPriority, string> = {
+  low: "complaints:priorities.low", medium: "complaints:priorities.medium", high: "complaints:priorities.high", urgent: "complaints:priorities.urgent",
+};
+
+const statusLabelKeys: Record<TicketStatus, string> = {
+  open: "complaints:open", in_progress: "complaints:steps.inProgress", resolved: "complaints:resolved", closed: "complaints:closed",
 };
 
 const priorityClasses: Record<TicketPriority, string> = {
@@ -51,7 +56,7 @@ const priorityClasses: Record<TicketPriority, string> = {
   low: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
-const complaintSteps = ["Submitted", "In Progress", "Resolved", "Closed"];
+const complaintStepKeys = ["complaints:steps.submitted", "complaints:steps.inProgress", "complaints:steps.resolved", "complaints:steps.closed"];
 
 const getStepIndex = (status: TicketStatus) => {
   if (status === "closed") return 3;
@@ -60,27 +65,27 @@ const getStepIndex = (status: TicketStatus) => {
   return 0;
 };
 
-const formatSla = (ticket: Ticket) => {
-  if (!ticket.slaDueAt) return "No SLA";
-  if (ticket.status === "resolved" || ticket.status === "closed") return "Completed";
+const formatSla = (ticket: Ticket, t: (key: string) => string) => {
+  if (!ticket.slaDueAt) return t("complaints:slaFallback");
+  if (ticket.status === "resolved" || ticket.status === "closed") return t("complaints:slaCompleted");
   const diff = new Date(ticket.slaDueAt).getTime() - Date.now();
   const absHours = Math.ceil(Math.abs(diff) / (1000 * 60 * 60));
-  if (diff < 0) return `${absHours}h overdue`;
-  if (absHours < 24) return `${absHours}h left`;
-  return `${Math.ceil(absHours / 24)}d left`;
+  if (diff < 0) return t("complaints:slaOverdue", { h: absHours });
+  if (absHours < 24) return t("complaints:slaLeftHours", { h: absHours });
+  return t("complaints:slaLeftDays", { d: Math.ceil(absHours / 24) });
 };
 
-const buildTimeline = (ticket: Ticket) => [
-  { id: `${ticket.id}-created`, label: "Ticket Created", detail: `${ticket.ticketNumber} submitted by ${ticket.vendorName}.`, actor: ticket.vendorName, timestamp: ticket.createdAt, internal: false },
-  ...ticket.updates.map((u) => ({ id: u.id, label: u.internal ? "Internal Note" : u.status === ticket.status ? "Update" : "Status Change", detail: u.note, actor: u.actorName, timestamp: u.createdAt, internal: u.internal })),
-  ...(ticket.escalatedAt ? [{ id: `${ticket.id}-esc`, label: "Escalated", detail: ticket.escalationReason || "Senior review required.", actor: ticket.assignedToName || "System", timestamp: ticket.escalatedAt, internal: true }] : []),
-  ...(ticket.resolvedAt ? [{ id: `${ticket.id}-res`, label: "Resolved", detail: ticket.resolutionReference || `${ticket.ticketNumber}-RES`, actor: ticket.assignedToName || "Manager", timestamp: ticket.resolvedAt, internal: false }] : []),
+const buildTimeline = (ticket: Ticket, t: (key: string) => string) => [
+  { id: `${ticket.id}-created`, label: t("complaints:timelineCreated"), detail: `${ticket.ticketNumber} ${t("complaints:submitted")} by ${ticket.vendorName}.`, actor: ticket.vendorName, timestamp: ticket.createdAt, internal: false },
+  ...ticket.updates.map((u) => ({ id: u.id, label: u.internal ? t("complaints:timelineNote") : u.status === ticket.status ? t("complaints:timelineUpdate") : t("complaints:timelineStatusChange"), detail: u.note, actor: u.actorName, timestamp: u.createdAt, internal: u.internal })),
+  ...(ticket.escalatedAt ? [{ id: `${ticket.id}-esc`, label: t("complaints:timelineEscalated"), detail: ticket.escalationReason || t("complaints:escalationReason"), actor: ticket.assignedToName || t("complaints:actorSystem"), timestamp: ticket.escalatedAt, internal: true }] : []),
+  ...(ticket.resolvedAt ? [{ id: `${ticket.id}-res`, label: t("complaints:timelineResolved"), detail: ticket.resolutionReference || `${ticket.ticketNumber}-RES`, actor: ticket.assignedToName || t("complaints:actorManager"), timestamp: ticket.resolvedAt, internal: false }] : []),
 ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-const nextStatusOptions = (status: TicketStatus): Array<{ value: TicketStatus; label: string }> => {
-  const all: Array<{ value: TicketStatus; label: string }> = [
-    { value: "open", label: "Open" }, { value: "in_progress", label: "In Progress" },
-    { value: "resolved", label: "Resolved" }, { value: "closed", label: "Closed" },
+const nextStatusOptions = (status: TicketStatus): Array<{ value: TicketStatus; labelKey: string }> => {
+  const all: Array<{ value: TicketStatus; labelKey: string }> = [
+    { value: "open", labelKey: "complaints:open" }, { value: "in_progress", labelKey: "complaints:steps.inProgress" },
+    { value: "resolved", labelKey: "complaints:resolved" }, { value: "closed", labelKey: "complaints:closed" },
   ];
   if (status === "open") return all.filter((o) => ["open", "in_progress", "closed"].includes(o.value));
   if (status === "in_progress") return all.filter((o) => ["in_progress", "resolved", "closed"].includes(o.value));
@@ -90,17 +95,18 @@ const nextStatusOptions = (status: TicketStatus): Array<{ value: TicketStatus; l
 
 // ─── Sub-components ───────────────────────────────────────
 const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
+  const { t } = useTranslation();
   const active = getStepIndex(status);
   return (
     <div className="space-y-2">
       <div className="relative h-2 rounded-full bg-slate-100">
-        <div className="h-2 rounded-full bg-emerald-500 transition-all" style={{ width: `${(active / (complaintSteps.length - 1)) * 100}%` }} />
+        <div className="h-2 rounded-full bg-emerald-500 transition-all" style={{ width: `${(active / (complaintStepKeys.length - 1)) * 100}%` }} />
       </div>
       <div className="grid grid-cols-4 gap-1 text-[11px] font-medium">
-        {complaintSteps.map((step, i) => (
-          <span key={step} className={`inline-flex items-center gap-1 ${i <= active ? "text-slate-900" : "text-slate-400"}`}>
+        {complaintStepKeys.map((stepKey, i) => (
+          <span key={stepKey} className={`inline-flex items-center gap-1 ${i <= active ? "text-slate-900" : "text-slate-400"}`}>
             {i <= active && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
-            {step}
+            {t(stepKey)}
           </span>
         ))}
       </div>
@@ -110,6 +116,7 @@ const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
 
 // ─── Main component ───────────────────────────────────────
 const ComplaintsPage = () => {
+  const { t } = useTranslation();
   const { role } = useAuth();
   const queryClient = useQueryClient();
 
@@ -140,9 +147,9 @@ const ComplaintsPage = () => {
       setShowNew(false);
       setNewTicket({ category: "maintenance", priority: "medium", subject: "", description: "", attachment: null });
       setError(null);
-      toast.success("Complaint submitted", { description: "A trackable ticket number has been created." });
+      toast.success(t("complaints:complaintSubmitted"), { description: t("complaints:complaintSubmittedDesc") });
     },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to create ticket."; setError(msg); toast.error("Complaint was not submitted", { description: msg }); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to create ticket."; setError(msg); toast.error(t("complaints:complaintNotSubmitted"), { description: msg }); },
   });
 
   const updateTicket = useMutation({
@@ -151,27 +158,27 @@ const ComplaintsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["tickets"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setSelected(null); setError(null);
-      toast.success("Ticket updated");
+      toast.success(t("complaints:ticketUpdated"));
     },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to update ticket."; setError(msg); toast.error("Ticket was not updated", { description: msg }); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to update ticket."; setError(msg); toast.error(t("complaints:ticketNotUpdated"), { description: msg }); },
   });
 
   const escalateTicket = useMutation({
-    mutationFn: () => api.escalateTicket(selected!.ticketNumber, managerUpdate.note.trim() || "SLA or operational risk requires official review."),
+    mutationFn: () => api.escalateTicket(selected!.ticketNumber, managerUpdate.note.trim() || t("complaints:escalationFallback")),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tickets"] });
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setSelected(null); setError(null);
-      toast.success("Ticket escalated");
+      toast.success(t("complaints:ticketEscalated"));
     },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to escalate ticket."; setError(msg); toast.error("Ticket was not escalated", { description: msg }); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to escalate ticket."; setError(msg); toast.error(t("complaints:ticketNotEscalated"), { description: msg }); },
   });
 
   const tickets = data?.tickets || [];
 
   const filteredTickets = tickets.filter((ticket) => {
     const term = search.trim().toLowerCase();
-    const matchesSearch = !term || [ticket.ticketNumber, ticket.subject, ticket.description, ticket.vendorName || "", categoryLabels[ticket.category], ticket.status, ticket.priority].join(" ").toLowerCase().includes(term);
+    const matchesSearch = !term || [ticket.ticketNumber, ticket.subject, ticket.description, ticket.vendorName || "", t(categoryLabelKeys[ticket.category]), t(statusLabelKeys[ticket.status]), t(priorityLabelKeys[ticket.priority])].join(" ").toLowerCase().includes(term);
     return matchesSearch && (statusFilter === "all" || ticket.status === statusFilter) && (categoryFilter === "all" || ticket.category === categoryFilter) && (priorityFilter === "all" || ticket.priority === priorityFilter);
   });
 
@@ -186,14 +193,14 @@ const ComplaintsPage = () => {
   return (
     <PageLayout>
       <PageHeader
-        eyebrow="Ticket desk"
-        title="Grievances & Appeals"
-        subtitle={role === "vendor" ? "Submit and track market complaints." : "Review and resolve vendor disputes."}
+        eyebrow={t("complaints:eyebrow")}
+        title={t("complaints:title")}
+        subtitle={role === "vendor" ? t("complaints:subtitleVendor") : t("complaints:subtitleManager")}
         actions={
           role === "vendor" ? (
             <Button onClick={() => setShowNew(true)} className="rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold">
               <Plus className="mr-1 h-4 w-4" />
-              New Complaint
+              {t("complaints:newComplaint")}
             </Button>
           ) : undefined
         }
@@ -202,10 +209,10 @@ const ComplaintsPage = () => {
       {/* Summary strip */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Open complaints", value: openCount, sub: openCount ? "Waiting for triage" : "Queue clear", tone: openCount ? "amber" as const : "green" as const },
-          { label: "In progress", value: inProgressCount, sub: "Assigned or under review", tone: "blue" as const },
-          { label: "SLA risk", value: breachedCount, sub: "Overdue or escalated", tone: breachedCount ? "red" as const : "green" as const },
-          { label: "Resolved / closed", value: resolvedCount, sub: "Completed lifecycle", tone: "green" as const },
+          { label: t("complaints:openComplaints"), value: openCount, sub: openCount ? t("complaints:waitingTriage") : t("complaints:queueClear"), tone: openCount ? "amber" as const : "green" as const },
+          { label: t("complaints:inProgress"), value: inProgressCount, sub: t("complaints:underReview"), tone: "blue" as const },
+          { label: t("complaints:slaRisk"), value: breachedCount, sub: t("complaints:overdueEscalated"), tone: breachedCount ? "red" as const : "green" as const },
+          { label: t("complaints:resolvedClosed"), value: resolvedCount, sub: t("complaints:completedLifecycle"), tone: "green" as const },
         ].map((item) => (
           <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-600">{item.label}</p>
@@ -218,39 +225,39 @@ const ComplaintsPage = () => {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {/* Register table */}
-      <DataTableFrame title="Complaints Register" actions={
+      <DataTableFrame title={t("complaints:register")} actions={
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input className="border-slate-300 pl-9 rounded-lg focus-visible:border-primary focus-visible:ring-0 h-9" placeholder="Search ticket, vendor, subject..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="border-slate-300 pl-9 rounded-lg focus-visible:border-primary focus-visible:ring-0 h-9" placeholder={t("complaints:searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Select value={categoryFilter} onValueChange={(v: CategoryFilter) => setCategoryFilter(v)}>
-            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[150px]"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[150px]"><SelectValue placeholder={t("complaints:category")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              <SelectItem value="all">{t("complaints:allCategories")}</SelectItem>
+              {Object.entries(categoryLabelKeys).map(([k, v]) => <SelectItem key={k} value={k}>{t(v)}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={(v: StatusFilter) => setStatusFilter(v)}>
-            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[130px]"><SelectValue placeholder={t("complaints:status")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="all">{t("complaints:allStatus")}</SelectItem>
+              <SelectItem value="open">{t("complaints:open")}</SelectItem>
+              <SelectItem value="in_progress">{t("complaints:steps.inProgress")}</SelectItem>
+              <SelectItem value="resolved">{t("complaints:resolved")}</SelectItem>
+              <SelectItem value="closed">{t("complaints:closed")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={(v: PriorityFilter) => setPriorityFilter(v)}>
-            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[130px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full border-slate-300 rounded-lg sm:w-[130px]"><SelectValue placeholder={t("complaints:priority")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              {Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              <SelectItem value="all">{t("complaints:allPriority")}</SelectItem>
+              {Object.entries(priorityLabelKeys).map(([k, v]) => <SelectItem key={k} value={k}>{t(v)}</SelectItem>)}
             </SelectContent>
           </Select>
           <span className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-500 sm:inline-flex">{filteredTickets.length} / {tickets.length}</span>
           <Button variant="outline" size="sm" className="rounded-lg border-slate-300 h-9" onClick={() => { setSearch(""); setCategoryFilter("all"); setStatusFilter("all"); setPriorityFilter("all"); }}>
-            <Filter className="mr-1 h-3.5 w-3.5" />Reset
+            <Filter className="mr-1 h-3.5 w-3.5" />{t("common:reset")}
           </Button>
         </div>
       }>
@@ -261,23 +268,23 @@ const ComplaintsPage = () => {
             <Skeleton className="h-10 w-full rounded-lg" />
           </div>
         ) : isError ? (
-          <div className="p-6 text-center text-sm text-red-600">Unable to load complaints. Please check your connection.</div>
+          <div className="p-6 text-center text-sm text-red-600">{t("complaints:loadError")}</div>
         ) : filteredTickets.length === 0 ? (
-          <EmptyState title="No complaints match the current filters." />
+          <EmptyState title={t("complaints:noComplaintsMatch")} />
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
-                  <TableHead className="text-xs font-bold text-slate-600">Ticket</TableHead>
-                  {role !== "vendor" && <TableHead className="text-xs font-bold text-slate-600">Vendor</TableHead>}
-                  <TableHead className="text-xs font-bold text-slate-600">Subject</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-600">Category</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-600">Priority</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-600">Status</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-600">SLA</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-600">Created</TableHead>
-                  <TableHead className="text-right text-xs font-bold text-slate-600">Action</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:ticket")}</TableHead>
+                  {role !== "vendor" && <TableHead className="text-xs font-bold text-slate-600">{t("complaints:vendor")}</TableHead>}
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:subject")}</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:category")}</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:priority")}</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:status")}</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:sla")}</TableHead>
+                  <TableHead className="text-xs font-bold text-slate-600">{t("complaints:created")}</TableHead>
+                  <TableHead className="text-right text-xs font-bold text-slate-600">{t("complaints:action")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -290,25 +297,25 @@ const ComplaintsPage = () => {
                     </TableCell>
                     <TableCell>
                       <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                        {categoryLabels[ticket.category]}
+                        {t(categoryLabelKeys[ticket.category])}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className={`rounded-lg border px-2 py-0.5 text-xs font-semibold ${priorityClasses[ticket.priority]}`}>
-                        {priorityLabels[ticket.priority]}
+                        {t(priorityLabelKeys[ticket.priority])}
                       </span>
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={ticket.status} context="ticket" />
                     </TableCell>
                     <TableCell className={`whitespace-nowrap text-xs ${ticket.breachedSla ? "font-bold text-red-600" : "text-slate-500"}`}>
-                      {formatSla(ticket)}
+                      {formatSla(ticket, t)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-slate-500">{formatHumanDateTime(ticket.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="outline" className="h-7 rounded-lg border-slate-300 px-2 text-xs font-bold"
                         onClick={() => { setSelected(ticket); setManagerUpdate({ status: ticket.status, resolutionNote: ticket.resolution || "", note: "", internal: false }); }}>
-                        View
+                        {t("common:view")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -323,40 +330,40 @@ const ComplaintsPage = () => {
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="sm:max-w-xl rounded-lg">
           <DialogHeader>
-            <DialogTitle className="font-bold text-slate-900">Lodge a Complaint</DialogTitle>
+            <DialogTitle className="font-bold text-slate-900">{t("complaints:lodgeComplaint")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="complaint-category" className="font-bold text-slate-700">Category</Label>
+              <Label htmlFor="complaint-category" className="font-bold text-slate-700">{t("complaints:category")}</Label>
               <Select value={newTicket.category} onValueChange={(v: TicketCategory) => setNewTicket((c) => ({ ...c, category: v }))}>
                 <SelectTrigger id="complaint-category" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>{Object.entries(categoryLabelKeys).map(([k, v]) => <SelectItem key={k} value={k}>{t(v)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="complaint-severity" className="font-bold text-slate-700">Severity</Label>
+              <Label htmlFor="complaint-severity" className="font-bold text-slate-700">{t("complaints:severity")}</Label>
               <Select value={newTicket.priority} onValueChange={(v: TicketPriority) => setNewTicket((c) => ({ ...c, priority: v }))}>
                 <SelectTrigger id="complaint-severity" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(priorityLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>{Object.entries(priorityLabelKeys).map(([k, v]) => <SelectItem key={k} value={k}>{t(v)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="complaint-subject" className="font-bold text-slate-700">Subject</Label>
+              <Label htmlFor="complaint-subject" className="font-bold text-slate-700">{t("complaints:subject")}</Label>
               <Input id="complaint-subject" className="border-slate-300 rounded-lg" value={newTicket.subject} onChange={(e) => setNewTicket((c) => ({ ...c, subject: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="complaint-description" className="font-bold text-slate-700">Description</Label>
-                <span className={`text-xs ${newTicket.description.length < 20 ? "text-slate-400" : "text-emerald-600"}`}>{newTicket.description.length} / 20 min</span>
+                <Label htmlFor="complaint-description" className="font-bold text-slate-700">{t("complaints:description")}</Label>
+                <span className={`text-xs ${newTicket.description.length < 20 ? "text-slate-400" : "text-emerald-600"}`}>{t("complaints:charCount", { n: newTicket.description.length })}</span>
               </div>
-              <Textarea id="complaint-description" className="border-slate-300 rounded-lg" rows={4} value={newTicket.description} onChange={(e) => setNewTicket((c) => ({ ...c, description: e.target.value }))} placeholder="Describe the issue clearly — include location, what happened, and when." />
+              <Textarea id="complaint-description" className="border-slate-300 rounded-lg" rows={4} value={newTicket.description} onChange={(e) => setNewTicket((c) => ({ ...c, description: e.target.value }))} placeholder={t("complaints:descPlaceholder")} />
               {newTicket.description.length > 0 && newTicket.description.length < 20 && (
-                <p className="text-xs text-amber-600">Please add more detail so the manager can understand the issue.</p>
+                <p className="text-xs text-amber-600">{t("complaints:descHint")}</p>
               )}
             </div>
-            <FileUploadCard id="complaint-attachment" label="Attachment (optional)" description="Add a photo or document if it helps resolve the case." accept=".pdf,.jpg,.jpeg,.png" value={newTicket.attachment?.name || "No file selected"} onChange={(file) => setNewTicket((c) => ({ ...c, attachment: file }))} />
+            <FileUploadCard id="complaint-attachment" label={t("complaints:attachment")} description={t("complaints:attachmentDesc")} accept=".pdf,.jpg,.jpeg,.png" value={newTicket.attachment?.name || t("common:noFileSelected")} onChange={(file) => setNewTicket((c) => ({ ...c, attachment: file }))} />
             <Button className="w-full rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" onClick={() => createTicket.mutate()} disabled={createTicket.isPending || !canSubmit}>
-              {createTicket.isPending ? "Submitting..." : "Submit Complaint"}
+              {createTicket.isPending ? t("common:submitting") : t("complaints:submitComplaint")}
             </Button>
           </div>
         </DialogContent>
@@ -367,7 +374,7 @@ const ComplaintsPage = () => {
         <DialogContent className="sm:max-w-2xl rounded-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-bold text-slate-900">
-              {selected ? `${selected.ticketNumber} — ${selected.subject}` : "Ticket Detail"}
+              {selected ? t("complaints:ticketNumber", { ticketNumber: selected.ticketNumber, subject: selected.subject }) : t("complaints:ticketDetail")}
             </DialogTitle>
           </DialogHeader>
 
@@ -376,13 +383,13 @@ const ComplaintsPage = () => {
               {/* Meta rows */}
               <div className="rounded-lg border border-slate-200 bg-slate-50 divide-y divide-slate-100">
                 {[
-                  { label: "Reference", value: <span className="font-mono text-xs font-bold">{selected.ticketNumber}</span> },
-                  { label: "Vendor", value: selected.vendorName },
-                  { label: "Category", value: categoryLabels[selected.category] },
-                  { label: "Priority", value: <span className={`rounded-lg border px-2 py-0.5 text-xs font-semibold ${priorityClasses[selected.priority]}`}>{priorityLabels[selected.priority]}</span> },
-                  { label: "Status", value: <StatusBadge status={selected.status} context="ticket" /> },
-                  { label: "SLA", value: <span className={selected.breachedSla ? "font-bold text-red-600" : ""}>{formatSla(selected)}</span> },
-                  ...(selected.assignedToName ? [{ label: "Assigned To", value: selected.assignedToName }] : []),
+                  { label: t("complaints:ticket"), value: <span className="font-mono text-xs font-bold">{selected.ticketNumber}</span> },
+                  { label: t("complaints:vendor"), value: selected.vendorName },
+                  { label: t("complaints:category"), value: t(categoryLabelKeys[selected.category]) },
+                  { label: t("complaints:priority"), value: <span className={`rounded-lg border px-2 py-0.5 text-xs font-semibold ${priorityClasses[selected.priority]}`}>{t(priorityLabelKeys[selected.priority])}</span> },
+                  { label: t("complaints:status"), value: <StatusBadge status={selected.status} context="ticket" /> },
+                  { label: t("complaints:sla"), value: <span className={selected.breachedSla ? "font-bold text-red-600" : ""}>{formatSla(selected, t)}</span> },
+                  ...(selected.assignedToName ? [{ label: t("complaints:assignedTo"), value: selected.assignedToName }] : []),
                 ].map((row) => (
                   <div key={row.label} className="flex items-center justify-between gap-3 px-3 py-2.5">
                     <span className="text-slate-500">{row.label}</span>
@@ -402,16 +409,16 @@ const ComplaintsPage = () => {
               {/* Attachments */}
               {selected.attachments.length > 0 && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-2 font-bold text-slate-900">Attachments</p>
+                  <p className="mb-2 font-bold text-slate-900">{t("complaints:attachments")}</p>
                   {selected.attachments.map((a) => <p key={a.id} className="text-sm text-slate-500">{a.name}</p>)}
                 </div>
               )}
 
               {/* Timeline */}
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-3 font-bold text-slate-900">Timeline</p>
+                <p className="mb-3 font-bold text-slate-900">{t("complaints:timeline")}</p>
                 <div className="space-y-3">
-                  {buildTimeline(selected).map((event) => (
+                  {buildTimeline(selected, t).map((event) => (
                     <div key={event.id} className="flex gap-3">
                       <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white">
                         {event.internal ? <Lock className="h-3 w-3 text-slate-400" /> : <MessageSquare className="h-3 w-3 text-slate-400" />}
@@ -419,7 +426,7 @@ const ComplaintsPage = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold text-slate-900">{event.label}</p>
-                          {event.internal && <span className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">Internal</span>}
+                          {event.internal && <span className="rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-500">{t("complaints:internal")}</span>}
                           <span className="text-xs text-slate-400">{formatHumanDateTime(event.timestamp)}</span>
                         </div>
                         <p className="text-xs text-slate-500">{event.actor}</p>
@@ -433,41 +440,41 @@ const ComplaintsPage = () => {
               {/* Manager actions */}
               {role === "manager" ? (
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-bold text-slate-900">Manager Response</p>
+                  <p className="font-bold text-slate-900">{t("complaints:managerResponse")}</p>
                   <div className="space-y-1.5">
-                    <Label htmlFor="ticket-update-status" className="font-bold text-slate-700">Update Status</Label>
+                    <Label htmlFor="ticket-update-status" className="font-bold text-slate-700">{t("complaints:updateStatus")}</Label>
                     <Select value={managerUpdate.status} onValueChange={(v: TicketStatus) => setManagerUpdate((c) => ({ ...c, status: v }))}>
                       <SelectTrigger id="ticket-update-status" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
-                      <SelectContent>{nextStatusOptions(selected.status).map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{nextStatusOptions(selected.status).map((o) => <SelectItem key={o.value} value={o.value}>{t(o.labelKey)}</SelectItem>)}</SelectContent>
                     </Select>
-                    <p className="text-xs text-slate-500">Status changes are written to the audit log.</p>
+                    <p className="text-xs text-slate-500">{t("complaints:statusAuditNote")}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="ticket-resolution-note" className="font-bold text-slate-700">Resolution / Closure Note</Label>
+                    <Label htmlFor="ticket-resolution-note" className="font-bold text-slate-700">{t("complaints:resolutionNote")}</Label>
                     <Textarea id="ticket-resolution-note" className="border-slate-300 rounded-lg" rows={3} value={managerUpdate.resolutionNote} onChange={(e) => setManagerUpdate((c) => ({ ...c, resolutionNote: e.target.value }))} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="ticket-staff-note" className="font-bold text-slate-700">Staff Note</Label>
+                    <Label htmlFor="ticket-staff-note" className="font-bold text-slate-700">{t("complaints:staffNote")}</Label>
                     <Textarea id="ticket-staff-note" className="border-slate-300 rounded-lg" rows={2} value={managerUpdate.note} onChange={(e) => setManagerUpdate((c) => ({ ...c, note: e.target.value }))} />
                   </div>
                   <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={managerUpdate.internal} onChange={(e) => setManagerUpdate((c) => ({ ...c, internal: e.target.checked }))} className="h-4 w-4 rounded border-slate-300" />
-                    <span className="font-medium text-slate-700">Mark note as internal</span>
+                    <span className="font-medium text-slate-700">{t("complaints:markInternal")}</span>
                   </label>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button className="flex-1 rounded-lg shadow-none bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => updateTicket.mutate()} disabled={updateTicket.isPending || !canUpdate}>
-                      Update Ticket
+                      {t("complaints:updateTicket")}
                     </Button>
                     <Button type="button" variant="outline" className="flex-1 rounded-lg border-slate-300 font-bold" onClick={() => escalateTicket.mutate()} disabled={escalateTicket.isPending || selected.status === "closed"}>
                       <ArrowUpRight className="mr-1 h-4 w-4" />
-                      Escalate
+                      {t("complaints:escalate")}
                     </Button>
                   </div>
                 </div>
               ) : (
                 selected.resolution && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                    <p className="font-bold text-emerald-800">Resolution</p>
+                    <p className="font-bold text-emerald-800">{t("complaints:resolution")}</p>
                     <p className="mt-1 text-sm text-emerald-700">{selected.resolution}</p>
                   </div>
                 )
@@ -477,7 +484,7 @@ const ComplaintsPage = () => {
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <StatusBadge status={selected.status} context="ticket" />
                 <Badge variant={selected.priority === "urgent" || selected.priority === "high" ? "error" : selected.priority === "medium" ? "warning" : "secondary"}>
-                  {priorityLabels[selected.priority]}
+                  {t(priorityLabelKeys[selected.priority])}
                 </Badge>
               </div>
             </div>

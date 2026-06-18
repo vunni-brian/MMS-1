@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import {
   Bell, Building2, ChevronDown, HelpCircle, KeyRound, LogOut, Menu, Search, ShieldCheck, UserCircle,
@@ -37,13 +38,14 @@ export const AppHeader = ({
   isPendingVendor, hasUnread, openProfileTab, openSettingsTab, signOut,
   onOpenCommandMenu,
 }: AppHeaderProps) => {
+  const { t } = useTranslation();
   const initials = getInitials(user.name);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-white/80 backdrop-blur-xl px-4 lg:px-6 shadow-sm">
       <button
         type="button"
-        aria-label="Open navigation"
+        aria-label={t("nav:toggleSidebar")}
         className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground lg:hidden"
         onClick={() => setSidebarOpen(true)}
       >
@@ -51,7 +53,7 @@ export const AppHeader = ({
       </button>
       <button
         type="button"
-        aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={t("nav:toggleSidebar")}
         className="hidden rounded-lg p-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground lg:inline-flex"
         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
       >
@@ -60,7 +62,7 @@ export const AppHeader = ({
 
       <div className="hidden min-w-0 flex-1 items-center gap-4 md:flex">
         <div className="min-w-0">
-          <nav className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-label="Breadcrumb">
+          <nav className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-label={t("layout:breadcrumb")}>
             {breadcrumbs.map((item, index) => (
               <span key={`${item.label}-${item.path || "current"}`} className="inline-flex min-w-0 items-center gap-1.5">
                 {item.path && index < breadcrumbs.length - 1 ? (
@@ -84,7 +86,7 @@ export const AppHeader = ({
             onClick={onOpenCommandMenu}
             className="flex h-9 w-full items-center rounded-lg border border-border/60 bg-slate-50/80 pl-9 pr-14 text-sm outline-none transition-all text-muted-foreground hover:bg-slate-100/80 hover:border-border/80"
           >
-            Search workspace...
+            {t("common:search")}
           </button>
           <span className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded-lg border border-border/60 bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground xl:inline-flex">
             Ctrl K
@@ -107,7 +109,7 @@ export const AppHeader = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72 p-2">
-            <DropdownMenuLabel className="p-2 text-xs text-muted-foreground">Market scope</DropdownMenuLabel>
+            <DropdownMenuLabel className="p-2 text-xs text-muted-foreground">{t("layout:marketScope")}</DropdownMenuLabel>
             <DropdownMenuItem className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="truncate">{headerScope}</span>
@@ -115,7 +117,7 @@ export const AppHeader = ({
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 text-muted-foreground">
               <ShieldCheck className="h-4 w-4" />
-              Scope is controlled by your role permissions
+              {t("layout:scopeControlledByRole")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -127,7 +129,7 @@ export const AppHeader = ({
 
         <button
           type="button"
-          aria-label="Open notifications"
+          aria-label={t("nav:openNotifications")}
           onClick={() => { if (!isPendingVendor) openSettingsTab("notifications"); }}
           disabled={isPendingVendor}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-white/80 text-muted-foreground transition-all hover:bg-slate-50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45 shadow-sm"
@@ -140,7 +142,7 @@ export const AppHeader = ({
 
         <button
           type="button"
-          aria-label="Help"
+          aria-label={t("common:help")}
           className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-white/80 text-muted-foreground transition-all hover:bg-slate-50 hover:text-foreground shadow-sm sm:flex"
           onClick={() => openSettingsTab("security")}
         >
@@ -178,22 +180,22 @@ export const AppHeader = ({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => openProfileTab()} className="gap-3">
               <UserCircle className="h-4 w-4" />
-              Profile Settings
+              {t("nav:profileSettings")}
             </DropdownMenuItem>
             {!isPendingVendor && (
               <DropdownMenuItem onClick={() => openSettingsTab("notifications")} className="gap-3">
                 <Bell className="h-4 w-4" />
-                Notifications
+                {t("nav:notifications")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={() => openSettingsTab("security")} className="gap-3">
               <KeyRound className="h-4 w-4" />
-              Change Password
+              {t("nav:changePassword")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="gap-3 text-destructive focus:text-destructive">
               <LogOut className="h-4 w-4" />
-              Sign Out
+              {t("common:signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

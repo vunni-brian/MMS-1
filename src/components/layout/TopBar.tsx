@@ -1,4 +1,5 @@
 import { ShieldCheck } from "lucide-react";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface TopBarProps {
   workspaceTitle: string;
@@ -14,10 +15,8 @@ export const TopBar = ({ workspaceTitle }: TopBarProps) => (
         <span className="hidden sm:inline font-semibold tracking-wide">{workspaceTitle}</span>
         <span className="sm:hidden font-semibold">{workspaceTitle}</span>
       </div>
-      <div className="hidden sm:flex gap-4">
-        <a href="#" className="hover:text-white/80 transition-colors">English</a>
-        <a href="#" className="hover:text-white/80 transition-colors">Luganda</a>
-        <a href="#" className="hover:text-white/80 transition-colors">Swahili</a>
+      <div className="flex items-center gap-2">
+        <LanguageSwitcher />
       </div>
     </div>
   </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Lock, PlusCircle, ShieldCheck } from "lucide-react";
@@ -46,6 +47,7 @@ const FieldRow = ({ label, value, mono = false }: { label: string; value: React.
 
 // ─── Page ─────────────────────────────────────────────────
 const BillingPage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -102,8 +104,8 @@ const BillingPage = () => {
 
   const updateChargeType = useMutation({
     mutationFn: ({ chargeTypeId, isEnabled }: { chargeTypeId: string; isEnabled: boolean }) => api.updateChargeType(chargeTypeId, isEnabled),
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["charge-types"] }); await queryClient.invalidateQueries({ queryKey: ["payments"] }); setError(null); toast.success("Billing switch updated"); },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to update billing switch."; setError(msg); toast.error("Billing switch was not updated", { description: msg }); },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["charge-types"] }); await queryClient.invalidateQueries({ queryKey: ["payments"] }); setError(null); toast.success(t("billing:toastSwitchUpdated")); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : t("billing:unableToUpdateSwitch"); setError(msg); toast.error(t("billing:toastSwitchNotUpdated"), { description: msg }); },
   });
 
   const createUtilityCharge = useMutation({
@@ -120,15 +122,15 @@ const BillingPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setForm((c) => ({ ...c, vendorId: "", bookingId: "none", description: "", billingPeriod: "", usageQuantity: "", unit: "", ratePerUnit: "", amount: "", dueDate: "" }));
       setError(null);
-      toast.success("Utility charge created", { description: "The vendor can now review the payment due and upload a receipt." });
+      toast.success(t("billing:toastChargeCreated"), { description: t("billing:toastChargeCreatedDesc") });
     },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to create utility charge."; setError(msg); toast.error("Utility charge was not created", { description: msg }); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : t("billing:unableToCreateCharge"); setError(msg); toast.error(t("billing:toastChargeNotCreated"), { description: msg }); },
   });
 
   const cancelUtilityCharge = useMutation({
     mutationFn: (id: string) => api.cancelUtilityCharge(id),
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["utility-charges"] }); await queryClient.invalidateQueries({ queryKey: ["notifications"] }); setError(null); toast.success("Utility charge cancelled"); },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to cancel utility charge."; setError(msg); toast.error("Utility charge was not cancelled", { description: msg }); },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["utility-charges"] }); await queryClient.invalidateQueries({ queryKey: ["notifications"] }); setError(null); toast.success(t("billing:toastChargeCancelled")); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : t("billing:unableToCancelCharge"); setError(msg); toast.error(t("billing:toastChargeNotCancelled"), { description: msg }); },
   });
 
   const chargeTypes = chargeTypesData?.chargeTypes || [];
@@ -149,18 +151,18 @@ const BillingPage = () => {
   return (
     <PageLayout>
       <PageHeader
-        eyebrow="Revenue collection"
-        title="Revenue & Dues"
-        subtitle="Market fees, payments due, and payment records."
+        eyebrow={t("billing:eyebrow")}
+        title={t("billing:title")}
+        subtitle={t("billing:subtitle")}
         actions={
           !isManager ? (
             <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
-              <option value="all">All markets</option>
+              <option value="all">{t("billing:allMarkets")}</option>
               {markets.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           ) : (
             <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
-              {user?.marketName || "Assigned market"}
+              {user?.marketName || t("billing:assignedMarket")}
             </div>
           )
         }
@@ -169,7 +171,7 @@ const BillingPage = () => {
       {!canManageUtilities && (
         <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 shadow-sm">
           <ShieldCheck className="mt-0.5 h-5 w-5 text-slate-400 shrink-0" />
-          <span>This view is read-only for your role. Utility charges and switches are shown for monitoring only.</span>
+          <span>{t("billing:readOnlyNotice")}</span>
         </div>
       )}
 
@@ -182,10 +184,10 @@ const BillingPage = () => {
           {/* Summary strip */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "Outstanding utilities", value: formatCurrency(outstandingTotal), sub: `${unpaidCharges.length} open charge(s)`, tone: outstandingTotal > 0 ? "amber" as const : "green" as const },
-              { label: "Overdue", value: overdueCharges.length, sub: overdueCharges.length ? "Requires follow-up" : "None overdue", tone: overdueCharges.length > 0 ? "red" as const : "green" as const },
-              { label: "Paid charges", value: formatCurrency(paidTotal), sub: `${paidCharges.length} paid in register`, tone: "green" as const },
-              { label: "Latest activity", value: latestCharge ? formatHumanDate(latestCharge.createdAt) : "None", sub: latestCharge?.description || "No activity", tone: "slate" as const },
+              { label: t("billing:outstandingUtilities"), value: formatCurrency(outstandingTotal), sub: t("billing:openCharges", { count: unpaidCharges.length }), tone: outstandingTotal > 0 ? "amber" as const : "green" as const },
+              { label: t("billing:overdue"), value: overdueCharges.length, sub: overdueCharges.length ? t("billing:requiresFollowUp") : t("billing:noneOverdue"), tone: overdueCharges.length > 0 ? "red" as const : "green" as const },
+              { label: t("billing:paidCharges"), value: formatCurrency(paidTotal), sub: t("billing:paidInRegister", { count: paidCharges.length }), tone: "green" as const },
+              { label: t("billing:latestActivity"), value: latestCharge ? formatHumanDate(latestCharge.createdAt) : t("billing:none"), sub: latestCharge?.description || t("billing:noActivity"), tone: "slate" as const },
             ].map((item) => (
               <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="text-sm font-medium text-slate-600">{item.label}</p>
@@ -201,13 +203,13 @@ const BillingPage = () => {
             {/* Dues register */}
             <Card>
               <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-                <CardTitle className="text-base font-medium">Official Dues Register</CardTitle>
-                <span className="text-xs text-slate-400">{utilityCharges.length} charges</span>
+                <CardTitle className="text-base font-medium">{t("billing:duesRegister")}</CardTitle>
+                <span className="text-xs text-slate-400">{t("billing:charges", { count: utilityCharges.length })}</span>
               </CardHeader>
               <CardContent className="p-4">
               {utilityCharges.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-                  No utility charges recorded. Create metered, estimated, or fixed charges for vendors in the selected market.
+                  {t("billing:duesRegisterEmpty")}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -225,20 +227,20 @@ const BillingPage = () => {
                       </div>
 
                       <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                        <FieldRow label="Due Date" value={formatDate(charge.dueDate)} />
-                        <FieldRow label="Calculation" value={`${charge.calculationMethod}${charge.unit ? ` (${charge.unit})` : ""}`} />
-                        <FieldRow label="Payment Attempts" value={charge.paymentCount} />
-                        <FieldRow label="Latest Reference" value={charge.latestPaymentReference || "Awaiting payment"} mono={Boolean(charge.latestPaymentReference)} />
+                        <FieldRow label={t("billing:dueDateField")} value={formatDate(charge.dueDate)} />
+                        <FieldRow label={t("billing:calculation")} value={`${charge.calculationMethod}${charge.unit ? ` (${charge.unit})` : ""}`} />
+                        <FieldRow label={t("billing:paymentAttempts")} value={charge.paymentCount} />
+                        <FieldRow label={t("billing:latestReference")} value={charge.latestPaymentReference || t("billing:awaitingPayment")} mono={Boolean(charge.latestPaymentReference)} />
                       </div>
 
                       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs text-slate-400">
-                          Created by {charge.createdByName || "system"} on {formatDateTime(charge.createdAt)}.
-                          {charge.paidAt ? ` Paid on ${formatDateTime(charge.paidAt)}.` : ""}
+                          {t("billing:createdBy", { name: charge.createdByName || t("billing:system"), date: formatDateTime(charge.createdAt) })}
+                          {charge.paidAt ? t("billing:paidOn", { date: formatDateTime(charge.paidAt) }) : ""}
                         </p>
                         {canManageUtilities && (charge.status === "unpaid" || charge.status === "overdue") && (
                           <Button variant="outline" size="sm" className="rounded-lg border-slate-300 font-bold" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>
-                            Cancel Charge
+                            {t("billing:cancelCharge")}
                           </Button>
                         )}
                       </div>
@@ -254,13 +256,13 @@ const BillingPage = () => {
               {/* Billing switches */}
               <Card>
                 <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-                  <CardTitle className="text-base font-medium">Revenue Collection Policies</CardTitle>
-                  <span className="text-xs text-slate-400">{chargeTypes.length} switches</span>
+                  <CardTitle className="text-base font-medium">{t("billing:revenueCollectionPolicies")}</CardTitle>
+                  <span className="text-xs text-slate-400">{t("billing:switches", { count: chargeTypes.length })}</span>
                 </CardHeader>
                 <CardContent className="p-4">
                 {chargeTypes.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
-                    No billing switches configured.
+                    {t("billing:noSwitches")}
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
@@ -270,16 +272,16 @@ const BillingPage = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-bold text-slate-900">{chargeType.displayName}</p>
                             <Badge variant={chargeType.isEnabled ? "success" : "error"}>
-                              {chargeType.isEnabled ? "Enabled" : "Disabled"}
+                              {chargeType.isEnabled ? t("billing:enabled") : t("billing:disabled")}
                             </Badge>
                             {!chargeType.isEnabled && (
                               <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-                                <Lock className="h-3 w-3" />Admin locked
+                                <Lock className="h-3 w-3" />{t("billing:adminLocked")}
                               </span>
                             )}
                           </div>
                           <p className="mt-1 text-xs text-slate-400">
-                            <span className="capitalize">{chargeType.scope}</span> scope · Updated by {chargeType.updatedByName || "system"}
+                            {t("billing:scopeUpdated", { scope: chargeType.scope, name: chargeType.updatedByName || t("billing:system") })}
                           </p>
                         </div>
                         <Button
@@ -289,7 +291,7 @@ const BillingPage = () => {
                           disabled={!canManageChargeTypes || updateChargeType.isPending}
                           onClick={() => updateChargeType.mutate({ chargeTypeId: chargeType.id, isEnabled: !chargeType.isEnabled })}
                         >
-                          {chargeType.isEnabled ? "Enabled" : "Disabled"}
+                          {chargeType.isEnabled ? t("billing:enabled") : t("billing:disabled")}
                         </Button>
                       </div>
                     ))}
@@ -302,38 +304,38 @@ const BillingPage = () => {
               {canManageUtilities && (
                 <Card>
                   <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-                    <CardTitle className="text-base font-medium">Create Utility Charge</CardTitle>
+                    <CardTitle className="text-base font-medium">{t("billing:createUtilityCharge")}</CardTitle>
                     <PlusCircle className="h-4 w-4 text-slate-400" />
                   </CardHeader>
                   <CardContent className="p-4">
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-vendor" className="font-bold text-slate-700">Vendor</Label>
+                      <Label htmlFor="billing-vendor" className="font-bold text-slate-700">{t("billing:vendor")}</Label>
                       <Select value={form.vendorId} onValueChange={(v) => setForm((c) => ({ ...c, vendorId: v, bookingId: "none" }))} disabled={!utilityMarketId}>
-                        <SelectTrigger id="billing-vendor" className="border-slate-300 rounded-lg"><SelectValue placeholder={utilityMarketId ? "Select vendor" : "Select market first"} /></SelectTrigger>
+                        <SelectTrigger id="billing-vendor" className="border-slate-300 rounded-lg"><SelectValue placeholder={utilityMarketId ? t("billing:selectVendor") : t("billing:selectMarketFirst")} /></SelectTrigger>
                         <SelectContent>{vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-booking" className="font-bold text-slate-700">Booking Reference</Label>
+                      <Label htmlFor="billing-booking" className="font-bold text-slate-700">{t("billing:bookingReference")}</Label>
                       <Select value={form.bookingId} onValueChange={(v) => setForm((c) => ({ ...c, bookingId: v }))} disabled={!selectedVendor}>
-                        <SelectTrigger id="billing-booking" className="border-slate-300 rounded-lg"><SelectValue placeholder="Optional" /></SelectTrigger>
+                        <SelectTrigger id="billing-booking" className="border-slate-300 rounded-lg"><SelectValue placeholder={t("billing:optional")} /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">No booking link</SelectItem>
+                          <SelectItem value="none">{t("billing:noBookingLink")}</SelectItem>
                           {bookings.map((b) => <SelectItem key={b.id} value={b.id}>{b.stallName} ({b.id})</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-utility-type" className="font-bold text-slate-700">Utility Type</Label>
+                      <Label htmlFor="billing-utility-type" className="font-bold text-slate-700">{t("billing:utilityType")}</Label>
                       <Select value={form.utilityType} onValueChange={(v: UtilityType) => setForm((c) => ({ ...c, utilityType: v }))}>
                         <SelectTrigger id="billing-utility-type" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>{utilityTypeOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-method" className="font-bold text-slate-700">Method</Label>
+                      <Label htmlFor="billing-method" className="font-bold text-slate-700">{t("billing:method")}</Label>
                       <Select value={form.calculationMethod} onValueChange={(v: UtilityCalculationMethod) => setForm((c) => ({ ...c, calculationMethod: v }))}>
                         <SelectTrigger id="billing-method" className="border-slate-300 rounded-lg"><SelectValue /></SelectTrigger>
                           <SelectContent>{calculationOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
@@ -341,29 +343,29 @@ const BillingPage = () => {
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-period" className="font-bold text-slate-700">Billing Period</Label>
-                      <Input id="billing-period" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder="e.g. April 2026" />
+                      <Label htmlFor="billing-period" className="font-bold text-slate-700">{t("billing:billingPeriod")}</Label>
+                      <Input id="billing-period" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.billingPeriod} onChange={(e) => setForm((c) => ({ ...c, billingPeriod: e.target.value }))} placeholder={t("billing:billingPeriodPlaceholder")} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-description" className="font-bold text-slate-700">Description</Label>
-                      <Textarea id="billing-description" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Explain what the vendor is being billed for." />
+                      <Label htmlFor="billing-description" className="font-bold text-slate-700">{t("billing:description")}</Label>
+                      <Textarea id="billing-description" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={2} value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder={t("billing:descriptionPlaceholder")} />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-due-date" className="font-bold text-slate-700">Due Date</Label>
+                      <Label htmlFor="billing-due-date" className="font-bold text-slate-700">{t("billing:dueDate")}</Label>
                       <Input id="billing-due-date" type="date" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.dueDate} onChange={(e) => setForm((c) => ({ ...c, dueDate: e.target.value }))} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-amount" className="font-bold text-slate-700">Amount</Label>
-                      <Input id="billing-amount" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder="Leave blank to auto-calc" />
+                      <Label htmlFor="billing-amount" className="font-bold text-slate-700">{t("billing:amount")}</Label>
+                      <Input id="billing-amount" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} placeholder={t("billing:amountPlaceholder")} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-usage-qty" className="font-bold text-slate-700">Usage Qty</Label>
-                      <Input id="billing-usage-qty" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder="Optional for fixed" />
+                      <Label htmlFor="billing-usage-qty" className="font-bold text-slate-700">{t("billing:usageQty")}</Label>
+                      <Input id="billing-usage-qty" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.usageQuantity} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, usageQuantity: e.target.value }))} placeholder={t("billing:usageQtyPlaceholder")} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="billing-rate" className="font-bold text-slate-700">Rate Per Unit</Label>
-                      <Input id="billing-rate" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder="Optional" />
+                      <Label htmlFor="billing-rate" className="font-bold text-slate-700">{t("billing:ratePerUnit")}</Label>
+                      <Input id="billing-rate" type="number" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" value={form.ratePerUnit} disabled={form.calculationMethod === "fixed"} onChange={(e) => setForm((c) => ({ ...c, ratePerUnit: e.target.value }))} placeholder={t("billing:ratePlaceholder")} />
                       </div>
                     </div>
 
@@ -377,10 +379,10 @@ const BillingPage = () => {
                       if (!preview) return null;
                       return (
                         <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
-                          <span className="text-slate-500">{!isNaN(manual) && manual > 0 ? "Manual amount:" : "Calculated:"}</span>
+                          <span className="text-slate-500">{!isNaN(manual) && manual > 0 ? t("billing:manualAmount") : t("billing:calculated")}</span>
                           <span className="font-bold text-emerald-800">{formatCurrency(preview)}</span>
                           {calculated && !isNaN(manual) && manual > 0 && Math.abs(manual - calculated) > 0.01 && (
-                            <span className="ml-auto text-xs text-amber-600">Auto-calc: {formatCurrency(calculated)}</span>
+                            <span className="ml-auto text-xs text-amber-600">{t("billing:autoCalc")} {formatCurrency(calculated)}</span>
                           )}
                         </div>
                       );
@@ -391,7 +393,7 @@ const BillingPage = () => {
                       onClick={() => createUtilityCharge.mutate()}
                       disabled={createUtilityCharge.isPending || !form.vendorId || !form.description.trim() || !form.billingPeriod.trim() || !form.dueDate || !form.marketId}
                     >
-                      {createUtilityCharge.isPending ? "Creating..." : "Create Utility Charge"}
+                      {createUtilityCharge.isPending ? t("billing:creating") : t("billing:createChargeButton")}
                     </Button>
                   </div>
                   </CardContent>

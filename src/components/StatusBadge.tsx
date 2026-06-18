@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { BookingStatus, PaymentStatus, PenaltyStatus, StallStatus, TicketStatus, UtilityChargeStatus, VendorApprovalStatus } from "@/types";
 
@@ -28,38 +29,38 @@ const statusStyles: Record<string, string> = {
   reserved: "border-border bg-muted text-muted-foreground",
 };
 
-const statusLabels: Record<string, string> = {
- active: "Occupied",
- inactive: "Available",
- in_progress: "In Progress",
- late_payment: "Late Payment",
- pending: "Pending Review",
- pending_payment: "Pending Payment",
- unpaid: "Unpaid",
+const statusLabelKeys: Record<string, string> = {
+ active: "common:occupied",
+ inactive: "common:available",
+ in_progress: "common:inProgress",
+ late_payment: "common:latePayment",
+ pending: "common:pendingReview",
+ pending_payment: "common:pendingPayment",
+ unpaid: "common:unpaid",
 };
 
 type StatusContext = "default" | "booking" | "payment" | "obligation" | "vendor" | "ticket";
 
-const contextLabels: Partial<Record<StatusContext, Record<string, string>>> = {
+const contextLabelKeys: Partial<Record<StatusContext, Record<string, string>>> = {
  payment: {
- pending: "Pending",
- completed: "Verified",
- failed: "Rejected",
- cancelled: "Cancelled",
+ pending: "common:pending",
+ completed: "common:verified",
+ failed: "common:rejected",
+ cancelled: "common:cancelled",
  },
  obligation: {
- pending: "Pending Payment",
- pending_payment: "Pending Payment",
- unpaid: "Unpaid",
- paid: "Paid",
- overdue: "Overdue",
- cancelled: "Cancelled",
+ pending: "common:pendingPayment",
+ pending_payment: "common:pendingPayment",
+ unpaid: "common:unpaid",
+ paid: "common:paid",
+ overdue: "common:overdue",
+ cancelled: "common:cancelled",
  },
  booking: {
- pending: "Pending Review",
- approved: "Approved",
- rejected: "Rejected",
- paid: "Paid",
+ pending: "common:pendingReview",
+ approved: "common:approved",
+ rejected: "common:rejected",
+ paid: "common:paid",
  },
 };
 
@@ -81,11 +82,15 @@ interface StatusBadgeProps {
  context?: StatusContext;
 }
 
-export const StatusBadge = ({ status, className, label, context = "default" }: StatusBadgeProps) => (
-  <span className={cn('status-badge', typeof status === "string" ? statusStyles[status] : undefined, className)}>
-  {label ||
-  contextLabels[context]?.[status] ||
-  statusLabels[status] ||
-  (typeof status === "string" ? status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ") : "Unknown")}
-  </span>
-);
+export const StatusBadge = ({ status, className, label, context = "default" }: StatusBadgeProps) => {
+  const { t } = useTranslation();
+  const contextKey = context !== "default" && contextLabelKeys[context]?.[status];
+  const labelKey = statusLabelKeys[status];
+  const resolvedLabel = label || (contextKey ? t(contextKey) : undefined) || (labelKey ? t(labelKey) : undefined) || (typeof status === "string" ? status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ") : "Unknown");
+
+  return (
+    <span className={cn('status-badge', typeof status === "string" ? statusStyles[status] : undefined, className)}>
+      {resolvedLabel}
+    </span>
+  );
+};

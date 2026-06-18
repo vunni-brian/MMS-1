@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -53,6 +54,7 @@ const DocumentPreview = ({
   documentType: "national-id" | "lc-letter";
   attachment: Parameters<typeof formatAttachmentLabel>[0];
 }) => {
+  const { t } = useTranslation();
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -73,7 +75,7 @@ const DocumentPreview = ({
         else URL.revokeObjectURL(url);
       })
       .catch((error) => {
-        if (isActive) setLoadError(error instanceof Error ? error.message : "Unable to load document.");
+        if (isActive) setLoadError(error instanceof Error ? error.message : t("vendor:unableToLoadDocument"));
       })
       .finally(() => {
         if (isActive) setIsLoading(false);
@@ -82,7 +84,7 @@ const DocumentPreview = ({
       isActive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [attachment, documentType, vendorId]);
+  }, [attachment, documentType, vendorId, t]);
 
   const isImage = attachment?.mimeType?.startsWith("image/");
   const isPdf = attachment?.mimeType === "application/pdf";
@@ -98,9 +100,9 @@ const DocumentPreview = ({
       </div>
       <div className="min-h-[280px] overflow-hidden rounded-lg border border-slate-200 bg-white">
         {!attachment ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">No document uploaded</div>
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:noDocument")}</div>
         ) : isLoading ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">Loading document...</div>
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:loadingDocument")}</div>
         ) : loadError ? (
           <div className="flex h-[280px] items-center justify-center p-4 text-center text-sm text-red-600">{loadError}</div>
         ) : documentUrl && isImage ? (
@@ -108,14 +110,14 @@ const DocumentPreview = ({
         ) : documentUrl && isPdf ? (
           <iframe title={title} src={documentUrl} className="h-[440px] w-full border-0 bg-white" />
         ) : documentUrl ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">Preview unavailable.</div>
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:previewUnavailable")}</div>
         ) : (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">Document not loaded</div>
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:documentNotLoaded")}</div>
         )}
       </div>
       {documentUrl && (
         <a href={documentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline">
-          Open full document
+          {t("vendor:openFullDocument")}
         </a>
       )}
     </div>
@@ -140,10 +142,11 @@ const VendorProfileCard = ({
   };
   onOpen: () => void;
 }) => {
+  const { t } = useTranslation();
   const vendor = row.vendor;
   const initials = getInitials(vendor.name);
-  const marketName = vendor.marketName || "Assigned market";
-  const productSection = vendor.productSection || "Product section not set";
+  const marketName = vendor.marketName || t("common:assignedMarket");
+  const productSection = vendor.productSection || t("common:productSectionNotSet");
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -161,8 +164,8 @@ const VendorProfileCard = ({
 
   const statusDot = vendor.status === "approved" ? "bg-emerald-500" : vendor.status === "pending" ? "bg-amber-400" : "bg-red-500";
   const statusLabel = vendor.status === "approved"
-    ? row.operationalStatus === "late_payment" ? "Payment follow-up" : "Active vendor"
-    : vendor.status === "pending" ? "Pending review" : "Rejected";
+    ? row.operationalStatus === "late_payment" ? t("common:paymentFollowUp") : t("common:activeVendor")
+    : vendor.status === "pending" ? t("common:pendingReview") : t("common:rejected");
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-sm hover:border-slate-300">
@@ -185,20 +188,20 @@ const VendorProfileCard = ({
             <StatusBadge status={vendor.status} context="vendor" />
           </div>
           <button type="button" onClick={onOpen} className="mt-2 text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline">
-            View profile
+            {t("vendor:viewProfile")}
           </button>
         </div>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-          <p className="text-slate-500">Outstanding</p>
+          <p className="text-slate-500">{t("common:outstanding")}</p>
           <p className="mt-1 truncate font-bold text-slate-900">{formatCurrency(row.totalOutstanding)}</p>
         </div>
         <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-          <p className="text-slate-500">Permit</p>
+          <p className="text-slate-500">{t("common:permit")}</p>
           <p className="mt-1 truncate font-bold text-slate-900">
-            {row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : "No permit"}
+            {row.nextPermitExpiry ? formatHumanDate(row.nextPermitExpiry.endDate) : t("common:noPermit")}
           </p>
         </div>
       </div>
@@ -206,16 +209,16 @@ const VendorProfileCard = ({
       <div className="mt-3 flex items-center justify-between gap-2">
         <StatusBadge status={row.operationalStatus} />
         <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <a href={`tel:${vendor.phone}`} title={`Call ${vendor.name}`} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
+          <a href={`tel:${vendor.phone}`} title={t("common:callName", { name: vendor.name })} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
             <Phone className="h-3.5 w-3.5" />
           </a>
-          <a href={`mailto:${vendor.email}`} title={`Email ${vendor.name}`} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
+          <a href={`mailto:${vendor.email}`} title={t("common:emailName", { name: vendor.name })} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
             <Mail className="h-3.5 w-3.5" />
           </a>
-          <button type="button" onClick={onOpen} title="Review documents" className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
+          <button type="button" onClick={onOpen} title={t("vendor:reviewDocuments")} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-700">
             <FileText className="h-3.5 w-3.5" />
           </button>
-          <span title={`Outstanding: ${formatCurrency(row.totalOutstanding)}`} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
+          <span title={t("common:outstandingWithAmount", { amount: formatCurrency(row.totalOutstanding) })} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
             <CreditCard className="h-3.5 w-3.5" />
           </span>
           <span title={marketName} className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
@@ -230,52 +233,55 @@ const VendorProfileCard = ({
 // ─────────────────────────────────────────────────────────
 // Activity timeline
 // ─────────────────────────────────────────────────────────
-const activityTypeLabels: Record<VendorActivityEvent["type"], string> = {
-  audit: "Audit", booking: "Stall", ticket: "Complaint",
-  ticket_update: "Case update", payment: "Payment", notification: "Notice",
-};
+const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityEvent[]; isLoading: boolean }) => {
+  const { t } = useTranslation();
+  const activityTypeLabels: Record<VendorActivityEvent["type"], string> = {
+    audit: t("vendor:activityAudit"), booking: t("common:stall"), ticket: t("vendor:activityComplaint"),
+    ticket_update: t("vendor:activityCaseUpdate"), payment: t("common:payment"), notification: t("vendor:activityNotice"),
+  };
 
-const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityEvent[]; isLoading: boolean }) => (
-  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <div>
-        <p className="font-bold text-slate-900">Activity Timeline</p>
-        <p className="mt-1 text-xs text-slate-500">Approvals, complaints, payments, and notifications for this vendor.</p>
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="font-bold text-slate-900">{t("vendor:activityTimeline")}</p>
+          <p className="mt-1 text-xs text-slate-500">{t("vendor:activityTimelineDesc")}</p>
+        </div>
+        <Activity className="h-5 w-5 shrink-0 text-slate-400" />
       </div>
-      <Activity className="h-5 w-5 shrink-0 text-slate-400" />
-    </div>
-    {isLoading ? (
-      <LoadingState rows={4} itemClassName="h-14 rounded-lg" />
-    ) : events.length === 0 ? (
-      <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
-        No operational activity recorded for this vendor yet.
-      </div>
-    ) : (
-      <div className="space-y-2">
-        {events.slice(0, 12).map((event) => (
-          <div key={event.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_auto]">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-slate-900">{event.title}</span>
-                <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
-                  {activityTypeLabels[event.type]}
-                </span>
+      {isLoading ? (
+        <LoadingState rows={4} itemClassName="h-14 rounded-lg" />
+      ) : events.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-sm text-slate-400">
+          {t("vendor:noActivity")}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {events.slice(0, 12).map((event) => (
+            <div key={event.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_auto]">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">{event.title}</span>
+                  <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                    {activityTypeLabels[event.type]}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">{event.description}</p>
+                {event.actorName && (
+                  <p className="mt-1 text-xs text-slate-400">{t("common:by")} {event.actorName}{event.actorRole ? ` (${event.actorRole})` : ""}</p>
+                )}
               </div>
-              <p className="mt-1 text-sm text-slate-600">{event.description}</p>
-              {event.actorName && (
-                <p className="mt-1 text-xs text-slate-400">By {event.actorName}{event.actorRole ? ` (${event.actorRole})` : ""}</p>
-              )}
+              <div className="flex items-center gap-1 text-xs text-slate-400 sm:justify-end">
+                <Clock3 className="h-3.5 w-3.5" />
+                {formatHumanDateTime(event.createdAt)}
+              </div>
             </div>
-            <div className="flex items-center gap-1 text-xs text-slate-400 sm:justify-end">
-              <Clock3 className="h-3.5 w-3.5" />
-              {formatHumanDateTime(event.createdAt)}
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────
 // Evidence field (matching mockup style)
@@ -291,6 +297,7 @@ const FieldRow = ({ label, value, mono = false }: { label: string; value: React.
 // Page
 // ─────────────────────────────────────────────────────────
 const VendorsPage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -318,9 +325,9 @@ const VendorsPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["vendors"] });
       setSelectedVendorId(null);
       setError(null);
-      toast.success("Vendor approved");
+      toast.success(t("vendor:approved"));
     },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to approve vendor."; setError(msg); toast.error("Vendor was not approved", { description: msg }); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to approve vendor."; setError(msg); toast.error(t("vendor:notApproved"), { description: msg }); },
   });
 
   const rejectVendor = useMutation({
@@ -330,9 +337,9 @@ const VendorsPage = () => {
       setSelectedVendorId(null);
       setRejectionReason("");
       setError(null);
-      toast.success("Vendor rejected");
+      toast.success(t("vendor:rejected"));
     },
-    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to reject vendor."; setError(msg); toast.error("Vendor was not rejected", { description: msg }); },
+    onError: (e) => { const msg = e instanceof ApiError ? e.message : "Unable to reject vendor."; setError(msg); toast.error(t("vendor:notRejected"), { description: msg }); },
   });
 
   const resetVendorPassword = useMutation({
@@ -341,13 +348,13 @@ const VendorsPage = () => {
       setResetReason("");
       setResetMessage(response.message);
       setError(null);
-      toast.success("Temporary password sent", { description: response.message });
+      toast.success(t("vendor:tempPasswordSent"), { description: response.message });
     },
     onError: (e) => {
       setResetMessage(null);
       const msg = e instanceof ApiError ? e.message : "Unable to reset vendor password.";
       setError(msg);
-      toast.error("Password reset failed", { description: msg });
+      toast.error(t("common:passwordResetFailed"), { description: msg });
     },
   });
 
@@ -402,21 +409,28 @@ const VendorsPage = () => {
   const outstandingTotal = allVendorRows.reduce((sum, r) => sum + r.totalOutstanding, 0);
   const selectedRow = allVendorRows.find((r) => r.vendor.id === selectedVendorId) || null;
 
+  const statusFilterLabels: Record<string, string> = {
+    all: t("common:all"),
+    pending: t("common:pending"),
+    approved: t("common:approved"),
+    rejected: t("common:rejected"),
+  };
+
   return (
     <PageLayout>
       <PageHeader
-        eyebrow="Vendor operations"
-        title="Vendors"
-        subtitle={`Vendor status, applications, documents, and payment follow-up for ${user?.marketName || "your market"}.`}
+        eyebrow={t("vendor:operations")}
+        title={t("vendor:title")}
+        subtitle={`Vendor status, applications, documents, and payment follow-up for ${user?.marketName || t("common:yourMarket")}.`}
       />
 
       {/* Summary strip */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Pending approval", value: statusCounts.pending, sub: "Applications awaiting review", tone: "amber" as const },
-          { label: "Approved vendors", value: statusCounts.approved, sub: "Active trading profiles", tone: "green" as const },
-          { label: "Payment follow-up", value: followUpRows.length, sub: formatCurrency(outstandingTotal) + " outstanding", tone: followUpRows.length ? "red" as const : "green" as const },
-          { label: "Current view", value: vendorRows.length, sub: "Filtered records", tone: "slate" as const },
+          { label: t("vendor:pendingApproval"), value: statusCounts.pending, sub: t("vendor:awaitingReview"), tone: "amber" as const },
+          { label: t("vendor:approvedVendors"), value: statusCounts.approved, sub: t("vendor:activeTradingProfiles"), tone: "green" as const },
+          { label: t("common:paymentFollowUp"), value: followUpRows.length, sub: `${formatCurrency(outstandingTotal)} ${t("common:outstanding")}`, tone: followUpRows.length ? "red" as const : "green" as const },
+          { label: t("common:currentView"), value: vendorRows.length, sub: t("common:filteredRecords"), tone: "slate" as const },
         ].map((item) => (
           <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-sm font-medium text-slate-600">{item.label}</p>
@@ -432,7 +446,7 @@ const VendorsPage = () => {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             className="border-slate-300 pl-9 rounded-lg focus-visible:border-primary focus-visible:ring-0"
-            placeholder="Search by name, phone, or email"
+            placeholder={t("vendor:searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -449,7 +463,7 @@ const VendorsPage = () => {
                 statusFilter === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              {statusFilterLabels[s]}
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${statusFilter === s ? "bg-slate-100" : "bg-white"}`}>
                 {statusCounts[s]}
               </span>
@@ -465,14 +479,14 @@ const VendorsPage = () => {
       {/* Vendor grid */}
       <Card>
         <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-          <CardTitle className="text-base font-medium">Vendor Directory — {vendorRows.length} records</CardTitle>
+          <CardTitle className="text-base font-medium">{t("vendor:directoryWithRecords", { count: vendorRows.length })}</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
         {isLoading ? (
           <LoadingState rows={6} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" itemClassName="h-[180px] rounded-lg" />
         ) : vendorRows.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-            No vendors match the current search or filter.
+            {t("vendor:noVendors")}
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -488,9 +502,9 @@ const VendorsPage = () => {
       <Sheet open={Boolean(selectedVendorId)} onOpenChange={(open) => !open && setSelectedVendorId(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl lg:max-w-5xl" aria-describedby="vendor-sheet-desc">
           <SheetHeader className="pr-6">
-            <SheetTitle className="font-bold text-slate-900">Vendor Application Review</SheetTitle>
+            <SheetTitle className="font-bold text-slate-900">{t("vendor:applicationReview")}</SheetTitle>
             <SheetDescription id="vendor-sheet-desc">
-              Review applicant details and submitted documents before deciding.
+              {t("vendor:reviewDetails")}
             </SheetDescription>
           </SheetHeader>
 
@@ -499,34 +513,34 @@ const VendorsPage = () => {
               <div className="grid gap-4 lg:grid-cols-[0.8fr_1.6fr]">
                 {/* User details */}
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-bold text-slate-900">User Input</p>
-                  <FieldRow label="Full Name" value={selectedRow.vendor.name} />
-                  <FieldRow label="Phone" value={selectedRow.vendor.phone} />
-                  <FieldRow label="Email" value={selectedRow.vendor.email} />
-                  <FieldRow label="NIN" value={selectedRow.vendor.nationalIdNumber || "Not recorded"} mono={Boolean(selectedRow.vendor.nationalIdNumber)} />
-                  <FieldRow label="District" value={selectedRow.vendor.district || "Not recorded"} />
-                  <FieldRow label="Product Section" value={selectedRow.vendor.productSection || "Not recorded"} />
+                  <p className="font-bold text-slate-900">{t("vendor:userInput")}</p>
+                  <FieldRow label={t("common:fullName")} value={selectedRow.vendor.name} />
+                  <FieldRow label={t("common:phone")} value={selectedRow.vendor.phone} />
+                  <FieldRow label={t("common:email")} value={selectedRow.vendor.email} />
+                  <FieldRow label={t("common:nin")} value={selectedRow.vendor.nationalIdNumber || t("common:notRecorded")} mono={Boolean(selectedRow.vendor.nationalIdNumber)} />
+                  <FieldRow label={t("common:district")} value={selectedRow.vendor.district || t("common:notRecorded")} />
+                  <FieldRow label={t("common:productSection")} value={selectedRow.vendor.productSection || t("common:notRecorded")} />
                 </div>
 
                 {/* Documents */}
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-bold text-slate-900">Submitted Documents</p>
+                  <p className="font-bold text-slate-900">{t("vendor:submittedDocuments")}</p>
                   <div className="grid gap-3 xl:grid-cols-2">
-                    <DocumentPreview title="National ID" vendorId={selectedRow.vendor.id} documentType="national-id" attachment={selectedRow.vendor.idDocument} />
-                    <DocumentPreview title="LC Letter" vendorId={selectedRow.vendor.id} documentType="lc-letter" attachment={selectedRow.vendor.lcLetter} />
+                    <DocumentPreview title={t("common:nationalId")} vendorId={selectedRow.vendor.id} documentType="national-id" attachment={selectedRow.vendor.idDocument} />
+                    <DocumentPreview title={t("common:lcLetter")} vendorId={selectedRow.vendor.id} documentType="lc-letter" attachment={selectedRow.vendor.lcLetter} />
                   </div>
                 </div>
               </div>
 
               {/* Status overview */}
               <div className="grid gap-3 md:grid-cols-3">
-                <FieldRow label="Approval" value={<StatusBadge status={selectedRow.vendor.status} />} />
-                <FieldRow label="Follow-up Status" value={<StatusBadge status={selectedRow.operationalStatus} />} />
-                <FieldRow label="Outstanding" value={formatCurrency(selectedRow.totalOutstanding)} />
+                <FieldRow label={t("common:approval")} value={<StatusBadge status={selectedRow.vendor.status} />} />
+                <FieldRow label={t("common:followUpStatus")} value={<StatusBadge status={selectedRow.operationalStatus} />} />
+                <FieldRow label={t("common:outstanding")} value={formatCurrency(selectedRow.totalOutstanding)} />
                 <div className="md:col-span-3">
                   <FieldRow
-                    label="Next Permit Expiry"
-                    value={selectedRow.nextPermitExpiry ? formatHumanDate(selectedRow.nextPermitExpiry.endDate) : "No active permit on record"}
+                    label={t("common:nextPermitExpiry")}
+                    value={selectedRow.nextPermitExpiry ? formatHumanDate(selectedRow.nextPermitExpiry.endDate) : t("common:noActivePermit")}
                   />
                 </div>
               </div>
@@ -536,16 +550,16 @@ const VendorsPage = () => {
               {/* Password reset */}
               {selectedRow.vendor.status === "approved" && (
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-bold text-slate-900">Password Reset</p>
-                  <p className="text-slate-600">Send the vendor a temporary password by SMS. A reason is required.</p>
+                  <p className="font-bold text-slate-900">{t("common:passwordReset")}</p>
+                  <p className="text-slate-600">{t("vendor:passwordResetDesc")}</p>
                   <div className="space-y-1.5">
-                    <Label htmlFor="reset-reason">Reset Reason</Label>
+                    <Label htmlFor="reset-reason">{t("vendor:resetReason")}</Label>
                     <Textarea id="reset-reason" value={resetReason} onChange={(e) => setResetReason(e.target.value)} rows={2} />
                   </div>
                   {resetMessage && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{resetMessage}</div>}
                   <Button variant="outline" onClick={() => resetVendorPassword.mutate({ vendorId: selectedRow.vendor.id, reason: resetReason })} disabled={resetVendorPassword.isPending || !resetReason.trim()}>
                     <KeyRound className="mr-1 h-4 w-4" />
-                    {resetVendorPassword.isPending ? "Sending..." : "Reset Password"}
+                    {resetVendorPassword.isPending ? t("common:sending") : t("common:resetPassword")}
                   </Button>
                 </div>
               )}
@@ -553,13 +567,13 @@ const VendorsPage = () => {
               {/* Decision panel */}
               {selectedRow.vendor.status === "pending" && (
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="font-bold text-slate-900">Decision Panel</p>
+                  <p className="font-bold text-slate-900">{t("vendor:decisionPanel")}</p>
                   <div className="space-y-1.5">
-                    <Label htmlFor="manager-notes">Manager Notes</Label>
+                    <Label htmlFor="manager-notes">{t("common:managerNotes")}</Label>
                     <Textarea id="manager-notes" value={managerNotes} onChange={(e) => setManagerNotes(e.target.value)} rows={2} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="reject-reason">Reject Reason</Label>
+                    <Label htmlFor="reject-reason">{t("common:rejectReason")}</Label>
                     <Textarea id="reject-reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows={2} />
                   </div>
                   <div className="flex gap-2">
@@ -569,7 +583,7 @@ const VendorsPage = () => {
                       disabled={approveVendor.isPending}
                     >
                       <Check className="mr-1 h-4 w-4" />
-                      Approve Vendor
+                      {t("vendor:approveVendor")}
                     </Button>
                     <Button
                       variant="destructive"
@@ -578,7 +592,7 @@ const VendorsPage = () => {
                       disabled={rejectVendor.isPending || !rejectionReason.trim()}
                     >
                       <X className="mr-1 h-4 w-4" />
-                      Reject Vendor
+                      {t("vendor:rejectVendor")}
                     </Button>
                   </div>
                 </div>
@@ -587,7 +601,7 @@ const VendorsPage = () => {
               {/* Mobile close button */}
               <div className="sticky bottom-0 mt-6 border-t border-slate-200 bg-white pt-3 sm:hidden">
                 <button type="button" onClick={() => setSelectedVendorId(null)} className="flex h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-bold text-slate-900">
-                  Close
+                  {t("common:close")}
                 </button>
               </div>
             </div>

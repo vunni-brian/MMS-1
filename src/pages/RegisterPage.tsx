@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Sparkles, Store } from "lucide-react";
@@ -19,34 +20,35 @@ type DetailField = "name" | "nationalIdNumber" | "phone" | "email" | "password" 
 
 const detailFields: DetailField[] = ["name", "nationalIdNumber", "phone", "email", "password", "marketId", "productSection", "district"];
 
-const formatFileLabel = (file: File | null) => {
+const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
+
+const formatFileLabel = (t: (key: string) => string, file: File | null) => {
  if (!file) {
- return "No file selected";
+ return t("register:noFileSelected") || "No file selected";
  }
  return `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
 };
 
-const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
-const registrationSteps: Array<{ id: RegistrationStep; label: string; description: string }> = [
- { id: "details", label: "Account", description: "Identity and market assignment" },
- { id: "documents", label: "Documents", description: "Required verification evidence" },
- { id: "otp", label: "Verify", description: "Phone ownership confirmation" },
+const registrationSteps = (t: (key: string) => string): Array<{ id: RegistrationStep; label: string; description: string }> => [
+ { id: "details", label: t("register:stepAccount"), description: t("register:stepAccountDesc") },
+ { id: "documents", label: t("register:stepDocuments"), description: t("register:stepDocumentsDesc") },
+ { id: "otp", label: t("register:stepVerify"), description: t("register:stepVerifyDesc") },
 ];
 
-const validatePhone = (phone: string) => {
+const validatePhone = (t: (key: string) => string, phone: string) => {
  const cleaned = phone.replace(/\s/g, "");
- if (!cleaned) return "Phone number is required.";
- if (!/^\+?\d{9,15}$/.test(cleaned)) return "Enter a valid phone number (e.g. +256 7XX XXX XXX).";
+ if (!cleaned) return t("register:phoneRequired");
+ if (!/^\+?\d{9,15}$/.test(cleaned)) return t("register:phoneInvalid");
  return null;
 };
 
-const validateEmail = (email: string) => {
- if (!email.trim()) return "Email address is required.";
- if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
+const validateEmail = (t: (key: string) => string, email: string) => {
+ if (!email.trim()) return t("register:emailRequired");
+ if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t("register:emailInvalid");
  return null;
 };
 
-const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+const getPasswordStrength = (t: (key: string) => string, password: string): { score: number; label: string; color: string } => {
  if (!password) return { score: 0, label: "", color: "" };
  let score = 0;
  if (password.length >= 8) score++;
@@ -54,12 +56,13 @@ const getPasswordStrength = (password: string): { score: number; label: string; 
  if (/[A-Z]/.test(password)) score++;
  if (/[0-9]/.test(password)) score++;
  if (/[^A-Za-z0-9]/.test(password)) score++;
- if (score <= 1) return { score, label: "Weak", color: "bg-red-500" };
- if (score <= 3) return { score, label: "Fair", color: "bg-yellow-500" };
- return { score, label: "Strong", color: "bg-emerald-500" };
+ if (score <= 1) return { score, label: t("register:passwordWeak"), color: "bg-red-500" };
+ if (score <= 3) return { score, label: t("register:passwordFair"), color: "bg-yellow-500" };
+ return { score, label: t("register:passwordStrong"), color: "bg-emerald-500" };
 };
 
 const RegisterPage = () => {
+ const { t } = useTranslation();
  const navigate = useNavigate();
  const { refreshUser } = useAuth();
  const [step, setStep] = useState<RegistrationStep>("details");
@@ -110,19 +113,19 @@ const RegisterPage = () => {
  const touch = (field: DetailField) =>
  setTouched((prev) => ({ ...prev, [field]: true }));
 
- const validateDetails = () => {
- const errors: Partial<Record<DetailField, string>> = {};
- const phoneErr = validatePhone(form.phone);
- if (phoneErr) errors.phone = phoneErr;
- const emailErr = validateEmail(form.email);
- if (emailErr) errors.email = emailErr;
- if (!form.password) errors.password = "Password is required.";
- else if (form.password.length < 8) errors.password = "Password must be at least 8 characters.";
- if (!form.name.trim()) errors.name = "Full name is required.";
- if (!form.nationalIdNumber.trim()) errors.nationalIdNumber = "NIN / ID number is required.";
- if (!form.marketId) errors.marketId = "Market is required.";
- if (!form.district.trim()) errors.district = "Operating district is required.";
- if (!form.productSection) errors.productSection = "Product section is required.";
+  const validateDetails = () => {
+   const errors: Partial<Record<DetailField, string>> = {};
+   const phoneErr = validatePhone(t, form.phone);
+   if (phoneErr) errors.phone = phoneErr;
+   const emailErr = validateEmail(t, form.email);
+   if (emailErr) errors.email = emailErr;
+   if (!form.password) errors.password = t("register:passwordRequired");
+   else if (form.password.length < 8) errors.password = t("register:passwordMinLength");
+   if (!form.name.trim()) errors.name = t("register:nameRequired");
+   if (!form.nationalIdNumber.trim()) errors.nationalIdNumber = t("register:ninRequired");
+   if (!form.marketId) errors.marketId = t("register:marketRequired");
+   if (!form.district.trim()) errors.district = t("register:districtRequired");
+   if (!form.productSection) errors.productSection = t("register:productSectionRequired");
  setFieldErrors(errors);
  const isValid = Object.keys(errors).length === 0;
  if (!isValid) {
@@ -144,13 +147,13 @@ const RegisterPage = () => {
  return;
  }
 
- if (step === "documents") {
- if (!form.idFile) {
- throw new Error("A National ID document is required.");
- }
- if (!form.lcLetterFile) {
- throw new Error("An LC Letter is required.");
- }
+    if (step === "documents") {
+     if (!form.idFile) {
+      throw new Error(t("register:idRequired"));
+     }
+     if (!form.lcLetterFile) {
+      throw new Error(t("register:lcLetterRequired"));
+     }
  const response = await api.registerVendor({
  name: form.name,
  email: form.email,
@@ -169,16 +172,16 @@ const RegisterPage = () => {
  return;
  }
 
- if (!challengeId) {
- throw new Error("Registration challenge not found. Restart the registration flow.");
- }
+   if (!challengeId) {
+    throw new Error(t("register:challengeNotFound"));
+   }
 
  const response = await api.verifyRegistrationOtp(challengeId, otp);
  setSessionToken(response.token);
  await refreshUser();
  navigate("/vendor", { replace: true });
  } catch (error) {
- setError(error instanceof ApiError ? error.message : error instanceof Error ? error.message : "Unable to complete registration.");
+   setError(error instanceof ApiError ? error.message : error instanceof Error ? error.message : t("register:unableToComplete"));
  } finally {
  setIsSubmitting(false);
  }
@@ -209,11 +212,11 @@ const RegisterPage = () => {
           </button>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <a href="/#features" className="transition-colors hover:text-emerald-600">Features</a>
-            <a href="/#process" className="transition-colors hover:text-emerald-600">Process</a>
-            <a href="/#reviews" className="transition-colors hover:text-emerald-600">Reviews</a>
-            <a href="/#pricing" className="transition-colors hover:text-emerald-600">Pricing</a>
-            <a href="/#faqs" className="transition-colors hover:text-emerald-600">FAQs</a>
+            <a href="/#features" className="transition-colors hover:text-emerald-600">{t("auth:features")}</a>
+            <a href="/#process" className="transition-colors hover:text-emerald-600">{t("auth:process")}</a>
+            <a href="/#reviews" className="transition-colors hover:text-emerald-600">{t("auth:reviews")}</a>
+            <a href="/#pricing" className="transition-colors hover:text-emerald-600">{t("auth:pricing")}</a>
+            <a href="/#faqs" className="transition-colors hover:text-emerald-600">{t("auth:faqs")}</a>
           </nav>
 
           <Button
@@ -222,7 +225,7 @@ const RegisterPage = () => {
             onClick={() => navigate("/login")}
             className="text-slate-600 hover:text-emerald-600"
           >
-            Login
+            {t("auth:login")}
           </Button>
         </div>
       </header>
@@ -237,9 +240,9 @@ const RegisterPage = () => {
               <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg">
                 <Store className="h-6 w-6" />
               </span>
-              <h1 className="mt-6 text-3xl font-bold leading-tight font-heading text-slate-950">Vendor Registration</h1>
+              <h1 className="mt-6 text-3xl font-bold leading-tight font-heading text-slate-950">{t("register:title")}</h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Create the vendor profile, submit verification documents, and confirm phone ownership in one flow.
+                {t("register:heroDesc")}
               </p>
             </div>
           </div>
@@ -249,11 +252,11 @@ const RegisterPage = () => {
         <Card className="rounded-2xl border-emerald-100 shadow-lg bg-white/80 backdrop-blur-xl">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg font-heading text-slate-900">
-              {step === "details" ? "Vendor details" : step === "documents" ? "Document upload" : "Phone verification"}
+              {step === "details" ? t("register:vendorDetails") : step === "documents" ? t("register:documentUpload") : t("register:phoneVerification")}
             </CardTitle>
-            <CardDescription>Step {step === "details" ? "1" : step === "documents" ? "2" : "3"} of 3</CardDescription>
+            <CardDescription>{t("register:stepCounter", { current: step === "details" ? "1" : step === "documents" ? "2" : "3" })}</CardDescription>
             <div className="mt-4 grid gap-2 grid-cols-3">
-              {registrationSteps.map((item, index) => {
+              {registrationSteps(t).map((item, index) => {
                 const activeIndex = registrationSteps.findIndex((candidate) => candidate.id === step);
                 const isComplete = index < activeIndex;
                 const isActive = item.id === step;
@@ -282,13 +285,13 @@ const RegisterPage = () => {
             <form className="space-y-5" onSubmit={handleSubmit} noValidate>
               {step === "details" ? (
                 <FormSection
-                  title="Account & Market Details"
-                  description="Create the vendor account, identify the operator, and assign the correct market section before document review."
+                  title={t("register:accountMarketDetails")}
+                  description={t("register:accountMarketDesc")}
                   className="shadow-none"
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-slate-900 font-semibold">Full Name</Label>
+                      <Label htmlFor="name" className="text-slate-900 font-semibold">{t("register:fullName")}</Label>
                       <Input
                         id="name"
                         value={form.name}
@@ -302,7 +305,7 @@ const RegisterPage = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="national-id-number" className="text-slate-900 font-semibold">NIN / ID Number</Label>
+                      <Label htmlFor="national-id-number" className="text-slate-900 font-semibold">{t("register:nin")}</Label>
                       <Input
                         id="national-id-number"
                         value={form.nationalIdNumber}
@@ -316,10 +319,10 @@ const RegisterPage = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-slate-900 font-semibold">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-slate-900 font-semibold">{t("register:phoneNumber")}</Label>
                       <Input
                         id="phone"
-                        placeholder="+256 7XX XXX XXX"
+                        placeholder={t("register:phonePlaceholder")}
                         value={form.phone}
                         onChange={(event) => {
                           updateField("phone", event.target.value);
@@ -342,7 +345,7 @@ const RegisterPage = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-slate-900 font-semibold">Email Address</Label>
+                      <Label htmlFor="email" className="text-slate-900 font-semibold">{t("register:emailAddress")}</Label>
                       <Input
                         id="email"
                         type="email"
@@ -368,7 +371,7 @@ const RegisterPage = () => {
                       )}
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
-                      <Label htmlFor="password" className="text-slate-900 font-semibold">Password</Label>
+                      <Label htmlFor="password" className="text-slate-900 font-semibold">{t("register:password")}</Label>
                       <div className="relative">
                         <Input
                           id="password"
@@ -377,13 +380,13 @@ const RegisterPage = () => {
                           onChange={(event) => {
                             updateField("password", event.target.value);
                             if (touched.password) {
-                              const err = event.target.value.length < 8 ? "Password must be at least 8 characters." : undefined;
+                              const err = event.target.value.length < 8 ? t("register:passwordMinLength") : undefined;
                               setFieldErrors((prev) => ({ ...prev, password: err }));
                             }
                           }}
                           onBlur={() => {
                             touch("password");
-                            const err = form.password.length < 8 ? "Password must be at least 8 characters." : undefined;
+                            const err = form.password.length < 8 ? t("register:passwordMinLength") : undefined;
                             setFieldErrors((prev) => ({ ...prev, password: err }));
                           }}
                           className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500 pr-10"
@@ -392,7 +395,7 @@ const RegisterPage = () => {
                         />
                         <button
                           type="button"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-label={showPassword ? t("register:hidePassword") : t("register:showPassword")}
                           onClick={() => setShowPassword((v) => !v)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                         >
@@ -400,7 +403,7 @@ const RegisterPage = () => {
                         </button>
                       </div>
                       {form.password && (() => {
-                        const strength = getPasswordStrength(form.password);
+                        const strength = getPasswordStrength(t, form.password);
                         return (
                           <div className="space-y-1">
                             <div className="flex h-1.5 gap-1">
@@ -414,7 +417,7 @@ const RegisterPage = () => {
                             <p className={`text-xs font-medium ${
                               strength.score <= 1 ? "text-red-600" : strength.score <= 3 ? "text-yellow-600" : "text-emerald-600"
                             }`}>
-                              {strength.label} password
+                              {strength.label}
                             </p>
                           </div>
                         );
@@ -424,7 +427,7 @@ const RegisterPage = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="market" className="text-slate-900 font-semibold">Market</Label>
+                      <Label htmlFor="market" className="text-slate-900 font-semibold">{t("register:market")}</Label>
                       <Select
                         value={form.marketId}
                         onValueChange={(value) => {
@@ -434,7 +437,7 @@ const RegisterPage = () => {
                         }}
                       >
                         <SelectTrigger id="market" className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500">
-                          <SelectValue placeholder="Select your market" />
+                          <SelectValue placeholder={t("register:marketPlaceholder")} />
                         </SelectTrigger>
                         <SelectContent>
                           {(marketsData?.markets || []).map((market) => (
@@ -449,7 +452,7 @@ const RegisterPage = () => {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="product-section" className="text-slate-900 font-semibold">Product Section</Label>
+                      <Label htmlFor="product-section" className="text-slate-900 font-semibold">{t("register:productSection")}</Label>
                       <Select
                         value={form.productSection}
                         onValueChange={(value) => {
@@ -459,7 +462,7 @@ const RegisterPage = () => {
                         }}
                       >
                         <SelectTrigger id="product-section" className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500">
-                          <SelectValue placeholder="Select product section" />
+                          <SelectValue placeholder={t("register:productSectionPlaceholder")} />
                         </SelectTrigger>
                         <SelectContent>
                           {productSections.map((section) => (
@@ -475,9 +478,9 @@ const RegisterPage = () => {
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <Label htmlFor="district" className="text-slate-900 font-semibold">Operating District</Label>
+                        <Label htmlFor="district" className="text-slate-900 font-semibold">{t("register:operatingDistrict")}</Label>
                         {form.district && (
-                          <span className="text-[11px] text-emerald-600">Auto-filled from market - you can edit this</span>
+                          <span className="text-[11px] text-emerald-600">{t("register:autoFilledDistrict")}</span>
                         )}
                       </div>
                       <Input
@@ -496,33 +499,33 @@ const RegisterPage = () => {
                 </FormSection>
               ) : step === "documents" ? (
                 <FormSection
-                  title="Document Upload"
-                  description="Upload a National ID and LC Letter for manager verification. Files must be PDF, JPG, JPEG, or PNG."
+                  title={t("register:documentUpload")}
+                  description={t("register:documentUploadDesc")}
                   className="shadow-none"
                 >
                   <div className="grid gap-4 md:grid-cols-2">
                     <FileUploadCard
                       id="national-id-upload"
-                      label="National ID"
-                      description="Primary identity document."
+                      label={t("register:nationalId")}
+                      description={t("register:nationalIdDesc")}
                       accept=".pdf,.jpg,.jpeg,.png"
-                      value={formatFileLabel(form.idFile)}
+                      value={formatFileLabel(t, form.idFile)}
                       onChange={(file) => updateField("idFile", file)}
                     />
                     <FileUploadCard
                       id="lc-letter-upload"
-                      label="LC Letter"
-                      description="Proof of residence in the selected district."
+                      label={t("register:lcLetter")}
+                      description={t("register:lcLetterDesc")}
                       accept=".pdf,.jpg,.jpeg,.png"
-                      value={formatFileLabel(form.lcLetterFile)}
+                      value={formatFileLabel(t, form.lcLetterFile)}
                       onChange={(file) => updateField("lcLetterFile", file)}
                     />
                     <FileUploadCard
                       id="profile-photo"
-                      label="Profile Photo (Optional)"
-                      description="Used only for the vendor directory after approval."
+                      label={t("register:profilePhoto")}
+                      description={t("register:profilePhotoDesc")}
                       accept="image/*"
-                      value={formatFileLabel(form.profileImage)}
+                      value={formatFileLabel(t, form.profileImage)}
                       className="md:col-span-2"
                       onChange={(file) => updateField("profileImage", file)}
                     />
@@ -531,10 +534,10 @@ const RegisterPage = () => {
               ) : (
                 <div className="space-y-3">
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-700">
-                    Enter the verification code sent to <span className="font-semibold text-emerald-700">{form.phone}</span>.
+                    {t("register:otpSent", { phone: form.phone })}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="otp" className="text-slate-900 font-semibold">OTP Code</Label>
+                    <Label htmlFor="otp" className="text-slate-900 font-semibold">{t("register:otpCode")}</Label>
                     <OtpCodeInput id="otp" value={otp} onChange={setOtp} disabled={isSubmitting} />
                   </div>
                 </div>
@@ -559,7 +562,7 @@ const RegisterPage = () => {
                   className="w-full sm:flex-1 border-slate-200 hover:bg-slate-50"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" />
-                  Back
+                  {t("common:back")}
                 </Button>
                 <Button 
                   type="submit" 
@@ -569,10 +572,10 @@ const RegisterPage = () => {
                   {isSubmitting ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Processing...
+                      {t("register:processing")}
                     </div>
                   ) : (
-                    step === "details" ? "Continue to Verification" : step === "documents" ? "Send OTP" : "Verify & Open Dashboard"
+                    step === "details" ? t("register:continueToVerification") : step === "documents" ? t("register:sendOtp") : t("register:verifyAndOpen")
                   )}
                 </Button>
               </div>

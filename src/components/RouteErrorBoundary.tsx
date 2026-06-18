@@ -1,4 +1,5 @@
 import { Component, ReactNode } from "react";
+import { withTranslation, type WithTranslation } from "react-i18next";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,8 +18,8 @@ const isChunkLoadError = (error: Error) =>
     error.message,
   );
 
-export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
-  constructor(props: RouteErrorBoundaryProps) {
+class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & WithTranslation, RouteErrorBoundaryState> {
+  constructor(props: RouteErrorBoundaryProps & WithTranslation) {
     super(props);
     this.state = { hasError: false };
   }
@@ -38,20 +39,21 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
   render() {
     if (this.state.hasError) {
       const chunkError = this.state.error ? isChunkLoadError(this.state.error) : false;
+      const { t } = this.props;
 
       return (
         <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-6">
           <Alert variant="destructive" className="max-w-md">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertTitle>{t("error:route.title")}</AlertTitle>
             <AlertDescription>
               {chunkError
-                ? "A new version of the app may have been deployed. Please reload the page to continue."
-                : "This page couldn't load. Please reload the page or try again later."}
+                ? t("error:route.versionDesc")
+                : t("error:route.reloadDesc")}
             </AlertDescription>
             <Button variant="outline" size="sm" className="mt-3" onClick={this.handleReload}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Reload page
+              {t("error:route.reload")}
             </Button>
           </Alert>
         </div>
@@ -61,3 +63,5 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
     return this.props.children;
   }
 }
+
+export const RouteErrorBoundary = withTranslation()(RouteErrorBoundaryInner);

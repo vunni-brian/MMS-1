@@ -1,4 +1,5 @@
 import { Component, ReactNode } from "react";
+import { withTranslation, type WithTranslation } from "react-i18next";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,57 +14,60 @@ interface DashboardErrorBoundaryState {
  error?: Error;
 }
 
-export class DashboardErrorBoundary extends Component<
- DashboardErrorBoundaryProps,
+class DashboardErrorBoundaryInner extends Component<
+ DashboardErrorBoundaryProps & WithTranslation,
  DashboardErrorBoundaryState
 > {
- constructor(props: DashboardErrorBoundaryProps) {
- super(props);
- this.state = { hasError: false };
+ constructor(props: DashboardErrorBoundaryProps & WithTranslation) {
+  super(props);
+  this.state = { hasError: false };
  }
 
  static getDerivedStateFromError(error: Error): DashboardErrorBoundaryState {
- return { hasError: true, error };
+  return { hasError: true, error };
  }
 
  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
- console.error("Dashboard Error Boundary caught an error:", error, errorInfo);
+  console.error("Dashboard Error Boundary caught an error:", error, errorInfo);
  }
 
  handleReset = () => {
- this.setState({ hasError: false, error: undefined });
+  this.setState({ hasError: false, error: undefined });
  };
 
  render() {
- if (this.state.hasError) {
- if (this.props.fallback) {
- return this.props.fallback;
- }
+  if (this.state.hasError) {
+  if (this.props.fallback) {
+  return this.props.fallback;
+  }
 
- const isDev = import.meta.env.DEV;
+  const isDev = import.meta.env.DEV;
+  const { t } = this.props;
 
- return (
- <Alert variant="destructive" className="my-4">
- <AlertCircle className="h-4 w-4" />
- <AlertTitle>Something went wrong</AlertTitle>
- <AlertDescription>
- {isDev && this.state.error?.message
- ? this.state.error.message
- : "This section couldn't load. Try refreshing the page or contact support if the problem persists."}
- </AlertDescription>
- <Button
- variant="outline"
- size="sm"
- className="mt-3"
- onClick={this.handleReset}
- >
- <RefreshCw className="h-4 w-4 mr-2" />
- Retry
- </Button>
- </Alert>
- );
- }
+  return (
+  <Alert variant="destructive" className="my-4">
+  <AlertCircle className="h-4 w-4" />
+  <AlertTitle>{t("error:dashboard.title")}</AlertTitle>
+  <AlertDescription>
+  {isDev && this.state.error?.message
+  ? this.state.error.message
+  : t("error:dashboard.description")}
+  </AlertDescription>
+  <Button
+  variant="outline"
+  size="sm"
+  className="mt-3"
+  onClick={this.handleReset}
+  >
+  <RefreshCw className="h-4 w-4 mr-2" />
+  {t("common:retry")}
+  </Button>
+  </Alert>
+  );
+  }
 
- return this.props.children;
+  return this.props.children;
  }
 }
+
+export const DashboardErrorBoundary = withTranslation()(DashboardErrorBoundaryInner);

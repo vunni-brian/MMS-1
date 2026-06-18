@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ShieldCheck, ArrowLeft, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
@@ -12,6 +13,7 @@ import { api, ApiError, setSessionToken } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const { user, login, verifyPrivilegedMfa, pendingMfa, clearPendingMfa, isLoading, authError, refreshUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,7 +70,7 @@ const LoginPage = () => {
         setOtp("");
       }
     } catch (error) {
-      setPageError(error instanceof ApiError ? error.message : "Unable to continue sign-in.");
+      setPageError(error instanceof ApiError ? error.message : t("auth:continueError"));
     }
   };
 
@@ -103,11 +105,11 @@ const LoginPage = () => {
           </button>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <a href="/#features" className="transition-colors hover:text-emerald-600">Features</a>
-            <a href="/#process" className="transition-colors hover:text-emerald-600">Process</a>
-            <a href="/#reviews" className="transition-colors hover:text-emerald-600">Reviews</a>
-            <a href="/#pricing" className="transition-colors hover:text-emerald-600">Pricing</a>
-            <a href="/#faqs" className="transition-colors hover:text-emerald-600">FAQs</a>
+            <a href="/#features" className="transition-colors hover:text-emerald-600">{t("auth:features")}</a>
+            <a href="/#process" className="transition-colors hover:text-emerald-600">{t("auth:process")}</a>
+            <a href="/#reviews" className="transition-colors hover:text-emerald-600">{t("auth:reviews")}</a>
+            <a href="/#pricing" className="transition-colors hover:text-emerald-600">{t("auth:pricing")}</a>
+            <a href="/#faqs" className="transition-colors hover:text-emerald-600">{t("auth:faqs")}</a>
           </nav>
 
           <Button
@@ -117,7 +119,7 @@ const LoginPage = () => {
             className="text-slate-600 hover:text-emerald-600"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to home
+            {t("auth:backToHome")}
           </Button>
         </div>
       </header>
@@ -128,13 +130,13 @@ const LoginPage = () => {
           <div className="mb-8 flex flex-col items-center text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
               <Sparkles className="h-3.5 w-3.5" />
-              SECURE ACCESS
+              {t("auth:secureAccess")}
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Sign in to MMS
+              {t("auth:signIn")}
             </h1>
             <p className="mt-2 text-slate-600">
-              Access your market management dashboard
+              {t("auth:signInSubtitle")}
             </p>
           </div>
 
@@ -154,7 +156,7 @@ const LoginPage = () => {
                   onClick={requiresOtp ? (isMfaStep ? handleResetMfa : handleBackToLogin) : undefined}
                   disabled={!requiresOtp}
                 >
-                  Credentials
+                  {t("auth:credentials")}
                 </button>
                 <button
                   type="button"
@@ -166,7 +168,7 @@ const LoginPage = () => {
                   )}
                   disabled
                 >
-                  Verification (OTP)
+                  {t("auth:verificationOtp")}
                 </button>
               </div>
 
@@ -175,11 +177,11 @@ const LoginPage = () => {
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="phone" className="text-slate-900 font-semibold">
-                        Phone Number
+                        {t("auth:phoneNumber")}
                       </Label>
                       <Input
                         id="phone"
-                        placeholder="+256 7XX XXX XXX"
+                        placeholder={t("auth:phonePlaceholder")}
                         value={phone}
                         onChange={(event) => {
                           setPhone(event.target.value);
@@ -194,20 +196,20 @@ const LoginPage = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password" className="text-slate-900 font-semibold">
-                          Password
+                          {t("auth:password")}
                         </Label>
                         <a 
                           href="/forgot-password" 
                           className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline"
                         >
-                          Forgot password?
+                          {t("auth:forgotPassword")}
                         </a>
                       </div>
                       <div className="relative">
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
+                          placeholder={t("auth:passwordPlaceholder")}
                           value={password}
                           onChange={(event) => {
                             setPassword(event.target.value);
@@ -219,7 +221,7 @@ const LoginPage = () => {
                         />
                         <button
                           type="button"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-label={showPassword ? t("auth:hidePassword") : t("auth:showPassword")}
                           onClick={() => setShowPassword((value) => !value)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus-visible:outline-none"
                         >
@@ -233,9 +235,9 @@ const LoginPage = () => {
                     <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-4 flex items-start gap-3">
                       <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div className="text-sm text-slate-700">
-                        <p className="font-semibold text-emerald-900 mb-1">Verification Required</p>
+                        <p className="font-semibold text-emerald-900 mb-1">{t("auth:verificationRequired")}</p>
                         <p>
-                          Enter the 6-digit code sent to <span className="font-bold text-emerald-700">{phone.trim()}</span>
+                          {t("auth:otpSent", { phone: phone.trim() })}
                         </p>
                       </div>
                     </div>
@@ -266,10 +268,10 @@ const LoginPage = () => {
                   {isLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Processing...
+                      {t("auth:processing")}
                     </div>
                   ) : (
-                    requiresOtp ? "Verify Securely" : "Sign In Securely"
+                    requiresOtp ? t("auth:verifyButton") : t("auth:signInButton")
                   )}
                 </Button>
               </form>
@@ -278,13 +280,13 @@ const LoginPage = () => {
             {/* Divider */}
             <div className="border-t border-slate-100 px-8 py-6">
               <p className="text-center text-sm text-slate-600">
-                Need an account?{" "}
+                {t("auth:needAccount")}{" "}
                 <button 
                   type="button" 
                   onClick={() => navigate("/register")} 
                   className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
                 >
-                  Register as a Vendor
+                  {t("auth:registerLink")}
                 </button>
               </p>
             </div>
@@ -293,14 +295,14 @@ const LoginPage = () => {
           {/* Footer Links - Matches landing page */}
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-              <a href="#" className="hover:text-emerald-600 transition-colors">Terms of Service</a>
+              <a href="#" className="hover:text-emerald-600 transition-colors">{t("auth:termsOfService")}</a>
               <span>•</span>
-              <a href="#" className="hover:text-emerald-600 transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-emerald-600 transition-colors">{t("auth:privacyPolicy")}</a>
               <span>•</span>
-              <a href="#" className="hover:text-emerald-600 transition-colors">Security</a>
+              <a href="#" className="hover:text-emerald-600 transition-colors">{t("auth:security")}</a>
             </div>
             <p className="mt-4 text-xs text-slate-400">
-              © 2024 MMS - Market Management System. All rights reserved.
+              {t("auth:copyright")}
             </p>
           </div>
         </div>

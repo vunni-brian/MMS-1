@@ -1,6 +1,7 @@
 import type { ElementType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
  AlertTriangle,
@@ -70,8 +71,9 @@ const DashboardSkeleton = () => (
 );
 
 const VendorDashboard = () => {
- const { user } = useAuth();
- const isPendingVendor = user?.vendorStatus !== "approved";
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const isPendingVendor = user?.vendorStatus !== "approved";
 
  const stallsQuery = useQuery({
  queryKey: ["stalls", "mine"],
@@ -120,8 +122,8 @@ const VendorDashboard = () => {
  <div className="p-4 sm:p-6">
  <Alert variant="destructive" className="max-w-xl">
  <AlertCircle className="h-4 w-4" />
- <AlertTitle>Could not load dashboard</AlertTitle>
- <AlertDescription>There was a problem fetching your market data. Please refresh the page.</AlertDescription>
+          <AlertTitle>{t("vendor:dashboard.errorTitle")}</AlertTitle>
+          <AlertDescription>{t("vendor:dashboard.errorDesc")}</AlertDescription>
  </Alert>
  </div>
  );
@@ -154,13 +156,13 @@ const VendorDashboard = () => {
  ...paymentRows.slice(0, 2).map((payment) => ({
  id: `payment-${payment.id}`,
  title: payment.title,
- detail: `${formatCurrency(payment.amount)} recorded`,
+ detail: t("vendor:dashboard.recorded", { amount: formatCurrency(payment.amount) }),
  icon: CreditCard,
  })),
  ...noticeRows.slice(0, 2).map((notice) => ({
  id: `notice-${notice.id}`,
  title: notice.title,
- detail: "Notice published",
+ detail: t("vendor:dashboard.noticePublished"),
  icon: FileText,
  })),
  ].slice(0, 4);
@@ -170,10 +172,10 @@ const VendorDashboard = () => {
  return (
  <div className="space-y-6">
  <div>
- <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Vendor Workspace</p>
+  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">{t("vendor:dashboard.eyebrow")}</p>
  <h1 className="text-3xl font-bold font-heading text-foreground">{greeting}</h1>
  <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
- A simple view of your stall, dues, notices, and support requests at {user?.marketName || "your market"}.
+  {t("vendor:dashboard.subtitle", { market: user?.marketName || t("vendor:dashboard.yourMarket") })}
  </p>
  </div>
 
@@ -185,15 +187,15 @@ const VendorDashboard = () => {
  </span>
  <div>
  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
- You have {approvedBookings.length} pending payment{approvedBookings.length > 1 ? "s" : ""}
+ {t("vendor:dashboard.pendingPayments", { count: approvedBookings.length })}{approvedBookings.length > 1 ? t("vendor:dashboard.plural") : ""}
  </p>
  <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">
- Total due: {formatCurrency(outstandingBalance)}. Pay online or upload a bank receipt for review.
+ {t("vendor:dashboard.totalDue", { amount: formatCurrency(outstandingBalance) })}
  </p>
  </div>
  </div>
  <Link to="/vendor/payments" className="shrink-0">
- <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">Pay Now</Button>
+ <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">{t("vendor:dashboard.payNow")}</Button>
  </Link>
  </div>
  )}
@@ -202,13 +204,13 @@ const VendorDashboard = () => {
  <div>
  <Card className="h-full stat-card">
  <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">My Stall</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t("vendor:dashboard.myStall")}</CardTitle>
  <Store className="h-4 w-4 text-muted-foreground" />
  </CardHeader>
  <CardContent>
- <div className="text-2xl font-bold font-heading">{activeStall?.name || "Not assigned"}</div>
+ <div className="text-2xl font-bold font-heading">{activeStall?.name || t("vendor:dashboard.notAssigned")}</div>
  <p className="text-xs text-muted-foreground mt-1">
- {activeStall ? `${activeStall.zone} - ${activeStall.size}` : "Reserve a stall when available"}
+ {activeStall ? `${activeStall.zone} - ${activeStall.size}` : t("vendor:dashboard.reserveStall")}
  </p>
  </CardContent>
  </Card>
@@ -217,12 +219,12 @@ const VendorDashboard = () => {
  <div>
  <Card className="h-full stat-card">
  <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Balance</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t("vendor:dashboard.outstandingBalance")}</CardTitle>
  <WalletCards className="h-4 w-4 text-muted-foreground" />
  </CardHeader>
  <CardContent>
  <div className="text-2xl font-bold font-heading">{formatCurrency(outstandingBalance)}</div>
- <p className="text-xs text-muted-foreground mt-1">Current approved dues</p>
+ <p className="text-xs text-muted-foreground mt-1">{t("vendor:dashboard.currentApprovedDues")}</p>
  </CardContent>
  </Card>
  </div>
@@ -230,13 +232,13 @@ const VendorDashboard = () => {
  <div>
  <Card className="h-full stat-card">
  <CardHeader className="flex flex-row items-center justify-between pb-2">
- <CardTitle className="text-sm font-medium text-muted-foreground">Complaint Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t("vendor:dashboard.complaintStatus")}</CardTitle>
  <MessageSquare className="h-4 w-4 text-muted-foreground" />
  </CardHeader>
  <CardContent>
- <div className="text-2xl font-bold font-heading">{openComplaints.length ? `${openComplaints.length} open` : "Clear"}</div>
+ <div className="text-2xl font-bold font-heading">{openComplaints.length ? t("vendor:dashboard.open", { n: openComplaints.length }) : t("vendor:dashboard.clear")}</div>
  <p className="text-xs text-muted-foreground mt-1">
- {openComplaints.length ? "Support team is reviewing" : "No unresolved complaints"}
+ {openComplaints.length ? t("vendor:dashboard.supportReviewing") : t("vendor:dashboard.noUnresolved")}
  </p>
  </CardContent>
  </Card>
@@ -248,19 +250,19 @@ const VendorDashboard = () => {
  <div>
  <Card className="card-warm">
  <CardHeader>
- <CardTitle>Current Stall Details</CardTitle>
+            <CardTitle>{t("vendor:dashboard.currentStallDetails")}</CardTitle>
  </CardHeader>
  <CardContent>
  <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
  <div>
- <p className="text-3xl font-semibold tracking-tight font-heading">{activeStall?.name || "No active stall"}</p>
+ <p className="text-3xl font-semibold tracking-tight font-heading">{activeStall?.name || t("vendor:dashboard.noActiveStall")}</p>
  <p className="mt-2 text-sm text-muted-foreground">
  {activeStall
  ? `${activeStall.zone} zone, ${activeStall.size}. Monthly dues are ${formatCurrency(activeStall.pricePerMonth)}.`
- : "Your dashboard will show stall details after a stall has been assigned."}
+ : t("vendor:dashboard.stallAssignedInfo")}
  </p>
  </div>
-  <StatusBadge status={activeStall ? "active" : "pending"} label={activeStall ? "Active" : "Pending"} className="text-xs" />
+  <StatusBadge status={activeStall ? "active" : "pending"} label={activeStall ? t("vendor:dashboard.active") : "Pending"} className="text-xs" />
  </div>
  </CardContent>
  </Card>
@@ -269,15 +271,15 @@ const VendorDashboard = () => {
  <div>
  <Card className="card-warm">
  <CardHeader className="flex flex-row items-center justify-between">
- <CardTitle>Payment History</CardTitle>
+          <CardTitle>{t("vendor:dashboard.paymentHistory")}</CardTitle>
  <Link to="/vendor/payments" className="text-sm font-medium text-primary hover:underline">
- View all
- </Link>
- </CardHeader>
- <CardContent>
- {paymentRows.length === 0 ? (
- <div className="rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
- No payment records yet. Payments will appear here once dues are processed.
+    {t("common:viewAll")}
+    </Link>
+  </CardHeader>
+  <CardContent>
+    {paymentRows.length === 0 ? (
+      <div className="rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+        {t("vendor:dashboard.noPayments")}
  </div>
  ) : (
  <div className="space-y-3">
@@ -304,7 +306,7 @@ const VendorDashboard = () => {
  <div>
  <Card className="card-warm">
  <CardHeader>
- <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>{t("vendor:dashboard.recentActivity")}</CardTitle>
  </CardHeader>
  <CardContent>
  <div className="grid gap-3">
@@ -332,9 +334,9 @@ const VendorDashboard = () => {
  <div>
  <Card className="card-warm">
  <CardHeader className="flex flex-row items-center justify-between">
- <CardTitle>Notifications</CardTitle>
- <Link to="/vendor/announcements" className="text-sm font-medium text-primary hover:underline">
- View all
+  <CardTitle>{t("vendor:dashboard.notifications")}</CardTitle>
+  <Link to="/vendor/announcements" className="text-sm font-medium text-primary hover:underline">
+  {t("common:viewAll")}
  </Link>
  </CardHeader>
  <CardContent>
@@ -353,13 +355,13 @@ const VendorDashboard = () => {
  <div>
  <Card className="card-warm">
  <CardHeader>
- <CardTitle>Quick Actions</CardTitle>
+  <CardTitle>{t("vendor:dashboard.quickActions")}</CardTitle>
  </CardHeader>
  <CardContent className="grid gap-3">
- <QuickAction icon={CreditCard} label="Pay dues" to="/vendor/payments" />
- <QuickAction icon={MessageSquare} label="Report issue" to="/vendor/complaints" />
- <QuickAction icon={Store} label="Reserve stall" to="/vendor/stalls" />
- <QuickAction icon={UserRound} label="Update profile" to="/vendor/profile" />
+  <QuickAction icon={CreditCard} label={t("vendor:dashboard.payDues")} to="/vendor/payments" />
+  <QuickAction icon={MessageSquare} label={t("vendor:dashboard.reportIssue")} to="/vendor/complaints" />
+  <QuickAction icon={Store} label={t("vendor:dashboard.reserveStall")} to="/vendor/stalls" />
+  <QuickAction icon={UserRound} label={t("vendor:dashboard.updateProfile")} to="/vendor/profile" />
  </CardContent>
  </Card>
  </div>
@@ -372,10 +374,10 @@ const VendorDashboard = () => {
  <CalendarClock className="h-5 w-5" />
  </div>
  <div>
- <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Month-end collection</p>
- <p className="mt-1 text-xs text-amber-700 dark:text-amber-400/80">
- Clear pending dues before the last working day to avoid late fees.
- </p>
+<p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t("vendor:dashboard.monthEndCollection")}</p>
+<p className="mt-1 text-xs text-amber-700 dark:text-amber-400/80">
+{t("vendor:dashboard.monthEndDesc")}
+</p>
  </div>
  </div>
  </CardContent>

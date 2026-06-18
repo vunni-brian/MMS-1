@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Activity } from "lucide-react";
 
 import { MiniSparkline } from "@/components/console/ConsolePage";
@@ -46,6 +47,7 @@ interface RoleInsightsRailProps {
 }
 
 export const RoleInsightsRail = ({ user, isPendingVendor, notifications }: RoleInsightsRailProps) => {
+ const { t } = useTranslation();
  const { metrics, alerts, trendValues } = useRoleInsights({ user, isPendingVendor, notifications });
 
  return (
@@ -53,11 +55,11 @@ export const RoleInsightsRail = ({ user, isPendingVendor, notifications }: RoleI
  <div className="border-b border-border/70 px-4 py-3">
  <div className="flex items-center justify-between gap-3">
  <div>
- <p className="text-sm font-semibold font-heading">Attention</p>
- <p className="mt-0.5 text-[11px] text-muted-foreground">Useful live context</p>
+ <p className="text-sm font-semibold font-heading">{t("insights:attention")}</p>
+ <p className="mt-0.5 text-[11px] text-muted-foreground">{t("insights:liveContext")}</p>
  </div>
  <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold", isPendingVendor ? toneClassName("warning") : toneClassName("success"))}>
- {isPendingVendor ? "Limited" : "Live"}
+ {isPendingVendor ? t("insights:limited") : t("insights:live")}
  </span>
  </div>
  </div>
@@ -71,20 +73,20 @@ export const RoleInsightsRail = ({ user, isPendingVendor, notifications }: RoleI
 
  <div className="mt-4 rounded-lg border border-border/70 bg-background/80 p-3">
  <div className="flex items-center justify-between">
- <p className="section-eyebrow">Activity Trend</p>
+ <p className="section-eyebrow">{t("insights:activityTrend")}</p>
  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
  </div>
  <MiniSparkline values={trendValues} className="mt-3 h-10 w-full text-primary" />
  <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] text-muted-foreground">
- <span>Cases</span>
- <span>Cash</span>
- <span>Risk</span>
+ <span>{t("insights:cases")}</span>
+ <span>{t("insights:cash")}</span>
+ <span>{t("insights:risk")}</span>
  </div>
  </div>
 
  <div className="mt-4">
  <div className="mb-2 flex items-center justify-between">
- <p className="section-eyebrow">Attention</p>
+ <p className="section-eyebrow">{t("insights:attention")}</p>
  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{alerts.length}</span>
  </div>
  <div className="space-y-2">
@@ -92,8 +94,8 @@ export const RoleInsightsRail = ({ user, isPendingVendor, notifications }: RoleI
  alerts.map((alert) => <AlertRow key={alert.id} alert={alert} />)
  ) : (
  <div className="rounded-lg border border-dashed border-border/70 bg-background/80 p-3 text-center">
- <p className="text-xs font-medium">No active attention items</p>
- <p className="mt-1 text-[11px] text-muted-foreground">Exceptions and approvals will appear here.</p>
+ <p className="text-xs font-medium">{t("insights:noAttentionItems")}</p>
+ <p className="mt-1 text-[11px] text-muted-foreground">{t("insights:attentionEmpty")}</p>
  </div>
  )}
  </div>

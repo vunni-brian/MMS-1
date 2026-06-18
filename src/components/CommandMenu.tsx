@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
  CreditCard,
@@ -27,6 +28,7 @@ interface CommandMenuProps {
 }
 
 export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
+ const { t } = useTranslation();
  const navigate = useNavigate();
  const { user } = useAuth();
 
@@ -53,43 +55,43 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
 
   return (
   <CommandDialog open={open} onOpenChange={onOpenChange}>
- <CommandInput placeholder="Type a command or search..." />
+ <CommandInput placeholder={t("command:placeholder")} />
  <CommandList>
- <CommandEmpty>No results found.</CommandEmpty>
- <CommandGroup heading="Suggestions">
+ <CommandEmpty>{t("command:noResults")}</CommandEmpty>
+ <CommandGroup heading={t("command:suggestions")}>
  <CommandItem onSelect={() => runCommand(() => navigate(basePath))}>
  <LayoutDashboard className="mr-2 h-4 w-4" />
- <span>Dashboard</span>
+ <span>{t("nav:dashboard")}</span>
  </CommandItem>
  <CommandItem onSelect={() => runCommand(() => navigate(`${basePath}/stalls`))}>
  <Store className="mr-2 h-4 w-4" />
- <span>Stalls & Occupancy</span>
+ <span>{t("nav:stalls")}</span>
  </CommandItem>
  <CommandItem onSelect={() => runCommand(() => navigate(`${basePath}/payments`))}>
  <CreditCard className="mr-2 h-4 w-4" />
- <span>Payments & Billing</span>
+ <span>{t("nav:payments")}</span>
  </CommandItem>
  <CommandItem onSelect={() => runCommand(() => navigate(`${basePath}/complaints`))}>
  <MessageSquare className="mr-2 h-4 w-4" />
- <span>Grievances & Appeals</span>
+ <span>{t("nav:complaints")}</span>
  </CommandItem>
  </CommandGroup>
  <CommandSeparator />
- <CommandGroup heading="Settings">
+ <CommandGroup heading={t("nav:settings")}>
  <CommandItem onSelect={() => runCommand(() => navigate(`${basePath}/profile`))}>
  <User className="mr-2 h-4 w-4" />
- <span>Profile Settings</span>
+ <span>{t("nav:profile")}</span>
  </CommandItem>
  <CommandItem onSelect={() => runCommand(() => navigate(`${basePath}/settings`))}>
  <Settings className="mr-2 h-4 w-4" />
- <span>General Settings</span>
+ <span>{t("nav:settings")}</span>
  </CommandItem>
  </CommandGroup>
  {["admin", "manager"].includes(user.role) && (
- <CommandGroup heading="Management">
+ <CommandGroup heading={t("command:management")}>
  <CommandItem onSelect={() => runCommand(() => navigate(`${basePath}/${user.role === "admin" ? "users" : "vendors"}`))}>
  <Users className="mr-2 h-4 w-4" />
- <span>Users & Vendors</span>
+ <span>{t("nav:vendors")}</span>
  </CommandItem>
  </CommandGroup>
  )}

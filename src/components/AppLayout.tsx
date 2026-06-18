@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -17,6 +18,7 @@ import { AppFooter } from "@/components/layout/AppFooter";
 import { roleNavGroups } from "@/components/layout/navigation";
 
 const AppLayout = () => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,8 +42,8 @@ const AppLayout = () => {
   const currentPage = getPageIdentity(location.pathname);
   const breadcrumbs = useMemo(() => getPageBreadcrumbs(location.pathname), [location.pathname]);
   const experience = user ? getRoleExperience(user.role) : null;
-  const workspaceTitle = experience?.workspaceTitle || "Workspace";
-  const headerScope = user?.marketName || experience?.scopeFallback || "No market assigned";
+  const workspaceTitle = experience?.workspaceTitle || t("layout:workspace");
+  const headerScope = user?.marketName || experience?.scopeFallback || t("common:noMarketAssigned");
   const profilePath = `${basePath}/profile`;
   const settingsPath = `${basePath}/settings`;
 
@@ -91,7 +93,7 @@ const AppLayout = () => {
     };
   }, [user?.id, user?.profileImage]);
 
-  if (!user) return <LoadingAnimation label="Loading workspace…" />;
+  if (!user) return <LoadingAnimation label={t("layout:loadingWorkspace")} />;
 
   const openProfileTab = (tab?: string) => navigate(`${profilePath}${tab ? `?tab=${tab}` : ""}`);
   const openSettingsTab = (section?: string) => navigate(`${settingsPath}${section ? `?section=${section}` : ""}`);

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useMemo, useState, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -51,20 +52,21 @@ interface IntegrationCard {
 }
 
 const statusConfig = {
-  connected: { label: "Connected", className: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  attention: { label: "Needs Review", className: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: AlertCircle },
-  configured: { label: "Configured", className: "bg-blue-100 text-blue-700 border-blue-200", icon: ShieldCheck },
-  inactive: { label: "Inactive", className: "bg-slate-100 text-slate-600 border-slate-200", icon: Plug },
+  connected: { label: "admin:integrations.status.connected", className: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  attention: { label: "admin:integrations.status.attention", className: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: AlertCircle },
+  configured: { label: "admin:integrations.status.configured", className: "bg-blue-100 text-blue-700 border-blue-200", icon: ShieldCheck },
+  inactive: { label: "admin:integrations.status.inactive", className: "bg-slate-100 text-slate-600 border-slate-200", icon: Plug },
 };
 
 const categoryLabels: Record<Exclude<IntegrationCategory, "all">, string> = {
-  payments: "Payments",
-  messaging: "Messaging",
-  data: "Data and reporting",
-  security: "Access and security",
+  payments: "admin:integrations.category.payments",
+  messaging: "admin:integrations.category.messaging",
+  data: "admin:integrations.category.data",
+  security: "admin:integrations.category.security",
 };
 
 const AdminIntegrationsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [category, setCategory] = useState<IntegrationCategory>("all");
 
@@ -101,53 +103,53 @@ const AdminIntegrationsPage = () => {
       {
         name: "Payment Gateway",
         category: "payments",
-        description: "Online payment initiation, receipt verification, and callback handling.",
+        description: t("admin:integrations.paymentGatewayDesc"),
         status: paymentEnabled ? "connected" : "attention",
-        detail: paymentEnabled ? "Collections available" : "Collections paused",
+        detail: paymentEnabled ? t("admin:integrations.collectionsAvailable") : t("admin:integrations.collectionsPaused"),
         icon: CheckCircle2,
       },
       {
         name: "SMS Notifications",
         category: "messaging",
-        description: "Vendor and staff delivery for important notices and payment updates.",
+        description: t("admin:integrations.smsNotificationsDesc"),
         status: "configured",
-        detail: "System channel active",
+        detail: t("admin:integrations.systemChannelActive"),
         icon: MessageSquare,
       },
       {
         name: "Email Delivery",
         category: "messaging",
-        description: "Staff invitations, report delivery, and account notifications.",
+        description: t("admin:integrations.emailDeliveryDesc"),
         status: "configured",
-        detail: "Transactional mail ready",
+        detail: t("admin:integrations.transactionalMailReady"),
         icon: Mail,
       },
       {
         name: "Database Backup",
         category: "data",
-        description: "Operational records, audit history, and reporting snapshots.",
+        description: t("admin:integrations.databaseBackupDesc"),
         status: "connected",
-        detail: "Last backup healthy",
+        detail: t("admin:integrations.lastBackupHealthy"),
         icon: Database,
       },
       {
         name: "Reports Export",
         category: "data",
-        description: "CSV exports for finance, activity records, users, and market reviews.",
+        description: t("admin:integrations.reportsExportDesc"),
         status: "configured",
-        detail: "Exports enabled",
+        detail: t("admin:integrations.exportsEnabled"),
         icon: Link2,
       },
       {
         name: "Access Control",
         category: "security",
-        description: "Role permissions, protected routes, and staff session controls.",
+        description: t("admin:integrations.accessControlDesc"),
         status: "connected",
-        detail: "Role checks active",
+        detail: t("admin:integrations.roleChecksActive"),
         icon: ShieldCheck,
       },
     ];
-  }, [paymentGateway?.isEnabled]);
+  }, [paymentGateway?.isEnabled, t]);
 
   const filteredIntegrations = integrations.filter((integration) => category === "all" || integration.category === category);
   
@@ -168,9 +170,9 @@ const AdminIntegrationsPage = () => {
   const connectedCount = integrations.filter((integration) => integration.status === "connected").length;
 
   const apiKeys = [
-    { name: "Admin API", scope: "Users, markets, reports", status: "Active", lastUsed: "Current session" },
-    { name: "Payment Callback", scope: "Payment status updates", status: paymentGateway?.isEnabled === false ? "Paused" : "Active", lastUsed: paymentGateway?.updatedAt || "Not available" },
-    { name: "Report Export", scope: "CSV and audit exports", status: "Active", lastUsed: "On demand" },
+    { name: t("admin:integrations.adminApi"), scope: t("admin:integrations.adminApiScope"), status: t("admin:integrations.active"), lastUsed: t("admin:integrations.currentSession") },
+    { name: t("admin:integrations.paymentCallback"), scope: t("admin:integrations.paymentCallbackScope"), status: paymentGateway?.isEnabled === false ? t("admin:integrations.paused") : t("admin:integrations.active"), lastUsed: paymentGateway?.updatedAt || t("admin:integrations.notAvailable") },
+    { name: t("admin:integrations.reportExport"), scope: t("admin:integrations.reportExportScope"), status: t("admin:integrations.active"), lastUsed: t("admin:integrations.onDemand") },
   ];
 
   const activityRows = auditEvents
@@ -184,8 +186,8 @@ const AdminIntegrationsPage = () => {
           <div className="flex items-center gap-3">
             <AlertCircle className="h-6 w-6 text-red-600" />
             <div>
-              <h3 className="font-semibold text-red-900">Could not load integrations</h3>
-              <p className="text-sm text-red-700">System data is currently unavailable. Please refresh or check connection.</p>
+              <h3 className="font-semibold text-red-900">{t("admin:integrations.errorTitle")}</h3>
+              <p className="text-sm text-red-700">{t("admin:integrations.errorDescription")}</p>
             </div>
           </div>
         </CardContent>
@@ -199,11 +201,11 @@ const AdminIntegrationsPage = () => {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-slate-900">Integrations</h1>
-                  <Badge className="bg-emerald-100 text-emerald-700">Admin Console</Badge>
+                  <h1 className="text-2xl font-bold text-slate-900">{t("admin:integrations.title")}</h1>
+                  <Badge className="bg-emerald-100 text-emerald-700">{t("admin:badge")}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  Review platform connections and manage third-party integrations.
+                  {t("admin:integrations.subtitle")}
                 </p>
               </div>
               <Button 
@@ -212,7 +214,7 @@ const AdminIntegrationsPage = () => {
                 onClick={() => navigate("/admin/settings")}
               >
                 <RefreshCw className="h-4 w-4" />
-                Check Status
+                {t("admin:integrations.checkStatus")}
               </Button>
             </div>
           </div>
@@ -223,7 +225,7 @@ const AdminIntegrationsPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Total Integrations</p>
+                    <p className="text-sm text-slate-500">{t("admin:integrations.totalIntegrations")}</p>
                     <p className="text-2xl font-bold text-slate-900">{integrations.length}</p>
                   </div>
                   <Plug className="h-8 w-8 text-slate-400" />
@@ -235,7 +237,7 @@ const AdminIntegrationsPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Connected</p>
+                    <p className="text-sm text-slate-500">{t("admin:integrations.connected")}</p>
                     <p className="text-2xl font-bold text-emerald-600">{connectedCount}</p>
                   </div>
                   <CheckCircle2 className="h-8 w-8 text-emerald-400" />
@@ -247,7 +249,7 @@ const AdminIntegrationsPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Needs Review</p>
+                    <p className="text-sm text-slate-500">{t("admin:integrations.needsReview")}</p>
                     <p className="text-2xl font-bold text-yellow-600">{openIssues}</p>
                   </div>
                   <AlertCircle className="h-8 w-8 text-yellow-400" />
@@ -259,8 +261,8 @@ const AdminIntegrationsPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">API Keys Active</p>
-                    <p className="text-2xl font-bold text-blue-600">{apiKeys.filter(k => k.status === "Active").length}</p>
+                    <p className="text-sm text-slate-500">{t("admin:integrations.apiKeysActive")}</p>
+                    <p className="text-2xl font-bold text-blue-600">{apiKeys.filter(k => k.status === t("admin:integrations.active")).length}</p>
                   </div>
                   <KeyRound className="h-8 w-8 text-blue-400" />
                 </div>
@@ -273,14 +275,14 @@ const AdminIntegrationsPage = () => {
             <Select value={category} onValueChange={(value) => setCategory(value as IntegrationCategory)}>
               <SelectTrigger className="w-[220px] border-slate-200">
                 <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by category" />
+                <SelectValue placeholder={t("admin:integrations.filterByCategory")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All integrations</SelectItem>
-                <SelectItem value="payments">Payments</SelectItem>
-                <SelectItem value="messaging">Messaging</SelectItem>
-                <SelectItem value="data">Data</SelectItem>
-                <SelectItem value="security">Security</SelectItem>
+                <SelectItem value="all">{t("admin:integrations.allIntegrations")}</SelectItem>
+                <SelectItem value="payments">{t("admin:integrations.category.payments")}</SelectItem>
+                <SelectItem value="messaging">{t("admin:integrations.category.messaging")}</SelectItem>
+                <SelectItem value="data">{t("admin:integrations.category.data")}</SelectItem>
+                <SelectItem value="security">{t("admin:integrations.category.security")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -292,14 +294,14 @@ const AdminIntegrationsPage = () => {
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
-                  <p className="mt-2 text-sm text-slate-500">Loading integrations...</p>
+                  <p className="mt-2 text-sm text-slate-500">{t("admin:integrations.loading")}</p>
                 </div>
               ) : filteredIntegrations.length === 0 ? (
                 <Card className="border-slate-200 bg-white">
                   <CardContent className="p-12 text-center">
                     <Plug className="mx-auto h-12 w-12 text-slate-300" />
-                    <h3 className="mt-4 text-lg font-semibold text-slate-900">No integrations found</h3>
-                    <p className="mt-1 text-sm text-slate-500">Choose another category to view available connections.</p>
+                    <h3 className="mt-4 text-lg font-semibold text-slate-900">{t("admin:integrations.noIntegrationsFound")}</h3>
+                    <p className="mt-1 text-sm text-slate-500">{t("admin:integrations.noIntegrationsDescription")}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -310,14 +312,14 @@ const AdminIntegrationsPage = () => {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-slate-900">{categoryLabels[groupKey]}</CardTitle>
+                            <CardTitle className="text-slate-900">{t(categoryLabels[groupKey])}</CardTitle>
                             <CardDescription className="text-slate-500">
-                              {groupedIntegrations[groupKey].length} connection{groupedIntegrations[groupKey].length === 1 ? "" : "s"}
+                              {groupedIntegrations[groupKey].length} {t("admin:integrations.connection", { count: groupedIntegrations[groupKey].length })}
                             </CardDescription>
                           </div>
                           {groupedIntegrations[groupKey].filter((item) => item.status === "attention").length > 0 && (
                             <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700">
-                              {groupedIntegrations[groupKey].filter((item) => item.status === "attention").length} needs review
+                              {groupedIntegrations[groupKey].filter((item) => item.status === "attention").length} {t("admin:integrations.needsReviewBadge")}
                             </Badge>
                           )}
                         </div>
@@ -343,7 +345,7 @@ const AdminIntegrationsPage = () => {
                               <div className="flex items-center gap-3">
                                 <Badge className={statusConfig[integration.status].className}>
                                   <StatusIcon className="mr-1 h-3 w-3" />
-                                  {statusConfig[integration.status].label}
+                                  {t(statusConfig[integration.status].label)}
                                 </Badge>
                                 <Button
                                   variant="outline"
@@ -351,7 +353,7 @@ const AdminIntegrationsPage = () => {
                                   className="border-slate-200 hover:border-emerald-300 hover:bg-emerald-50"
                                   onClick={() => navigate(integrationPaths[integration.name] || "/admin/settings")}
                                 >
-                                  Manage
+                                  {t("admin:integrations.manage")}
                                 </Button>
                               </div>
                             </div>
@@ -369,25 +371,25 @@ const AdminIntegrationsPage = () => {
               <Card className="border-slate-200 bg-white">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-slate-900">Connection Controls</CardTitle>
+                    <CardTitle className="text-slate-900">{t("admin:integrations.connectionControls")}</CardTitle>
                     <Plug className="h-5 w-5 text-slate-400" />
                   </div>
                   <CardDescription className="text-slate-500">
-                    Visible status only. Actual provider changes remain controlled by settings.
+                    {t("admin:integrations.connectionControlsDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {[
-                    ["Payment callbacks", paymentGateway?.isEnabled !== false],
-                    ["Report exports", true],
-                    ["Staff notifications", true],
+                    [t("admin:integrations.paymentCallbacks"), paymentGateway?.isEnabled !== false],
+                    [t("admin:integrations.reportExports"), true],
+                    [t("admin:integrations.staffNotifications"), true],
                   ].map(([label, checked]) => (
                     <div key={String(label)} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/30 px-3 py-2">
                       <span className="text-sm text-slate-700">{label}</span>
                       <Switch 
                         checked={Boolean(checked)} 
                         disabled 
-                        aria-label={`${String(label)} — read only`}
+                        aria-label={`${String(label)} — ${t("admin:integrations.readOnly")}`}
                         className="data-[state=checked]:bg-emerald-600"
                       />
                     </div>
@@ -396,14 +398,14 @@ const AdminIntegrationsPage = () => {
               </Card>
 
               {/* API Keys */}
-              <DataTableFrame title="API Keys" description="Access scopes and recent use.">
+              <DataTableFrame title={t("admin:integrations.apiKeys")} description={t("admin:integrations.apiKeysDescription")}>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-slate-200 bg-slate-50">
-                        <TableHead className="font-semibold">Name</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="font-semibold">Last Used</TableHead>
+                        <TableHead className="font-semibold">{t("admin:integrations.name")}</TableHead>
+                        <TableHead className="font-semibold">{t("common:status")}</TableHead>
+                        <TableHead className="font-semibold">{t("admin:integrations.lastUsed")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -419,12 +421,12 @@ const AdminIntegrationsPage = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={key.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}>
+                            <Badge className={key.status === t("admin:integrations.active") ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}>
                               {key.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm text-slate-500">
-                            {key.lastUsed === "Current session" || key.lastUsed === "On demand" || key.lastUsed === "Not available"
+                            {key.lastUsed === t("admin:integrations.currentSession") || key.lastUsed === t("admin:integrations.onDemand") || key.lastUsed === t("admin:integrations.notAvailable")
                               ? key.lastUsed
                               : formatHumanDateTime(key.lastUsed)}
                           </TableCell>
@@ -438,14 +440,14 @@ const AdminIntegrationsPage = () => {
               {/* Integration Activity */}
               <Card className="border-slate-200 bg-white">
                 <CardHeader>
-                  <CardTitle className="text-slate-900">Integration Activity</CardTitle>
-                  <CardDescription className="text-slate-500">Recent provider changes and settings updates</CardDescription>
+                  <CardTitle className="text-slate-900">{t("admin:integrations.integrationActivity")}</CardTitle>
+                  <CardDescription className="text-slate-500">{t("admin:integrations.integrationActivityDescription")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {activityRows.length === 0 ? (
                       <div className="rounded-lg bg-slate-50 p-6 text-center">
-                        <p className="text-sm text-slate-500">No integration activity yet</p>
+                        <p className="text-sm text-slate-500">{t("admin:integrations.noIntegrationActivity")}</p>
                       </div>
                     ) : (
                       activityRows.map((event) => (
