@@ -38,23 +38,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
  const refreshUser = async () => {
  const token = getSessionToken();
  if (!token) {
- setUser(null);
- setIsLoading(false);
- return;
+   setUser(null);
+   setIsLoading(false);
+   return;
  }
 
- try {
- const response = await api.getMe();
- setUser(response.user);
- setAuthError(null);
- } catch (error) {
- clearSessionToken();
- setUser(null);
- setAuthError(error instanceof ApiError ? error.message : "Unable to restore session.");
- } finally {
- setIsLoading(false);
- }
- };
+ // Prevent infinite loading if the backend hangs while restoring session.
+  const controller = new AbortController();
+  const timeoutMs = 8000;
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    // api.getMe() currently doesn't accept an AbortSignal, so this AbortController
+    // is only used as a fail-fast fallback via a race below.
+    const response = await Promise.race([
+      api.getMe(),
+      new Promise<never>((_, reject) =>
+        window.setTimeout(() => reject(new Error("Session restore aborted")), timeoutMs),
+      ),
+    ]);
+
+    setUser(response.user);
+    setAuthError(null);
+  } catch (error) {
+    clearSessionToken();
+    setUser(null);
+
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Unable to restore session.";
+
+    setAuthError(message.toLowerCase().includes("aborted") ? "Session restore timed out." : message);
+  } finally {
+    window.clearTimeout(timeoutId);
+    setIsLoading(false);
+  }
+};
 
  useEffect(() => {
  void refreshUser();
