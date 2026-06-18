@@ -4,3 +4,5 @@
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m8080[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://50.50.1.142:[1m8080[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.25.32.1:[1m8080[22m/[39m
+[2m10:12:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m10:12:57[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m

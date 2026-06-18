@@ -25,7 +25,7 @@ interface SidebarProps {
 }
 
 const NavLinkItem = ({
-  item, basePath, location, sidebarCollapsed, allNavItems, onNavigate,
+  item, basePath, userRole, location, sidebarCollapsed, allNavItems, onNavigate,
 }: {
   item: NavItem; basePath: string; userRole: string; location: ReturnType<typeof useLocation>;
   sidebarCollapsed: boolean; allNavItems: NavItem[]; onNavigate: () => void;
