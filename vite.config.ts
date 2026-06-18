@@ -22,10 +22,32 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom", "react-i18next"],
-          "vendor-ui": ["lucide-react", "@radix-ui/react-accordion", "@radix-ui/react-alert-dialog", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
-          "vendor-data": ["@tanstack/react-query", "recharts", "date-fns"],
+        manualChunks(id) {
+          // Keep React and its ecosystem in one chunk — loaded first
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/") ||
+            id.includes("node_modules/react-router-dom/") ||
+            id.includes("node_modules/react-i18next/") ||
+            id.includes("node_modules/scheduler/")
+          ) {
+            return "vendor-react";
+          }
+          // UI libs that depend on React — loaded after vendor-react
+          if (
+            id.includes("node_modules/recharts/") ||
+            id.includes("node_modules/lucide-react/") ||
+            id.includes("node_modules/@radix-ui/")
+          ) {
+            return "vendor-ui";
+          }
+          // Pure data libs with no React dependency
+          if (
+            id.includes("node_modules/@tanstack/react-query/") ||
+            id.includes("node_modules/date-fns/")
+          ) {
+            return "vendor-data";
+          }
         },
       },
     },
