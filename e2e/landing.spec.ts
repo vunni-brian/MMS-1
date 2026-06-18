@@ -56,7 +56,7 @@ test.describe("Landing Page (Public)", () => {
     const response = await page.goto(`${BASE_URL}/register`, { waitUntil: "networkidle", timeout: 30_000 });
     expect(response?.status()).toBe(200);
 
-    const heading = page.getByRole("heading", { name: /register|create|vendor/i });
+    const heading = page.getByRole("heading", { name: /register|create|vendor/i }).first();
     await expect(heading).toBeVisible({ timeout: 10_000 });
 
     await page.screenshot({ path: `${SCREENSHOTS_DIR}/register-page.png`, fullPage: true });

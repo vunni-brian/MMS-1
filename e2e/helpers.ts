@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Page, Request, Response } from "@playwright/test";
 
 export interface RoleUser {
   label: string;
@@ -99,13 +99,37 @@ export async function loginAs(
   await page.locator("#password").fill(user.password);
   await page.screenshot({ path: `${screenshotsDir}/${label}-02-login-filled.png` });
 
+  let loginResponseChallengeId: string | undefined;
+
+  if (user.requiresMfa) {
+    loginResponseChallengeId = await new Promise<string | undefined>((resolve) => {
+      page.on("response", async (res: Response) => {
+        const req = res.request();
+        if (req.method() === "POST" && req.url().includes("/auth/login")) {
+          try {
+            const body = await res.json();
+            if (body?.mfaRequired && body?.challengeId) {
+              resolve(body.challengeId);
+              return;
+            }
+          } catch {
+            // ignore parse errors
+          }
+          resolve(undefined);
+        }
+      });
+      // Timeout safety
+      setTimeout(() => resolve(undefined), 15_000);
+    });
+  }
+
   await page.getByRole("button", { name: /sign ?in/i, exact: true }).click();
 
   if (user.requiresMfa) {
     await page.waitForSelector("text=Verify privileged access", { timeout: 20_000 });
     await page.screenshot({ path: `${screenshotsDir}/${label}-03-mfa-challenge.png` });
 
-    const otp = await extractOtpFromApi(user.phone, apiBaseUrl);
+    const otp = await extractOtpFromApi(user.phone, apiBaseUrl, loginResponseChallengeId);
     if (!otp) {
       throw new Error(`Could not extract OTP for ${user.label} (${user.phone})`);
     }
@@ -175,10 +199,30 @@ export async function checkRouteProtection(
   }
 }
 
-async function extractOtpFromApi(phone: string, apiBaseUrl: string): Promise<string | null> {
-  const isLocal = apiBaseUrl.includes("localhost") || apiBaseUrl.includes("127.0.0.1");
+async function extractOtpFromApi(phone: string, apiBaseUrl: string, challengeId?: string): Promise<string | null> {
+  // For deployed API, use the debug/sandbox OTP endpoint
+  if (!apiBaseUrl.includes("localhost") && !apiBaseUrl.includes("127.0.0.1")) {
+    if (challengeId) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/auth/debug/otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ challengeId }),
+        });
+        if (response.ok) {
+          const data = await response.json() as { code?: string };
+          if (data?.code) return data.code;
+        }
+        console.warn(`[OTP] Debug endpoint returned ${response.status} for challenge ${challengeId}`);
+      } catch (err) {
+        console.warn(`[OTP] Failed to call debug endpoint:`, err);
+      }
+    }
+    return null;
+  }
 
-  if (isLocal && process.env.DATABASE_URL) {
+  // Local: use DB directly
+  if (process.env.DATABASE_URL) {
     try {
       const { get, getUserRecordByPhone } = await import("../server/lib/db.ts");
       const user = await getUserRecordByPhone(phone);

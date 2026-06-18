@@ -36,9 +36,21 @@ const jsonHeaders = {
 
 const MAX_REQUEST_BODY_BYTES = 25 * 1024 * 1024;
 
+const isLocalhostOrigin = (origin: string) => {
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+};
+
 export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config: AppConfig) => {
   const requestOrigin = req.headers.origin;
-  const allowedOrigin = requestOrigin && config.appUrls.includes(requestOrigin) ? requestOrigin : config.appUrl;
+  const allowedOrigin =
+    requestOrigin && (config.appUrls.includes(requestOrigin) || isLocalhostOrigin(requestOrigin))
+      ? requestOrigin
+      : config.appUrl;
 
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);

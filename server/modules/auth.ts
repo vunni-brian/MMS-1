@@ -1381,6 +1381,37 @@ export const authRoutes: RouteDefinition[] = [
     },
   },
   {
+    method: "POST",
+    path: "/auth/debug/otp",
+    handler: async ({ req, res, config }) => {
+      if (process.env.MMS_ENABLE_FALLBACK_SIMULATION !== "true") {
+        throw new HttpError(404, "Debug endpoint not available.");
+      }
+
+      const body = await readJsonBody<{ challengeId: string }>(req);
+      const challenge = await loadOtpChallenge(body.challengeId);
+      if (!challenge) {
+        throw new HttpError(404, "Challenge not found.");
+      }
+
+      const notification = await get<{ message: string }>(
+        `SELECT message FROM notifications WHERE user_id = ? AND type = 'otp' ORDER BY created_at DESC LIMIT 1`,
+        [challenge.user_id],
+      );
+
+      if (!notification) {
+        throw new HttpError(404, "No OTP notification found.");
+      }
+
+      const match = notification.message.match(/\b(\d{6})\b/);
+      if (!match) {
+        throw new HttpError(404, "Could not extract OTP from notification.");
+      }
+
+      sendJson(res, 200, { code: match[1] });
+    },
+  },
+  {
     method: "GET",
     path: "/auth/me",
     handler: ({ res, auth }) => {
