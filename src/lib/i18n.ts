@@ -20,6 +20,7 @@ i18n
       order: ["localStorage", "navigator"],
       caches: ["localStorage"],
     },
+    returnObjects: true,
     interpolation: {
       escapeValue: false,
     },

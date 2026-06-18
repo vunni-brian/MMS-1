@@ -55,6 +55,18 @@
     "errorLoading": "Ensobi mu okutikka",
     "noResults": "Tewali biruwa"
   },
+  "error": {
+    "dashboard": {
+      "title": "Waliwo ekikolobero kizze",
+      "description": "Ekifundikwa kino tekisobodde kutikka. Gerezako okwongera okuddawo ku lupapula oba okukirira obuyambi oba ekizibu kyeeyongera."
+    },
+    "route": {
+      "title": "Waliwo ekikolobero kizze",
+      "versionDesc": "Katundu omupya ayinza okuba nga ateekebwa. Tusiime okuddawo ku lupapula okweyongerayo.",
+      "reloadDesc": "Olupapula luno telusobodde kutikka. Tusiime okuddawo ku lupapula oba okugezaako oluvannyuma.",
+      "reload": "Ddawo ku lupapula"
+    }
+  },
   "auth": {
     "signIn": "Yingira mu MMS",
     "signInSubtitle": "Yingira mu kisaawe kyo eky'okudukanya katale",
