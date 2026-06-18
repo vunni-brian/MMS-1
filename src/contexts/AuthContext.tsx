@@ -36,26 +36,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
  const [authError, setAuthError] = useState<string | null>(null);
 
  const refreshUser = async () => {
- const token = getSessionToken();
- if (!token) {
-   setUser(null);
-   setIsLoading(false);
-   return;
- }
+  const token = getSessionToken();
+  if (!token) {
+    setUser(null);
+    setIsLoading(false);
+    return;
+  }
 
- // Prevent infinite loading if the backend hangs while restoring session.
-  const controller = new AbortController();
+  // Prevent infinite loading if the backend hangs while restoring session.
+  // Note: api.getMe() does not currently accept an AbortSignal, so we use
+  // a Promise.race fail-fast timeout and always clear the local session.
   const timeoutMs = 8000;
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // api.getMe() currently doesn't accept an AbortSignal, so this AbortController
-    // is only used as a fail-fast fallback via a race below.
     const response = await Promise.race([
       api.getMe(),
-      new Promise<never>((_, reject) =>
-        window.setTimeout(() => reject(new Error("Session restore aborted")), timeoutMs),
-      ),
+      new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("Session restore aborted")), timeoutMs);
+      }),
     ]);
 
     setUser(response.user);
@@ -73,7 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setAuthError(message.toLowerCase().includes("aborted") ? "Session restore timed out." : message);
   } finally {
-    window.clearTimeout(timeoutId);
     setIsLoading(false);
   }
 };
