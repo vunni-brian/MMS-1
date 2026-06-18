@@ -129,7 +129,7 @@ const OfficialDashboard = () => {
 
   return (
     <WorkspaceLayout
-      ratio="full"
+      variant="full"
       left={
         <>
           <PageHeader

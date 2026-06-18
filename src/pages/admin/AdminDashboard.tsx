@@ -35,7 +35,7 @@ const DashboardSkeleton = () => (
       {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[100px]" />)}
     </div>
     <Skeleton className="h-[200px]" />
-    <div className="grid gap-6 xl:grid-cols-[75fr_25fr]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <Skeleton className="h-[300px]" />
       <Skeleton className="h-[300px]" />
     </div>
@@ -118,7 +118,7 @@ const AdminDashboard = () => {
 
   return (
     <WorkspaceLayout
-      ratio="75-25"
+      variant="with-right-panel"
       left={
         <>
           <PageHeader

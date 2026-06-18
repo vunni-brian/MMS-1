@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { LoadingAnimation } from "@/components/LoadingAnimation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import { roleNavGroups } from "@/components/layout/navigation";
 
 const AppLayout = () => {
@@ -41,6 +40,7 @@ const AppLayout = () => {
   const filteredGroups = useMemo(() => {
     if (!user) return [];
     return roleNavGroups[user.role]
+      .filter((group) => group.title !== "nav:groups.account")
       .map((group) => ({
         ...group,
         items: group.items.filter((item) => {
@@ -84,29 +84,33 @@ const AppLayout = () => {
   const signOut = async () => { await logout(); navigate("/login"); };
 
   return (
-    <div className={cn("flex h-screen flex-col overflow-hidden bg-[#F8F9FA]", `app-role-${user.role}`)}>
-      <TopBar workspaceTitle={workspaceTitle} scope={user?.marketName || experience?.scopeFallback || ""} />
+    <div className={cn("h-dvh overflow-hidden bg-[#F8F9FA]", `app-role-${user.role}`)}>
+      <TopBar
+        workspaceTitle={workspaceTitle}
+        scope={user?.marketName || experience?.scopeFallback || ""}
+        user={user}
+        profileImageUrl={profileImageUrl}
+        onOpenSidebar={() => setSidebarOpen(true)}
+        openProfileTab={() => openProfileTab()}
+        openSettingsTab={openSettingsTab}
+        signOut={signOut}
+      />
 
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          user={user}
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          profileImageUrl={profileImageUrl}
-          basePath={basePath}
-          filteredGroups={filteredGroups}
-          hasUnread={hasUnread}
-          openProfileTab={() => openProfileTab()}
-          openSettingsTab={openSettingsTab}
-          signOut={signOut}
-        />
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        basePath={basePath}
+        filteredGroups={filteredGroups}
+        hasUnread={hasUnread}
+      />
 
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="mx-auto flex h-full w-full max-w-[1600px] flex-col px-6 py-6 overflow-y-auto">
+      <main className="fixed bottom-0 left-0 right-0 top-[72px] overflow-hidden lg:left-[264px]">
+        <div className="mms-main-scroll h-full overflow-y-auto">
+          <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
             <Outlet />
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

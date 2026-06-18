@@ -2451,6 +2451,9 @@ body,
 .app-role-vendor > aside,
 .app-role-manager > aside,
 .app-role-official > aside,
+.app-role-admin > aside {
+ background: hsl(var(--sidebar-background)) !important;
+}
 
 
 .app-content-stack {
@@ -2631,8 +2634,7 @@ body,
 }
 
 .mms-sidebar-nav {
- scrollbar-width: thin;
- scrollbar-color: hsl(215 16% 72%) transparent;
+ overflow: hidden;
 }
 
 .mms-sidebar-group {
@@ -2695,4 +2697,14 @@ body,
 .mms-sidebar [data-radix-avatar-image],
 .mms-sidebar .rounded-full {
  box-shadow: none !important;
+}
+
+.mms-main-scroll {
+ scrollbar-gutter: stable;
+}
+
+@media (max-height: 720px) {
+ .mms-sidebar-footer {
+  display: none;
+ }
 }

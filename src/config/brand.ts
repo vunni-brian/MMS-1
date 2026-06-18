@@ -14,12 +14,12 @@ export interface BrandConfig {
 export const brand: BrandConfig = {
   appName: "MMS",
   tagline: "Market Management",
-  logoPath: "/images/mms-logo.svg",
+  logoPath: "/favicon.png",
   faviconPath: "/favicon.png",
   copyright: "Kampala Capital City Authority",
   copyrightYear: "2026",
   ogTitle: "MMS — Market Management System",
   ogDescription: "Premium market operations console for vendors, managers, officials, and administrators.",
-  ogImage: "/images/mms-logo.svg",
+  ogImage: "/favicon.png",
   twitterSite: "@KCCA",
 };

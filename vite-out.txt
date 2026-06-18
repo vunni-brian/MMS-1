@@ -322,3 +322,27 @@
   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.5.1:[1m8080[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.137.1:[1m8080[22m/[39m
   [32m➜[39m  [1mNetwork[22m: [36mhttp://172.25.32.1:[1m8080[22m/[39m
+[2m17:42:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m17:48:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:02:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:03:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:04:02[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:04:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:04:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:05:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:06:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:06:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m18:06:41[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:06:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:06:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:06:48[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:07:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:07:46[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m18:10:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
