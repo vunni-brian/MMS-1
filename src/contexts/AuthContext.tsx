@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(response.user);
     setAuthError(null);
   } catch (error) {
+    // Fail-safe: if session restore hangs or errors, unblock the UI.
     clearSessionToken();
     setUser(null);
 
