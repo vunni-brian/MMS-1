@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
@@ -296,7 +297,7 @@ const PaymentsPage = () => {
   <PageHeader
   eyebrow={t("payments:managerEyebrow")}
   title={t("payments:managerTitle")}
-  subtitle={t("payments:managerSubtitle")}
+  description={t("payments:managerSubtitle")}
   actions={<Badge variant={pendingReceiptPayments.length ? "warning" : "success"}>{t("payments:pendingBadge", { n: pendingReceiptPayments.length })}</Badge>}
   />
 
@@ -365,7 +366,7 @@ const PaymentsPage = () => {
  <PageHeader
  eyebrow={t("payments:vendorEyebrow")}
  title={t("payments:vendorTitle")}
- subtitle={t("payments:vendorSubtitle")}
+  description={t("payments:vendorSubtitle")}
  />
 
  {onlinePaymentsPaused ? (

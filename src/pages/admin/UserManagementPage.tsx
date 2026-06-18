@@ -39,13 +39,13 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   DataTableFrame,
   DetailSheet,
-  LoadingState,
-  PageHeader,
-  Panel,
-  EmptyState,
   SegmentedControl,
 } from "@/components/console/ConsolePage";
 import type { Permission, Role, StaffAccount, StaffStatus } from "@/types";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Send, Shield, UserCog } from "lucide-react";
+import { CheckCircle2, MessageSquare, Send, Shield, Store, UserCog, Users, WalletCards } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -22,9 +22,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { PageHeader } from "@/components/console/ConsolePage";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/DataTable";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatCard } from "@/components/ui/StatCard";
 import type { ResourceRequest, ResourceRequestCategory } from "@/types";
 
 const resourceCategoryLabels: Record<ResourceRequestCategory, string> = {
@@ -102,7 +105,7 @@ const CoordinationPage = () => {
       <PageHeader
         eyebrow={t("coordination:eyebrow")}
         title={t("coordination:title")}
-        subtitle={t("coordination:subtitle")}
+        description={t("coordination:subtitle")}
         actions={
           canScopeMarkets ? (
             <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
@@ -116,17 +119,24 @@ const CoordinationPage = () => {
       {/* Summary strip */}
       {showResourceRequests && (
         <div className="grid gap-4 sm:grid-cols-3">
-          {[
-            { label: t("coordination:pendingRequests"), value: pendingRequests.length, sub: t("coordination:pendingAmount", { amount: formatCurrency(requestedTotal) }), tone: pendingRequests.length ? "amber" as const : "green" as const },
-            { label: t("coordination:approved"), value: approvedRequests.length, sub: t("coordination:readyForFollowUp"), tone: "green" as const },
-            { label: t("coordination:updatesPosted"), value: messages.length, sub: t("coordination:coordinationNotes"), tone: "slate" as const },
-          ].map((item) => (
-            <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-sm font-medium text-slate-600">{item.label}</p>
-              <p className="mt-2 text-2xl font-bold text-slate-950 font-heading">{item.value}</p>
-              <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
-            </div>
-          ))}
+          <StatCard
+            label={t("coordination:pendingRequests")}
+            value={pendingRequests.length}
+            sublabel={t("coordination:pendingAmount", { amount: formatCurrency(requestedTotal) })}
+            icon={<WalletCards className="h-4 w-4" />}
+          />
+          <StatCard
+            label={t("coordination:approved")}
+            value={approvedRequests.length}
+            sublabel={t("coordination:readyForFollowUp")}
+            icon={<Store className="h-4 w-4" />}
+          />
+          <StatCard
+            label={t("coordination:updatesPosted")}
+            value={messages.length}
+            sublabel={t("coordination:coordinationNotes")}
+            icon={<MessageSquare className="h-4 w-4" />}
+          />
         </div>
       )}
 
@@ -178,9 +188,9 @@ const CoordinationPage = () => {
                 {/* Request list */}
                 <div className={`space-y-3 ${!canCreateResourceRequest ? "lg:col-span-2" : ""}`}>
                   {resourceRequests.slice(0, 6).length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
-                      {t("coordination:noRequests")}
-                    </div>
+                    <EmptyState
+                      title={t("coordination:noRequests")}
+                    />
                   ) : (
                     resourceRequests.slice(0, 6).map((request) => (
                       <div key={request.id} className="rounded-lg border border-slate-200 bg-white p-4">
@@ -231,7 +241,9 @@ const CoordinationPage = () => {
             </CardHeader>
             <CardContent className="p-4">
             {messages.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">{t("coordination:noUpdates")}</div>
+              <EmptyState
+                title={t("coordination:noUpdates")}
+              />
             ) : (
               <div className="space-y-3">
                 {messages.map((message) => {

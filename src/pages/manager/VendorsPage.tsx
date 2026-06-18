@@ -24,7 +24,8 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -421,7 +422,7 @@ const VendorsPage = () => {
       <PageHeader
         eyebrow={t("vendor:operations")}
         title={t("vendor:title")}
-        subtitle={`Vendor status, applications, documents, and payment follow-up for ${user?.marketName || t("common:yourMarket")}.`}
+        description={`Vendor status, applications, documents, and payment follow-up for ${user?.marketName || t("common:yourMarket")}.`}
       />
 
       {/* Summary strip */}

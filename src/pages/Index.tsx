@@ -307,12 +307,10 @@ const Index = () => {
                 </div>
                 <p className="mt-4 text-sm text-slate-600">{t("landing:freePlanDesc")}</p>
                 <ul className="mt-6 space-y-3 text-sm">
-                  {(t("landing:freePlanFeatures", { returnObjects: true }) as string[]).map((item: string) => (
-                    <li key={item} className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      {item}
-                    </li>
-                  ))}
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Up to 50 vendors</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Basic stall management</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Email support</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Mobile app access</li>
                 </ul>
                 <Button className="mt-8 w-full border-slate-300" variant="outline">
                   {t("landing:getStarted")}
@@ -331,12 +329,12 @@ const Index = () => {
                 </div>
                 <p className="mt-4 text-sm text-slate-600">{t("landing:proPlanDesc")}</p>
                 <ul className="mt-6 space-y-3 text-sm">
-                  {(t("landing:proPlanFeatures", { returnObjects: true }) as string[]).map((item: string) => (
-                    <li key={item} className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      {item}
-                    </li>
-                  ))}
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Unlimited vendors</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />AI stall allocation</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Priority support 24/7</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Advanced analytics</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />API access</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Custom reports</li>
                 </ul>
                 <Button className="mt-8 w-full bg-slate-900 text-white hover:bg-slate-800">
                   {t("landing:startFreeTrial")}

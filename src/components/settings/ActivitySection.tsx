@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Activity } from "lucide-react";
-import { EmptyState, LoadingState, Panel } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Panel } from "@/components/ui/Panel";
 
 interface ActivityRow {
   id: string;
@@ -27,7 +29,7 @@ const ActivitySection = ({ auditPending, canReadAudit, activityRows }: ActivityS
         {auditPending && canReadAudit ? (
           <LoadingState rows={5} itemClassName="h-14 rounded-lg" />
         ) : activityRows.length === 0 ? (
-          <EmptyState title={t("settings:activity.emptyTitle")} description={t("settings:activity.emptyDescription")} icon={Activity} />
+          <EmptyState title={t("settings:activity.emptyTitle")} description={t("settings:activity.emptyDescription")} icon={<Activity className="h-6 w-6" />} />
         ) : (
           <div className="settings-activity-list">
             {activityRows.map((row) => (

@@ -9,11 +9,13 @@ import { formatCurrency } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/PageLayout";
-import { StatCard } from "@/components/StatCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/DataTable";
+import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface RevenueMarketRow {
   market: string;
@@ -110,7 +112,7 @@ const ReportsPage = () => {
       <PageHeader
         eyebrow={t("reports:eyebrow")}
         title={t("reports:title")}
-        subtitle={t("reports:subtitle")}
+        description={t("reports:subtitle")}
         actions={
           <Button onClick={exportCSV} className="h-9 gap-2 rounded-lg shadow-none font-bold">
             <Download className="h-4 w-4" />
@@ -146,57 +148,39 @@ const ReportsPage = () => {
 
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title={t("reports:totalRevenue")} value={formatCurrency(totals.totalRevenue)} subtitle="" icon={Activity} tone="success" />
-        <StatCard title={t("reports:totalCollections")} value={formatCurrency(totals.collections)} subtitle="" icon={Activity} tone="success" />
-        <StatCard title={t("reports:outstanding")} value={formatCurrency(totals.outstanding)} subtitle="" icon={Activity} tone={totals.outstanding > 0 ? "warning" : "success"} />
-        <StatCard title={t("reports:collectionRate")} value={`${collectionRate.toFixed(2)}%`} subtitle="" icon={Activity} tone={collectionRate >= 90 ? "success" : "warning"} />
+        <StatCard label={t("reports:totalRevenue")} value={formatCurrency(totals.totalRevenue)} sublabel="" icon={<Activity className="h-4 w-4" />} />
+        <StatCard label={t("reports:totalCollections")} value={formatCurrency(totals.collections)} sublabel="" icon={<Activity className="h-4 w-4" />} />
+        <StatCard label={t("reports:outstanding")} value={formatCurrency(totals.outstanding)} sublabel="" icon={<Activity className="h-4 w-4" />} />
+        <StatCard label={t("reports:collectionRate")} value={`${collectionRate.toFixed(2)}%`} sublabel="" icon={<Activity className="h-4 w-4" />} />
       </div>
 
       {/* Table */}
-      <Card>
-        <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-          <CardTitle className="text-base font-medium">{t("reports:revenueByMarket")}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-        {rows.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-            {t("reports:noData")}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider bg-slate-50">
-                  <th className="py-3 pr-4">{t("reports:market")}</th>
-                  <th className="py-3 pr-4 text-right">{t("reports:totalRevenueUgx")}</th>
-                  <th className="py-3 pr-4 text-right">{t("reports:collectionsUgx")}</th>
-                  <th className="py-3 pr-4 text-right">{t("reports:outstandingUgx")}</th>
-                  <th className="py-3 text-right">{t("reports:rate")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {rows.map((row) => (
-                  <tr key={row.market} className="hover:bg-slate-50">
-                    <td className="py-3 pr-4 font-semibold text-slate-900">{row.market}</td>
-                    <td className="py-3 pr-4 text-right text-slate-600 tabular-nums">{row.totalRevenue.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right text-slate-600 tabular-nums">{row.collections.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right text-slate-600 tabular-nums">{row.outstanding.toLocaleString()}</td>
-                    <td className="py-3 text-right"><Badge variant={row.rate >= 95 ? "success" : "warning"}>{row.rate.toFixed(2)}%</Badge></td>
-                  </tr>
-                ))}
-                <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold text-slate-900">
-                  <td className="py-3 pr-4">{t("reports:total")}</td>
-                  <td className="py-3 pr-4 text-right tabular-nums">{totals.totalRevenue.toLocaleString()}</td>
-                  <td className="py-3 pr-4 text-right tabular-nums">{totals.collections.toLocaleString()}</td>
-                  <td className="py-3 pr-4 text-right tabular-nums">{totals.outstanding.toLocaleString()}</td>
-                  <td className="py-3 text-right">{collectionRate.toFixed(2)}%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={[
+          { key: "market", header: t("reports:market"), cell: (row: RevenueMarketRow) => <span className="font-semibold text-slate-900">{row.market}</span> },
+          { key: "totalRevenue", header: t("reports:totalRevenueUgx"), cell: (row: RevenueMarketRow) => <span className="tabular-nums">{row.totalRevenue.toLocaleString()}</span>, className: "text-right" },
+          { key: "collections", header: t("reports:collectionsUgx"), cell: (row: RevenueMarketRow) => <span className="tabular-nums">{row.collections.toLocaleString()}</span>, className: "text-right" },
+          { key: "outstanding", header: t("reports:outstandingUgx"), cell: (row: RevenueMarketRow) => <span className="tabular-nums">{row.outstanding.toLocaleString()}</span>, className: "text-right" },
+          { key: "rate", header: t("reports:rate"), cell: (row: RevenueMarketRow) => <Badge variant={row.rate >= 95 ? "success" : "warning"}>{row.rate.toFixed(2)}%</Badge>, className: "text-right" },
+        ]}
+        data={rows}
+        keyExtractor={(row: RevenueMarketRow) => row.market}
+        emptyState={
+          <EmptyState
+            title={t("reports:noData")}
+          />
+        }
+      />
+      {/* Totals */}
+      <div className="-mt-px rounded-b-xl border border-t-0 border-[#F1F3F5] bg-[#F8F9FA]">
+        <div className="grid grid-cols-5 px-4 py-3 text-sm font-bold text-slate-900">
+          <span>{t("reports:total")}</span>
+          <span className="text-right tabular-nums">{totals.totalRevenue.toLocaleString()}</span>
+          <span className="text-right tabular-nums">{totals.collections.toLocaleString()}</span>
+          <span className="text-right tabular-nums">{totals.outstanding.toLocaleString()}</span>
+          <span className="text-right">{collectionRate.toFixed(2)}%</span>
+        </div>
+      </div>
     </PageLayout>
   );
 };

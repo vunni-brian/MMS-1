@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, Store } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -12,10 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTable } from "@/components/ui/DataTable";
 import { toast } from "@/components/ui/sonner";
 import type { Stall, StallStatus } from "@/types";
 
@@ -173,7 +177,7 @@ const StallsPage = () => {
 
     return (
       <PageLayout>
-        <PageHeader eyebrow={t("stalls:vendorEyebrow")} title={t("stalls:vendorTitle")} subtitle={t("stalls:vendorSubtitle")} />
+        <PageHeader eyebrow={t("stalls:vendorEyebrow")} title={t("stalls:vendorTitle")} description={t("stalls:vendorSubtitle")} />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <Card>
@@ -198,13 +202,11 @@ const StallsPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="font-bold text-slate-900">{t("stalls:noActiveStall")}</p>
-                <p className="mt-2 text-sm text-slate-500">{t("stalls:noActiveStallDesc")}</p>
-                <Button className="mt-4 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" asChild>
-                  <Link to="/vendor/stalls">{t("stalls:browseStalls")}</Link>
-                </Button>
-              </div>
+              <EmptyState
+                title={t("stalls:noActiveStall")}
+                description={t("stalls:noActiveStallDesc")}
+                action={<Button className="rounded-lg bg-primary hover:bg-primary/90 font-bold" asChild><Link to="/vendor/stalls">{t("stalls:browseStalls")}</Link></Button>}
+              />
             )}
           </CardContent>
           </Card>
@@ -255,31 +257,26 @@ const StallsPage = () => {
             }
 
             if (historyRows.length === 0) {
-              return (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                  {t("stalls:noHistory")}
-                </div>
-              );
+              return <EmptyState title={t("stalls:noHistory")} />;
             }
 
             return (
-              <div className="space-y-2">
-                {historyRows.map((booking) => {
-                  const isCurrent = booking.status === "approved" && myStall?.name === booking.stallName;
-                  const label = booking.status === "rejected" ? t("common:rejected") : isCurrent ? t("common:active") : t("stalls:ended");
-                  return (
-                    <div key={booking.id} className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900">{t("stalls:stallName", { name: booking.stallName })}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {formatHumanDate(booking.startDate)} — {isCurrent ? t("stalls:present") : formatHumanDate(booking.endDate)}
-                        </p>
-                      </div>
-                      <StatusBadge status={booking.status} label={label} context="booking" />
-                    </div>
-                  );
-                })}
-              </div>
+              <DataTable
+                columns={[
+                  { key: "stall", header: t("stalls:stall"), cell: (row) => <span className="font-semibold">{t("stalls:stallName", { name: row.stallName })}</span> },
+                  { key: "period", header: t("stalls:period"), cell: (row) => {
+                    const isCurrent = row.status === "approved" && myStall?.name === row.stallName;
+                    return <span className="text-xs">{formatHumanDate(row.startDate)} — {isCurrent ? t("stalls:present") : formatHumanDate(row.endDate)}</span>;
+                  }},
+                  { key: "status", header: t("common:status"), cell: (row) => {
+                    const isCurrent = row.status === "approved" && myStall?.name === row.stallName;
+                    const label = row.status === "rejected" ? t("common:rejected") : isCurrent ? t("common:active") : t("stalls:ended");
+                    return <StatusBadge status={row.status} label={label} context="booking" />;
+                  }},
+                ]}
+                data={historyRows}
+                keyExtractor={(row) => row.id}
+              />
             );
           })()}
         </CardContent>
@@ -294,7 +291,7 @@ const StallsPage = () => {
       <PageHeader
         eyebrow={t("stalls:managerEyebrow")}
         title={t("stalls:managerTitle")}
-        subtitle={user?.marketName || t("stalls:managerSubtitle")}
+        description={user?.marketName || t("stalls:managerSubtitle")}
         actions={
           role === "manager" ? (
             <Button onClick={() => setShowCreate(true)} className="h-9 gap-2 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold">
@@ -305,19 +302,11 @@ const StallsPage = () => {
         }
       />
 
-      {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: t("stalls:totalStalls"), value: stallCounts.all, tone: "slate" as const },
-          { label: t("stalls:filterAvailable"), value: stallCounts.available, tone: "green" as const },
-          { label: t("stalls:filterAllocated"), value: stallCounts.allocated, tone: "red" as const },
-          { label: t("stalls:reservedMaintenance"), value: stallCounts.reserved, tone: "amber" as const },
-        ].map((item) => (
-          <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-600">{item.label}</p>
-            <p className="mt-2 text-2xl font-bold text-slate-950 font-heading">{item.value}</p>
-          </div>
-        ))}
+        <StatCard label={t("stalls:totalStalls")} value={stallCounts.all} icon={<Store className="h-4 w-4" />} />
+        <StatCard label={t("stalls:filterAvailable")} value={stallCounts.available} icon={<Store className="h-4 w-4" />} tone="green" />
+        <StatCard label={t("stalls:filterAllocated")} value={stallCounts.allocated} icon={<Store className="h-4 w-4" />} tone="blue" />
+        <StatCard label={t("stalls:reservedMaintenance")} value={stallCounts.reserved} icon={<Store className="h-4 w-4" />} tone="amber" />
       </div>
 
       {/* Filter + grid */}
@@ -350,9 +339,7 @@ const StallsPage = () => {
 
         {/* Grid */}
         {filteredStalls.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            {t("stalls:noStallsMatch")}
-          </div>
+          <EmptyState title={t("stalls:noStallsMatch")} />
         ) : (
           <div className="space-y-5">
             {rows.map((row) => {

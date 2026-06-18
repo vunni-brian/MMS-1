@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Bell, Clock, MessageSquare } from "lucide-react";
-import { EmptyState, LoadingState, Panel } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Panel } from "@/components/ui/Panel";
 import { SettingToggle } from "@/components/settings";
 import { cn, formatHumanDateTime } from "@/lib/utils";
 import type { SettingsContext } from "@/components/settings/settingsProps";
@@ -97,7 +99,7 @@ const NotificationsSection = ({
         {notificationsQuery.isPending && canReadNotifications ? (
           <LoadingState rows={3} itemClassName="h-14 rounded-lg" />
         ) : notifications.length === 0 ? (
-          <EmptyState title={t("settings:notifications.emptyTitle")} description={t("settings:notifications.emptyDescription")} icon={Bell} />
+          <EmptyState title={t("settings:notifications.emptyTitle")} description={t("settings:notifications.emptyDescription")} icon={<Bell className="h-6 w-6" />} />
         ) : (
           <div className="settings-activity-list">
             {notifications.slice(0, 5).map((notification) => (

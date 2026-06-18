@@ -10,12 +10,11 @@ import { cn, formatHumanDate } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/LoadingState";
 import {
-  ConsolePage,
   EvidenceField,
   FileUploadCard,
   FormSection,
-  LoadingState,
   PageHeader,
 } from "@/components/console/ConsolePage";
 import { Input } from "@/components/ui/input";
@@ -233,7 +232,7 @@ const ProfileSettingsPage = () => {
   };
 
   return (
-    <ConsolePage>
+    <div>
       <PageHeader
         eyebrow={t("settings:profile.eyebrow")}
         title={t("settings:profile.title")}
@@ -492,7 +491,7 @@ const ProfileSettingsPage = () => {
           </main>
         </div>
       )}
-    </ConsolePage>
+    </div>
   );
 };
 

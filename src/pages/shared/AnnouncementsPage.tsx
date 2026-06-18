@@ -14,8 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/console/ConsolePage";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PageLayout } from "@/components/PageLayout";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DataTable } from "@/components/ui/DataTable";
 import type { Announcement, AnnouncementAudience, AnnouncementPriority } from "@/types";
 
 // ─── Constants ───────────────────────────────────────────
@@ -174,7 +176,7 @@ const AnnouncementsPage = () => {
       <PageHeader
         eyebrow={isVendor ? t("announcements:vendorEyebrow") : t("announcements:otherEyebrow")}
         title={t("announcements:title")}
-        subtitle={isVendor ? t("announcements:vendorSubtitle") : t("announcements:otherSubtitle")}
+        description={isVendor ? t("announcements:vendorSubtitle") : t("announcements:otherSubtitle")}
         actions={
           !isVendor && !isManager ? (
             <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
@@ -209,9 +211,7 @@ const AnnouncementsPage = () => {
                 {[1, 2].map((i) => <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />)}
               </div>
             ) : activeAnnouncements.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-                {t("announcements:noActiveNotices")}
-              </div>
+              <EmptyState title={t("announcements:noActiveNotices")} />
             ) : (() => {
               const urgent = activeAnnouncements.filter((a) => a.priority === "high");
               const other = activeAnnouncements.filter((a) => a.priority !== "high");
@@ -247,15 +247,18 @@ const AnnouncementsPage = () => {
                 <CardTitle className="text-base font-medium">{t("announcements:archivedNotices")}</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-              {historicalAnnouncements.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">{t("announcements:noArchivedNotices")}</div>
-              ) : (
-                <div className="space-y-3">
-                  {historicalAnnouncements.map((announcement) => (
-                    <AnnouncementCard key={announcement.id} announcement={announcement} canManage={false} onArchive={() => undefined} archiving={false} />
-                  ))}
-                </div>
-              )}
+              <DataTable
+                columns={[
+                  { key: "subject", header: t("announcements:title"), cell: (a) => <span className="font-medium text-[#111827]">{a.title}</span> },
+                  { key: "priority", header: t("announcements:priority"), cell: (a) => <span className={cn("rounded-lg border px-2 py-0.5 text-[11px] font-bold", priorityClasses[a.priority])}>{t(priorityLabelKeys[a.priority])}</span> },
+                  { key: "audience", header: t("announcements:audience"), cell: (a) => <span className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{t(audienceLabelKeys[a.audience])}</span> },
+                  { key: "date", header: t("announcements:published"), cell: (a) => <span className="text-[#6B7280]">{formatHumanDateTime(a.createdAt)}</span> },
+                  { key: "lifecycle", header: t("announcements:lifecycle"), cell: (a) => <span className="text-[#6B7280]">{formatExpiry(a, t)}</span> },
+                ]}
+                data={historicalAnnouncements}
+                keyExtractor={(a) => a.id}
+                emptyState={<EmptyState title={t("announcements:noArchivedNotices")} />}
+              />
               </CardContent>
             </Card>
           )}

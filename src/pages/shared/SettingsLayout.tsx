@@ -21,7 +21,8 @@ import {
   UserCircle,
 } from "lucide-react";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
-import { ConsolePage, EmptyState, PageHeader } from "@/components/console/ConsolePage";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
@@ -278,7 +279,7 @@ const SettingsLayout = () => {
 
   return (
     <SettingsDataContext.Provider value={hook}>
-      <ConsolePage>
+      <div>
         <PageHeader
           eyebrow={t("settings:layout.workspace", { role: roleLabel(user.role) })}
           title={user.role === "admin" ? t("settings:layout.platformSettings") : t("settings:layout.title")}
@@ -307,7 +308,7 @@ const SettingsLayout = () => {
         <section className="settings-section-grid" aria-label={settingsSearch ? t("settings:layout.searchResultsLabel") : t("settings:layout.sectionsLabel")}>
           {matchingSections.length === 0 ? (
             <div className="col-span-full">
-              <EmptyState title={t("settings:layout.noResults")} description={t("settings:layout.searchHint")} icon={Search} />
+              <EmptyState title={t("settings:layout.noResults")} description={t("settings:layout.searchHint")} icon={<Search className="h-6 w-6" />} />
             </div>
           ) : (
             matchingSections.map((section) => (
@@ -393,7 +394,7 @@ const SettingsLayout = () => {
             </div>
           </div>
         </section>
-      </ConsolePage>
+      </div>
     </SettingsDataContext.Provider>
   );
 };

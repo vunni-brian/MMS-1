@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Activity, Building2, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Panel } from "@/components/console/ConsolePage";
+import { Panel } from "@/components/ui/Panel";
 import { ReadOnlyRows } from "@/components/settings";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatHumanDate } from "@/lib/utils";

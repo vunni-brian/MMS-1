@@ -3,23 +3,27 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   Activity,
-  AlertCircle,
   Landmark,
   ShieldAlert,
   ShieldCheck,
   Terminal,
   Users,
+  AlertTriangle,
+  KeyRound,
 } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { formatHumanDateTime } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MiniAreaChart } from "@/components/charts/MiniCharts";
-import { KpiStrip } from "@/components/console/ConsolePage";
+import { WorkspaceLayout } from "@/components/WorkspaceLayout";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { InsightCard } from "@/components/ui/InsightCard";
+import { ActionCenter } from "@/components/ui/ActionCenter";
+import { ActivityTimeline } from "@/components/ui/ActivityTimeline";
 
 const getAuditSeverity = (action: string) =>
   /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";
@@ -27,12 +31,13 @@ const getAuditSeverity = (action: string) =>
 const DashboardSkeleton = () => (
   <div className="space-y-6">
     <Skeleton className="h-8 w-[250px]" />
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-      {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[120px]" />)}
+    <div className="grid gap-4 md:grid-cols-4">
+      {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-[100px]" />)}
     </div>
-    <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
-      <Skeleton className="h-[350px]" />
-      <Skeleton className="h-[350px]" />
+    <Skeleton className="h-[200px]" />
+    <div className="grid gap-6 xl:grid-cols-[75fr_25fr]">
+      <Skeleton className="h-[300px]" />
+      <Skeleton className="h-[300px]" />
     </div>
   </div>
 );
@@ -48,34 +53,23 @@ const AdminDashboard = () => {
   const isError = usersQuery.isError || marketsQuery.isError || auditQuery.isError || systemHealthQuery.isError;
 
   const getAuditDetailLabel = (details: Record<string, unknown> | null) => {
-    if (!details) return t("admin:dashboard.noDetailsRecorded");
-
+    if (!details) return "No details";
     const ipAddress = details.ipAddress ?? details.ip ?? details.clientIp;
-    if (typeof ipAddress === "string" && ipAddress.trim()) {
-      return ipAddress;
-    }
-
+    if (typeof ipAddress === "string" && ipAddress.trim()) return ipAddress;
     const status = details.status ?? details.reason ?? details.message;
-    if (typeof status === "string" && status.trim()) {
-      return status;
-    }
-
-    return t("admin:dashboard.detailsAttached");
+    if (typeof status === "string" && status.trim()) return status;
+    return "Details attached";
   };
 
   if (isError) {
     return (
-      <Alert variant="destructive" className="max-w-xl mx-auto">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>{t("admin:dashboard.errorTitle")}</AlertTitle>
-        <AlertDescription>{t("admin:dashboard.errorDescription")}</AlertDescription>
-      </Alert>
+      <div className="rounded-xl border border-[#FCA5A5] bg-[#FEE2E2] p-5 text-sm text-[#991B1B]">
+        {t("admin:dashboard.errorTitle")}: {t("admin:dashboard.errorDescription")}
+      </div>
     );
   }
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  if (isLoading) return <DashboardSkeleton />;
 
   const users = usersQuery.data?.users || [];
   const markets = marketsQuery.data?.markets || [];
@@ -83,170 +77,208 @@ const AdminDashboard = () => {
   const systemOk = systemHealthQuery.data?.ok ?? false;
 
   const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
-  const activeMarkets = markets.filter((market) => market.stallCount > 0 || market.activeStallCount > 0);
-  const failedEvents = auditEvents.filter((event) => getAuditSeverity(event.action) === "failure");
-  const systemStatus = systemOk ? "healthy" : "degraded";
+  const activeMarkets = markets.filter((m) => m.stallCount > 0 || m.activeStallCount > 0);
+  const failedEvents = auditEvents.filter((e) => getAuditSeverity(e.action) === "failure");
+  const computedOccupancy = markets.reduce((sum, m) => sum + (m.activeStallCount || 0), 0);
+  const totalStalls = markets.reduce((sum, m) => sum + (m.stallCount || 0), 0);
+  const occupancyRate = totalStalls > 0 ? Math.round((computedOccupancy / totalStalls) * 100) : 0;
 
-  return (<>
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">{t("admin:dashboard.title")}</h1>
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-            {t("admin:badge")}
-          </Badge>
-        </div>
-        <p className="mt-1 text-sm text-slate-500">
-          {t("admin:dashboard.subtitle")}
-        </p>
-      </div>
+  const actionItems = [
+    ...(!systemOk ? [{
+      id: "system-degraded",
+      icon: ShieldAlert,
+      title: "System health check failed",
+      detail: "API services may be experiencing degraded performance",
+      tone: "urgent" as const,
+    }] : []),
+    ...failedEvents.slice(0, 3).map((event) => ({
+      id: `audit-${event.id}`,
+      icon: Terminal,
+      title: event.action.replace(/_/g, " ").toLowerCase(),
+      detail: `${event.actorName} — ${getAuditDetailLabel(event.details)}`,
+      tone: "warning" as const,
+    })),
+    ...(users.filter((u) => u.vendorStatus === "pending").length > 0 ? [{
+      id: "pending-vendors",
+      icon: Users,
+      title: `${users.filter((u) => u.vendorStatus === "pending").length} vendor applications pending`,
+      detail: "New vendor registrations awaiting approval",
+      tone: "info" as const,
+    }] : []),
+  ];
 
-       {/* Stats Grid */}
-       <KpiStrip columns="grid-cols-2 xl:grid-cols-4" items={[
-         { label: t("admin:dashboard.totalUsers"), value: users.length.toLocaleString(), detail: t("admin:dashboard.staffVendors", { staff: internalUsers.length, vendors: users.length - internalUsers.length }), tone: "info", icon: Users },
-         { label: t("admin:dashboard.activeMarkets"), value: activeMarkets.length, detail: t("admin:dashboard.registeredTotal", { count: markets.length }), tone: "success", icon: Landmark },
-         { label: t("admin:dashboard.securityEvents"), value: failedEvents.length, detail: t("admin:dashboard.failedLoginsDeniedAccess"), tone: failedEvents.length > 0 ? "warning" : "success", icon: failedEvents.length > 0 ? ShieldAlert : ShieldCheck },
-         { label: t("admin:dashboard.systemHealth"), value: systemStatus === "healthy" ? "100%" : t("admin:dashboard.degraded"), detail: systemStatus === "healthy" ? t("admin:dashboard.allSystemsOperational") : t("admin:dashboard.degradedPerformance"), tone: systemStatus === "healthy" ? "success" : "destructive", icon: Activity },
-       ]} />
+  const activityItems = auditEvents.slice(0, 5).map((event) => ({
+    id: event.id,
+    icon: Terminal,
+    title: event.action.replace(/_/g, " "),
+    detail: event.actorName,
+    time: formatHumanDateTime(event.createdAt),
+    tone: getAuditSeverity(event.action) === "failure" ? "warning" as const : "success" as const,
+  }));
 
-      {/* Charts and Activity */}
-      <div className="grid gap-6 xl:grid-cols-[1fr_400px]">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Chart Card */}
-          <Card className="border-slate-200 bg-white">
+  return (
+    <WorkspaceLayout
+      ratio="75-25"
+      left={
+        <>
+          <PageHeader
+            title={t("admin:dashboard.title")}
+            description={t("admin:dashboard.subtitle")}
+          />
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <InsightCard
+              label={t("admin:dashboard.totalUsers")}
+              value={users.length.toLocaleString()}
+              detail={`${internalUsers.length} staff, ${users.length - internalUsers.length} vendors`}
+              icon={<Users className="h-5 w-5" />}
+            />
+            <InsightCard
+              label={t("admin:dashboard.activeMarkets")}
+              value={activeMarkets.length}
+              detail={`${markets.length} registered`}
+              icon={<Landmark className="h-5 w-5" />}
+            />
+            <InsightCard
+              label={t("admin:dashboard.securityEvents")}
+              value={failedEvents.length}
+              detail="Failed logins and denied access"
+              icon={failedEvents.length > 0 ? <ShieldAlert className="h-5 w-5" /> : <ShieldCheck className="h-5 w-5" />}
+            />
+            <InsightCard
+              label={t("admin:dashboard.systemHealth")}
+              value={systemOk ? "100%" : "Degraded"}
+              detail={systemOk ? "All systems operational" : "Performance degraded"}
+              icon={<Activity className="h-5 w-5" />}
+            />
+          </div>
+
+          <ActionCenter
+            title="System Attention"
+            items={actionItems}
+            emptyMessage="All systems healthy — no alerts"
+          />
+
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-slate-900">{t("admin:dashboard.platformActivity")}</CardTitle>
+              <CardTitle className="text-sm font-bold">Platform Activity</CardTitle>
               <div className="flex gap-2">
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">{t("admin:dashboard.logins")}</Badge>
-                <Badge variant="outline" className="border-slate-200">{t("admin:dashboard.apiCalls")}</Badge>
+                <Badge variant="secondary" className="bg-[#D1FAE5] text-[#065F46] text-[10px]">Logins</Badge>
+                <Badge variant="outline" className="text-[10px]">API Calls</Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
-              <MiniAreaChart className="text-emerald-600" />
+              <MiniAreaChart className="text-[#0F5E3F]" />
             </CardContent>
           </Card>
 
-          {/* Security & Audit Log */}
-          <Card className="border-slate-200 bg-white">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-slate-900">{t("admin:dashboard.securityAuditLog")}</CardTitle>
+              <CardTitle className="text-sm font-bold">{t("admin:dashboard.securityAuditLog")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {auditEvents.slice(0, 8).map((event) => {
+              <div className="space-y-2">
+                {auditEvents.slice(0, 6).map((event) => {
                   const severity = getAuditSeverity(event.action);
                   const detailLabel = getAuditDetailLabel(event.details);
-
                   return (
-                    <div key={event.id} className="group flex items-center justify-between rounded-lg border border-transparent p-3 transition-all hover:bg-slate-50 hover:border-slate-200">
-                      <div className="flex items-center gap-4">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          severity === "failure" 
-                            ? "bg-red-100 text-red-600" 
-                            : "bg-emerald-100 text-emerald-600"
+                    <div key={event.id} className="flex items-center justify-between rounded-lg border border-transparent p-3 transition-all hover:bg-[#F8F9FA] hover:border-[#F1F3F5]">
+                      <div className="flex items-center gap-3">
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          severity === "failure" ? "bg-[#FEE2E2] text-[#EF476F]" : "bg-[#D1FAE5] text-[#10B981]"
                         }`}>
-                          <Terminal className="h-4 w-4" />
+                          <Terminal className="h-3.5 w-3.5" />
                         </span>
-                        <div>
-                          <p className="text-sm font-semibold capitalize text-slate-900">{event.action.replace(/_/g, " ")}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs font-medium text-slate-500">{event.actorName}</span>
-                            <span className="text-[10px] text-slate-400">•</span>
-                            <span className="text-xs text-slate-500">{detailLabel}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#111827] capitalize">{event.action.replace(/_/g, " ")}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[11px] font-medium text-[#6B7280]">{event.actorName}</span>
+                            <span className="text-[10px] text-[#71717A]">•</span>
+                            <span className="text-[11px] text-[#71717A]">{detailLabel}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <Badge variant={severity === "failure" ? "destructive" : "secondary"} className="text-[10px] uppercase">
-                          {severity === "failure" ? t("admin:dashboard.review") : t("admin:dashboard.recorded")}
+                      <div className="text-right shrink-0">
+                        <Badge variant={severity === "failure" ? "destructive" : "secondary"} className="text-[9px] uppercase">
+                          {severity === "failure" ? "Review" : "Recorded"}
                         </Badge>
-                        <p className="mt-1 text-xs text-slate-500">{formatHumanDateTime(event.createdAt)}</p>
+                        <p className="mt-0.5 text-[10px] text-[#71717A]">{formatHumanDateTime(event.createdAt)}</p>
                       </div>
                     </div>
                   );
                 })}
                 {!auditEvents.length && (
-                  <div className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-500">
-                    {t("admin:dashboard.noRecentAuditEvents")}
+                  <div className="rounded-lg bg-[#F8F9FA] p-4 text-center text-sm text-[#6B7280]">
+                    No recent audit events
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Right Column - Infrastructure Health */}
-        <div className="space-y-6">
-          <Card className="border-slate-200 bg-white">
+        </>
+      }
+      right={
+        <>
+          <Card>
             <CardHeader>
-              <CardTitle className="text-slate-900">{t("admin:dashboard.infrastructureHealth")}</CardTitle>
+              <CardTitle className="text-sm font-bold">Platform Health</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`flex items-center gap-4 rounded-xl border p-4 ${
-                systemOk 
-                  ? "border-emerald-200 bg-emerald-50/50" 
-                  : "border-red-200 bg-red-50/50"
+              <div className={`flex items-center gap-3 rounded-xl border p-4 ${
+                systemOk ? "border-[#6EE7B7] bg-[#D1FAE5]/50" : "border-[#FCA5A5] bg-[#FEE2E2]/50"
               }`}>
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                  systemOk 
-                    ? "bg-emerald-100 text-emerald-700" 
-                    : "bg-red-100 text-red-700"
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                  systemOk ? "bg-[#D1FAE5] text-[#10B981]" : "bg-[#FEE2E2] text-[#EF476F]"
                 }`}>
-                  {systemOk ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+                  {systemOk ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
                 </span>
                 <div>
-                  <p className={`text-sm font-semibold ${
-                    systemOk ? "text-emerald-900" : "text-red-900"
-                  }`}>
-                    {systemOk ? t("admin:dashboard.allSystemsOperational") : t("admin:dashboard.healthCheckFailed")}
+                  <p className={`text-sm font-semibold ${systemOk ? "text-[#065F46]" : "text-[#991B1B]"}`}>
+                    {systemOk ? "All Systems Operational" : "Health Check Failed"}
                   </p>
-                  <p className={`mt-0.5 text-xs ${
-                    systemOk ? "text-emerald-700" : "text-red-700"
-                  }`}>
-                    {systemOk 
-                      ? t("admin:dashboard.apiServicesNormal") 
-                      : t("admin:dashboard.healthEndpointFailure")}
+                  <p className={`mt-0.5 text-[11px] ${systemOk ? "text-[#065F46]/70" : "text-[#991B1B]/70"}`}>
+                    {systemOk ? "API services running normally" : "Degraded performance detected"}
                   </p>
                 </div>
               </div>
               {!systemOk && (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  {t("admin:dashboard.serviceDegradation")}
+                <div className="mt-3 rounded-lg border border-[#FCA5A5] bg-[#FEE2E2] p-3 text-[11px] text-[#991B1B]">
+                  Service degradation detected. Check API health endpoint.
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Quick Stats Card */}
-          <Card className="border-slate-200 bg-white">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-slate-900">{t("admin:dashboard.quickStats")}</CardTitle>
+              <CardTitle className="text-sm font-bold">Quick Stats</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">{t("admin:dashboard.totalVendors")}</span>
-                <span className="text-lg font-semibold text-slate-900">{users.filter(u => u.role === "vendor").length}</span>
+                <span className="text-xs text-[#6B7280]">Total vendors</span>
+                <span className="text-sm font-bold text-[#111827]">{users.filter(u => u.role === "vendor").length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">{t("admin:dashboard.totalMarkets")}</span>
-                <span className="text-lg font-semibold text-slate-900">{markets.length}</span>
+                <span className="text-xs text-[#6B7280]">Active stalls</span>
+                <span className="text-sm font-bold text-[#111827]">{computedOccupancy}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">{t("admin:dashboard.activeStalls")}</span>
-                <span className="text-lg font-semibold text-slate-900">
-                  {markets.reduce((sum, m) => sum + (m.activeStallCount || 0), 0)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">{t("admin:dashboard.occupancyRate")}</span>
-                <span className="text-lg font-semibold text-emerald-600">78%</span>
+                <span className="text-xs text-[#6B7280]">Occupancy rate</span>
+                <span className="text-sm font-bold text-[#10B981]">{occupancyRate}%</span>
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-  </>);
+
+          <ActivityTimeline
+            title="Security Log"
+            items={activityItems}
+            viewAllLink="/admin/audit"
+            viewAllLabel="View all"
+          />
+        </>
+      }
+    />
+  );
 };
 
 export default AdminDashboard;

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Panel } from "@/components/console/ConsolePage";
+import { Panel } from "@/components/ui/Panel";
 import { EvidenceField } from "@/components/console/ConsolePage";
 import type { ChargeType } from "@/types";
 

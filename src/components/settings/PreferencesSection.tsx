@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Globe2, SlidersHorizontal } from "lucide-react";
-import { Panel } from "@/components/console/ConsolePage";
+import { Panel } from "@/components/ui/Panel";
 import { SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 

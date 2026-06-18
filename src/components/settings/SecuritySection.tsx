@@ -4,7 +4,7 @@ import { Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Panel } from "@/components/console/ConsolePage";
+import { Panel } from "@/components/ui/Panel";
 import { SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 

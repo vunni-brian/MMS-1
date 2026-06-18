@@ -37,8 +37,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { StatCard } from "@/components/StatCard";
-import { EmptyState, DataTableFrame } from "@/components/console/ConsolePage";
+import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 
 type AlertSeverity = "critical" | "warning" | "info";
 type AlertStatus = "open" | "watching" | "resolved";
@@ -321,203 +322,203 @@ const AdminAlertsPage = () => {
     );
   }
 
-  return (<>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{t("admin:alerts.title")}</h1>
-            <Badge className="bg-emerald-100 text-emerald-700">
-              {t("admin:badge")}
-            </Badge>
+  return (
+    <WorkspaceLayout
+      left={
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-slate-900">{t("admin:alerts.title")}</h1>
+                <Badge className="bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+                  {t("admin:badge")}
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm text-slate-500">
+                {t("admin:alerts.subtitle")}
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              className="gap-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 shrink-0 transition-all duration-200"
+              onClick={() => navigate("/admin/coordination")}
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">{t("admin:alerts.notifyTeam")}</span>
+            </Button>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
-            {t("admin:alerts.subtitle")}
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          className="gap-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 shrink-0"
-          onClick={() => navigate("/admin/coordination")}
-        >
-          <Bell className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("admin:alerts.notifyTeam")}</span>
-        </Button>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <StatCard
-          title={t("admin:alerts.totalAlerts")}
-          value={alerts.length}
-          icon={Bell}
-          tone="default"
-        />
-        <StatCard
-          title={t("admin:alerts.critical")}
-          value={criticalCount}
-          icon={AlertTriangle}
-          tone="red"
-        />
-        <StatCard
-          title={t("admin:alerts.openIssues")}
-          value={openCount}
-          icon={Activity}
-          tone="amber"
-        />
-        <StatCard
-          title={t("admin:alerts.resolutionRate")}
-          value={alerts.length ? `${Math.round(((alerts.length - openCount) / alerts.length) * 100)}%` : "100%"}
-          icon={CheckCircle}
-          tone="green"
-        />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[200px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              className="pl-9 border-slate-200 focus-visible:border-emerald-500"
-              placeholder={t("admin:alerts.searchPlaceholder")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            <StatCard
+              label={t("admin:alerts.totalAlerts")}
+              value={alerts.length}
+              icon={<Bell className="h-4 w-4" />}
+            />
+            <StatCard
+              label={t("admin:alerts.critical")}
+              value={criticalCount}
+              icon={<AlertTriangle className="h-4 w-4" />}
+              tone="red"
+            />
+            <StatCard
+              label={t("admin:alerts.openIssues")}
+              value={openCount}
+              icon={<Activity className="h-4 w-4" />}
+              tone="amber"
+            />
+            <StatCard
+              label={t("admin:alerts.resolutionRate")}
+              value={alerts.length ? `${Math.round(((alerts.length - openCount) / alerts.length) * 100)}%` : "100%"}
+              icon={<CheckCircle className="h-4 w-4" />}
+              tone="green"
             />
           </div>
-        </div>
-        
-        <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as AlertType)}>
-          <SelectTrigger className="w-[180px] border-slate-200">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder={t("admin:alerts.filterByType")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("admin:alerts.allTypes")}</SelectItem>
-            <SelectItem value="payments">{t("admin:alerts.payments")}</SelectItem>
-            <SelectItem value="complaints">{t("admin:alerts.complaints")}</SelectItem>
-            <SelectItem value="billing">{t("admin:alerts.billing")}</SelectItem>
-            <SelectItem value="system">{t("admin:alerts.system")}</SelectItem>
-          </SelectContent>
-        </Select>
 
-        <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as "all" | AlertSeverity)}>
-          <SelectTrigger className="w-[180px] border-slate-200">
-            <SelectValue placeholder={t("admin:alerts.filterBySeverity")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("admin:alerts.allSeverity")}</SelectItem>
-            <SelectItem value="critical">{t("admin:alerts.severity.critical")}</SelectItem>
-            <SelectItem value="warning">{t("admin:alerts.severity.warning")}</SelectItem>
-            <SelectItem value="info">{t("admin:alerts.severity.info")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Alerts Table */}
-      <DataTableFrame>
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
-            <p className="mt-2 text-sm text-slate-500">{t("admin:alerts.loading")}</p>
-          </div>
-        ) : filteredAlerts.length === 0 ? (
-          <EmptyState title={t("admin:alerts.noAlertsFound")} description={t("admin:alerts.noAlertsMatchingFilters")} icon={ShieldAlert} />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200 bg-slate-50">
-                  <TableHead className="font-semibold">{t("admin:alerts.alert")}</TableHead>
-                  <TableHead className="font-semibold">{t("admin:alerts.type")}</TableHead>
-                  <TableHead className="font-semibold">{t("admin:alerts.severity")}</TableHead>
-                  <TableHead className="font-semibold">{t("common:status")}</TableHead>
-                  <TableHead className="font-semibold">{t("admin:alerts.source")}</TableHead>
-                  <TableHead className="font-semibold">{t("admin:alerts.time")}</TableHead>
-                  <TableHead className="text-right font-semibold">{t("common:actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAlerts.map((alert) => {
-                  const SeverityIcon = severityConfig[alert.severity].icon;
-                  return (
-                    <TableRow key={alert.id} className="border-slate-100 hover:bg-slate-50">
-                      <TableCell className="min-w-[280px]">
-                        <div className="flex items-start gap-3">
-                          <SeverityIcon className={`h-4 w-4 mt-0.5 ${
-                            alert.severity === "critical" ? "text-red-500" :
-                            alert.severity === "warning" ? "text-yellow-500" : "text-blue-500"
-                          }`} />
-                          <div>
-                            <span className="block font-medium text-slate-900">{alert.title}</span>
-                            <span className="mt-0.5 block text-xs text-slate-500">{alert.detail}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize border-slate-200">
-                          {alert.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={severityConfig[alert.severity].className}>
-                          {t(severityConfig[alert.severity].label)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusConfig[alert.status].className}>
-                          {t(statusConfig[alert.status].label)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-600">{alert.source}</TableCell>
-                      <TableCell className="text-slate-500 text-sm">{formatHumanDateTime(alert.createdAt)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm" className="hover:bg-emerald-50 hover:text-emerald-700">
-                          <Link to={alert.path}>{t("admin:alerts.review")}</Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </DataTableFrame>
-
-      {/* Notification Rules */}
-      <Card className="border-slate-200 bg-white">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-slate-900">{t("admin:alerts.notificationRules")}</CardTitle>
-          <CardDescription className="text-xs text-slate-500">
-            {t("admin:alerts.notificationRulesDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              [t("admin:alerts.criticalAlerts"), true, "bg-red-50 border-red-200"],
-              [t("admin:alerts.paymentFailures"), true, "bg-yellow-50 border-yellow-200"],
-              [t("admin:alerts.dailySummary"), true, "bg-blue-50 border-blue-200"],
-              [t("admin:alerts.lowPriorityUpdates"), false, "bg-slate-50 border-slate-200"],
-            ].map(([label, checked, bgColor]) => (
-              <div 
-                key={String(label)} 
-                className={`flex items-center justify-between rounded-lg border p-3 ${bgColor}`}
-              >
-                <span className="text-sm font-medium text-slate-700">{label}</span>
-                <Switch 
-                  checked={Boolean(checked)} 
-                  disabled 
-                  aria-label={`${String(label)} — ${t("admin:alerts.readOnly")}`}
-                  className="data-[state=checked]:bg-emerald-600"
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                  className="pl-9 border-slate-200 focus-visible:border-emerald-500"
+                  placeholder={t("admin:alerts.searchPlaceholder")}
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
                 />
               </div>
-            ))}
+            </div>
+            
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as AlertType)}>
+              <SelectTrigger className="w-[180px] border-slate-200">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder={t("admin:alerts.filterByType")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin:alerts.allTypes")}</SelectItem>
+                <SelectItem value="payments">{t("admin:alerts.payments")}</SelectItem>
+                <SelectItem value="complaints">{t("admin:alerts.complaints")}</SelectItem>
+                <SelectItem value="billing">{t("admin:alerts.billing")}</SelectItem>
+                <SelectItem value="system">{t("admin:alerts.system")}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as "all" | AlertSeverity)}>
+              <SelectTrigger className="w-[180px] border-slate-200">
+                <SelectValue placeholder={t("admin:alerts.filterBySeverity")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin:alerts.allSeverity")}</SelectItem>
+                <SelectItem value="critical">{t("admin:alerts.severity.critical")}</SelectItem>
+                <SelectItem value="warning">{t("admin:alerts.severity.warning")}</SelectItem>
+                <SelectItem value="info">{t("admin:alerts.severity.info")}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
-  </>);
+
+          <div className="overflow-x-auto rounded-xl border border-[#F1F3F5] bg-white shadow-sm transition-shadow hover:shadow-md">
+            {isLoading ? (
+              <div className="p-12 text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
+                <p className="mt-3 text-sm text-slate-500">{t("admin:alerts.loading")}</p>
+              </div>
+            ) : filteredAlerts.length === 0 ? (
+              <EmptyState title={t("admin:alerts.noAlertsFound")} description={t("admin:alerts.noAlertsMatchingFilters")} icon={<ShieldAlert className="h-6 w-6" />} />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-200 bg-slate-50">
+                      <TableHead className="font-semibold">{t("admin:alerts.alert")}</TableHead>
+                      <TableHead className="font-semibold">{t("admin:alerts.type")}</TableHead>
+                      <TableHead className="font-semibold">{t("admin:alerts.severity")}</TableHead>
+                      <TableHead className="font-semibold">{t("common:status")}</TableHead>
+                      <TableHead className="font-semibold">{t("admin:alerts.source")}</TableHead>
+                      <TableHead className="font-semibold">{t("admin:alerts.time")}</TableHead>
+                      <TableHead className="text-right font-semibold">{t("common:actions")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAlerts.map((alert) => {
+                      const SeverityIcon = severityConfig[alert.severity].icon;
+                      return (
+                        <TableRow key={alert.id} className="border-slate-100 transition-colors hover:bg-slate-50">
+                          <TableCell className="min-w-[280px]">
+                            <div className="flex items-start gap-3">
+                              <SeverityIcon className={`h-4 w-4 mt-0.5 ${
+                                alert.severity === "critical" ? "text-red-500" :
+                                alert.severity === "warning" ? "text-yellow-500" : "text-blue-500"
+                              }`} />
+                              <div>
+                                <span className="block font-medium text-slate-900">{alert.title}</span>
+                                <span className="mt-0.5 block text-xs text-slate-500">{alert.detail}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize border-slate-200">
+                              {alert.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={severityConfig[alert.severity].className}>
+                              {t(severityConfig[alert.severity].label)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={statusConfig[alert.status].className}>
+                              {t(statusConfig[alert.status].label)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-600">{alert.source}</TableCell>
+                          <TableCell className="text-slate-500 text-sm">{formatHumanDateTime(alert.createdAt)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button asChild variant="ghost" size="sm" className="hover:bg-emerald-50 hover:text-emerald-700">
+                              <Link to={alert.path}>{t("admin:alerts.review")}</Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </>
+      }
+      right={
+        <Card className="border-[#F1F3F5] bg-white shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-slate-900">{t("admin:alerts.notificationRules")}</CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              {t("admin:alerts.notificationRulesDescription")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[
+                [t("admin:alerts.criticalAlerts"), true, "bg-red-50 border-red-200"],
+                [t("admin:alerts.paymentFailures"), true, "bg-yellow-50 border-yellow-200"],
+                [t("admin:alerts.dailySummary"), true, "bg-blue-50 border-blue-200"],
+                [t("admin:alerts.lowPriorityUpdates"), false, "bg-slate-50 border-slate-200"],
+              ].map(([label, checked, bgColor]) => (
+                <div 
+                  key={String(label)} 
+                  className={`flex items-center justify-between rounded-lg border p-3 transition-colors hover:brightness-95 ${bgColor}`}
+                >
+                  <span className="text-sm font-medium text-slate-700">{label}</span>
+                  <Switch 
+                    checked={Boolean(checked)} 
+                    disabled 
+                    aria-label={`${String(label)} — ${t("admin:alerts.readOnly")}`}
+                    className="data-[state=checked]:bg-emerald-600"
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      }
+    />);
 };
 
 export default AdminAlertsPage;

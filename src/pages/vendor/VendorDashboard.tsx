@@ -1,73 +1,66 @@
 import type { ElementType } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 import {
- AlertTriangle,
- CalendarClock,
- CheckCircle2,
- CreditCard,
- FileText,
- MessageSquare,
- Store,
- UserRound,
- WalletCards,
- ChevronRight,
- AlertCircle
+  AlertTriangle,
+  CalendarClock,
+  ChevronRight,
+  CreditCard,
+  FileText,
+  MessageSquare,
+  Receipt,
+  Store,
+  UserRound,
+  WalletCards,
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { formatCurrency, formatHumanDate, getTimeAwareGreeting } from "@/lib/utils";
+import { formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkspaceLayout } from "@/components/WorkspaceLayout";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ActionCenter } from "@/components/ui/ActionCenter";
+import { ActivityTimeline } from "@/components/ui/ActivityTimeline";
+import { InsightCard } from "@/components/ui/InsightCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const fallbackNotices = [
- { id: "cleaning", title: "Market cleaning schedule", body: "Cleaning starts at 7:00 AM on Saturday.", createdAt: "2026-05-20T09:00:00Z" },
- { id: "deadline", title: "Payment reminder", body: "Monthly dues should be cleared before month end.", createdAt: "2026-05-18T09:00:00Z" },
- { id: "safety", title: "Fire safety briefing", body: "A short safety briefing is scheduled for all food vendors.", createdAt: "2026-05-15T09:00:00Z" },
+  { id: "cleaning", title: "Market cleaning schedule", body: "Cleaning starts at 7:00 AM on Saturday.", createdAt: "2026-05-20T09:00:00Z" },
+  { id: "deadline", title: "Payment reminder", body: "Monthly dues should be cleared before month end.", createdAt: "2026-05-18T09:00:00Z" },
+  { id: "safety", title: "Fire safety briefing", body: "A short safety briefing is scheduled for all food vendors.", createdAt: "2026-05-15T09:00:00Z" },
 ];
 
-
-
 const QuickAction = ({ icon: Icon, label, to }: { icon: ElementType; label: string; to: string }) => (
- <Link
- to={to}
- className="group flex min-h-14 items-center gap-3 rounded-xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
- >
- <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-all group-hover:from-primary group-hover:to-primary/90 group-hover:text-primary-foreground shadow-sm">
- <Icon className="h-5 w-5" />
- </span>
- <span className="min-w-0 flex-1 text-sm font-semibold text-card-foreground">{label}</span>
- <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
- </Link>
+  <Link to={to}
+    className="group flex min-h-[52px] items-center gap-3 rounded-xl border border-[#F1F3F5] bg-white px-4 py-3 text-left transition-all hover:border-[#0F5E3F]/40 hover:bg-[#E8F5EE]/30 hover:shadow-sm"
+  >
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E8F5EE] text-[#0F5E3F]">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1 text-sm font-semibold text-[#111827]">{label}</span>
+    <ChevronRight className="h-4 w-4 text-[#71717A] transition-transform group-hover:translate-x-1" />
+  </Link>
 );
 
 const DashboardSkeleton = () => (
- <div className="space-y-6">
- <div className="space-y-2">
- <Skeleton className="h-8 w-[250px]" />
- <Skeleton className="h-4 w-[400px]" />
- </div>
- <div className="grid gap-6 md:grid-cols-3">
- {[1, 2, 3].map(i => <Skeleton key={i} className="h-[120px] rounded-xl" />)}
- </div>
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="grid gap-6">
- <Skeleton className="h-[180px] rounded-xl" />
- <Skeleton className="h-[300px] rounded-xl" />
- </div>
- <div className="grid content-start gap-6">
- <Skeleton className="h-[250px] rounded-xl" />
- <Skeleton className="h-[200px] rounded-xl" />
- </div>
- </div>
- </div>
+  <div className="space-y-6">
+    <Skeleton className="h-6 w-[250px]" />
+    <div className="grid gap-4 md:grid-cols-3">
+      {[1, 2, 3].map(i => <Skeleton key={i} className="h-[100px] rounded-xl" />)}
+    </div>
+    <Skeleton className="h-[200px] rounded-xl" />
+    <div className="grid gap-6 xl:grid-cols-[7fr_3fr]">
+      <Skeleton className="h-[300px] rounded-xl" />
+      <Skeleton className="h-[300px] rounded-xl" />
+    </div>
+  </div>
 );
 
 const VendorDashboard = () => {
@@ -75,318 +68,253 @@ const VendorDashboard = () => {
   const { t } = useTranslation();
   const isPendingVendor = user?.vendorStatus !== "approved";
 
- const stallsQuery = useQuery({
- queryKey: ["stalls", "mine"],
- queryFn: () => api.getStalls({ scope: "mine" }),
- enabled: !isPendingVendor,
- gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
- });
- const bookingsQuery = useQuery({
- queryKey: ["bookings"],
- queryFn: () => api.getBookings(),
- enabled: !isPendingVendor,
- gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
- });
- const paymentsQuery = useQuery({
- queryKey: ["payments"],
- queryFn: () => api.getPayments(),
- enabled: !isPendingVendor,
- refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL,
- gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
- });
- const ticketsQuery = useQuery({
- queryKey: ["tickets", "vendor-dashboard"],
- queryFn: () => api.getTickets(),
- enabled: !isPendingVendor,
- gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
- });
- const announcementsQuery = useQuery({
- queryKey: ["announcements", "vendor-dashboard"],
- queryFn: () => api.getAnnouncements({ active: true }),
- gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
- });
+  const stallsQuery = useQuery({
+    queryKey: ["stalls", "mine"],
+    queryFn: () => api.getStalls({ scope: "mine" }),
+    enabled: !isPendingVendor,
+    gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME,
+  });
+  const bookingsQuery = useQuery({
+    queryKey: ["bookings"],
+    queryFn: () => api.getBookings(),
+    enabled: !isPendingVendor,
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
+  });
+  const paymentsQuery = useQuery({
+    queryKey: ["payments"],
+    queryFn: () => api.getPayments(),
+    enabled: !isPendingVendor,
+    refetchInterval: DASHBOARD_CONFIG.PAYMENTS_REFRESH_INTERVAL,
+    gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME,
+  });
+  const ticketsQuery = useQuery({
+    queryKey: ["tickets", "vendor-dashboard"],
+    queryFn: () => api.getTickets(),
+    enabled: !isPendingVendor,
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
+  });
+  const announcementsQuery = useQuery({
+    queryKey: ["announcements", "vendor-dashboard"],
+    queryFn: () => api.getAnnouncements({ active: true }),
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
+  });
+  const penaltiesQuery = useQuery({
+    queryKey: ["penalties", "vendor-dashboard"],
+    queryFn: () => api.getPenalties({ status: "unpaid" }),
+    enabled: !isPendingVendor,
+    gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME,
+  });
 
- const isLoading =
- (!isPendingVendor && (stallsQuery.isPending || bookingsQuery.isPending || paymentsQuery.isPending || ticketsQuery.isPending)) ||
- announcementsQuery.isPending;
+  const isLoading =
+    (!isPendingVendor && (stallsQuery.isPending || bookingsQuery.isPending || paymentsQuery.isPending || ticketsQuery.isPending || penaltiesQuery.isPending)) ||
+    announcementsQuery.isPending;
 
- const isError =
- stallsQuery.isError ||
- bookingsQuery.isError ||
- paymentsQuery.isError ||
- ticketsQuery.isError ||
- announcementsQuery.isError;
+  const isError =
+    stallsQuery.isError || bookingsQuery.isError || paymentsQuery.isError ||
+    ticketsQuery.isError || announcementsQuery.isError || penaltiesQuery.isError;
 
- if (isError) {
- return (
- <div className="p-4 sm:p-6">
- <Alert variant="destructive" className="max-w-xl">
- <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t("vendor:dashboard.errorTitle")}</AlertTitle>
-          <AlertDescription>{t("vendor:dashboard.errorDesc")}</AlertDescription>
- </Alert>
- </div>
- );
- }
+  if (isError) {
+    return (
+      <div className="rounded-xl border border-[#FCA5A5] bg-[#FEE2E2] p-5 text-sm text-[#991B1B]">
+        {t("vendor:dashboard.errorTitle")}: {t("vendor:dashboard.errorDesc")}
+      </div>
+    );
+  }
 
- if (isLoading) {
- return <DashboardSkeleton />;
- }
+  if (isLoading) return <DashboardSkeleton />;
 
- const stalls = stallsQuery.data?.stalls || [];
- const bookings = bookingsQuery.data?.bookings || [];
- const payments = paymentsQuery.data?.payments || [];
- const tickets = ticketsQuery.data?.tickets || [];
- const notices = announcementsQuery.data?.announcements || [];
- const activeStall = stalls.find((stall) => stall.vendorId === user?.id && stall.status === "active") || stalls[0];
- const approvedBookings = bookings.filter((booking) => booking.status === "approved");
- const outstandingBalance = approvedBookings.reduce((sum, booking) => sum + booking.amount, 0);
- const openComplaints = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
- const noticeRows = notices.length ? notices.slice(0, 3) : fallbackNotices;
- const paymentRows = [...payments]
- .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
- .slice(0, 4)
- .map((payment) => ({
- id: payment.id,
- title: payment.description || payment.chargeType.replace(/_/g, " "),
- amount: payment.amount,
- createdAt: payment.createdAt,
- }));
- const activityRows = [
- ...paymentRows.slice(0, 2).map((payment) => ({
- id: `payment-${payment.id}`,
- title: payment.title,
- detail: t("vendor:dashboard.recorded", { amount: formatCurrency(payment.amount) }),
- icon: CreditCard,
- })),
- ...noticeRows.slice(0, 2).map((notice) => ({
- id: `notice-${notice.id}`,
- title: notice.title,
- detail: t("vendor:dashboard.noticePublished"),
- icon: FileText,
- })),
- ].slice(0, 4);
+  const stalls = stallsQuery.data?.stalls || [];
+  const bookings = bookingsQuery.data?.bookings || [];
+  const payments = paymentsQuery.data?.payments || [];
+  const tickets = ticketsQuery.data?.tickets || [];
+  const notices = announcementsQuery.data?.announcements || [];
+  const penalties = penaltiesQuery.data?.penalties || [];
+  const overduePenalties = penalties.filter((p) => p.status === "unpaid");
+  const activeStall = stalls.find((stall) => stall.vendorId === user?.id && stall.status === "active") || stalls[0];
+  const approvedBookings = bookings.filter((booking) => booking.status === "approved");
+  const outstandingBalance = approvedBookings.reduce((sum, booking) => sum + booking.amount, 0);
+  const openComplaints = tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
+  const noticeRows = notices.length ? notices.slice(0, 3) : fallbackNotices;
+  const paymentRows = [...payments]
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 5);
 
- const greeting = getTimeAwareGreeting(user?.name?.split(" ")[0] || "there");
+  const greeting = getTimeAwareGreeting(user?.name?.split(" ")[0] || "there");
 
- return (
- <div className="space-y-6">
- <div>
-  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">{t("vendor:dashboard.eyebrow")}</p>
- <h1 className="text-3xl font-bold font-heading text-foreground">{greeting}</h1>
- <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-  {t("vendor:dashboard.subtitle", { market: user?.marketName || t("vendor:dashboard.yourMarket") })}
- </p>
- </div>
+  const actionItems = [
+    ...(outstandingBalance > 0 ? [{
+      id: "pay-dues",
+      icon: CreditCard,
+      title: t("vendor:dashboard.payDues"),
+      detail: `${t("vendor:dashboard.totalDue", { amount: formatCurrency(outstandingBalance) })}`,
+      tone: "urgent" as const,
+      action: <Link to="/vendor/payments"><Button size="sm" className="bg-[#EF476F] hover:bg-[#DC2626] text-white text-xs">Pay now</Button></Link>,
+    }] : []),
+    ...overduePenalties.slice(0, 2).map((penalty) => ({
+      id: `penalty-${penalty.id}`,
+      icon: AlertTriangle,
+      title: `Penalty: ${formatCurrency(penalty.amount)}`,
+      detail: penalty.reason || "Unpaid penalty",
+      tone: "urgent" as const,
+    })),
+    ...openComplaints.slice(0, 2).map((ticket) => ({
+      id: `complaint-${ticket.id}`,
+      icon: MessageSquare,
+      title: ticket.subject,
+      detail: `${ticket.priority} priority — ${ticket.status.replace(/_/g, " ")}`,
+      tone: (ticket.priority === "urgent" || ticket.priority === "high" ? "warning" : "info") as const,
+    })),
+    ...(!activeStall ? [{
+      id: "no-stall",
+      icon: Store,
+      title: t("vendor:dashboard.reserveStall"),
+      detail: t("vendor:dashboard.stallAssignedInfo"),
+      tone: "info" as const,
+      action: <Link to="/vendor/stalls"><Button size="sm" variant="outline" className="text-xs">Browse stalls</Button></Link>,
+    }] : []),
+  ];
 
- {approvedBookings.length > 0 && outstandingBalance > 0 && (
- <div className="flex flex-col gap-3 rounded-xl border border-amber-200/70 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-900/10 p-4 sm:flex-row sm:items-center sm:justify-between">
- <div className="flex items-start gap-3">
- <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
- <AlertTriangle className="h-4 w-4" />
- </span>
- <div>
- <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
- {t("vendor:dashboard.pendingPayments", { count: approvedBookings.length })}{approvedBookings.length > 1 ? t("vendor:dashboard.plural") : ""}
- </p>
- <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">
- {t("vendor:dashboard.totalDue", { amount: formatCurrency(outstandingBalance) })}
- </p>
- </div>
- </div>
- <Link to="/vendor/payments" className="shrink-0">
- <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">{t("vendor:dashboard.payNow")}</Button>
- </Link>
- </div>
- )}
+  return (
+    <WorkspaceLayout
+      ratio="70-30"
+      left={
+        <>
+          <PageHeader
+            eyebrow={t("vendor:dashboard.eyebrow")}
+            title={greeting}
+            description={t("vendor:dashboard.subtitle", { market: user?.marketName || t("vendor:dashboard.yourMarket") })}
+          />
 
- <div className="grid gap-6 md:grid-cols-3">
- <div>
- <Card className="h-full stat-card">
- <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("vendor:dashboard.myStall")}</CardTitle>
- <Store className="h-4 w-4 text-muted-foreground" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-bold font-heading">{activeStall?.name || t("vendor:dashboard.notAssigned")}</div>
- <p className="text-xs text-muted-foreground mt-1">
- {activeStall ? `${activeStall.zone} - ${activeStall.size}` : t("vendor:dashboard.reserveStall")}
- </p>
- </CardContent>
- </Card>
- </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <InsightCard
+              label={t("vendor:dashboard.myStall")}
+              value={activeStall?.name || t("vendor:dashboard.notAssigned")}
+              detail={activeStall ? `${activeStall.zone} — ${activeStall.size}` : t("vendor:dashboard.reserveStall")}
+              icon={<Store className="h-5 w-5" />}
+            />
+            <InsightCard
+              label={t("vendor:dashboard.outstandingBalance")}
+              value={formatCurrency(outstandingBalance)}
+              detail={t("vendor:dashboard.currentApprovedDues")}
+              icon={<WalletCards className="h-5 w-5" />}
+            />
+            <InsightCard
+              label={t("vendor:dashboard.complaintStatus") || "Filed Complaints"}
+              value={openComplaints.length ? `${openComplaints.length} open` : "Clear"}
+              detail={openComplaints.length ? `${openComplaints.length} complaints filed by you under review` : "No complaints you filed are unresolved"}
+              icon={<MessageSquare className="h-5 w-5" />}
+            />
+          </div>
 
- <div>
- <Card className="h-full stat-card">
- <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("vendor:dashboard.outstandingBalance")}</CardTitle>
- <WalletCards className="h-4 w-4 text-muted-foreground" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-bold font-heading">{formatCurrency(outstandingBalance)}</div>
- <p className="text-xs text-muted-foreground mt-1">{t("vendor:dashboard.currentApprovedDues")}</p>
- </CardContent>
- </Card>
- </div>
+          <ActionCenter
+            title={t("vendor:dashboard.quickActions") || "Quick Actions"}
+            items={actionItems}
+            emptyMessage="All clear — nothing needs attention"
+          />
 
- <div>
- <Card className="h-full stat-card">
- <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("vendor:dashboard.complaintStatus")}</CardTitle>
- <MessageSquare className="h-4 w-4 text-muted-foreground" />
- </CardHeader>
- <CardContent>
- <div className="text-2xl font-bold font-heading">{openComplaints.length ? t("vendor:dashboard.open", { n: openComplaints.length }) : t("vendor:dashboard.clear")}</div>
- <p className="text-xs text-muted-foreground mt-1">
- {openComplaints.length ? t("vendor:dashboard.supportReviewing") : t("vendor:dashboard.noUnresolved")}
- </p>
- </CardContent>
- </Card>
- </div>
- </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-bold">{t("vendor:dashboard.paymentHistory")}</CardTitle>
+              <Link to="/vendor/payments" className="text-xs font-medium text-[#0F5E3F] hover:underline">
+                {t("common:viewAll")}
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {paymentRows.length === 0 ? (
+                <EmptyState variant="success" title="No payments yet" description="Payment records will appear here" />
+              ) : (
+                <div className="space-y-2">
+                  {paymentRows.map((payment) => (
+                    <div key={payment.id} className="flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-[#F8F9FA]">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E8F5EE] text-[#0F5E3F]">
+                          <Receipt className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#111827]">{payment.description || payment.chargeType.replace(/_/g, " ")}</p>
+                          <p className="truncate text-[11px] text-[#71717A]">{payment.createdAt}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-[#111827]">{formatCurrency(payment.amount)}</span>
+                        <StatusBadge status={payment.status} context="payment" className="text-[10px]" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      }
+      right={
+        <>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-bold">{t("vendor:dashboard.notifications")}</CardTitle>
+              <Link to="/vendor/announcements" className="text-xs font-medium text-[#0F5E3F] hover:underline">
+                {t("common:viewAll")}
+              </Link>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {noticeRows.map((notice) => (
+                  <div key={notice.id} className="border-b border-[#F1F3F5] pb-3 last:border-0 last:pb-0">
+                    <p className="text-sm font-semibold text-[#111827]">{notice.title}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#6B7280]">{notice.body}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
- <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
- <div className="grid content-start gap-6">
- <div>
- <Card className="card-warm">
- <CardHeader>
-            <CardTitle>{t("vendor:dashboard.currentStallDetails")}</CardTitle>
- </CardHeader>
- <CardContent>
- <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
- <div>
- <p className="text-3xl font-semibold tracking-tight font-heading">{activeStall?.name || t("vendor:dashboard.noActiveStall")}</p>
- <p className="mt-2 text-sm text-muted-foreground">
- {activeStall
- ? `${activeStall.zone} zone, ${activeStall.size}. Monthly dues are ${formatCurrency(activeStall.pricePerMonth)}.`
- : t("vendor:dashboard.stallAssignedInfo")}
- </p>
- </div>
-  <StatusBadge status={activeStall ? "active" : "pending"} label={activeStall ? t("vendor:dashboard.active") : "Pending"} className="text-xs" />
- </div>
- </CardContent>
- </Card>
- </div>
+          <div className="rounded-xl border border-[#F5A623]/20 bg-[#FEF3C7]/30 p-4">
+            <div className="flex gap-3">
+              <div className="mt-0.5 rounded-full bg-[#FEF3C7] p-2 text-[#F5A623]">
+                <CalendarClock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#92400E]">{t("vendor:dashboard.monthEndCollection")}</p>
+                <p className="mt-1 text-xs text-[#B45309]">{t("vendor:dashboard.monthEndDesc")}</p>
+              </div>
+            </div>
+          </div>
 
- <div>
- <Card className="card-warm">
- <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("vendor:dashboard.paymentHistory")}</CardTitle>
- <Link to="/vendor/payments" className="text-sm font-medium text-primary hover:underline">
-    {t("common:viewAll")}
-    </Link>
-  </CardHeader>
-  <CardContent>
-    {paymentRows.length === 0 ? (
-      <div className="rounded-xl bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-        {t("vendor:dashboard.noPayments")}
- </div>
- ) : (
- <div className="space-y-3">
- {paymentRows.map((payment, index) => (
- <div key={payment.id} className="group flex items-center justify-between rounded-xl border border-transparent p-3 transition-all hover:bg-muted/40 hover:shadow-sm">
- <div className="flex items-center gap-4">
- <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
- {index === 0 ? <CheckCircle2 className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
- </span>
- <div>
- <p className="text-sm font-semibold">{payment.title}</p>
- <p className="text-xs text-muted-foreground">{formatHumanDate(payment.createdAt)}</p>
- </div>
- </div>
- <p className="text-sm font-bold tabular-nums">{formatCurrency(payment.amount)}</p>
- </div>
- ))}
- </div>
- )}
- </CardContent>
- </Card>
- </div>
-
- <div>
- <Card className="card-warm">
- <CardHeader>
-                <CardTitle>{t("vendor:dashboard.recentActivity")}</CardTitle>
- </CardHeader>
- <CardContent>
- <div className="grid gap-3">
- {activityRows.map((item) => {
- const Icon = item.icon;
- return (
- <div key={item.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-muted/20 p-3 transition-all hover:bg-muted/40">
- <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-sm">
- <Icon className="h-5 w-5" />
- </span>
- <div>
- <p className="text-sm font-semibold">{item.title}</p>
- <p className="text-xs text-muted-foreground">{item.detail}</p>
- </div>
- </div>
- );
- })}
- </div>
- </CardContent>
- </Card>
- </div>
- </div>
-
- <div className="grid content-start gap-6">
- <div>
- <Card className="card-warm">
- <CardHeader className="flex flex-row items-center justify-between">
-  <CardTitle>{t("vendor:dashboard.notifications")}</CardTitle>
-  <Link to="/vendor/announcements" className="text-sm font-medium text-primary hover:underline">
-  {t("common:viewAll")}
- </Link>
- </CardHeader>
- <CardContent>
- <div className="space-y-4">
- {noticeRows.map((notice) => (
- <div key={notice.id} className="border-b border-border/50 pb-4 last:border-0 last:pb-0">
- <p className="text-sm font-semibold">{notice.title}</p>
- <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{notice.body}</p>
- </div>
- ))}
- </div>
- </CardContent>
- </Card>
- </div>
-
- <div>
- <Card className="card-warm">
- <CardHeader>
-  <CardTitle>{t("vendor:dashboard.quickActions")}</CardTitle>
- </CardHeader>
- <CardContent className="grid gap-3">
-  <QuickAction icon={CreditCard} label={t("vendor:dashboard.payDues")} to="/vendor/payments" />
-  <QuickAction icon={MessageSquare} label={t("vendor:dashboard.reportIssue")} to="/vendor/complaints" />
-  <QuickAction icon={Store} label={t("vendor:dashboard.reserveStall")} to="/vendor/stalls" />
-  <QuickAction icon={UserRound} label={t("vendor:dashboard.updateProfile")} to="/vendor/profile" />
- </CardContent>
- </Card>
- </div>
-
- <div>
- <Card className="border-amber-200/50 bg-gradient-to-br from-amber-50/50 to-amber-100/30 dark:border-amber-900/50 dark:bg-amber-900/10 rounded-xl">
- <CardContent className="pt-6">
- <div className="flex gap-4">
- <div className="mt-0.5 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 p-2.5 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 shadow-sm">
- <CalendarClock className="h-5 w-5" />
- </div>
- <div>
-<p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t("vendor:dashboard.monthEndCollection")}</p>
-<p className="mt-1 text-xs text-amber-700 dark:text-amber-400/80">
-{t("vendor:dashboard.monthEndDesc")}
-</p>
- </div>
- </div>
- </CardContent>
- </Card>
- </div>
- </div>
- </div>
- </div>
- );
+          {activeStall && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-bold">{t("vendor:dashboard.currentStallDetails")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#6B7280]">Stall</span>
+                    <span className="text-sm font-semibold text-[#111827]">{activeStall.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#6B7280]">Zone</span>
+                    <span className="text-sm font-semibold text-[#111827]">{activeStall.zone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#6B7280]">Size</span>
+                    <span className="text-sm font-semibold text-[#111827]">{activeStall.size}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#6B7280]">Monthly dues</span>
+                    <span className="text-sm font-bold text-[#0F5E3F]">{formatCurrency(activeStall.pricePerMonth)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-xs text-[#6B7280]">Status</span>
+                    <StatusBadge status={activeStall.status === "active" ? "active" : "pending"} label={activeStall.status === "active" ? "Active" : "Pending"} className="text-[10px]" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      }
+    />
+  );
 };
 
 export default VendorDashboard;

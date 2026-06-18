@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Lock, PlusCircle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Lock, PlusCircle, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -13,11 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
-import { LoadingState, PageHeader } from "@/components/console/ConsolePage";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { UtilityCalculationMethod, UtilityType } from "@/types";
 
 // ─── Constants ───────────────────────────────────────────
@@ -153,7 +156,7 @@ const BillingPage = () => {
       <PageHeader
         eyebrow={t("billing:eyebrow")}
         title={t("billing:title")}
-        subtitle={t("billing:subtitle")}
+        description={t("billing:subtitle")}
         actions={
           !isManager ? (
             <select value={selectedMarketId} onChange={(e) => setSelectedMarketId(e.target.value)} className="h-9 rounded-lg border-2 border-slate-300 bg-white px-3 text-sm focus:border-primary focus:outline-none">
@@ -183,18 +186,10 @@ const BillingPage = () => {
         <>
           {/* Summary strip */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              { label: t("billing:outstandingUtilities"), value: formatCurrency(outstandingTotal), sub: t("billing:openCharges", { count: unpaidCharges.length }), tone: outstandingTotal > 0 ? "amber" as const : "green" as const },
-              { label: t("billing:overdue"), value: overdueCharges.length, sub: overdueCharges.length ? t("billing:requiresFollowUp") : t("billing:noneOverdue"), tone: overdueCharges.length > 0 ? "red" as const : "green" as const },
-              { label: t("billing:paidCharges"), value: formatCurrency(paidTotal), sub: t("billing:paidInRegister", { count: paidCharges.length }), tone: "green" as const },
-              { label: t("billing:latestActivity"), value: latestCharge ? formatHumanDate(latestCharge.createdAt) : t("billing:none"), sub: latestCharge?.description || t("billing:noActivity"), tone: "slate" as const },
-            ].map((item) => (
-              <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-sm font-medium text-slate-600">{item.label}</p>
-                <p className="mt-2 text-xl font-bold text-slate-950 font-heading">{item.value}</p>
-                <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
-              </div>
-            ))}
+            <StatCard label={t("billing:outstandingUtilities")} value={formatCurrency(outstandingTotal)} sublabel={t("billing:openCharges", { count: unpaidCharges.length })} icon={<AlertTriangle className="h-4 w-4" />} tone="amber" />
+            <StatCard label={t("billing:overdue")} value={overdueCharges.length} sublabel={overdueCharges.length ? t("billing:requiresFollowUp") : t("billing:noneOverdue")} icon={<Clock className="h-4 w-4" />} tone="red" />
+            <StatCard label={t("billing:paidCharges")} value={formatCurrency(paidTotal)} sublabel={t("billing:paidInRegister", { count: paidCharges.length })} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
+            <StatCard label={t("billing:latestActivity")} value={latestCharge ? formatHumanDate(latestCharge.createdAt) : t("billing:none")} sublabel={latestCharge?.description || t("billing:noActivity")} icon={<ShieldCheck className="h-4 w-4" />} />
           </div>
 
           {/* Main layout */}
@@ -208,9 +203,7 @@ const BillingPage = () => {
               </CardHeader>
               <CardContent className="p-4">
               {utilityCharges.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-                  {t("billing:duesRegisterEmpty")}
-                </div>
+                <EmptyState title={t("billing:duesRegisterEmpty")} />
               ) : (
                 <div className="space-y-3">
                   {utilityCharges.map((charge) => (
@@ -261,9 +254,7 @@ const BillingPage = () => {
                 </CardHeader>
                 <CardContent className="p-4">
                 {chargeTypes.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
-                    {t("billing:noSwitches")}
-                  </div>
+                  <EmptyState title={t("billing:noSwitches")} />
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {chargeTypes.map((chargeType) => (

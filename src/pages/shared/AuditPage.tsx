@@ -11,7 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PageLayout } from "@/components/PageLayout";
-import { EmptyState, DataTableFrame, PageHeader } from "@/components/console/ConsolePage";
+import { DataTableFrame } from "@/components/console/ConsolePage";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const AuditPage = () => {
   const { t } = useTranslation();
@@ -74,7 +76,7 @@ const AuditPage = () => {
       <PageHeader
         eyebrow={t("audit:eyebrow")}
         title={t("audit:title")}
-        subtitle={t("audit:subtitle")}
+        description={t("audit:subtitle")}
         actions={
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">

@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { CreditCard, ReceiptText, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EvidenceField, Panel } from "@/components/console/ConsolePage";
+import { EvidenceField } from "@/components/console/ConsolePage";
+import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingSelect, SettingToggle } from "@/components/settings";
 import { formatCurrency } from "@/lib/utils";
 import type { SettingsContext } from "@/components/settings/settingsProps";

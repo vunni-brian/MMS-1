@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Settings } from "lucide-react";
-import { Panel } from "@/components/console/ConsolePage";
+import { Panel } from "@/components/ui/Panel";
 import { EvidenceField } from "@/components/console/ConsolePage";
 import { ReadOnlyRows } from "@/components/settings";
 import type { ChargeType } from "@/types";

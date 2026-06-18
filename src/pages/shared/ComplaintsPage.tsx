@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
   Filter,
@@ -23,10 +24,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileUploadCard, EmptyState, DataTableFrame, PageHeader } from "@/components/console/ConsolePage";
+import { FileUploadCard, EmptyState as ConsoleEmptyState, DataTableFrame } from "@/components/console/ConsolePage";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
+import { StatCard } from "@/components/ui/StatCard";
 import type { Ticket, TicketCategory, TicketPriority, TicketStatus } from "@/types";
 
 // ─── Types ───────────────────────────────────────────────
@@ -195,7 +198,7 @@ const ComplaintsPage = () => {
       <PageHeader
         eyebrow={t("complaints:eyebrow")}
         title={t("complaints:title")}
-        subtitle={role === "vendor" ? t("complaints:subtitleVendor") : t("complaints:subtitleManager")}
+        description={role === "vendor" ? t("complaints:subtitleVendor") : t("complaints:subtitleManager")}
         actions={
           role === "vendor" ? (
             <Button onClick={() => setShowNew(true)} className="rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold">
@@ -208,18 +211,10 @@ const ComplaintsPage = () => {
 
       {/* Summary strip */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: t("complaints:openComplaints"), value: openCount, sub: openCount ? t("complaints:waitingTriage") : t("complaints:queueClear"), tone: openCount ? "amber" as const : "green" as const },
-          { label: t("complaints:inProgress"), value: inProgressCount, sub: t("complaints:underReview"), tone: "blue" as const },
-          { label: t("complaints:slaRisk"), value: breachedCount, sub: t("complaints:overdueEscalated"), tone: breachedCount ? "red" as const : "green" as const },
-          { label: t("complaints:resolvedClosed"), value: resolvedCount, sub: t("complaints:completedLifecycle"), tone: "green" as const },
-        ].map((item) => (
-          <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-medium text-slate-600">{item.label}</p>
-            <p className="mt-2 text-2xl font-bold text-slate-950 font-heading">{item.value}</p>
-            <p className="mt-1 text-xs text-slate-500">{item.sub}</p>
-          </div>
-        ))}
+        <StatCard label={t("complaints:openComplaints")} value={openCount} sublabel={openCount ? t("complaints:waitingTriage") : t("complaints:queueClear")} icon={openCount ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />} />
+        <StatCard label={t("complaints:inProgress")} value={inProgressCount} sublabel={t("complaints:underReview")} icon={<MessageSquare className="h-4 w-4" />} tone="blue" />
+        <StatCard label={t("complaints:slaRisk")} value={breachedCount} sublabel={breachedCount ? t("complaints:overdueEscalated") : t("complaints:queueClear")} icon={<AlertTriangle className="h-4 w-4" />} tone="red" />
+        <StatCard label={t("complaints:resolvedClosed")} value={resolvedCount} sublabel={t("complaints:completedLifecycle")} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -270,7 +265,7 @@ const ComplaintsPage = () => {
         ) : isError ? (
           <div className="p-6 text-center text-sm text-red-600">{t("complaints:loadError")}</div>
         ) : filteredTickets.length === 0 ? (
-          <EmptyState title={t("complaints:noComplaintsMatch")} />
+          <ConsoleEmptyState title={t("complaints:noComplaintsMatch")} />
         ) : (
           <div className="overflow-x-auto">
             <Table>
