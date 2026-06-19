@@ -100,10 +100,10 @@ export function useSettings(user: AuthUser | null) {
   const [settings, setSettings] = useState<SettingsState>(loadStoredSettings);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
-  const canReadAudit = Boolean(user?.permissions.includes("audit:read"));
-  const canReadPayments = Boolean(user?.permissions.includes("payment:read"));
-  const canReadBilling = Boolean(user?.permissions.includes("billing:read") || user?.permissions.includes("billing:manage"));
-  const canReadNotifications = Boolean(user?.permissions.includes("notification:read"));
+  const canReadAudit = Boolean(user?.permissions?.includes("audit:read"));
+  const canReadPayments = Boolean(user?.permissions?.includes("payment:read"));
+  const canReadBilling = Boolean(user?.permissions?.includes("billing:read") || user?.permissions?.includes("billing:manage"));
+  const canReadNotifications = Boolean(user?.permissions?.includes("notification:read"));
 
   const notificationsQuery = useQuery({
     queryKey: ["notifications", "settings"],

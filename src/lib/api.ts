@@ -570,10 +570,13 @@ export const api = {
  approvedAmount?: number | null;
  },
  ) =>
- apiRequest<{ request: ResourceRequest }>(`/resource-requests/${requestId}`, {
- method: "PATCH",
- body: JSON.stringify(input),
- }),
+  apiRequest<{ request: ResourceRequest }>(`/resource-requests/${requestId}`, {
+  method: "PATCH",
+  body: JSON.stringify(input),
+  }),
+
+  wipeTestData: () =>
+    apiRequest<{ ok: boolean; message: string }>("/admin/wipe-test-data", { method: "POST" }),
 };
 
 export const formatAttachmentLabel = (attachment: Attachment | null) => {

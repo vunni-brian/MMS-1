@@ -47,16 +47,18 @@ const isLocalhostOrigin = (origin: string) => {
 
 export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config: AppConfig) => {
   const requestOrigin = req.headers.origin;
+  const fallbackOrigin = config.appUrl || "http://localhost:3001";
   const allowedOrigin =
     requestOrigin && (config.appUrls.includes(requestOrigin) || isLocalhostOrigin(requestOrigin))
       ? requestOrigin
-      : config.appUrl;
+      : fallbackOrigin;
 
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Max-Age", "86400");
 };
 
 export const sendJson = (res: ServerResponse, statusCode: number, payload: unknown) => {

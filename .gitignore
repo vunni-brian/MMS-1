@@ -17,6 +17,10 @@ dist-ssr
 .env.local
 .env.production
 .env.development
+.vercel
+.env*
+
+# But allow tracking the example env file
 !.env.example
 
 # Runtime data
@@ -34,5 +38,7 @@ runtime/console-dev/
 *.njsproj
 *.sln
 *.sw?
-.vercel
-.env*
+
+# Playwright output
+playwright-results/
+playwright-report/

@@ -316,25 +316,27 @@ const SettingsLayout = () => {
         </section>
 
 
-        <section className="settings-section-grid" aria-label={settingsSearch ? t("settings:layout.searchResultsLabel") : t("settings:layout.sectionsLabel")}>
-          {matchingSections.length === 0 ? (
-            <div className="col-span-full">
-              <EmptyState title={t("settings:layout.noResults")} description={t("settings:layout.searchHint")} icon={<Search className="h-6 w-6" />} />
-            </div>
-          ) : (
-            matchingSections.map((section) => (
-              <SectionCard
-                key={section.id}
-                section={section}
-                active={section.id === effectiveActiveSection}
-                onSelect={() => {
-                  setSettingsSearch("");
-                  navigate(section.id);
-                }}
-              />
-            ))
-          )}
-        </section>
+        {settingsSearch && (
+          <section className="settings-section-grid" aria-label={t("settings:layout.searchResultsLabel")}>
+            {matchingSections.length === 0 ? (
+              <div className="col-span-full">
+                <EmptyState title={t("settings:layout.noResults")} description={t("settings:layout.searchHint")} icon={<Search className="h-6 w-6" />} />
+              </div>
+            ) : (
+              matchingSections.map((section) => (
+                <SectionCard
+                  key={section.id}
+                  section={section}
+                  active={section.id === effectiveActiveSection}
+                  onSelect={() => {
+                    setSettingsSearch("");
+                    navigate(section.id);
+                  }}
+                />
+              ))
+            )}
+          </section>
+        )}
 
         <section className="settings-layout">
           <aside className="settings-nav-panel">

@@ -19,7 +19,7 @@ const DEFAULT_SECURITY_HEADERS: SecurityHeadersConfig = {
   enableXSSProtection: true,
   enableNoSniff: true,
   enableReferrerPolicy: true,
-  cspDirectives: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none';",
+  cspDirectives: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://*.pesapal.com https://*.pesapal.net https://o4502*.ingest.us.sentry.io; frame-ancestors 'none';",
   frameAncestors: "'none'",
 };
 

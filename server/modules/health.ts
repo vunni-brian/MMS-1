@@ -403,4 +403,32 @@ export const healthRoutes: RouteDefinition[] = [
       res.end(formatPrometheusMetrics());
     },
   },
+  {
+    method: "POST",
+    path: "/admin/wipe-test-data",
+    handler: async ({ res, auth, config }) => {
+      requireAuth(auth);
+      if (auth?.user.role !== "admin") {
+        throw new HttpError(403, "Only admins can wipe test data.");
+      }
+      if (config.appEnv === "production") {
+        throw new HttpError(403, "Cannot wipe test data in production.");
+      }
+
+      const tables = [
+        "payment_attempts", "payments", "penalties", "utility_charges",
+        "ticket_updates", "tickets", "notification_deliveries", "notifications",
+        "coordination_messages", "announcements", "resource_requests",
+        "bookings", "stalls", "vendor_profiles", "sessions", "audit_events",
+        "fallback_queries", "otp_challenges",
+      ];
+      for (const table of tables) {
+        await run(`DELETE FROM ${table}`);
+      }
+      await run("DELETE FROM users WHERE role != 'admin'");
+
+      logger.info("Test data wiped by admin", { adminId: auth.user.id });
+      sendJson(res, 200, { ok: true, message: "Test data wiped successfully." });
+    },
+  },
 ];

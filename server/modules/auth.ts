@@ -1126,6 +1126,85 @@ export const authRoutes: RouteDefinition[] = [
   },
   {
     method: "POST",
+    path: "/auth/forgot-password",
+    handler: async ({ req, res, config }) => {
+      const body = await readJsonBody<{ phone?: string }>(req);
+      const phone = body.phone ? normalizePhoneNumber(body.phone) : "";
+      if (!phone) {
+        throw new HttpError(400, "Phone number is required.");
+      }
+
+      const user = await getUserRecordByPhone(phone);
+      if (!user) {
+        sendJson(res, 200, { challengeId: null, message: "If the account exists, a reset code has been sent." });
+        return;
+      }
+
+      const challengeId = createId("otp");
+      const otpCode = createOtpCode();
+      const timestamp = nowIso();
+      const expiresAt = addMinutes(config.otpTtlMinutes);
+
+      await run(
+        `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
+         VALUES (?, ?, 'password_reset', ?, ?, ?, NULL, NULL, ?)`,
+        [challengeId, user.id, user.phone, hashOtpCode(otpCode), expiresAt, timestamp],
+      );
+
+      await queueNotification({
+        userId: user.id,
+        type: "otp",
+        message: `Your password reset code is: ${otpCode}. It expires in ${config.otpTtlMinutes} minutes.`,
+        channels: ["system", "sms"],
+        destinationPhone: user.phone,
+      });
+
+      sendJson(res, 200, { challengeId, expiresAt });
+    },
+  },
+  {
+    method: "POST",
+    path: "/auth/reset-password",
+    handler: async ({ req, res }) => {
+      const body = await readJsonBody<{ challengeId?: string; code?: string; newPassword?: string }>(req);
+      if (!body.challengeId || !body.code || !body.newPassword) {
+        throw new HttpError(400, "Challenge ID, code, and new password are required.");
+      }
+
+      validatePasswordStrength(body.newPassword);
+
+      const challenge = await validateOtpChallenge({
+        challengeId: body.challengeId,
+        code: body.code,
+        purpose: "password_reset",
+      });
+
+      const timestamp = nowIso();
+      await run(`UPDATE otp_challenges SET verified_at = ? WHERE id = ?`, [timestamp, challenge.id]);
+
+      const user = await getUserRecordById(challenge.user_id!);
+      if (!user) {
+        throw new HttpError(404, "User not found.");
+      }
+
+      await applyUserPassword(user, body.newPassword);
+      await revokeUserSessions({ userId: user.id });
+
+      await logAuditEvent({
+        actorUserId: user.id,
+        actorName: user.name,
+        actorRole: user.role,
+        marketId: user.market_id,
+        action: "PASSWORD_RESET",
+        entityType: "user",
+        entityId: user.id,
+      });
+
+      sendJson(res, 200, { message: "Password has been reset successfully." });
+    },
+  },
+  {
+    method: "POST",
     path: "/auth/verify-manager-mfa",
     handler: handleVerifyMfa,
   },

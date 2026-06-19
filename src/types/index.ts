@@ -184,12 +184,6 @@ export interface Stall {
  activeBooking: ActiveBookingSummary | null;
 }
 
-export interface Reservation {
- stallId: string;
- startDate: string;
- endDate: string;
-}
-
 export interface Booking {
  id: string;
  marketId: string | null;

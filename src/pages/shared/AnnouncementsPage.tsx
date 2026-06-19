@@ -325,7 +325,7 @@ const AnnouncementsPage = () => {
                     <Label htmlFor="announce-message" className="font-bold text-slate-700">{t("announcements:message")}</Label>
                     <span className={`text-xs ${form.body.length > 1800 ? "text-amber-600" : "text-slate-500"}`}>{t("announcements:charCount", { n: form.body.length })}</span>
                   </div>
-                  <Textarea id="announce-message" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(c) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder={t("announcements:messagePlaceholder")} />
+                  <Textarea id="announce-message" className="border-slate-300 rounded-lg focus-visible:border-primary focus-visible:ring-0" rows={5} maxLength={2000} value={form.body} onChange={(e) => setForm((c) => ({ ...c, body: e.target.value }))} placeholder={t("announcements:messagePlaceholder")} />
                 </div>
 
                 <Button className="w-full gap-2 rounded-lg shadow-none bg-primary hover:bg-primary/90 font-bold" disabled={!canSubmit || createAnnouncement.isPending} onClick={() => createAnnouncement.mutate()}>

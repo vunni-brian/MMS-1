@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { SettingsDataContext } from "@/pages/shared/SettingsLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { getSessionToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import { DataSection } from "@/components/settings";
 
 const DataSettingsPage = () => {
@@ -14,12 +14,7 @@ const DataSettingsPage = () => {
 
   const wipeTestData = useMutation({
     mutationFn: async () => {
-      const token = getSessionToken();
-      const res = await fetch("/api/admin/wipe-test-data", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      if (!res.ok) throw new Error("Wipe failed");
+      await api.wipeTestData();
     },
     onSuccess: () => setWipeState("done"),
     onError: () => setWipeState("error"),

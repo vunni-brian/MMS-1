@@ -25,7 +25,7 @@ const AppLayout = () => {
   const { data: notificationsData } = useQuery({
     queryKey: ["notifications", "app-layout-badge"],
     queryFn: () => api.getNotifications(5),
-    enabled: Boolean(user?.permissions.includes("notification:read")),
+    enabled: Boolean(user?.permissions?.includes("notification:read")),
     refetchInterval: DASHBOARD_CONFIG.NOTIFICATIONS_REFRESH_INTERVAL,
   });
 

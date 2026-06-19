@@ -31,9 +31,9 @@
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node ./node_modules/@playwright/test/cli.js test",
-    "test:e2e:ui": "node ./node_modules/@playwright/test/cli.js test --ui",
-    "test:e2e:deployed": "cross-env E2E_BASE_URL=https://mms-1.vercel.app E2E_API_URL=https://mms-api.onrender.com node ./node_modules/@playwright/test/cli.js test"
+    "test:e2e": "node --experimental-strip-types ./node_modules/@playwright/test/cli.js test",
+    "test:e2e:ui": "node --experimental-strip-types ./node_modules/@playwright/test/cli.js test --ui",
+    "test:e2e:deployed": "cross-env E2E_BASE_URL=https://mms-1.vercel.app E2E_API_URL=https://mms-api.onrender.com node --experimental-strip-types ./node_modules/@playwright/test/cli.js test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

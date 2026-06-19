@@ -38,6 +38,10 @@ export const db = new Pool({
   ssl: resolveSslConfig(config.databaseUrl),
 });
 
+db.on("error", (error) => {
+  console.error("[db] Unexpected pool error:", error.message);
+});
+
 const migrationDb = new Pool({
   connectionString: config.migrationDatabaseUrl || config.databaseUrl,
   ssl: resolveSslConfig(config.migrationDatabaseUrl || config.databaseUrl),

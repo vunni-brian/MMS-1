@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import Index from "./pages/Index";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,8 +10,8 @@ import { ProtectedRoute, VendorApprovalGuard, RoleRoute } from "@/components/Pro
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
-const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const PaymentCallbackPage = lazy(() => import("./pages/PaymentCallbackPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const AppLayout = lazy(() => import("./components/AppLayout"));
@@ -31,7 +32,7 @@ const OfficialAnalyticsPage = lazy(() =>
 );
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
-const AdminUsersPage = lazy(() => import("./pages/admin/UserManagementPage"));
+const UserManagementPage = lazy(() => import("./pages/admin/UserManagementPage"));
 const AdminMarketsPage = lazy(() => import("./pages/admin/AdminMarketsPage"));
 const AdminAlertsPage = lazy(() => import("./pages/admin/AdminAlertsPage"));
 const AdminIntegrationsPage = lazy(() => import("./pages/admin/AdminIntegrationsPage"));
@@ -154,8 +155,9 @@ const App = () => (
   <Suspense fallback={<RouteFallback />}>
    <Routes>
  <Route path="/" element={<Index />} />
- <Route path="/login" element={<LoginPage />} />
- <Route path="/register" element={<RegisterPage />} />
+  <Route path="/login" element={<LoginPage />} />
+  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+  <Route path="/register" element={<RegisterPage />} />
  <Route path="/payments/callback" element={<PaymentCallbackPage />} />
 
  {/* Vendor routes */}
@@ -218,7 +220,7 @@ const App = () => (
  >
   <Route element={<AdminLayout />}>
     <Route index element={<AdminDashboard />} />
-    <Route path="users" element={<AdminUsersPage />} />
+    <Route path="users" element={<UserManagementPage />} />
     <Route path="markets" element={<AdminMarketsPage />} />
     <Route path="alerts" element={<AdminAlertsPage />} />
     <Route path="integrations" element={<AdminIntegrationsPage />} />

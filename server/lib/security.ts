@@ -23,7 +23,10 @@ export const hashToken = (token: string) => crypto.createHash("sha256").update(t
 
 export const createOtpCode = () => String(crypto.randomInt(100_000, 1_000_000));
 export const hashOtpCode = (code: string) => crypto.createHash("sha256").update(code).digest("hex");
-export const verifyOtpCode = (code: string, storedHash: string) => hashOtpCode(code) === storedHash;
+export const verifyOtpCode = (code: string, storedHash: string) => {
+  const computedHash = hashOtpCode(code);
+  return crypto.timingSafeEqual(Buffer.from(computedHash), Buffer.from(storedHash));
+};
 export const createTemporaryPassword = () => `Tmp${crypto.randomBytes(4).toString("hex")}!`;
 
 export const normalizePhoneNumber = (phone: string) => {
