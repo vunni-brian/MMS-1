@@ -2207,26 +2207,6 @@ body {
 
 
 
-.dark {
- --background: 220 16% 13%;
- --foreground: 0 0% 90%;
- --card: 220 16% 18%;
- --card-foreground: 0 0% 90%;
- --muted: 220 16% 24%;
- --muted-foreground: 0 0% 72%;
- --border: 220 16% 28%;
- --input: 220 16% 28%;
- --ring: 142 50% 42%;
- --primary: 142 50% 42%;
- --primary-foreground: 0 0% 100%;
- --secondary: 217 79% 67%;
- --secondary-foreground: 0 0% 100%;
- --accent: 188 86% 70%;
- --accent-foreground: 0 0% 12%;
- --destructive: 0 84% 61%;
- --destructive-foreground: 0 0% 100%;
-}
-
 .app-role-vendor {
  --primary: 160 84% 39%;
  --role-accent: #059669;
@@ -2652,7 +2632,6 @@ body,
  border: 0 !important;
  border-radius: 6px !important;
  color: hsl(215 16% 38%) !important;
- font-weight: 400 !important;
  box-shadow: none !important;
 }
 

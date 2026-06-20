@@ -21,7 +21,8 @@
                    "notAssigned":  "Not assigned",
                    "notRecorded":  "Not recorded",
                    "notSet":  "Not set",
-                   "notAvailable":  "Not available",
+                    "notAvailable":  "Not available",
+                    "unavailable":  "Unavailable",
                    "noFile":  "No file",
                    "noFileSelected":  "No file selected",
                    "all":  "All",
@@ -67,17 +68,24 @@
                    "cancelled":  "Cancelled"
                },
     "error":  {
-                  "dashboard":  {
-                                    "title":  "Something went wrong",
-                                    "description":  "This section couldn\u0027t load. Try refreshing the page or contact support if the problem persists."
-                                },
-                  "route":  {
-                                "title":  "Something went wrong",
-                                "versionDesc":  "A new version of the app may have been deployed. Please reload the page to continue.",
-                                "reloadDesc":  "This page couldn\u0027t load. Please reload the page or try again later.",
-                                "reload":  "Reload page"
-                            }
-              },
+                   "portalTitle":  "KCCA Market Management System",
+                   "brand":  "MMS",
+                   "brandSub":  "Market Management System",
+                   "notFound":  "Page not found",
+                   "notFoundDesc":  "The page you\u0027re looking for doesn\u0027t exist or has been moved.",
+                   "goDashboard":  "Go to Dashboard",
+                   "goHome":  "Back to Home",
+                   "dashboard":  {
+                                     "title":  "Something went wrong",
+                                     "description":  "This section couldn\u0027t load. Try refreshing the page or contact support if the problem persists."
+                                 },
+                   "route":  {
+                                 "title":  "Something went wrong",
+                                 "versionDesc":  "A new version of the app may have been deployed. Please reload the page to continue.",
+                                 "reloadDesc":  "This page couldn\u0027t load. Please reload the page or try again later.",
+                                 "reload":  "Reload page"
+                             }
+               },
     "auth":  {
                   "signIn":  "Sign in to MMS",
                   "signInSubtitle":  "Access your market management dashboard",
@@ -464,7 +472,45 @@
                    "workspaceSuffix":  "workspace"
                },
     "vendor":  {
-                   "dashboard":  {
+                    "approved":  "Vendor approved",
+                    "notApproved":  "Unable to approve vendor",
+                    "rejected":  "Vendor rejected",
+                    "notRejected":  "Unable to reject vendor",
+                    "tempPasswordSent":  "Temporary password sent",
+                    "operations":  "Operations",
+                    "unableToLoadDocument":  "Unable to load document",
+                    "noDocument":  "No document uploaded",
+                    "loadingDocument":  "Loading document…",
+                    "previewUnavailable":  "Preview unavailable.",
+                    "documentNotLoaded":  "Document not loaded",
+                    "openFullDocument":  "Open full document",
+                    "viewProfile":  "View profile",
+                    "reviewDocuments":  "Review documents",
+                    "activityAudit":  "Audit",
+                    "activityComplaint":  "Complaint",
+                    "activityCaseUpdate":  "Case update",
+                    "activityNotice":  "Notice",
+                    "activityTimeline":  "Activity Timeline",
+                    "activityTimelineDesc":  "Approvals, complaints, payments, and notifications for this vendor.",
+                    "noActivity":  "No operational activity recorded for this vendor yet.",
+                    "title":  "Vendors",
+                    "pendingApproval":  "Pending approval",
+                    "awaitingReview":  "Applications awaiting review",
+                    "approvedVendors":  "Approved vendors",
+                    "activeTradingProfiles":  "Active trading profiles",
+                    "searchPlaceholder":  "Search by name, phone, or email",
+                    "directoryWithRecords":  "Vendor Directory — {n} records",
+                    "noVendors":  "No vendors match the current search or filter.",
+                    "applicationReview":  "Vendor Application Review",
+                    "reviewDetails":  "Review applicant details and submitted documents before deciding.",
+                    "userInput":  "User Input",
+                    "submittedDocuments":  "Submitted Documents",
+                    "passwordResetDesc":  "Reset the vendor's temporary password.",
+                    "resetReason":  "Reason for password reset",
+                    "decisionPanel":  "Decision Panel",
+                    "approveVendor":  "Approve Vendor",
+                    "rejectVendor":  "Reject Vendor",
+                    "dashboard":  {
                                      "eyebrow":  "Vendor Workspace",
                                      "greeting":  "Hello {name}",
                                      "subtitle":  "A simple view of your stall, dues, notices, and support requests at {market}.",
@@ -937,9 +983,33 @@
                      "receiptReviewFailed":  "Receipt review failed",
                      "receiptUpdateError":  "Unable to update this receipt.",
                      "receiptOpenError":  "Receipt could not be opened",
-                     "receiptLoadError":  "Unable to load the uploaded file."
-                 },
-    "complaints":  {
+                      "receiptLoadError":  "Unable to load the uploaded file.",
+                      "callback":  {
+                                       "missingConfirmation":  "No payment confirmation was received.",
+                                       "checkingStatus":  "Checking payment status\u2026",
+                                       "unableToConfirm":  "Unable to confirm payment status.",
+                                       "received":  "Your payment has been received and verified.",
+                                       "notVerified":  "Payment could not be verified.",
+                                       "stillPending":  "Your payment is still being processed.",
+                                       "title":  "PAYMENT STATUS",
+                                       "success":  "Payment Successful",
+                                       "failed":  "Payment Failed",
+                                       "pending":  "Payment Pending",
+                                       "redirecting":  "Redirecting in {seconds}s\u2026",
+                                       "checking":  "Checking\u2026",
+                                       "checkingInterval":  "Auto-checking every 5s",
+                                       "chargeWarning":  "Your payment may still be charged. If the deduction appears in your statement, contact support with your transaction ID.",
+                                       "receiptSummary":  "Receipt Summary",
+                                       "receiptNumber":  "Receipt Number",
+                                       "amountPaid":  "Amount Paid",
+                                       "purpose":  "Purpose",
+                                       "transactionId":  "Transaction ID",
+                                       "tryAgain":  "Try Again",
+                                       "goDashboard":  "Go to Dashboard",
+                                       "checkAgain":  "Check Again"
+                                   }
+                  },
+     "complaints":  {
                        "eyebrow":  "Ticket desk",
                        "title":  "Grievances \u0026 Appeals",
                        "subtitleVendor":  "Submit and track market complaints.",
