@@ -25,7 +25,6 @@ export const roleNavGroups: Record<Role, NavGroup[]> = {
     ]},
     { title: "nav:groups.operations", items: [
       { label: "nav:items.complaints", path: "complaints", icon: MessageSquare },
-      { label: "nav:items.coordination", path: "coordination", icon: MessagesSquare },
       { label: "nav:items.notices", path: "announcements", icon: Megaphone },
       { label: "nav:items.notifications", path: "notifications", icon: Bell },
     ]},
