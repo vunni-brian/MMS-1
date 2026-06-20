@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { api, ApiError, clearSessionToken, getSessionToken, setSessionToken } from "@/lib/api";
 import type { AuthUser } from "@/types";
@@ -34,6 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
  const [pendingMfa, setPendingMfa] = useState<PendingMfaChallenge | null>(null);
  const [isLoading, setIsLoading] = useState(true);
  const [authError, setAuthError] = useState<string | null>(null);
+ const queryClient = useQueryClient();
+ const timeoutRef = useRef<number | null>(null);
 
  const refreshUser = async () => {
   const token = getSessionToken();
@@ -52,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const response = await Promise.race([
       api.getMe(),
       new Promise<never>((_, reject) => {
-        window.setTimeout(() => reject(new Error("Session restore aborted")), timeoutMs);
+        timeoutRef.current = window.setTimeout(() => reject(new Error("Session restore aborted")), timeoutMs);
       }),
     ]);
 
@@ -78,6 +81,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
  useEffect(() => {
  void refreshUser();
+ return () => {
+   if (timeoutRef.current !== null) {
+     clearTimeout(timeoutRef.current);
+   }
+ };
  }, []);
 
  const login = async (phone: string, password: string): Promise<LoginResult> => {
@@ -146,19 +154,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
  };
 
  const logout = async () => {
- try {
- if (getSessionToken()) {
- await api.logout();
- }
- } catch {
- // Ignore logout failures and clear local session anyway.
- } finally {
- clearSessionToken();
- setUser(null);
- setPendingMfa(null);
- setAuthError(null);
- }
- };
+  try {
+  if (getSessionToken()) {
+  await api.logout();
+  }
+  } catch {
+  // Ignore logout failures and clear local session anyway.
+  } finally {
+  clearSessionToken();
+  setUser(null);
+  setPendingMfa(null);
+  setAuthError(null);
+  queryClient.clear();
+  }
+  };
 
  return (
  <AuthContext.Provider

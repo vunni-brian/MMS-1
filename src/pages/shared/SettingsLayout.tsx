@@ -267,7 +267,7 @@ const SettingsLayout = () => {
   }
 
 
-  const isRootPath = location.pathname.endsWith("/settings");
+  const isRootPath = location.pathname.replace(/\/+$/, "").endsWith("/settings");
   const legacySection = searchParams.get("section");
   if (legacySection) {
     return <Navigate to={legacySection} replace />;

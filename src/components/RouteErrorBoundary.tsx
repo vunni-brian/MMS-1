@@ -30,6 +30,13 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & { t: (
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Route Error Boundary caught an error:", error, errorInfo);
+    if (isChunkLoadError(error)) {
+      const reloadKey = "chunk_reload_attempted";
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, "1");
+        window.location.reload();
+      }
+    }
   }
 
   handleReload = () => {

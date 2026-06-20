@@ -25,6 +25,8 @@ export const roleNavGroups: Record<Role, NavGroup[]> = {
     ]},
     { title: "nav:groups.operations", items: [
       { label: "nav:items.complaints", path: "complaints", icon: MessageSquare },
+      { label: "nav:items.coordination", path: "coordination", icon: MessagesSquare },
+      { label: "nav:items.notices", path: "announcements", icon: Megaphone },
       { label: "nav:items.notifications", path: "notifications", icon: Bell },
     ]},
     { title: "nav:groups.account", items: [
@@ -83,7 +85,7 @@ export const roleNavGroups: Record<Role, NavGroup[]> = {
     { title: "nav:groups.main", items: [
       { label: "nav:items.dashboard", path: "", icon: LayoutDashboard },
       { label: "nav:items.users", path: "users", icon: Users },
-      { label: "nav:items.rolesPermissions", path: "users", query: "tab=roles", icon: KeyRound },
+      { label: "nav:items.rolesPermissions", path: "users", query: "tab=permissions", icon: KeyRound },
     ]},
     { title: "nav:groups.operations", items: [
       { label: "nav:items.billingControls", path: "billing", icon: CreditCard },
