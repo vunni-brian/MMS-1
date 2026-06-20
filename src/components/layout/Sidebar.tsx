@@ -5,7 +5,6 @@ import { Bell, ShieldAlert, ShieldCheck, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { BrandLogo } from "@/components/ui/BrandLogo";
 import { getNavTarget } from "./navigation";
 import type { NavItem, NavGroup } from "./navigation";
 
@@ -97,26 +96,24 @@ export const Sidebar = ({
 
       <aside
         className={cn(
-          "mms-sidebar fixed inset-y-0 left-0 z-[60] flex w-[264px] flex-col border-r shadow-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:shadow-none",
+          "mms-sidebar fixed inset-y-0 left-0 top-[72px] z-[60] flex w-[264px] flex-col border-r shadow-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:shadow-none",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="mms-sidebar-brand flex h-[72px] shrink-0 items-center gap-3 border-b px-4">
-          <BrandLogo size="md" showTagline className="min-w-0 flex-1" />
-          <button
-            type="button"
-            aria-label={t("layout:closeNavigation")}
-            className="rounded-lg p-1.5 text-[#71717A] transition-colors hover:bg-[#F8F9FA] hover:text-[#111827] lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
         <nav className="mms-sidebar-nav flex flex-1 flex-col gap-4 overflow-hidden px-3 py-4">
+          <div className="flex items-center justify-end lg:hidden">
+            <button
+              type="button"
+              aria-label={t("layout:closeNavigation")}
+              className="rounded-lg p-1.5 text-[#71717A] transition-colors hover:bg-[#F8F9FA] hover:text-[#111827]"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           {filteredGroups.map((group) => (
             <div key={group.title} className="mms-sidebar-group">
-              <p className="mms-sidebar-label mb-2 px-2 text-[10px] font-semibold uppercase text-[#71717A]">
+              <p className="mms-sidebar-label mb-2 px-2 text-[11px] font-normal leading-tight text-[#71717A]">
                 {t(group.title)}
               </p>
               <div className="space-y-1">

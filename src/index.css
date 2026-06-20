@@ -2576,26 +2576,17 @@ body,
 .app-role-manager,
 .app-role-official,
 .app-role-admin {
- --sidebar-background: 48 24% 97%;
- --sidebar-foreground: 222 47% 11%;
-  --sidebar-accent: 152 81% 96%;
+ --sidebar-background: 0 0% 100%;
+ --sidebar-foreground: 0 0% 7%;
+  --sidebar-accent: 210 40% 96%;
   --sidebar-accent-foreground: 222 47% 11%;
-  --sidebar-border: 30 16% 90%;
+  --sidebar-border: 210 32% 91%;
 }
 
 .mms-sidebar {
- background:
- linear-gradient(180deg, hsl(48 24% 97%), hsl(45 18% 96%)) !important;
- border-color: hsl(var(--sidebar-border)) !important;
+ background: hsl(0 0% 100%) !important;
+ border-color: #E2E8F0 !important;
  color: hsl(var(--sidebar-foreground)) !important;
-}
-
-.mms-sidebar-brand {
- border-color: hsl(var(--sidebar-border) / 0.84) !important;
-}
-
-.mms-sidebar-brand .bg-primary {
-  background: #059669 !important;
 }
 
 .mms-sidebar-nav {
@@ -2607,7 +2598,7 @@ body,
 }
 
 .mms-sidebar-label {
- color: hsl(215 14% 47%) !important;
+ color: #71717A !important;
  letter-spacing: 0;
 }
 
@@ -2616,38 +2607,38 @@ body,
  height: 32px !important;
  border: 0 !important;
  border-radius: 6px !important;
- color: hsl(215 16% 38%) !important;
+ color: #111827 !important;
  box-shadow: none !important;
 }
 
 .mms-sidebar .workspace-nav-link svg {
- color: hsl(215 16% 48%);
+ color: #475569;
  stroke-width: 1.85;
 }
 
 .mms-sidebar .workspace-nav-link:hover {
- background: hsl(45 16% 92% / 0.74) !important;
- color: hsl(222 47% 11%) !important;
+ background: #F8FAFC !important;
+ color: #111827 !important;
 }
 
 .mms-sidebar .workspace-nav-link:hover svg {
- color: hsl(222 32% 28%);
+ color: #111827;
 }
 
 .mms-sidebar .workspace-nav-link.is-active {
-  background: hsl(152 81% 96% / 0.72) !important;
-  color: hsl(161 73% 34%) !important;
-  font-weight: 500 !important;
-  box-shadow: inset 2px 0 0 #059669 !important;
+  background: #F8FAFC !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
 }
 
 .mms-sidebar .workspace-nav-link.is-active svg {
-  color: #059669;
+  color: #111827;
 }
 
 .mms-sidebar-footer {
- border-color: hsl(var(--sidebar-border) / 0.84) !important;
- background: hsl(48 24% 97% / 0.72);
+ border-color: #E2E8F0 !important;
+ background: hsl(0 0% 100% / 0.95);
 }
 
 .mms-sidebar-footer button {
