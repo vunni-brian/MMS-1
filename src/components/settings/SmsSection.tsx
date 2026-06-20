@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
-import { EvidenceField } from "@/components/console/ConsolePage";
+import { EvidenceField } from "@/components/ui/EvidenceField";
 import { SettingInput, SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 

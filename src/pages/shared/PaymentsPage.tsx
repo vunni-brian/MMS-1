@@ -37,11 +37,11 @@ interface PayableItem {
 
 const currentPeriod = () => {
  const now = new Date();
- return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(now);
+  return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(now);
 };
 
 const formatDate = (value: string | null, fallback = "Not recorded") =>
- value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : fallback;
+ value ? new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : fallback;
 
 const ReceiptReviewRow = ({
  payment,

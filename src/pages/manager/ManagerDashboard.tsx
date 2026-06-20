@@ -17,7 +17,7 @@ import {
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import { formatCurrency, formatHumanDate } from "@/lib/utils";
+import { formatCurrency, formatHumanDate, tSnake } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -148,10 +148,10 @@ const ManagerDashboard = () => {
     ...(pendingApplications.length > 0 ? [{
       id: "pending-approvals",
       icon: UserCheck,
-      title: `${pendingApplications.length} vendor application${pendingApplications.length > 1 ? "s" : ""} awaiting review`,
-      detail: "Review documents and stall allocation requests",
+      title: t("manager:dashboard.vendorApplicationsAwaiting", { n: pendingApplications.length }),
+      detail: t("manager:dashboard.reviewDocumentsDetail"),
       tone: "warning" as const,
-      action: <Link to="/manager/vendors"><Button size="sm" variant="outline" className="text-xs">Review queue</Button></Link>,
+      action: <Link to="/manager/vendors"><Button size="sm" variant="outline" className="text-xs">{t("manager:dashboard.reviewQueue")}</Button></Link>,
     }] : []),
     ...openComplaints.slice(0, 2).map((ticket) => ({
       id: `complaint-${ticket.id}`,
@@ -164,7 +164,7 @@ const ManagerDashboard = () => {
       id: `utility-${charge.id}`,
       icon: Zap,
       title: `${charge.utilityType} — ${charge.vendorName}`,
-      detail: `${formatCurrency(charge.amount)} — ${charge.status.replace(/_/g, " ")}`,
+      detail: `${formatCurrency(charge.amount)} — ${tSnake(t, charge.status)}`,
       tone: charge.status === "overdue" ? "urgent" as const : "warning" as const,
     })),
   ];
@@ -182,7 +182,7 @@ const ManagerDashboard = () => {
       id: `payment-${payment.id}`,
       icon: CreditCard,
       title: `${payment.vendorName} — ${formatCurrency(payment.amount)}`,
-      detail: payment.description || payment.chargeType.replace(/_/g, " "),
+      detail: payment.description || tSnake(t, payment.chargeType, "common:chargeType"),
       time: formatHumanDate(payment.createdAt),
       tone: "success" as const,
     })),
@@ -197,7 +197,7 @@ const ManagerDashboard = () => {
           <PageHeader
             eyebrow={t("manager:dashboard.eyebrow")}
             title={t("manager:dashboard.title")}
-            description={t("manager:dashboard.subtitle", { market: user?.marketName || "your market" })}
+            description={t("manager:dashboard.subtitle", { market: user?.marketName || t("manager:dashboard.yourMarket") })}
           />
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -210,7 +210,7 @@ const ManagerDashboard = () => {
             <InsightCard
               label={t("manager:dashboard.kpiOccupiedStalls")}
               value={`${occupancyRate}%`}
-              detail={`${activeStalls.length} of ${stalls.length} stalls`}
+              detail={t("manager:dashboard.stallsOf", { active: activeStalls.length, total: stalls.length })}
               icon={<Store className="h-5 w-5" />}
             />
             <InsightCard
@@ -222,9 +222,9 @@ const ManagerDashboard = () => {
           </div>
 
           <ActionCenter
-            title="Today's Tasks"
+            title={t("manager:dashboard.todaysTasks")}
             items={actionItems}
-            emptyMessage="No tasks requiring attention"
+            emptyMessage={t("manager:dashboard.noTasksAttention")}
           />
 
           <Card>
@@ -236,7 +236,7 @@ const ManagerDashboard = () => {
             </CardHeader>
             <CardContent>
               {approvalRows.length === 0 ? (
-                <EmptyState variant="success" title="No pending approvals" description="All vendor applications have been processed" />
+                <EmptyState variant="success" title={t("manager:dashboard.noPendingApprovals")} description={t("manager:dashboard.allAppsProcessed")} />
               ) : (
                 <div className="space-y-3">
                   {approvalRows.map((row) => (
@@ -279,7 +279,7 @@ const ManagerDashboard = () => {
                   <div className="flex items-end justify-between gap-3">
                     <p className="text-3xl font-bold tracking-tight text-[#111827]">{occupancyRate}%</p>
                     <Badge variant={occupancyRate >= 80 ? "default" : "secondary"} className="text-[10px]">
-                      {activeStalls.length} active
+                      {t("manager:dashboard.activeLabel", { n: activeStalls.length })}
                     </Badge>
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-[#F1F3F5]">
@@ -327,14 +327,14 @@ const ManagerDashboard = () => {
                     </Badge>
                   </div>
                 )) : (
-                  <EmptyState variant="success" title="No open complaints" description="All issues have been resolved" />
+                  <EmptyState variant="success" title={t("manager:dashboard.noOpenComplaints")} description={t("manager:dashboard.allIssuesResolved")} />
                 )}
               </div>
             </CardContent>
           </Card>
 
           <ActivityTimeline
-            title="Activity Feed"
+            title={t("manager:dashboard.activityFeed")}
             items={activityItems}
             viewAllLink="/manager/audit"
             viewAllLabel={t("common:viewAll")}
@@ -347,9 +347,9 @@ const ManagerDashboard = () => {
             <CardContent>
               <div className="space-y-2">
                 {[
-                  { id: "vendors", title: "Vendor records", detail: `${vendors.filter((v) => v.status === "approved").length} approved`, icon: Users },
-                  { id: "stalls", title: "Stall inventory", detail: `${activeStalls.length} active`, icon: Store },
-                  { id: "payments", title: "Payment queue", detail: `${payments.filter((p) => p.status === "pending").length} pending`, icon: CreditCard },
+                  { id: "vendors", title: t("manager:dashboard.vendorRecords"), detail: `${vendors.filter((v) => v.status === "approved").length} approved`, icon: Users },
+                  { id: "stalls", title: t("manager:dashboard.stallInventory"), detail: `${activeStalls.length} active`, icon: Store },
+                  { id: "payments", title: t("manager:dashboard.paymentQueue"), detail: `${payments.filter((p) => p.status === "pending").length} pending`, icon: CreditCard },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -379,17 +379,17 @@ const ManagerDashboard = () => {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {confirmAction?.type === "approve" ? "Approve Vendor Application?" : "Reject Vendor Application?"}
+            {confirmAction?.type === "approve" ? t("manager:dashboard.approveDialogTitle") : t("manager:dashboard.rejectDialogTitle")}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {confirmAction?.type === "approve"
-              ? `This will approve ${confirmAction?.booking?.vendorName}'s application for ${confirmAction?.booking?.stallName}. The vendor will be notified and their stall access will be activated.`
-              : `This will reject ${confirmAction?.booking?.vendorName}'s application for ${confirmAction?.booking?.stallName}. The vendor will be notified of the rejection.`
+              ? t("manager:dashboard.approveConfirmText", { name: confirmAction?.booking?.vendorName, stall: confirmAction?.booking?.stallName })
+              : t("manager:dashboard.rejectConfirmText", { name: confirmAction?.booking?.vendorName, stall: confirmAction?.booking?.stallName })
             }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setConfirmAction(null)}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => setConfirmAction(null)}>{t("manager:dashboard.dialogCancel")}</AlertDialogCancel>
           <AlertDialogAction
             className={confirmAction?.type === "approve" ? "bg-[#10B981] hover:bg-[#059669] text-white" : "bg-[#EF476F] hover:bg-[#DC2626] text-white"}
             onClick={() => {
@@ -402,7 +402,7 @@ const ManagerDashboard = () => {
               setConfirmAction(null);
             }}
           >
-            {confirmAction?.type === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+            {confirmAction?.type === "approve" ? t("manager:dashboard.confirmApproval") : t("manager:dashboard.confirmRejection")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

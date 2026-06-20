@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
-import { formatHumanDateTime } from "@/lib/utils";
+import { formatHumanDateTime, tSnake } from "@/lib/utils";
 import type { AuthUser } from "@/types";
 import type { ActivityRow } from "./ActivitySection";
 
@@ -97,6 +98,7 @@ const loadStoredSettings = (): SettingsState => {
 };
 
 export function useSettings(user: AuthUser | null) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<SettingsState>(loadStoredSettings);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
@@ -152,7 +154,7 @@ export function useSettings(user: AuthUser | null) {
   const activityRows: ActivityRow[] = auditEvents.length
     ? auditEvents.slice(0, 8).map((event) => ({
         id: event.id,
-        title: event.action.replace(/_/g, " "),
+        title: tSnake(t, event.action),
         detail: `${event.actorName || "System"} - ${event.marketName || "System scope"}`,
         time: formatHumanDateTime(event.createdAt),
       }))

@@ -11,12 +11,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/LoadingState";
-import {
-  EvidenceField,
-  FileUploadCard,
-  FormSection,
-  PageHeader,
-} from "@/components/console/ConsolePage";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EvidenceField } from "@/components/ui/EvidenceField";
+import { FileUploadCard } from "@/components/ui/FileUploadCard";
+import { FormSection } from "@/components/ui/FormSection";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

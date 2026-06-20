@@ -4,15 +4,11 @@ import { BrandLogo } from "@/components/ui/BrandLogo";
 import {
   ArrowRight,
   BarChart3,
-  Bell,
   CheckCircle,
-  ClipboardCheck,
   CreditCard,
   MessageSquareText,
-  ShieldCheck,
   Sparkles,
   Store,
-  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,74 +21,31 @@ const navLinkKeys = [
   { key: "faqs", target: "faqs" },
 ];
 
-const features = [
-  {
-    title: "Smart Stall Allocation",
-    detail: "AI-powered stall assignment based on vendor type, sales history, and market density.",
-    icon: Store,
-  },
-  {
-    title: "Automated Billing",
-    detail: "Track dues, utilities, penalties, and send automated receipts with payment reconciliation.",
-    icon: CreditCard,
-  },
-  {
-    title: "Complaint Resolution",
-    detail: "End-to-end complaint tracking from report to resolution with SLA monitoring.",
-    icon: MessageSquareText,
-  },
-  {
-    title: "Real-time Analytics",
-    detail: "Market occupancy, revenue trends, and compliance dashboards for officials.",
-    icon: BarChart3,
-  },
+const featureDefs = [
+  { titleKey: "featureStalls", detailKey: "featureStallsDesc", icon: Store },
+  { titleKey: "featureBilling", detailKey: "featureBillingDesc", icon: CreditCard },
+  { titleKey: "featureComplaints", detailKey: "featureComplaintsDesc", icon: MessageSquareText },
+  { titleKey: "featureAnalytics", detailKey: "featureAnalyticsDesc", icon: BarChart3 },
 ];
 
-const processSteps = [
-  { step: "01", title: "Vendor Onboarding", description: "OTP verification and digital profile creation" },
-  { step: "02", title: "Stall Assignment", description: "Automated allocation based on availability" },
-  { step: "03", title: "Payment Setup", description: "Configure dues, utilities, and payment schedules" },
-  { step: "04", title: "Daily Operations", description: "Manage complaints, notices, and renewals" },
+const stepDefs = [
+  { num: "01", titleKey: "step1Title", descKey: "step1Desc" },
+  { num: "02", titleKey: "step2Title", descKey: "step2Desc" },
+  { num: "03", titleKey: "step3Title", descKey: "step3Desc" },
+  { num: "04", titleKey: "step4Title", descKey: "step4Desc" },
 ];
 
-const testimonials = [
-  {
-    name: "Sarah Nambi",
-    role: "Vendor, Wandegeya Market",
-    content: "MMS made paying my stall dues so easy. No more queues!",
-    rating: 5,
-  },
-  {
-    name: "John Mukasa",
-    role: "Market Manager",
-    content: "The analytics dashboard helps me track occupancy in real-time.",
-    rating: 5,
-  },
-  {
-    name: "Grace Auma",
-    role: "KCCA Official",
-    content: "Audit trails and compliance reporting are game-changing.",
-    rating: 4.8,
-  },
+const testimonialDefs = [
+  { contentKey: "testimonial1", nameKey: "testimonial1Name", roleKey: "testimonial1Role", rating: 5 },
+  { contentKey: "testimonial2", nameKey: "testimonial2Name", roleKey: "testimonial2Role", rating: 5 },
+  { contentKey: "testimonial3", nameKey: "testimonial3Name", roleKey: "testimonial3Role", rating: 4.8 },
 ];
 
-const faqs = [
-  {
-    q: "How do vendors register?",
-    a: "Vendors register via OTP SMS verification and create their digital profile.",
-  },
-  {
-    q: "Is MMS KCCA-compliant?",
-    a: "Yes, MMS is built to meet KCCA market management standards.",
-  },
-  {
-    q: "What payment methods are supported?",
-    a: "Mobile money, bank transfers, and cash collections with digital receipts.",
-  },
-  {
-    q: "Can officials access data remotely?",
-    a: "Yes, cloud-based dashboard accessible from anywhere.",
-  },
+const faqDefs = [
+  { qKey: "faq1Q", aKey: "faq1A" },
+  { qKey: "faq2Q", aKey: "faq2A" },
+  { qKey: "faq3Q", aKey: "faq3A" },
+  { qKey: "faq4Q", aKey: "faq4A" },
 ];
 
 const Index = () => {
@@ -212,13 +165,13 @@ const Index = () => {
             </div>
 
             <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              {features.map((feature) => (
-                <div key={feature.title} className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-lg">
+              {featureDefs.map((f) => (
+                <div key={f.titleKey} className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-lg">
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-                    <feature.icon className="h-6 w-6" />
+                    <f.icon className="h-6 w-6" />
                   </div>
-                  <h3 className="mb-2 text-lg font-semibold text-slate-900">{feature.title}</h3>
-                  <p className="text-sm text-slate-600">{feature.detail}</p>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">{t(`landing:${f.titleKey}`)}</h3>
+                  <p className="text-sm text-slate-600">{t(`landing:${f.detailKey}`)}</p>
                 </div>
               ))}
             </div>
@@ -238,13 +191,13 @@ const Index = () => {
             </div>
 
             <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              {processSteps.map((step) => (
-                <div key={step.step} className="text-center">
+              {stepDefs.map((s) => (
+                <div key={s.num} className="text-center">
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-700">
-                    {step.step}
+                    {s.num}
                   </div>
-                  <h3 className="mb-2 font-semibold text-slate-900">{step.title}</h3>
-                  <p className="text-sm text-slate-600">{step.description}</p>
+                  <h3 className="mb-2 font-semibold text-slate-900">{t(`landing:${s.titleKey}`)}</h3>
+                  <p className="text-sm text-slate-600">{t(`landing:${s.descKey}`)}</p>
                 </div>
               ))}
             </div>
@@ -264,16 +217,16 @@ const Index = () => {
             </div>
 
             <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.name} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              {testimonialDefs.map((tst) => (
+                <div key={tst.nameKey} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-3 flex text-emerald-500">
-                    {"★".repeat(Math.floor(testimonial.rating))}
-                    {testimonial.rating % 1 !== 0 && "½"}
+                    {"★".repeat(Math.floor(tst.rating))}
+                    {tst.rating % 1 !== 0 && "½"}
                   </div>
-                  <p className="mb-4 text-slate-700">"{testimonial.content}"</p>
+                  <p className="mb-4 text-slate-700">"{t(`landing:${tst.contentKey}`)}"</p>
                   <div>
-                    <p className="font-semibold text-slate-900">{testimonial.name}</p>
-                    <p className="text-sm text-slate-500">{testimonial.role}</p>
+                    <p className="font-semibold text-slate-900">{t(`landing:${tst.nameKey}`)}</p>
+                    <p className="text-sm text-slate-500">{t(`landing:${tst.roleKey}`)}</p>
                   </div>
                 </div>
               ))}
@@ -307,10 +260,9 @@ const Index = () => {
                 </div>
                 <p className="mt-4 text-sm text-slate-600">{t("landing:freePlanDesc")}</p>
                 <ul className="mt-6 space-y-3 text-sm">
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Up to 50 vendors</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Basic stall management</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Email support</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Mobile app access</li>
+                  {(t("landing:planFreeFeatures", { returnObjects: true }) as string[]).map((feat: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />{feat}</li>
+                  ))}
                 </ul>
                 <Button className="mt-8 w-full border-slate-300" variant="outline">
                   {t("landing:getStarted")}
@@ -329,12 +281,9 @@ const Index = () => {
                 </div>
                 <p className="mt-4 text-sm text-slate-600">{t("landing:proPlanDesc")}</p>
                 <ul className="mt-6 space-y-3 text-sm">
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Unlimited vendors</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />AI stall allocation</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Priority support 24/7</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Advanced analytics</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />API access</li>
-                  <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />Custom reports</li>
+                  {(t("landing:planProFeatures", { returnObjects: true }) as string[]).map((feat: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-600" />{feat}</li>
+                  ))}
                 </ul>
                 <Button className="mt-8 w-full bg-slate-900 text-white hover:bg-slate-800">
                   {t("landing:startFreeTrial")}
@@ -357,13 +306,13 @@ const Index = () => {
             </div>
 
             <div className="mt-16 space-y-4">
-              {faqs.map((faq) => (
-                <details key={faq.q} className="group rounded-lg border border-slate-200 bg-white p-6">
+              {faqDefs.map((faq) => (
+                <details key={faq.qKey} className="group rounded-lg border border-slate-200 bg-white p-6">
                   <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-slate-900">
-                    {faq.q}
+                    {t(`landing:${faq.qKey}`)}
                     <span className="ml-4 text-slate-400 group-open:rotate-180 transition-transform">▼</span>
                   </summary>
-                  <p className="mt-4 text-slate-600">{faq.a}</p>
+                  <p className="mt-4 text-slate-600">{t(`landing:${faq.aKey}`)}</p>
                 </details>
               ))}
             </div>

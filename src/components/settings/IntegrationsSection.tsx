@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/Panel";
-import { EvidenceField } from "@/components/console/ConsolePage";
+import { EvidenceField } from "@/components/ui/EvidenceField";
 import type { ChargeType } from "@/types";
 
 interface IntegrationsSectionProps {

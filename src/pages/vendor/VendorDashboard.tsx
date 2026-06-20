@@ -18,7 +18,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
-import { formatCurrency, getTimeAwareGreeting } from "@/lib/utils";
+import { formatCurrency, getTimeAwareGreeting, tSnake } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -139,7 +139,7 @@ const VendorDashboard = () => {
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
 
-  const greeting = getTimeAwareGreeting(user?.name?.split(" ")[0] || "there");
+  const greeting = getTimeAwareGreeting(t, user?.name?.split(" ")[0]);
 
   const actionItems = [
     ...(outstandingBalance > 0 ? [{
@@ -148,20 +148,20 @@ const VendorDashboard = () => {
       title: t("vendor:dashboard.payDues"),
       detail: `${t("vendor:dashboard.totalDue", { amount: formatCurrency(outstandingBalance) })}`,
       tone: "urgent" as const,
-      action: <Link to="/vendor/payments"><Button size="sm" className="bg-[#EF476F] hover:bg-[#DC2626] text-white text-xs">Pay now</Button></Link>,
+      action: <Link to="/vendor/payments"><Button size="sm" className="bg-[#EF476F] hover:bg-[#DC2626] text-white text-xs">{t("vendor:dashboard.payNow")}</Button></Link>,
     }] : []),
     ...overduePenalties.slice(0, 2).map((penalty) => ({
       id: `penalty-${penalty.id}`,
       icon: AlertTriangle,
-      title: `Penalty: ${formatCurrency(penalty.amount)}`,
-      detail: penalty.reason || "Unpaid penalty",
+      title: `${t("vendor:dashboard.penaltyPrefix")}: ${formatCurrency(penalty.amount)}`,
+      detail: penalty.reason || t("common:unpaid"),
       tone: "urgent" as const,
     })),
     ...openComplaints.slice(0, 2).map((ticket) => ({
       id: `complaint-${ticket.id}`,
       icon: MessageSquare,
       title: ticket.subject,
-      detail: `${ticket.priority} priority — ${ticket.status.replace(/_/g, " ")}`,
+      detail: `${ticket.priority} priority — ${tSnake(t, ticket.status)}`,
       tone: (ticket.priority === "urgent" || ticket.priority === "high" ? "warning" : "info") as const,
     })),
     ...(!activeStall ? [{
@@ -170,7 +170,7 @@ const VendorDashboard = () => {
       title: t("vendor:dashboard.reserveStall"),
       detail: t("vendor:dashboard.stallAssignedInfo"),
       tone: "info" as const,
-      action: <Link to="/vendor/stalls"><Button size="sm" variant="outline" className="text-xs">Browse stalls</Button></Link>,
+      action: <Link to="/vendor/stalls"><Button size="sm" variant="outline" className="text-xs">{t("vendor:dashboard.browseStalls")}</Button></Link>,
     }] : []),
   ];
 
@@ -199,17 +199,17 @@ const VendorDashboard = () => {
               icon={<WalletCards className="h-5 w-5" />}
             />
             <InsightCard
-              label={t("vendor:dashboard.complaintStatus") || "Filed Complaints"}
-              value={openComplaints.length ? `${openComplaints.length} open` : "Clear"}
-              detail={openComplaints.length ? `${openComplaints.length} complaints filed by you under review` : "No complaints you filed are unresolved"}
+              label={t("vendor:dashboard.complaintStatus")}
+              value={openComplaints.length ? t("vendor:dashboard.openCount", { n: openComplaints.length }) : t("vendor:dashboard.clear")}
+              detail={openComplaints.length ? t("vendor:dashboard.complaintsUnderReview") : t("vendor:dashboard.noUnresolvedComplaints")}
               icon={<MessageSquare className="h-5 w-5" />}
             />
           </div>
 
           <ActionCenter
-            title={t("vendor:dashboard.quickActions") || "Quick Actions"}
+            title={t("vendor:dashboard.quickActions")}
             items={actionItems}
-            emptyMessage="All clear — nothing needs attention"
+            emptyMessage={t("vendor:dashboard.allClear")}
           />
 
           <Card>
@@ -221,7 +221,7 @@ const VendorDashboard = () => {
             </CardHeader>
             <CardContent>
               {paymentRows.length === 0 ? (
-                <EmptyState variant="success" title="No payments yet" description="Payment records will appear here" />
+                <EmptyState variant="success" title={t("vendor:dashboard.noPaymentsYet")} description={t("vendor:dashboard.paymentsWillAppear")} />
               ) : (
                 <div className="space-y-2">
                   {paymentRows.map((payment) => (
@@ -231,7 +231,7 @@ const VendorDashboard = () => {
                           <Receipt className="h-4 w-4" />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#111827]">{payment.description || payment.chargeType.replace(/_/g, " ")}</p>
+                          <p className="truncate text-sm font-semibold text-[#111827]">{payment.description || tSnake(t, payment.chargeType, "common:chargeType")}</p>
                           <p className="truncate text-[11px] text-[#71717A]">{payment.createdAt}</p>
                         </div>
                       </div>
@@ -288,24 +288,24 @@ const VendorDashboard = () => {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-xs text-[#6B7280]">Stall</span>
+                    <span className="text-xs text-[#6B7280]">{t("vendor:dashboard.stallLabel")}</span>
                     <span className="text-sm font-semibold text-[#111827]">{activeStall.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-[#6B7280]">Zone</span>
+                    <span className="text-xs text-[#6B7280]">{t("vendor:dashboard.zoneLabel")}</span>
                     <span className="text-sm font-semibold text-[#111827]">{activeStall.zone}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-[#6B7280]">Size</span>
+                    <span className="text-xs text-[#6B7280]">{t("vendor:dashboard.sizeLabel")}</span>
                     <span className="text-sm font-semibold text-[#111827]">{activeStall.size}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs text-[#6B7280]">Monthly dues</span>
+                    <span className="text-xs text-[#6B7280]">{t("vendor:dashboard.monthlyDuesLabel")}</span>
                     <span className="text-sm font-bold text-[#0F5E3F]">{formatCurrency(activeStall.pricePerMonth)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-1">
-                    <span className="text-xs text-[#6B7280]">Status</span>
-                    <StatusBadge status={activeStall.status === "active" ? "active" : "pending"} label={activeStall.status === "active" ? "Active" : "Pending"} className="text-[10px]" />
+                    <span className="text-xs text-[#6B7280]">{t("vendor:dashboard.statusLabel")}</span>
+                    <StatusBadge status={activeStall.status === "active" ? "active" : "pending"} label={activeStall.status === "active" ? t("vendor:dashboard.activeStatus") : t("vendor:dashboard.pendingStatus")} className="text-[10px]" />
                   </div>
                 </div>
               </CardContent>

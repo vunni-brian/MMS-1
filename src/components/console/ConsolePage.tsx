@@ -137,12 +137,4 @@ export const DetailSheet = ({
   </Sheet>
 );
 
-// --- Re-exports from ui/ for backward compatibility ---
-// TODO: Migrate all consumers to import from "@/components/ui/*" directly.
-export { PageHeader } from "@/components/ui/PageHeader";
-export { KpiStrip, MiniSparkline } from "@/components/ui/KpiStrip";
-export { EvidenceField } from "@/components/ui/EvidenceField";
-export { FileUploadCard } from "@/components/ui/FileUploadCard";
-export { FormSection } from "@/components/ui/FormSection";
-export { DataTableFrame } from "@/components/ui/DataTableFrame";
-export { EmptyState } from "@/components/ui/EmptyState";
+

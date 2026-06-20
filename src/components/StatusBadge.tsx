@@ -37,6 +37,21 @@ const statusLabelKeys: Record<string, string> = {
  pending: "common:pendingReview",
  pending_payment: "common:pendingPayment",
  unpaid: "common:unpaid",
+ paid: "common:paid",
+ overdue: "common:overdue",
+ cancelled: "common:cancelled",
+ completed: "common:completed",
+ failed: "common:failed",
+ approved: "common:approved",
+ rejected: "common:rejected",
+ open: "common:open",
+ closed: "common:closed",
+ resolved: "common:resolved",
+ maintenance: "common:maintenance",
+ allocated: "common:allocated",
+ reserved: "common:reserved",
+ suspended: "common:suspended",
+ available: "common:available",
 };
 
 type StatusContext = "default" | "booking" | "payment" | "obligation" | "vendor" | "ticket";

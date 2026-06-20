@@ -14,9 +14,15 @@ import type { AuthUser, LocationType, MarketManagerSummary, NotificationType, Pe
 
 const { Pool, types } = pg;
 
-// PostgreSQL returns bigint columns as strings by default. The counts and sums
-// in this app are small enough to safely coerce into numbers.
-types.setTypeParser(20, (value) => Number(value));
+types.setTypeParser(20, (value) => {
+  const n = Number(value);
+  if (!Number.isSafeInteger(n)) {
+    throw new RangeError(
+      `BIGINT value ${value} exceeds Number.MAX_SAFE_INTEGER — use BigInt column type for large integers`,
+    );
+  }
+  return n;
+});
 
 type DbClient = InstanceType<typeof Pool> | import("pg").PoolClient;
 type TransactionContext = {

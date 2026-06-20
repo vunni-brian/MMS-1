@@ -43,11 +43,8 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { EmptyState } from "@/components/ui/EmptyState";
-import {
-  DataTableFrame,
-  DetailSheet,
-  SegmentedControl,
-} from "@/components/console/ConsolePage";
+import { DataTableFrame } from "@/components/ui/DataTableFrame";
+import { DetailSheet, SegmentedControl } from "@/components/console/ConsolePage";
 import type { Permission, Role, StaffAccount, StaffStatus } from "@/types";
 
 type StaffRole = Extract<Role, "manager" | "official">;
@@ -318,7 +315,7 @@ const UserManagementPage = () => {
         <form className="space-y-4" onSubmit={handleInviteSubmit}>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="staff-role">{t("admin:users.role")}</Label>
+              <Label htmlFor="staff-role">{t("admin:users.roleLabel")}</Label>
               <Select value={inviteForm.role} onValueChange={(value) => setInviteRole(value as StaffRole)}>
                 <SelectTrigger id="staff-role">
                   <SelectValue placeholder={t("admin:users.selectRole")} />
@@ -393,7 +390,7 @@ const UserManagementPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="department">{t("admin:users.department")}</Label>
+              <Label htmlFor="department">{t("admin:users.departmentLabel")}</Label>
               <Input
                 id="department"
                 value={inviteForm.department}
@@ -430,7 +427,7 @@ const UserManagementPage = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="access-level">{t("admin:users.accessLevel")}</Label>
+              <Label htmlFor="access-level">{t("admin:users.accessLevelLabel")}</Label>
               <Select
                 value={inviteForm.accessLevel}
                 onValueChange={(value) => setInviteForm((current) => ({ ...current, accessLevel: value }))}
@@ -566,7 +563,7 @@ const UserScopeSheet = ({
         <div className="space-y-4 text-sm">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
-              <p className="text-xs text-muted-foreground">{t("admin:users.role")}</p>
+              <p className="text-xs text-muted-foreground">{t("admin:users.roleLabel")}</p>
               <div className="mt-1"><span className={roleClassName(user.role)}>{t("admin:users.role." + user.role)}</span></div>
             </div>
             <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
@@ -582,7 +579,7 @@ const UserScopeSheet = ({
               <p className="mt-1 font-medium">{user.phone}</p>
             </div>
             <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
-              <p className="text-xs text-muted-foreground">{t("admin:users.department")}</p>
+              <p className="text-xs text-muted-foreground">{t("admin:users.departmentLabel")}</p>
               <p className="mt-1 font-medium">{user.department || "—"}</p>
             </div>
             <div className="rounded-lg border border-border/70 bg-muted/15 p-2.5">
@@ -658,8 +655,8 @@ const UsersTable = ({ rows }: { rows: StaffAccount[] }) => {
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead>{t("admin:users.name")}</TableHead>
-              <TableHead>{t("admin:users.role")}</TableHead>
-              <TableHead>{t("admin:users.department")}</TableHead>
+              <TableHead>{t("admin:users.roleLabel")}</TableHead>
+              <TableHead>{t("admin:users.departmentLabel")}</TableHead>
               <TableHead>{t("common:status")}</TableHead>
               <TableHead>{t("admin:users.lastActive")}</TableHead>
               <TableHead className="text-right">{t("admin:users.permissions")}</TableHead>
@@ -743,7 +740,7 @@ const RolesPermissionsPanel = () => {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40">
-              <TableHead>{t("admin:users.role")}</TableHead>
+              <TableHead>{t("admin:users.roleLabel")}</TableHead>
               <TableHead>{t("admin:users.accessIntent")}</TableHead>
               <TableHead className="text-right">{t("admin:users.permissions")}</TableHead>
             </TableRow>

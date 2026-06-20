@@ -14,12 +14,12 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
+import { formatCurrency, formatHumanDateTime, tSnake } from "@/lib/utils";
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { KpiStrip } from "@/components/console/ConsolePage";
+import { KpiStrip } from "@/components/ui/KpiStrip";
 import { MiniAreaChart, MiniBarChart } from "@/components/charts/MiniCharts";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -96,15 +96,15 @@ const OfficialDashboard = () => {
     const marketResolved = marketTickets.filter((t) => ["resolved", "closed"].includes(t.status));
     const revenue = marketPayments.reduce((sum, p) => sum + p.amount, 0);
     const compliance = marketTickets.length > 0 ? Math.round((marketResolved.length / marketTickets.length) * 100) : 100;
-    const risk = compliance >= 90 ? "Low" : compliance >= 70 ? "Medium" : "High";
-    return { market: market.name, vendors: market.vendorCount || 0, revenue, compliance, risk, tone: risk === "Low" ? "default" : risk === "High" ? "destructive" : "secondary" };
+    const riskLabel = compliance >= 90 ? t("official:dashboard.riskLow") : compliance >= 70 ? t("official:dashboard.riskMedium") : t("official:dashboard.riskHigh");
+    return { market: market.name, vendors: market.vendorCount || 0, revenue, compliance, risk: riskLabel, tone: compliance >= 90 ? "default" : compliance >= 70 ? "secondary" : "destructive" as const };
   });
 
   const riskItems = [
     ...(lowComplianceMarkets.length > 0 ? [{
       id: "low-compliance",
       icon: ShieldAlert,
-      label: "Low Compliance Markets",
+      label: t("official:dashboard.lowComplianceMarkets"),
       value: lowComplianceMarkets.length,
       detail: `${lowComplianceMarkets.map((m) => m.name).join(", ")}`,
       positive: false,
@@ -112,17 +112,17 @@ const OfficialDashboard = () => {
     ...(breachedSla.length > 0 ? [{
       id: "sla-breaches",
       icon: AlertTriangle,
-      label: "SLA Breaches",
+      label: t("official:dashboard.slaBreaches"),
       value: breachedSla.length,
-      detail: "Complaints exceeding response target",
+      detail: t("official:dashboard.slaBreachesDetail"),
       positive: false,
     }] : []),
     ...(pendingResources.length > 0 ? [{
       id: "pending-resources",
       icon: ClipboardList,
-      label: "Pending Resource Requests",
+      label: t("official:dashboard.pendingResourceRequestsLabel"),
       value: pendingResources.length,
-      detail: "Awaiting review and approval",
+      detail: t("official:dashboard.pendingResourceRequestsDetail"),
       positive: false,
     }] : []),
   ];
@@ -152,15 +152,15 @@ const OfficialDashboard = () => {
                 </div>
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-lg bg-[#F8F9FA] p-4">
-                    <p className="text-[11px] font-medium text-[#6B7280]">Compliance</p>
+                    <p className="text-[11px] font-medium text-[#6B7280]">{t("official:dashboard.complianceLabel")}</p>
                     <p className="mt-1 text-2xl font-bold text-[#111827]">{complianceScore !== null ? `${complianceScore}%` : "—"}</p>
                   </div>
                   <div className="rounded-lg bg-[#F8F9FA] p-4">
-                    <p className="text-[11px] font-medium text-[#6B7280]">Occupancy</p>
+                    <p className="text-[11px] font-medium text-[#6B7280]">{t("official:dashboard.occupancyLabel")}</p>
                     <p className="mt-1 text-2xl font-bold text-[#111827]">{stalls.length > 0 ? `${occupancyRate}%` : "—"}</p>
                   </div>
                   <div className="rounded-lg bg-[#F8F9FA] p-4">
-                    <p className="text-[11px] font-medium text-[#6B7280]">Resolution</p>
+                    <p className="text-[11px] font-medium text-[#6B7280]">{t("official:dashboard.resolutionLabel")}</p>
                     <p className="mt-1 text-2xl font-bold text-[#111827]">{tickets.length > 0 ? `${resolutionRate}%` : "—"}</p>
                   </div>
                 </div>
@@ -190,10 +190,10 @@ const OfficialDashboard = () => {
           )}
 
           <div className="grid gap-4 md:grid-cols-4">
-            <InsightCard label={t("official:dashboard.activeMarkets")} value={markets.length} detail="Under review" icon={<Landmark className="h-5 w-5" />} />
-            <InsightCard label={t("official:dashboard.registeredVendors")} value={vendors.length.toLocaleString()} detail="Across all markets" icon={<BarChart3 className="h-5 w-5" />} />
-            <InsightCard label={t("official:dashboard.openComplaints")} value={openComplaints.length} detail={`${breachedSla.length} escalated`} icon={<MessageSquare className="h-5 w-5" />} />
-            <InsightCard label={t("official:dashboard.complianceAlerts")} value={breachedSla.length + pendingResources.length} detail="Needs oversight" icon={<AlertTriangle className="h-5 w-5" />} />
+            <InsightCard label={t("official:dashboard.activeMarkets")} value={markets.length} detail={t("official:dashboard.underReview")} icon={<Landmark className="h-5 w-5" />} />
+            <InsightCard label={t("official:dashboard.registeredVendors")} value={vendors.length.toLocaleString()} detail={t("official:dashboard.acrossAllMarkets")} icon={<BarChart3 className="h-5 w-5" />} />
+            <InsightCard label={t("official:dashboard.openComplaints")} value={openComplaints.length} detail={t("official:dashboard.escalated", { n: breachedSla.length })} icon={<MessageSquare className="h-5 w-5" />} />
+            <InsightCard label={t("official:dashboard.complianceAlerts")} value={breachedSla.length + pendingResources.length} detail={t("official:dashboard.needsOversight")} icon={<AlertTriangle className="h-5 w-5" />} />
           </div>
 
           <Card>
@@ -207,20 +207,20 @@ const OfficialDashboard = () => {
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E8F5EE] text-xs font-bold text-[#0F5E3F]">{index + 1}</span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-[#111827]">{row.market}</p>
-                      <p className="text-[11px] text-[#6B7280]">{row.vendors} vendors — {formatCurrency(row.revenue)}</p>
+                      <p className="text-[11px] text-[#6B7280]">{t("official:dashboard.vendorsRevenueLine", { count: row.vendors, revenue: formatCurrency(row.revenue) })}</p>
                     </div>
                     <div className="flex items-center gap-4 md:justify-end">
                       <div className="w-24">
                         <div className="h-1.5 rounded-full bg-[#F1F3F5]">
                           <div className="h-1.5 rounded-full bg-[#0F5E3F]" style={{ width: `${row.compliance}%` }} />
                         </div>
-                        <p className="mt-1 text-right text-[10px] text-[#6B7280]">{row.compliance}% compliant</p>
+                        <p className="mt-1 text-right text-[10px] text-[#6B7280]">{t("official:dashboard.compliantPercent", { n: row.compliance })}</p>
                       </div>
                       <Badge variant={row.tone} className="text-[10px]">{row.risk}</Badge>
                     </div>
                   </div>
                 )) : (
-                  <EmptyState title="No market data available" />
+                  <EmptyState title={t("official:dashboard.noMarketData")} />
                 )}
               </div>
             </CardContent>
@@ -244,7 +244,7 @@ const OfficialDashboard = () => {
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="font-medium text-[#6B7280]">Resolved within SLA</span>
+                      <span className="font-medium text-[#6B7280]">{t("official:dashboard.resolvedWithinSla")}</span>
                       <span className="font-semibold text-[#111827]">{resolutionRate}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-[#F1F3F5]">
@@ -253,7 +253,7 @@ const OfficialDashboard = () => {
                   </div>
                   <div>
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="font-medium text-[#6B7280]">Escalated cases</span>
+                      <span className="font-medium text-[#6B7280]">{t("official:dashboard.escalatedCases")}</span>
                       <span className="font-semibold text-[#111827]">{breachedSla.length}</span>
                     </div>
                     <div className="h-2 rounded-full bg-[#F1F3F5]">
@@ -271,7 +271,7 @@ const OfficialDashboard = () => {
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-bold">Audit Activity</CardTitle>
+                <CardTitle className="text-sm font-bold">{t("official:dashboard.auditActivity")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -281,19 +281,19 @@ const OfficialDashboard = () => {
                         <FileSearch className="h-3.5 w-3.5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#111827] capitalize">{event.action.replace(/_/g, " ")}</p>
+                        <p className="truncate text-sm font-semibold text-[#111827] capitalize">{tSnake(t, event.action)}</p>
                         <p className="truncate text-[11px] text-[#6B7280]">{event.actorName} — {formatHumanDateTime(event.createdAt)}</p>
                       </div>
                     </div>
                   ))}
-                  {!auditEvents.length && <EmptyState title="No audit events" />}
+                  {!auditEvents.length && <EmptyState title={t("official:dashboard.noAuditEvents")} />}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-bold">Resource Requests</CardTitle>
+                <CardTitle className="text-sm font-bold">{t("official:dashboard.resourceRequests")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -313,7 +313,7 @@ const OfficialDashboard = () => {
                   {!pendingResources.length ? (
                     <div className="flex items-center gap-2 rounded-lg border border-[#10B981]/20 bg-[#D1FAE5]/30 p-4 text-sm font-medium text-[#10B981]">
                       <CheckCircle2 className="h-4 w-4" />
-                      No pending resource requests
+                      {t("official:dashboard.noPendingResourceRequests")}
                     </div>
                   ) : null}
                 </div>

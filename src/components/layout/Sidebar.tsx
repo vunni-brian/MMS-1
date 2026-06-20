@@ -146,10 +146,10 @@ export const Sidebar = ({
               "truncate text-[11px] font-medium",
               systemOk ? "text-[#10B981]" : "text-[#EF476F]",
             )}>
-              {systemOk ? t("layout:allSystemsOperational") : "Degraded performance"}
+              {systemOk ? t("layout:allSystemsOperational") : t("layout:degradedPerformance")}
             </span>
           </div>
-          <p className="mt-2 truncate text-[11px] text-[#71717A]">&copy; 2026 Kampala Capital City Authority</p>
+          <p className="mt-2 truncate text-[11px] text-[#71717A]">{t("layout:copyright", { year: 2026, name: "Kampala Capital City Authority" })}</p>
         </div>
       </aside>
     </>

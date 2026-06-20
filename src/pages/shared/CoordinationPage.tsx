@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, MessageSquare, Send, Shield, Store, UserCog, Users, WalletCards } from "lucide-react";
+import { CheckCircle2, MessageSquare, Send, Shield, Store, UserCog, WalletCards } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";

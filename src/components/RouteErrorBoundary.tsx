@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react";
-import { withTranslation, type WithTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,8 +18,8 @@ const isChunkLoadError = (error: Error) =>
     error.message,
   );
 
-class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & WithTranslation, RouteErrorBoundaryState> {
-  constructor(props: RouteErrorBoundaryProps & WithTranslation) {
+class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & { t: (key: string) => string }, RouteErrorBoundaryState> {
+  constructor(props: RouteErrorBoundaryProps & { t: (key: string) => string }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -64,4 +64,7 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & WithTr
   }
 }
 
-export const RouteErrorBoundary = withTranslation()(RouteErrorBoundaryInner);
+export const RouteErrorBoundary = ({ children }: RouteErrorBoundaryProps) => {
+  const { t } = useTranslation();
+  return <RouteErrorBoundaryInner t={t}>{children}</RouteErrorBoundaryInner>;
+};

@@ -17,7 +17,7 @@ import {
 
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { api } from "@/lib/api";
-import { formatCurrency, formatHumanDateTime } from "@/lib/utils";
+import { formatCurrency, formatHumanDateTime, tSnake } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -233,7 +233,7 @@ const AdminAlertsPage = () => {
       .map((event) => ({
         id: `audit-${event.id}`,
         title: t("admin:alerts.systemActivityNeedsReview"),
-        detail: `${event.actorName} - ${event.action.replace(/_/g, " ")}`,
+        detail: `${event.actorName} - ${tSnake(t, event.action)}`,
         type: "system" as const,
         severity: "info" as const,
         status: "watching" as const,
@@ -429,7 +429,7 @@ const AdminAlertsPage = () => {
                     <TableRow className="border-slate-200 bg-slate-50">
                       <TableHead className="font-semibold">{t("admin:alerts.alert")}</TableHead>
                       <TableHead className="font-semibold">{t("admin:alerts.type")}</TableHead>
-                      <TableHead className="font-semibold">{t("admin:alerts.severity")}</TableHead>
+                      <TableHead className="font-semibold">{t("admin:alerts.severityLabel")}</TableHead>
                       <TableHead className="font-semibold">{t("common:status")}</TableHead>
                       <TableHead className="font-semibold">{t("admin:alerts.source")}</TableHead>
                       <TableHead className="font-semibold">{t("admin:alerts.time")}</TableHead>

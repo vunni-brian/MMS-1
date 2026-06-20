@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Activity, AlertTriangle, Database, FileDown } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { EvidenceField } from "@/components/console/ConsolePage";
+import { EvidenceField } from "@/components/ui/EvidenceField";
 import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";

@@ -167,7 +167,7 @@ const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value
 const getMonthKey = (value: string, t: (key: string) => string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return t("common:notAvailable");
-  return new Intl.DateTimeFormat("en-GB", { month: "short", year: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat(undefined, { month: "short", year: "2-digit" }).format(date);
 };
 
 const useOfficialOversightData = () => {

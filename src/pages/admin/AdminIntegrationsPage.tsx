@@ -18,7 +18,7 @@ import {
 
 import { DASHBOARD_CONFIG } from "@/config/dashboard";
 import { api } from "@/lib/api";
-import { formatHumanDateTime } from "@/lib/utils";
+import { formatHumanDateTime, tSnake } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -461,7 +461,7 @@ const AdminIntegrationsPage = () => {
                   activityRows.map((event) => (
                     <div key={event.id} className="rounded-lg border border-slate-200 bg-slate-50/30 p-3">
                       <p className="text-sm font-medium capitalize text-slate-900">
-                        {event.action.replace(/_/g, " ")}
+                        {tSnake(t, event.action)}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         {event.actorName} - {formatHumanDateTime(event.createdAt)}

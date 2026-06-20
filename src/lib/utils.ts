@@ -5,16 +5,15 @@ export function cn(...inputs: ClassValue[]) {
  return twMerge(clsx(inputs));
 }
 
-/** Currency symbol used across the entire app. Change here to update everywhere. */
 export const CURRENCY_SYMBOL = "UGX";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+const dateFormatter = () => new Intl.DateTimeFormat(undefined, {
  day: "2-digit",
  month: "short",
  year: "numeric",
 });
 
-const shortDateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+const shortDateTimeFormatter = () => new Intl.DateTimeFormat(undefined, {
  day: "2-digit",
  month: "short",
  year: "numeric",
@@ -29,41 +28,46 @@ const parseDate = (value?: string | Date | null) => {
 };
 
 export function formatCurrency(amount?: number | null) {
- return `${CURRENCY_SYMBOL} ${(amount || 0).toLocaleString("en-US")}`;
+ return `${CURRENCY_SYMBOL} ${(amount || 0).toLocaleString(undefined)}`;
 }
 
 export function formatHumanDate(value?: string | Date | null, fallback = "Not available") {
  const date = parseDate(value);
- return date ? dateFormatter.format(date) : fallback;
+ return date ? dateFormatter().format(date) : fallback;
 }
 
 export function formatHumanDateTime(value?: string | Date | null, fallback = "Not available") {
  const date = parseDate(value);
- return date ? shortDateTimeFormatter.format(date) : fallback;
+ return date ? shortDateTimeFormatter().format(date) : fallback;
 }
 
-export function formatHumanDateRange(start?: string | Date | null, end?: string | Date | null) {
- const startDate = parseDate(start);
- const endDate = parseDate(end);
-
- if (!startDate && !endDate) return "Dates not set";
- if (!startDate) return `Until ${dateFormatter.format(endDate!)}`;
- if (!endDate) return `From ${dateFormatter.format(startDate)}`;
-
- if (startDate.getFullYear() === endDate.getFullYear()) {
- const compactStart = new Intl.DateTimeFormat("en-GB", {
- day: "2-digit",
- month: "short",
- }).format(startDate);
-
- return `${compactStart} – ${dateFormatter.format(endDate)}`;
- }
-
- return `${dateFormatter.format(startDate)} – ${dateFormatter.format(endDate)}`;
+export function getTimeAwareGreeting(
+  t: (key: string) => string,
+  name?: string | null,
+) {
+  const hour = new Date().getHours();
+  const greeting = hour < 12
+    ? t("common:goodMorning")
+    : hour < 18
+      ? t("common:goodAfternoon")
+      : t("common:goodEvening");
+  return `${greeting}, ${name || t("common:greetingThere")}`;
 }
 
-export function getTimeAwareGreeting(name?: string | null) {
- const hour = new Date().getHours();
- const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
- return `${greeting}, ${name || "there"}`;
+function snakeToCamel(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/_(.)/g, (_, c) => c.toUpperCase());
+}
+
+export function tSnake(
+  t: (key: string) => string,
+  value: string,
+  prefix = "common",
+): string {
+  const camel = snakeToCamel(value);
+  const key = `${prefix}:${camel}`;
+  const translated = t(key);
+  if (translated !== key) return translated;
+  return value.replace(/_/g, " ").toLowerCase();
 }
