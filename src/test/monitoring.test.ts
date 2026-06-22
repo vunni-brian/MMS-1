@@ -1,3 +1,8 @@
+/**
+ * Tests for the monitoring/alerting service data structures.
+ * Validates that auth failures, DB errors, background-job failures,
+ * alert severity levels, and event payloads are captured correctly.
+ */
 import { describe, expect, it, vi } from "vitest";
 
 describe("monitoring service", () => {

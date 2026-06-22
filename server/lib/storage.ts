@@ -1,3 +1,9 @@
+/**
+ * @file Local file storage helpers.
+ * Manages upload and static directories, file existence checks, and safe
+ * file-path resolution within the configured storage root.
+ */
+
 import fs from "node:fs";
 import path from "node:path";
 
@@ -10,6 +16,7 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 const sanitizeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
+/** Validate a file upload — required check, size limit (5 MB), and allowed MIME types. */
 export const validateFilePayload = (
   file: FilePayload | null | undefined,
   allowedMimeTypes: string[],
@@ -31,6 +38,7 @@ export const validateFilePayload = (
   }
 };
 
+/** Persist a file upload — validates, then stores to Supabase Storage or local disk. */
 export const persistFilePayload = async (subdirectory: string, prefix: string, file: FilePayload) => {
   validateFilePayload(file, [file.mimeType], true);
   if (!/^[a-zA-Z0-9+/]+={0,2}$/.test(file.base64)) {
@@ -74,6 +82,7 @@ export const persistFilePayload = async (subdirectory: string, prefix: string, f
   };
 };
 
+/** Delete a previously stored file (Supabase Storage or local disk). */
 export const removeStoredFile = async (storagePath: string | null | undefined) => {
   if (!storagePath) {
     return;

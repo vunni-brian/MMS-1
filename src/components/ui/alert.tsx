@@ -1,3 +1,4 @@
+/** A contextual alert banner with title, description, and optional variant styling. */
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 

@@ -1,3 +1,9 @@
+/**
+ * Tests for ticket-status notification rules.
+ * Verifies that status transitions (open → in_progress → resolved)
+ * produce the correct channels (system-only vs system+SMS) and
+ * message text, including optional ticket-number inclusion.
+ */
 import { describe, expect, it } from "vitest";
 
 import { getTicketCreationManagerChannels, getVendorTicketNotification } from "../../server/lib/ticket-notifications.ts";

@@ -1,3 +1,8 @@
+/**
+ * Tests for React route-guard components (RoleRoute, VendorApprovalGuard).
+ * Verifies that each role is correctly allowed/redirected based on
+ * allowedRoles, vendor approval status, and route wiring.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";

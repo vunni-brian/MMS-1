@@ -1,9 +1,17 @@
+/**
+ * ReadOnlyRows - Displays a list of label-value pairs in a bordered grid,
+ * used for read-only information panels throughout settings.
+ */
 import type { ReactNode } from "react";
 
+/** Props for the ReadOnlyRows component. */
 interface ReadOnlyRowsProps {
   rows: Array<{ label: string; value: ReactNode }>;
 }
 
+/**
+ * ReadOnlyRows - Renders a vertical list of label-value pairs in a bordered grid.
+ */
 const ReadOnlyRows = ({ rows }: ReadOnlyRowsProps) => (
   <div className="readonly-rows divide-y divide-border/70 rounded-lg border border-border/70 bg-background">
     {rows.map((row) => (

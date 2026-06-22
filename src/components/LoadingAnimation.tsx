@@ -1,10 +1,16 @@
+/**
+ * LoadingAnimation - Full-screen (or contained) loading indicator that displays
+ * a Lottie animation with a configurable text label.
+ */
 import { useTranslation } from "react-i18next";
 import Lottie from "lottie-react";
 
 import animationData from "@/assets/loader-animation.json";
 
 interface LoadingAnimationProps {
+  /** Optional label text; defaults to a translated "Loading..." string. */
   label?: string;
+  /** Optional className override. */
   className?: string;
 }
 export function LoadingAnimation({ label, className }: LoadingAnimationProps) {

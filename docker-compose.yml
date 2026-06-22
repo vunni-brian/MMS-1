@@ -1,7 +1,11 @@
+# Docker Compose configuration for MMS local development environment.
+# Spins up PostgreSQL, Redis, the API server, the frontend dev server,
+# Prometheus, and Grafana on a shared bridge network.
+
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL — primary database for the application
   postgres:
     image: postgres:16-alpine
     container_name: mms-postgres
@@ -24,7 +28,7 @@ services:
     networks:
       - mms-network
 
-  # Redis for caching and sessions
+  # Redis — in-memory cache for sessions and rate limiting
   redis:
     image: redis:7-alpine
     container_name: mms-redis
@@ -41,7 +45,7 @@ services:
     networks:
       - mms-network
 
-  # Backend API
+  # API — Express backend server built from the Dockerfile runner target
   api:
     build:
       context: .
@@ -84,7 +88,7 @@ services:
     volumes:
       - ./runtime:/app/runtime
 
-  # Frontend (for development)
+  # Web — Vite dev server built from the Dockerfile builder target
   web:
     build:
       context: .
@@ -103,7 +107,7 @@ services:
     networks:
       - mms-network
 
-  # Prometheus for metrics collection
+  # Prometheus — collects metrics from the API and system
   prometheus:
     image: prom/prometheus:latest
     container_name: mms-prometheus
@@ -119,7 +123,7 @@ services:
     networks:
       - mms-network
 
-  # Grafana for visualization
+  # Grafana — dashboards for visualizing Prometheus metrics
   grafana:
     image: grafana/grafana:latest
     container_name: mms-grafana
@@ -138,6 +142,7 @@ services:
     networks:
       - mms-network
 
+# Persistent volumes for stateful services
 volumes:
   postgres_data:
     driver: local
@@ -148,6 +153,7 @@ volumes:
   grafana_data:
     driver: local
 
+# Shared bridge network for inter-service communication
 networks:
   mms-network:
     driver: bridge

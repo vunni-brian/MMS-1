@@ -1,3 +1,4 @@
+/** A responsive navigation menu built on Radix UI Navigation Menu primitives. */
 import * as React from "react";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";

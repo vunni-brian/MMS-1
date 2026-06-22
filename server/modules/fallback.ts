@@ -1,3 +1,9 @@
+/**
+ * @file Vendor fallback-contact module.
+ * Routes for managing fallback contact persons assigned to vendor stalls,
+ * used when the primary vendor is unreachable.
+ */
+
 import { all, createId, get, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMaxLength, MAX_INPUT_LENGTH, MAX_PHONE_LENGTH, sanitizeText } from "../lib/text-utils.ts";
@@ -72,6 +78,7 @@ const resolveFallbackResponse = async (input: string, phone: string) => {
   return "Unsupported query. Use AVAIL for stall availability or STATUS for last payment.";
 };
 
+/** Vendor fallback-contact routes (CRUD for emergency contacts assigned to stalls). */
 export const fallbackRoutes: RouteDefinition[] = [
   {
     method: "POST",

@@ -1,18 +1,36 @@
+/**
+ * Shared test helpers and user fixtures for Playwright E2E tests.
+ * Provides login flows, navigation assertions, OTP extraction, and route protection checks.
+ */
 import type { Page, Request, Response } from "@playwright/test";
 
+/**
+ * Describes a test user with credentials, expected routing, and nav-link visibility.
+ */
 export interface RoleUser {
+  /** Human-readable label used for screenshot filenames. */
   label: string;
+  /** System role assigned to the user. */
   role: "vendor" | "manager" | "official" | "admin";
+  /** Phone number used for login. */
   phone: string;
+  /** Plain-text password for the test account. */
   password: string;
+  /** Whether the user's role requires TOTP-based MFA verification. */
   requiresMfa: boolean;
+  /** Path the user should land on after a successful login. */
   expectedHomePath: string;
+  /** Expected heading text or pattern on the user's dashboard. */
   dashboardHeading: string | RegExp;
+  /** Whether to match the dashboard heading with exact equality. */
   dashboardHeadingExact: boolean;
+  /** Nav-link labels that must be present for this role. */
   navVisible: string[];
+  /** Nav-link labels that must be absent for this role. */
   navHidden: string[];
 }
 
+/** Master list of test users used across all E2E role-based suites. */
 export const USERS: RoleUser[] = [
   {
     label: "admin",
@@ -80,8 +98,16 @@ export const USERS: RoleUser[] = [
   },
 ];
 
+/** Promise-based delay helper for polling and wait loops. */
 export const DELAY = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Logs a test user in through the login page, filling phone/password fields,
+ * handling MFA OTP challenge if required, and waiting for the dashboard to load.
+ * Takes screenshots at each step for debugging.
+ *
+ * @returns The final URL after successful login.
+ */
 export async function loginAs(
   page: Page,
   user: RoleUser,
@@ -146,6 +172,10 @@ export async function loginAs(
   return page.url();
 }
 
+/**
+ * Asserts that the expected dashboard heading is visible on the page,
+ * supporting both exact string and RegExp matching strategies.
+ */
 export async function assertDashboardHeading(page: Page, user: RoleUser) {
   if (typeof user.dashboardHeading === "string" && user.dashboardHeadingExact) {
     await page.getByRole("heading", { name: user.dashboardHeading, exact: true }).waitFor({
@@ -160,6 +190,10 @@ export async function assertDashboardHeading(page: Page, user: RoleUser) {
   }
 }
 
+/**
+ * Verifies that nav links listed in `navVisible` are present and
+ * links in `navHidden` are absent for the given user role.
+ */
 export async function verifyNavLinks(page: Page, user: RoleUser): Promise<Record<string, boolean>> {
   const checks: Record<string, boolean> = {};
   for (const label of user.navVisible) {
@@ -171,6 +205,9 @@ export async function verifyNavLinks(page: Page, user: RoleUser): Promise<Record
   return checks;
 }
 
+/**
+ * Navigates to a page and waits for the expected heading to become visible.
+ */
 export async function gotoAndCheckHeading(
   page: Page,
   pagePath: string,
@@ -185,6 +222,10 @@ export async function gotoAndCheckHeading(
   await headingEl.waitFor({ state: "visible", timeout });
 }
 
+/**
+ * Navigates to a blocked route and asserts the user is redirected
+ * to the expected URL (string or RegExp).
+ */
 export async function checkRouteProtection(
   page: Page,
   blockedPath: string,
@@ -199,6 +240,11 @@ export async function checkRouteProtection(
   }
 }
 
+/**
+ * Extracts the TOTP code for a user from the API.
+ * For deployed environments, calls a debug OTP endpoint; for local,
+ * queries the database notifications table directly.
+ */
 async function extractOtpFromApi(phone: string, apiBaseUrl: string, challengeId?: string): Promise<string | null> {
   // For deployed API, use the debug/sandbox OTP endpoint
   if (!apiBaseUrl.includes("localhost") && !apiBaseUrl.includes("127.0.0.1")) {

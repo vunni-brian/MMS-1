@@ -1,3 +1,7 @@
+/**
+ * Tests for database connectivity checks performed during application startup.
+ * Ensures that an unreachable database is correctly reported as not connectable.
+ */
 import { describe, expect, it } from "vitest";
 
 import { canConnectToDatabase } from "../../server/lib/db.ts";

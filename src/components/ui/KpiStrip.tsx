@@ -1,3 +1,4 @@
+/** A horizontal strip of KPI (Key Performance Indicator) cards with sparklines and tone-based styling. */
 import type { ElementType, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
@@ -6,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { getPageType } from "@/config/pageIdentity";
 import { Card, CardContent } from "@/components/ui/card";
 
+/** A single KPI item with label, value, optional icon, trend, and sparkline data. */
 interface KpiItem {
   label: string;
   value: ReactNode;

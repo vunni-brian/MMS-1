@@ -1,3 +1,4 @@
+/** A loading placeholder that renders a configurable number of skeleton rows. */
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 

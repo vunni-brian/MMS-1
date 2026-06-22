@@ -1,3 +1,8 @@
+/**
+ * Tests for penalty display-name and notification-message helpers.
+ * Verifies labels are prefixed with "Penalty" and created messages
+ * include reason, amount, and unpaid status.
+ */
 import { describe, expect, it } from "vitest";
 
 import { getPenaltyCreatedMessage, getPenaltyDisplayName } from "../../server/lib/penalties.ts";

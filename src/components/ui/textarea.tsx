@@ -1,3 +1,4 @@
+/** A styled multi-line textarea with focus ring and disabled state. */
 import * as React from "react";
 
 import { cn } from "@/lib/utils";

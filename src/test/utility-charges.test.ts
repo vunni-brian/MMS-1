@@ -1,3 +1,9 @@
+/**
+ * Tests for utility-charge helper functions.
+ * Covers amount calculation (fixed/metered/estimated), display-name
+ * generation from description or fallback, and reset-status logic
+ * (unpaid vs overdue) for failed payments.
+ */
 import { describe, expect, it } from "vitest";
 
 import { calculateUtilityChargeAmount, getUtilityChargeDisplayName, getUtilityChargeResetStatus } from "../../server/lib/utilities.ts";

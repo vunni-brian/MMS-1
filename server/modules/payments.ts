@@ -1,3 +1,9 @@
+/**
+ * @file Payments module.
+ * Routes for payment initiation, IPN callback handling (Pesapal), payment
+ * listing, receipt generation, and payment-status reconciliation.
+ */
+
 import fs from "node:fs";
 import type { ServerResponse } from "node:http";
 
@@ -751,6 +757,7 @@ const servePaymentReceiptFile = async ({
   fs.createReadStream(payment.receiptFilePath).pipe(res);
 };
 
+/** Payment routes (initiate, IPN callback, status check, receipt, payment history). */
 export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",

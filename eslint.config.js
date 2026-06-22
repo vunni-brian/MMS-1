@@ -4,6 +4,10 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
+// ESLint configuration for TypeScript/React project.
+// Extends recommended rulesets and applies React Hooks + Refresh plugins.
+// Unused-vars is disabled; UI and context directories are exempt from
+// the export-components rule.
 export default tseslint.config(
   { ignores: ["dist"] },
   {

@@ -1,6 +1,8 @@
+/** A vertical timeline panel showing recent activity items with icons and timestamps. */
 import type { ElementType } from "react";
 import { cn } from "@/lib/utils";
 
+/** A single timeline entry with icon, title, detail, and timestamp. */
 export interface TimelineItem {
   id: string;
   icon: ElementType;

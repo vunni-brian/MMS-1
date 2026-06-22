@@ -1,3 +1,4 @@
+/** A one-time password input component with grouped slots and separator support. */
 import * as React from "react";
 import { OTPInput, OTPInputContext } from "input-otp";
 import { Dot } from "lucide-react";

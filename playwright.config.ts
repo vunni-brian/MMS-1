@@ -1,3 +1,8 @@
+/**
+ * Playwright end-to-end test configuration.
+ * Runs Chromium tests against the Vite dev server with
+ * screenshots on failure, HTML/JSON reporters, and CI retry logic.
+ */
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({

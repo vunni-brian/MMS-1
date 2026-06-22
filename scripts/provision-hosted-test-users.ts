@@ -1,3 +1,7 @@
+/**
+ * Provisions (creates or updates) test users and a demo market in the local database,
+ * syncing each user to Supabase Auth. Used for hosted/demo test environments.
+ */
 import { pathToFileURL } from "node:url";
 
 import { all, closeDatabase, initDatabase, run, transaction } from "../server/lib/db.ts";
@@ -5,15 +9,23 @@ import { hashPassword, normalizePhoneNumber, nowIso } from "../server/lib/securi
 import { syncSeedUserToSupabase } from "../server/lib/supabase.ts";
 import type { Role } from "../server/types.ts";
 
+/** Specification for a single test user to be provisioned. */
 type TestUserSpec = {
+  /** Stable user ID used for idempotent upsert. */
   id: string;
+  /** Display name for the user. */
   name: string;
+  /** Email address (also used for Supabase Auth). */
   email: string;
+  /** E.164 phone number. */
   phone: string;
+  /** System role assigned to the user. */
   role: Role;
+  /** Plain-text password that will be hashed before storage. */
   password: string;
 };
 
+/** Shape of an existing user row fetched from the database for deduplication. */
 type ExistingUserRow = {
   id: string;
   auth_user_id: string | null;
@@ -25,6 +37,7 @@ type ExistingUserRow = {
   created_at: string;
 };
 
+/** Demo market created alongside test users for manager/vendor role assignments. */
 const hostedTestMarket = {
   id: "market_demo_test",
   name: "MMS Demo Test Market",
@@ -32,6 +45,7 @@ const hostedTestMarket = {
   location: "Hosted Testbed",
 } as const;
 
+/** The full set of test users to provision for the hosted demo environment. */
 const hostedTestUsers: TestUserSpec[] = [
   {
     id: "user_admin_vunni",
@@ -75,8 +89,13 @@ const hostedTestUsers: TestUserSpec[] = [
   },
 ];
 
+/** Deduplicates an array of objects by their `id` property, keeping the last occurrence. */
 const uniqueById = <T extends { id: string }>(rows: T[]) => Array.from(new Map(rows.map((row) => [row.id, row])).values());
 
+/**
+ * Looks up an existing user by id, email, or phone to decide
+ * whether to create or update the record.
+ */
 const resolveExistingUser = async (user: TestUserSpec) => {
   const matches = uniqueById(
     await all<ExistingUserRow>(
@@ -99,6 +118,7 @@ const resolveExistingUser = async (user: TestUserSpec) => {
   return matches[0] ?? null;
 };
 
+/** Ensures the hosted demo market exists, creating or updating it as needed. */
 const resolveHostedTestMarket = async () => {
   const matches = uniqueById(
     await all<{ id: string; code: string }>(
@@ -138,6 +158,7 @@ const resolveHostedTestMarket = async () => {
   return { id: matches[0].id, created: false };
 };
 
+/** Ensures no other local user is already linked to the given Supabase Auth user ID. */
 const ensureUniqueAuthLink = async (authUserId: string, localUserId: string) => {
   const linkedUsers = await all<{ id: string }>(
     `SELECT id
@@ -151,6 +172,7 @@ const ensureUniqueAuthLink = async (authUserId: string, localUserId: string) => 
   }
 };
 
+/** Creates or updates a vendor_profile record with approved status for the given user. */
 const upsertVendorProfile = async ({
   userId,
   approvedBy,
@@ -187,6 +209,11 @@ const upsertVendorProfile = async ({
   );
 };
 
+/**
+ * Main provisioning routine: resolves or creates the demo market, then
+ * iterates over all test users — creating or updating each one, syncing
+ * to Supabase Auth, and setting up vendor profiles where applicable.
+ */
 export const provisionHostedTestUsers = async () => {
   await initDatabase();
 

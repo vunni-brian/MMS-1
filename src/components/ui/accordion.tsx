@@ -1,9 +1,11 @@
+/** An expandable/collapsible accordion built on Radix UI primitives. */
 import * as React from "react";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+/** The root accordion container. */
 const Accordion = AccordionPrimitive.Root;
 
 const AccordionItem = React.forwardRef<

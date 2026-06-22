@@ -1,3 +1,7 @@
+/**
+ * Account settings page with vendor account deactivation request.
+ * Accessible to all roles.
+ */
 import { useContext, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +10,7 @@ import { api } from "@/lib/api";
 import { AccountSection } from "@/components/settings";
 import { SettingsDataContext } from "@/pages/shared/SettingsLayout";
 
+/** AccountSettingsPage - renders the account deactivation section. */
 const AccountSettingsPage = () => {
   const { user } = useAuth();
   const hook = useContext(SettingsDataContext);

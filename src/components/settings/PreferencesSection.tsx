@@ -1,9 +1,14 @@
+/**
+ * PreferencesSection - User preferences for language, time zone, date format,
+ * currency, and dashboard behaviour (dense tables, persisted filters, hints).
+ */
 import { useTranslation } from "react-i18next";
 import { Globe2, SlidersHorizontal } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** User preferences panel (regional + dashboard settings). */
 const PreferencesSection = ({ getString, updateSetting, getBoolean }: SettingsContext) => {
   const { t } = useTranslation();
   return (

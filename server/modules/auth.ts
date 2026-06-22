@@ -1,3 +1,10 @@
+/**
+ * @file Authentication module.
+ * Routes for login, registration, password reset, profile management, and
+ * role assignment. Integrates with Supabase Auth for user lifecycle and
+ * issues session tokens for the internal session store.
+ */
+
 import fs from "node:fs";
 
 import {
@@ -368,6 +375,7 @@ const handleVerifyMfa: RouteDefinition["handler"] = async ({ req, res }) => {
   });
 };
 
+/** Authentication routes (register, login, verify OTP, profile, password reset, role management). */
 export const authRoutes: RouteDefinition[] = [
   {
     method: "GET",

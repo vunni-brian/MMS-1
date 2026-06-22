@@ -1,3 +1,7 @@
+/**
+ * Hook that detects mobile viewport width (< 768 px) reactively.
+ * Uses matchMedia listener to track breakpoint changes.
+ */
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;

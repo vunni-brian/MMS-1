@@ -1,3 +1,8 @@
+/**
+ * Login page with phone/password authentication and optional MFA flow.
+ * Supports privileged MFA verification and vendor registration OTP completion.
+ * Public access, redirects authenticated users to their role dashboard.
+ */
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ShieldCheck, ArrowLeft, Sparkles } from "lucide-react";
@@ -12,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+/** LoginPage - renders phone/password authentication form with optional MFA OTP and vendor registration OTP completion. */
 const LoginPage = () => {
   const { t } = useTranslation();
   const { user, login, verifyPrivilegedMfa, pendingMfa, clearPendingMfa, isLoading, authError, refreshUser } = useAuth();
@@ -39,6 +45,7 @@ const LoginPage = () => {
     }
   }, [navigate, user, from]);
 
+  /** Handles the primary form submission (login, MFA verification, or vendor OTP verification). */
   const handlePrimaryAction = async () => {
     setPageError(null);
     try {

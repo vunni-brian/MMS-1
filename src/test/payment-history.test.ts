@@ -1,8 +1,17 @@
+/**
+ * Tests for payment-history helper functions.
+ * Covers purpose-label generation, reference selection,
+ * multi-filter (status/year/date-range), and year extraction.
+ */
 import { describe, expect, it } from "vitest";
 
 import { filterPaymentsByHistory, getPaymentHistoryYears, getPaymentPurpose, getPaymentReference } from "@/lib/payment-history";
 import type { Payment } from "@/types";
 
+/**
+ * Factory to create a minimal Payment with sensible defaults.
+ * Spread overrides to customise individual fields per test case.
+ */
 const makePayment = (overrides: Partial<Payment>): Payment => ({
  id: "payment_1",
  marketId: "market_kampala",

@@ -1,3 +1,4 @@
+/** A file upload card with label, description, file name display, and hidden file input. */
 import type { ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";

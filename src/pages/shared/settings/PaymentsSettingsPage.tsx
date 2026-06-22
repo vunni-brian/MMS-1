@@ -1,9 +1,14 @@
+/**
+ * Payments settings page showing payment configuration with completed/pending totals.
+ * Accessible to all roles.
+ */
 import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { SettingsDataContext } from "@/pages/shared/SettingsLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { PaymentsSection } from "@/components/settings";
 
+/** PaymentsSettingsPage - renders the payments configuration section with totals. */
 const PaymentsSettingsPage = () => {
   const { user } = useAuth();
   const hook = useContext(SettingsDataContext);

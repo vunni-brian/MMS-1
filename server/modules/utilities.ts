@@ -1,3 +1,9 @@
+/**
+ * @file Utility charges module.
+ * CRUD routes for utility types, meter readings, and invoice generation for
+ * water, electricity, and similar shared-market utilities.
+ */
+
 import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
@@ -272,6 +278,7 @@ const syncOverdueUtilityCharges = async ({
   }
 };
 
+/** Utility charge routes (create, list, pay, overdue). */
 export const utilityChargeRoutes: RouteDefinition[] = [
   {
     method: "GET",

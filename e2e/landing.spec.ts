@@ -1,3 +1,7 @@
+/**
+ * Public-facing page E2E tests covering the landing page, login,
+ * registration, and 404 handling — all without authentication.
+ */
 import { test, expect } from "../playwright-fixture";
 import path from "node:path";
 import fs from "node:fs";

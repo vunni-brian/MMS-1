@@ -1,3 +1,7 @@
+/**
+ * SmsSection - SMS provider configuration panel. Lets admins choose the SMS
+ * provider, set a sender ID, and toggle payment/market-alert notifications.
+ */
 import { useTranslation } from "react-i18next";
 import { Smartphone } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
@@ -5,6 +9,7 @@ import { EvidenceField } from "@/components/ui/EvidenceField";
 import { SettingInput, SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** SMS configuration panel. */
 const SmsSection = ({ getString, updateSetting, getBoolean }: SettingsContext) => {
   const { t } = useTranslation();
   return (

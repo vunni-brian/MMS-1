@@ -1,3 +1,8 @@
+/**
+ * Tests for audit log retention policy configuration and cleanup logic.
+ * Validates default/custom retention periods, batch sizing limits,
+ * cutoff-date computation, and cleanup summary reporting.
+ */
 import { describe, expect, it } from "vitest";
 
 describe("audit log retention policy", () => {

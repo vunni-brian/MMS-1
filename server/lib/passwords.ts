@@ -1,8 +1,16 @@
+/**
+ * @file Password management utilities.
+ * Validates password strength, persists new password hashes, synchronises
+ * password changes with Supabase Auth, revokes sessions, and builds
+ * vendor-facing reset messages.
+ */
+
 import { run } from "./db.ts";
 import { HttpError } from "./http.ts";
 import { hashPassword, nowIso } from "./security.ts";
 import { updateSupabaseAuthUser } from "./supabase.ts";
 
+/** Assert that a password meets minimum strength requirements (≥ 8 chars). */
 export const validatePasswordStrength = (password: string) => {
   if (!password) {
     throw new HttpError(400, "A password is required.");
@@ -12,6 +20,7 @@ export const validatePasswordStrength = (password: string) => {
   }
 };
 
+/** Validate, hash, and persist a new password — syncs with Supabase Auth if the user has an `auth_user_id`. */
 export const applyUserPassword = async (
   user: {
     id: string;
@@ -41,6 +50,7 @@ export const applyUserPassword = async (
   await run(`UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?`, [hashPassword(newPassword), nowIso(), user.id]);
 };
 
+/** Delete all sessions for a user, optionally preserving one identified by `exceptTokenHash`. */
 export const revokeUserSessions = async ({
   userId,
   exceptTokenHash,
@@ -56,6 +66,7 @@ export const revokeUserSessions = async ({
   await run(`DELETE FROM sessions WHERE user_id = ?`, [userId]);
 };
 
+/** Build an SMS / system message with a temporary password for a vendor. */
 export const buildVendorPasswordResetMessage = ({
   temporaryPassword,
   reason,

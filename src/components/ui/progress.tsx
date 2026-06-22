@@ -1,3 +1,4 @@
+/** A progress bar built on Radix UI Progress primitive. */
 import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 

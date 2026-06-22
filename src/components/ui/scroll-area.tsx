@@ -1,3 +1,4 @@
+/** A scrollable area with custom scrollbar built on Radix UI Scroll Area primitives. */
 import * as React from "react";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 

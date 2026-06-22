@@ -1,3 +1,8 @@
+/**
+ * Database restore and verification CLI utility.
+ * Provides commands to restore from a backup file (auto-picking the latest),
+ * verify database integrity after restore, and list database tables.
+ */
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -5,6 +10,7 @@ import { join } from "node:path";
 const DATABASE_URL = process.env.DATABASE_URL || "";
 const BACKUP_DIR = process.env.BACKUP_DIR || "./backups";
 
+/** Parses a PostgreSQL connection string into its components. */
 const parseDatabaseUrl = (url: string) => {
   try {
     const parsed = new URL(url);
@@ -20,6 +26,7 @@ const parseDatabaseUrl = (url: string) => {
   }
 };
 
+/** Returns the filename of the most recent backup in the backup directory. */
 const getLatestBackup = (): string | null => {
   if (!existsSync(BACKUP_DIR)) {
     console.error(`Backup directory not found: ${BACKUP_DIR}`);
@@ -35,6 +42,7 @@ const getLatestBackup = (): string | null => {
   return files.length > 0 ? files[0] : null;
 };
 
+/** Checks that a backup file exists, is non-empty, and passes gzip integrity or SQL header checks. */
 const verifyBackup = (filepath: string): boolean => {
   if (!existsSync(filepath)) {
     console.error(`Backup file not found: ${filepath}`);
@@ -66,6 +74,7 @@ const verifyBackup = (filepath: string): boolean => {
   }
 };
 
+/** Restores the database from the given backup file, verifying integrity first. */
 const restore = (backupFile: string) => {
   const dbConfig = parseDatabaseUrl(DATABASE_URL);
   const filepath = join(BACKUP_DIR, backupFile);
@@ -99,6 +108,7 @@ const restore = (backupFile: string) => {
   }
 };
 
+/** Runs post-restore integrity checks: counts tables, migrations, and users. */
 const verifyRestore = () => {
   console.log("Verifying database integrity after restore...");
 
@@ -139,6 +149,7 @@ const verifyRestore = () => {
   }
 };
 
+/** CLI dispatch: routes the command argument to the appropriate handler. */
 const command = process.argv[2];
 const backupFile = process.argv[3];
 

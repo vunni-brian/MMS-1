@@ -1,3 +1,8 @@
+/**
+ * Step 6 smoke test: runs Playwright-based login and page-navigation checks
+ * for all roles (admin, manager, official, vendor) against a local or deployed stack.
+ * Optionally manages the local dev stack lifecycle (API server + Vite dev server).
+ */
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -6,8 +11,10 @@ import { chromium } from "playwright";
 
 import { closeDatabase, get, getUserRecordByPhone } from "../server/lib/db.ts";
 
+/** Valid role keys for the MMS system. */
 type RoleKey = "admin" | "manager" | "official" | "vendor";
 
+/** Describes a single user under smoke test with credentials and expected page behavior. */
 type SmokeUser = {
   label: string;
   role: RoleKey;
@@ -21,15 +28,25 @@ type SmokeUser = {
   navHidden: string[];
 };
 
+/** Accumulated result of all smoke-check assertions for a single user. */
 type SmokeResult = {
+  /** Whether the login flow completed successfully. */
   loginWorks: boolean;
+  /** Whether the dashboard page loaded after login. */
   dashboardLoads: boolean;
+  /** Results of per-page navigation checks. */
   pages: Record<string, boolean>;
+  /** Results of route-protection (blocked redirect) checks. */
   routeProtection: Record<string, boolean>;
+  /** Results of nav-link visibility checks. */
   navChecks: Record<string, boolean>;
+  /** Role-specific billing-page behavior observations. */
   billingBehavior?: Record<string, boolean | string>;
+  /** Informational notes collected during the run. */
   notes: string[];
+  /** Path to a full-page screenshot taken at the end of the flow. */
   screenshotPath?: string;
+  /** Fatal error message if the flow could not complete. */
   error?: string;
 };
 
@@ -103,11 +120,13 @@ const users: SmokeUser[] = [
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** A child process managed by the smoke test lifecycle (started / stopped together). */
 type ManagedProcess = {
   label: string;
   child: import("node:child_process").ChildProcess;
 };
 
+/** Fetches a user record by phone, throwing if not found. */
 const ensureUserRecord = async (phone: string) => {
   const user = await getUserRecordByPhone(phone);
   if (!user) {
@@ -116,11 +135,13 @@ const ensureUserRecord = async (phone: string) => {
   return user;
 };
 
+/** Extracts a 6-digit OTP code from a notification message string. */
 const extractOtpCode = (message: string) => {
   const match = message.match(/\b(\d{6})\b/);
   return match?.[1] || null;
 };
 
+/** Polls the database for an OTP notification for the user, retrying up to 20 times. */
 const waitForOtpCode = async (phone: string, issuedAfterIso: string) => {
   const user = await ensureUserRecord(phone);
 
@@ -147,10 +168,12 @@ const waitForOtpCode = async (phone: string, issuedAfterIso: string) => {
   throw new Error(`Timed out waiting for OTP notification for ${phone}.`);
 };
 
+/** Waits until the page URL matches the expected path (with optional trailing slash/query). */
 const waitForPath = async (page: import("playwright").Page, expectedPath: string) => {
   await page.waitForURL(new RegExp(`${expectedPath.replace("/", "\\/")}(?:$|[/?#])`), { timeout: 20_000 });
 };
 
+/** Asserts that a heading with the given text (exact or RegExp) is visible on the page. */
 const assertHeading = async (
   page: import("playwright").Page,
   heading: string | RegExp,
@@ -162,17 +185,21 @@ const assertHeading = async (
   });
 };
 
+/** Checks if a nav link with the given label is present in the DOM. */
 const linkVisible = async (page: import("playwright").Page, label: string) =>
   (await page.getByRole("link", { name: label, exact: true }).count()) > 0;
 
+/** Checks if a `<label>` element with the given text is present in the DOM. */
 const labelVisible = async (page: import("playwright").Page, label: string) =>
   (await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).count()) > 0;
 
+/** Navigates to a page and asserts the expected heading is visible. */
 const gotoAndCheckHeading = async (page: import("playwright").Page, pagePath: string, heading: string) => {
   await page.goto(`${baseUrl}${pagePath}`, { waitUntil: "domcontentloaded" });
   await assertHeading(page, heading);
 };
 
+/** Opens stdout and stderr log file handles for a managed process, creating the artifacts dir. */
 const createLogHandles = (label: string) => {
   fs.mkdirSync(artifactsDir, { recursive: true });
   return {
@@ -181,6 +208,7 @@ const createLogHandles = (label: string) => {
   };
 };
 
+/** Polls a URL until it returns an accepted HTTP status, used for local stack readiness checks. */
 const waitForHttp = async (url: string, acceptedStatuses: number[] = [200]) => {
   let lastStatus: number | null = null;
 
@@ -201,6 +229,7 @@ const waitForHttp = async (url: string, acceptedStatuses: number[] = [200]) => {
   throw new Error(`Timed out waiting for ${url}${lastStatus ? ` (last status ${lastStatus})` : ""}.`);
 };
 
+/** Spawns a child process with log file handles for stdout and stderr. */
 const startManagedProcess = (label: string, args: string[], env: NodeJS.ProcessEnv) => {
   const logs = createLogHandles(label);
   const child = spawn("node", args, {
@@ -213,6 +242,7 @@ const startManagedProcess = (label: string, args: string[], env: NodeJS.ProcessE
   return { label, child, logs };
 };
 
+/** Kills all managed child processes (taskkill on Windows, SIGTERM elsewhere). */
 const stopManagedProcesses = (processes: ManagedProcess[]) => {
   for (const processInfo of processes) {
     if (processInfo.child.exitCode !== null) {
@@ -228,6 +258,7 @@ const stopManagedProcesses = (processes: ManagedProcess[]) => {
   }
 };
 
+/** Starts the local API and Vite dev servers, waiting until both are reachable. */
 const startLocalStack = async () => {
   const managed: ManagedProcess[] = [];
 
@@ -264,6 +295,7 @@ const startLocalStack = async () => {
   return managed;
 };
 
+/** Reads the `is_enabled` flag for a given charge type from the database. */
 const readChargeEnabled = async (chargeTypeId: string) => {
   const row = await get<{ is_enabled: number }>(`SELECT is_enabled FROM charge_types WHERE id = ?`, [chargeTypeId]);
   if (!row) {
@@ -272,6 +304,7 @@ const readChargeEnabled = async (chargeTypeId: string) => {
   return Boolean(row.is_enabled);
 };
 
+/** Polls the charge type is_enabled flag until it equals the expected value. */
 const waitForChargeEnabled = async (chargeTypeId: string, expected: boolean) => {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     if ((await readChargeEnabled(chargeTypeId)) === expected) {
@@ -283,6 +316,7 @@ const waitForChargeEnabled = async (chargeTypeId: string, expected: boolean) => 
   throw new Error(`Timed out waiting for charge type ${chargeTypeId} to become ${expected ? "enabled" : "disabled"}.`);
 };
 
+/** Performs the full login flow: navigate to /login, fill credentials, handle MFA, and wait for dashboard. */
 const login = async (page: import("playwright").Page, user: SmokeUser) => {
   await page.goto(`${baseUrl}/login`, { waitUntil: "domcontentloaded" });
   await assertHeading(page, "Market Management System");
@@ -303,6 +337,7 @@ const login = async (page: import("playwright").Page, user: SmokeUser) => {
   await assertHeading(page, user.dashboardHeading, user.dashboardHeadingExact ?? true);
 };
 
+/** Checks nav-link visibility against the user's navVisible and navHidden lists. */
 const verifyNav = async (page: import("playwright").Page, user: SmokeUser, result: SmokeResult) => {
   for (const label of user.navVisible) {
     result.navChecks[`visible:${label}`] = await linkVisible(page, label);
@@ -312,6 +347,7 @@ const verifyNav = async (page: import("playwright").Page, user: SmokeUser, resul
   }
 };
 
+/** Admin-specific checks: billing toggle, reports, audit trail, and coordination page. */
 const verifyAdminFlow = async (page: import("playwright").Page, result: SmokeResult) => {
   await gotoAndCheckHeading(page, "/admin/billing", "Billing Controls");
   const penaltiesCard = page
@@ -343,6 +379,7 @@ const verifyAdminFlow = async (page: import("playwright").Page, result: SmokeRes
   result.pages.coordination = (await page.getByText("Shared Channel", { exact: true }).count()) > 0;
 };
 
+/** Manager-specific checks: vendor directory, stalls, payments, read-only billing, route protection. */
 const verifyManagerFlow = async (page: import("playwright").Page, result: SmokeResult) => {
   await gotoAndCheckHeading(page, "/manager/vendors", "Vendor Directory");
   result.pages.vendors = true;
@@ -378,6 +415,7 @@ const verifyManagerFlow = async (page: import("playwright").Page, result: SmokeR
   result.routeProtection["manager-blocked-from-official"] = true;
 };
 
+/** Official-specific checks: read-only billing, reports, audit, coordination, and market filter. */
 const verifyOfficialFlow = async (page: import("playwright").Page, result: SmokeResult) => {
   await gotoAndCheckHeading(page, "/official/billing", "Billing Controls");
   result.pages.billing = true;
@@ -397,6 +435,7 @@ const verifyOfficialFlow = async (page: import("playwright").Page, result: Smoke
   result.pages.marketFilter = (await page.getByText("All Markets", { exact: true }).count()) > 0 || (await labelVisible(page, "Market"));
 };
 
+/** Vendor-specific checks: route protection, stalls, payments, notifications, complaints, profile. */
 const verifyVendorFlow = async (page: import("playwright").Page, result: SmokeResult) => {
   await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded" });
   await waitForPath(page, "/vendor");
@@ -423,6 +462,7 @@ const verifyVendorFlow = async (page: import("playwright").Page, result: SmokeRe
   result.pages.profile = (await page.getByRole("button", { name: "Save Changes", exact: true }).count()) > 0;
 };
 
+/** Runs the full smoke-test flow for a single user: login, nav checks, role-specific page assertions. */
 const runFlow = async (user: SmokeUser): Promise<SmokeResult> => {
   const result: SmokeResult = {
     loginWorks: false,
@@ -468,6 +508,7 @@ const runFlow = async (user: SmokeUser): Promise<SmokeResult> => {
   }
 };
 
+/** Aggregates individual smoke-test results and lists any failures. */
 const summarize = (results: Record<string, SmokeResult>) => {
   const failures = Object.entries(results).filter(([, result]) => Boolean(result.error));
   return {

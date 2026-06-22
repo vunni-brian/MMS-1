@@ -1,3 +1,4 @@
+/** Settings barrel export - re-exports all settings section components, form controls, and utilities. */
 export { default as AccountSection } from "./AccountSection";
 export { default as ActivitySection } from "./ActivitySection";
 export { default as AdminGeneralSection } from "./AdminGeneralSection";

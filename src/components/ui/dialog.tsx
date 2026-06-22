@@ -1,3 +1,4 @@
+/** A modal dialog built on Radix UI Dialog primitives with overlay, header, footer, and close button. */
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";

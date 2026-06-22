@@ -1,3 +1,7 @@
+/**
+ * Landing/index page with hero, features, process, reviews, pricing, and FAQs.
+ * Public-facing marketing page for the Market Management System.
+ */
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/ui/BrandLogo";
@@ -13,6 +17,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 
+/** Navigation links for the landing page sections (features, process, reviews, pricing, FAQs). */
 const navLinkKeys = [
   { key: "features", target: "features" },
   { key: "process", target: "process" },
@@ -21,6 +26,7 @@ const navLinkKeys = [
   { key: "faqs", target: "faqs" },
 ];
 
+/** Feature cards data (stalls, billing, complaints, analytics) with icon and translation keys. */
 const featureDefs = [
   { titleKey: "featureStalls", detailKey: "featureStallsDesc", icon: Store },
   { titleKey: "featureBilling", detailKey: "featureBillingDesc", icon: CreditCard },
@@ -28,6 +34,7 @@ const featureDefs = [
   { titleKey: "featureAnalytics", detailKey: "featureAnalyticsDesc", icon: BarChart3 },
 ];
 
+/** Onboarding process steps with numbered labels. */
 const stepDefs = [
   { num: "01", titleKey: "step1Title", descKey: "step1Desc" },
   { num: "02", titleKey: "step2Title", descKey: "step2Desc" },
@@ -35,12 +42,14 @@ const stepDefs = [
   { num: "04", titleKey: "step4Title", descKey: "step4Desc" },
 ];
 
+/** Testimonial/review cards data with rating and translation keys. */
 const testimonialDefs = [
   { contentKey: "testimonial1", nameKey: "testimonial1Name", roleKey: "testimonial1Role", rating: 5 },
   { contentKey: "testimonial2", nameKey: "testimonial2Name", roleKey: "testimonial2Role", rating: 5 },
   { contentKey: "testimonial3", nameKey: "testimonial3Name", roleKey: "testimonial3Role", rating: 4.8 },
 ];
 
+/** FAQ accordion items with question/answer translation keys. */
 const faqDefs = [
   { qKey: "faq1Q", aKey: "faq1A" },
   { qKey: "faq2Q", aKey: "faq2A" },
@@ -48,6 +57,7 @@ const faqDefs = [
   { qKey: "faq4Q", aKey: "faq4A" },
 ];
 
+/** Index - landing/marketing page with hero, features, process steps, testimonials, pricing, and FAQs. */
 const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();

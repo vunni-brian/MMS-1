@@ -1,7 +1,14 @@
+/**
+ * @file Market list/access module.
+ * Read-only routes that return market lists and market-manager assignments
+ * for the current authenticated user.
+ */
+
 import { listMarketManagers, listMarkets } from "../lib/db.ts";
 import { HttpError, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, requireAuth } from "../lib/session.ts";
 
+/** Market list and manager-read routes. */
 export const marketRoutes: RouteDefinition[] = [
   {
     method: "GET",

@@ -1,3 +1,4 @@
+/** A branded logo component that displays the app logo with optional text, tagline, and status dot. */
 import { cn } from "@/lib/utils";
 import { brand } from "@/config/brand";
 

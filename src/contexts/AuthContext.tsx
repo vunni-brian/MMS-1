@@ -1,35 +1,62 @@
+/**
+ * Authentication context and provider.
+ * Manages user session, login/logout flows, MFA verification, and session restoration.
+ */
 import React, { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { api, ApiError, clearSessionToken, getSessionToken, setSessionToken } from "@/lib/api";
 import type { AuthUser } from "@/types";
 
+/** Represents an in-progress MFA challenge during login. */
 interface PendingMfaChallenge {
- challengeId: string;
- expiresAt: string;
+  /** Unique identifier for the MFA challenge. */
+  challengeId: string;
+  /** ISO timestamp when the challenge expires. */
+  expiresAt: string;
 }
 
+/** Result of a login attempt, indicating whether MFA or verification is required. */
 type LoginResult =
- | { mfaRequired: false; verificationRequired: false }
- | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string }
- | { mfaRequired: true; verificationRequired: false };
+  /** Login succeeded immediately. */
+  | { mfaRequired: false; verificationRequired: false }
+  /** Registration/passwordless verification required before login completes. */
+  | { mfaRequired: false; verificationRequired: true; challengeId: string; expiresAt: string }
+  /** Privileged MFA challenge must be resolved. */
+  | { mfaRequired: true; verificationRequired: false };
 
+/** Shape of the authentication context provided to consumers. */
 interface AuthContextType {
- user: AuthUser | null;
- role: AuthUser["role"] | null;
- login: (phone: string, password: string) => Promise<LoginResult>;
- verifyPrivilegedMfa: (code: string) => Promise<void>;
- logout: () => Promise<void>;
- refreshUser: () => Promise<void>;
- pendingMfa: PendingMfaChallenge | null;
- clearPendingMfa: () => void;
- isAuthenticated: boolean;
- isLoading: boolean;
- authError: string | null;
+  /** Currently authenticated user, or null if not logged in. */
+  user: AuthUser | null;
+  /** Shortcut to the user's role. */
+  role: AuthUser["role"] | null;
+  /** Authenticate with phone and password. */
+  login: (phone: string, password: string) => Promise<LoginResult>;
+  /** Complete a privileged MFA challenge with a verification code. */
+  verifyPrivilegedMfa: (code: string) => Promise<void>;
+  /** Log the current user out and clear local state. */
+  logout: () => Promise<void>;
+  /** Re-fetch the current user's profile from the server. */
+  refreshUser: () => Promise<void>;
+  /** Active MFA challenge, if any. */
+  pendingMfa: PendingMfaChallenge | null;
+  /** Dismiss any pending MFA challenge. */
+  clearPendingMfa: () => void;
+  /** Whether a user session is active. */
+  isAuthenticated: boolean;
+  /** Whether an auth operation is in progress. */
+  isLoading: boolean;
+  /** Most recent auth error message, or null. */
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Provides authentication state and actions to the component tree.
+ * Handles login, MFA verification, logout, and automatic session restoration on mount.
+ */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
  const [user, setUser] = useState<AuthUser | null>(null);
  const [pendingMfa, setPendingMfa] = useState<PendingMfaChallenge | null>(null);
@@ -190,10 +217,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
  );
 };
 
+/**
+ * Hook to access the authentication context.
+ * Must be used within an AuthProvider.
+ * @returns The current auth context.
+ * @throws If used outside of AuthProvider.
+ */
 export const useAuth = () => {
- const context = useContext(AuthContext);
- if (!context) {
- throw new Error("useAuth must be used within AuthProvider");
- }
- return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+  throw new Error("useAuth must be used within AuthProvider");
+  }
+  return context;
 };

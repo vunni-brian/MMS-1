@@ -1,3 +1,7 @@
+/**
+ * PaymentsSection - Payment gateway configuration (admin) or default payment
+ * method / receipt preferences (non-admin), plus a billing snapshot summary.
+ */
 import { useTranslation } from "react-i18next";
 import { CreditCard, ReceiptText, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 import type { ChargeType } from "@/types";
 
+/** Props for the PaymentsSection component. */
 interface PaymentsSectionProps extends SettingsContext {
   paymentGateway: ChargeType | undefined;
   completedPayments: Array<{ amount: number }>;
@@ -16,6 +21,10 @@ interface PaymentsSectionProps extends SettingsContext {
   navigate: (path: string) => void;
 }
 
+/**
+ * PaymentsSection - Payment configuration panel. Renders admin-specific gateway
+ * controls or user-specific payment preferences, plus a billing snapshot summary.
+ */
 const PaymentsSection = ({
   user,
   getString,

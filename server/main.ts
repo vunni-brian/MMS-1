@@ -1,3 +1,10 @@
+/**
+ * @file Application entry point.
+ * Configures the HTTP server, registers all route modules, wires up background
+ * task loops (notification delivery, audit cleanup), and initialises Sentry,
+ * database migrations, and graceful shutdown handling.
+ */
+
 import crypto from "node:crypto";
 import { createServer } from "node:http";
 

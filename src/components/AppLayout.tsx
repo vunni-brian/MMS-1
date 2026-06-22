@@ -1,3 +1,9 @@
+/**
+ * AppLayout - Root layout shell that renders the TopBar, Sidebar, and main content
+ * area via <Outlet /> for all authenticated pages. Handles role-based navigation,
+ * notifications badge, pending-vendor restrictions, profile image loading, and
+ * dynamic document title.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +43,8 @@ const AppLayout = () => {
   const experience = user ? getRoleExperience(user.role) : null;
   const workspaceTitle = experience?.workspaceTitle || t("layout:workspace");
 
+  // Exclude "Account" group (shown in top-bar dropdown) and restrict nav for
+  // unapproved vendors to only dashboard / profile / notifications.
   const filteredGroups = useMemo(() => {
     if (!user) return [];
     return roleNavGroups[user.role]
@@ -56,6 +64,8 @@ const AppLayout = () => {
     document.title = pageLabel && pageLabel !== "Workspace" ? `${pageLabel} - ${workspaceTitle}` : workspaceTitle;
   }, [currentPage.shortLabel, workspaceTitle]);
 
+  // Fetch the user's profile image as a blob URL on mount / id change.
+  // Cleans up by revoking the object URL to avoid memory leaks.
   useEffect(() => {
     let isActive = true;
     let objectUrl: string | null = null;

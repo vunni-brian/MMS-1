@@ -1,3 +1,7 @@
+/**
+ * API client and HTTP utilities.
+ * Provides a typed interface for all backend endpoints with token management and error handling.
+ */
 import type {
  AppNotification,
  Announcement,
@@ -43,15 +47,23 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 const SESSION_TOKEN_KEY = "mms.session.token";
 
+/** Error class for API responses with non-2xx status codes. */
 export class ApiError extends Error {
- statusCode: number;
- details?: unknown;
+  /** HTTP status code returned by the server. */
+  statusCode: number;
+  /** Optional payload with additional error details. */
+  details?: unknown;
 
- constructor(message: string, statusCode: number, details?: unknown) {
- super(message);
- this.statusCode = statusCode;
- this.details = details;
- }
+  /**
+   * @param message - Human-readable error message.
+   * @param statusCode - HTTP status code.
+   * @param details - Optional structured error details from the server.
+   */
+  constructor(message: string, statusCode: number, details?: unknown) {
+  super(message);
+  this.statusCode = statusCode;
+  this.details = details;
+  }
 }
 
 const parseResponse = async <T>(response: Response): Promise<T> => {
@@ -75,8 +87,11 @@ const createHeaders = (token?: string | null, hasJsonBody = true) => {
  return headers;
 };
 
+/** Reads the session token from localStorage. @returns The stored JWT or null. */
 export const getSessionToken = () => window.localStorage.getItem(SESSION_TOKEN_KEY);
+/** Persists a session token to localStorage. @param token - The JWT to store. */
 export const setSessionToken = (token: string) => window.localStorage.setItem(SESSION_TOKEN_KEY, token);
+/** Removes the session token from localStorage. */
 export const clearSessionToken = () => window.localStorage.removeItem(SESSION_TOKEN_KEY);
 
 const buildQuery = (params: Record<string, string | null | undefined>) => {
@@ -120,6 +135,10 @@ const toFilePayload = async (file: File): Promise<{
  };
 };
 
+/**
+ * Typed API client exposing methods for every backend endpoint.
+ * All requests include the session token via Authorization header automatically.
+ */
 export const api = {
  health: () => apiRequest<{ ok: boolean }>("/health"),
 
@@ -579,6 +598,11 @@ export const api = {
     apiRequest<{ ok: boolean; message: string }>("/admin/wipe-test-data", { method: "POST" }),
 };
 
+/**
+ * Formats an attachment as a human-readable label with file size.
+ * @param attachment - The attachment to format, or null.
+ * @returns Label string (e.g., "invoice.pdf (120 KB)") or "No file uploaded".
+ */
 export const formatAttachmentLabel = (attachment: Attachment | null) => {
  if (!attachment) {
  return "No file uploaded";

@@ -1,9 +1,14 @@
+/**
+ * FeatureManagementSection - Toggle switches for enabling or disabling
+ * individual platform features (complaints, payments, stall allocation, etc.).
+ */
 import { useTranslation } from "react-i18next";
 import { Flag } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Feature flag toggle panel. */
 const FeatureManagementSection = ({ updateSetting, getBoolean }: SettingsContext) => {
   const { t } = useTranslation();
   return (

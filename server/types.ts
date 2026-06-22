@@ -1,6 +1,15 @@
+/**
+ * @file Central type definitions.
+ * All shared TypeScript types, interfaces, and enums used across the MMS
+ * (Market Management System) server.
+ */
+
+/** User role within the system. */
 export type Role = "vendor" | "manager" | "official" | "admin";
+/** Ordered list of roles from least to most privileged. */
 export const roleOrder: Role[] = ["vendor", "manager", "official", "admin"];
 
+/** System permission identifiers used for access control. */
 export type Permission =
   | "auth:manage"
   | "billing:read"
@@ -34,20 +43,35 @@ export type Permission =
   | "audit:read"
   | "fallback:query";
 
+/** Approval lifecycle status for vendor profiles. */
 export type VendorApprovalStatus = "pending" | "approved" | "rejected";
+/** Status for staff accounts. */
 export type StaffStatus = "active" | "pending" | "suspended";
+/** Operational status of a market stall. */
 export type StallStatus = "active" | "inactive" | "maintenance";
+/** Lifecycle status of a booking. */
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
+/** Transaction status of a payment. */
 export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled";
+/** Supported payment providers. */
 export type PaymentProvider = "mtn" | "airtel" | "pesapal";
+/** Named charge types for billing. */
 export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
+/** Whether a charge type applies globally or per-market. */
 export type ChargeTypeScope = "global" | "market";
+/** Categories of utility services. */
 export type UtilityType = "electricity" | "water" | "sanitation" | "garbage" | "other";
+/** How a utility charge amount is calculated. */
 export type UtilityCalculationMethod = "metered" | "estimated" | "fixed";
+/** Status of a utility charge. */
 export type UtilityChargeStatus = "unpaid" | "pending" | "pending_payment" | "paid" | "overdue" | "cancelled";
+/** Status of a penalty record. */
 export type PenaltyStatus = "unpaid" | "pending" | "pending_payment" | "paid" | "cancelled";
+/** Lifecycle status of a support ticket. */
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+/** Priority level of a support ticket. */
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
+/** Category of a support ticket. */
 export type TicketCategory =
   | "billing"
   | "maintenance"
@@ -57,14 +81,22 @@ export type TicketCategory =
   | "sanitation"
   | "harassment"
   | "other";
+/** Notification type identifiers. */
 export type NotificationType = "otp" | "payment" | "booking" | "complaint" | "system";
+/** Notification priority levels. */
 export type NotificationPriority = "low" | "normal" | "high";
+/** Delivery channel for notifications. */
 export type NotificationChannel = "system" | "sms" | "email";
+/** Purpose of an OTP challenge. */
 export type OtpPurpose = "registration" | "manager_mfa";
+/** Category of a resource request from a market manager. */
 export type ResourceRequestCategory = "budget" | "structural";
+/** Status of a resource request. */
 export type ResourceRequestStatus = "pending" | "approved" | "rejected";
+/** Hierarchical location types for market geography. */
 export type LocationType = "region" | "city" | "district" | "division" | "municipality" | "subcounty" | "market";
 
+/** Represents a market entity with location hierarchy and vendor/stall counts. */
 export interface Market {
   id: string;
   name: string;
@@ -88,6 +120,7 @@ export interface Market {
   maintenanceStallCount: number;
 }
 
+/** Represents an uploaded file attachment with storage metadata. */
 export interface Attachment {
   id: string;
   name: string;
@@ -97,6 +130,7 @@ export interface Attachment {
   createdAt: string;
 }
 
+/** Summary of a market manager for list views. */
 export interface MarketManagerSummary {
   id: string;
   name: string;
@@ -106,6 +140,7 @@ export interface MarketManagerSummary {
   marketName: string | null;
 }
 
+/** Authenticated user payload returned by the auth system. */
 export interface AuthUser {
   id: string;
   name: string;
@@ -122,6 +157,7 @@ export interface AuthUser {
   productSection?: string | null;
 }
 
+/** Staff account with profile, permissions, and role metadata. */
 export interface StaffAccount {
   id: string;
   name: string;
@@ -142,11 +178,13 @@ export interface StaffAccount {
   vendorStatus: VendorApprovalStatus | null;
 }
 
+/** Result of a successful session authentication. */
 export interface SessionAuth {
   token: string;
   user: AuthUser;
 }
 
+/** Base64-encoded file payload for uploads. */
 export interface FilePayload {
   name: string;
   mimeType: string;
@@ -154,6 +192,7 @@ export interface FilePayload {
   base64: string;
 }
 
+/** Global application configuration derived from environment variables. */
 export interface AppConfig {
   apiPort: number;
   appEnv: string;
@@ -199,6 +238,7 @@ export interface AppConfig {
   cspDirectives?: string;
 }
 
+/** A charge type definition for billing line items. */
 export interface ChargeType {
   id: string;
   name: ChargeTypeName;
@@ -212,6 +252,7 @@ export interface ChargeType {
   createdAt: string;
 }
 
+/** A coordination message exchanged between staff users. */
 export interface CoordinationMessage {
   id: string;
   senderUserId: string;
@@ -224,6 +265,7 @@ export interface CoordinationMessage {
   createdAt: string;
 }
 
+/** A resource/budget request submitted by a market manager. */
 export interface ResourceRequest {
   id: string;
   managerUserId: string;
@@ -243,6 +285,7 @@ export interface ResourceRequest {
   updatedAt: string;
 }
 
+/** An activity event displayed on a vendor's activity feed. */
 export interface VendorActivityEvent {
   id: string;
   type: "audit" | "booking" | "ticket" | "ticket_update" | "payment" | "notification";

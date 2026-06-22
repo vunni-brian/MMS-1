@@ -1,3 +1,7 @@
+/**
+ * Cross-role announcements page for creating and viewing system announcements
+ * with priority levels and audience targeting. Accessible to vendor, manager, official, and admin roles.
+ */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +34,7 @@ const priorityClasses: Record<AnnouncementPriority, string> = {
   low: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
+/** Formats the announcement expiry/archived date label. */
 const formatExpiry = (announcement: Announcement, t: (key: string) => string) => {
   if (announcement.archivedAt) return t("announcements:archivedDate", { date: formatHumanDateTime(announcement.archivedAt) });
   if (announcement.expiresAt) return t("announcements:expiresDate", { date: formatHumanDateTime(announcement.expiresAt) });
@@ -37,6 +42,7 @@ const formatExpiry = (announcement: Announcement, t: (key: string) => string) =>
 };
 
 // ─── Announcement card ────────────────────────────────────
+/** Card component displaying a single announcement with priority badge, content, and action buttons. */
 const AnnouncementCard = ({
   announcement,
   canManage,
@@ -97,6 +103,7 @@ const AnnouncementCard = ({
 };
 
 // ─── Page ─────────────────────────────────────────────────
+/** AnnouncementsPage - renders the announcements list with create/view functionality and priority filtering. */
 const AnnouncementsPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();

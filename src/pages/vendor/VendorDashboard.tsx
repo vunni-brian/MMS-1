@@ -1,3 +1,7 @@
+/**
+ * Vendor dashboard with stall status, payment summary, announcements, notices,
+ * and quick action links. Vendor role only.
+ */
 import type { ElementType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -37,6 +41,7 @@ const fallbackNotices = [
   { id: "safety", title: "Fire safety briefing", body: "A short safety briefing is scheduled for all food vendors.", createdAt: "2026-05-15T09:00:00Z" },
 ];
 
+/** Quick action link button with icon, label, and navigation target. */
 const QuickAction = ({ icon: Icon, label, to }: { icon: ElementType; label: string; to: string }) => (
   <Link to={to}
     className="group flex min-h-[52px] items-center gap-3 rounded-xl border border-[#F1F3F5] bg-white px-4 py-3 text-left transition-all hover:border-[#0F5E3F]/40 hover:bg-[#E8F5EE]/30 hover:shadow-sm"
@@ -49,6 +54,7 @@ const QuickAction = ({ icon: Icon, label, to }: { icon: ElementType; label: stri
   </Link>
 );
 
+/** Loading skeleton placeholder for the vendor dashboard. */
 const DashboardSkeleton = () => (
   <div className="space-y-6">
     <Skeleton className="h-6 w-[250px]" />
@@ -63,6 +69,7 @@ const DashboardSkeleton = () => (
   </div>
 );
 
+/** VendorDashboard - renders the vendor overview with stall status, payments, notices, and quick actions. */
 const VendorDashboard = () => {
   const { user } = useAuth();
   const { t } = useTranslation();

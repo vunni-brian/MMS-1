@@ -1,9 +1,14 @@
+/**
+ * EmailSection - SMTP / email configuration panel. Lets admins choose the
+ * email provider, set from-address/name, and view available email templates.
+ */
 import { useTranslation } from "react-i18next";
 import { Mail } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingSelect, ReadOnlyRows } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Email / SMTP settings panel. */
 const EmailSection = ({ getString, updateSetting }: SettingsContext) => {
   const { t } = useTranslation();
   return (

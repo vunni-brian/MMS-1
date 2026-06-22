@@ -1,3 +1,7 @@
+/**
+ * LanguageSwitcher - Dropdown that lets the user switch between supported
+ * interface languages (English, Luganda, Kiswahili).
+ */
 import { useTranslation } from "react-i18next";
 import { Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/** Available language options with ISO code and display label. */
 const languages = [
   { code: "en", label: "English" },
   { code: "lg", label: "Luganda" },

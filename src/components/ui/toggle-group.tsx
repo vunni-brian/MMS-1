@@ -1,3 +1,4 @@
+/** A group of toggle buttons built on Radix UI Toggle Group primitives. */
 import * as React from "react";
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
 import { type VariantProps } from "class-variance-authority";

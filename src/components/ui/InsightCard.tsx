@@ -1,3 +1,4 @@
+/** A dashboard insight card displaying a label, value, optional change indicator, detail, and icon. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

@@ -1,8 +1,13 @@
+/**
+ * Notifications settings page for configuring notification preferences.
+ * Accessible to all roles.
+ */
 import { useContext } from "react";
 import { SettingsDataContext } from "@/pages/shared/SettingsLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationsSection } from "@/components/settings";
 
+/** NotificationsSettingsPage - renders the notifications configuration section. */
 const NotificationsSettingsPage = () => {
   const { user } = useAuth();
   const hook = useContext(SettingsDataContext);

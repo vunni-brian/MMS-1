@@ -1,3 +1,10 @@
+/**
+ * @file Support tickets module.
+ * Routes for creating, updating, assigning, and resolving support tickets
+ * with admin/vendor conversation threads, status tracking, and notification
+ * dispatch.
+ */
+
 import {
   all,
   createId,
@@ -611,6 +618,7 @@ const notifyVendorForTicketUpdate = async (ticket: TicketDto, previousStatus: Ti
   });
 };
 
+/** Support ticket routes (create, update, assign, escalate, resolve, comment). */
 export const ticketRoutes: RouteDefinition[] = [
   {
     method: "GET",

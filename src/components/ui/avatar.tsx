@@ -1,3 +1,4 @@
+/** An avatar component with image, fallback, and badge support, built on Radix UI primitives. */
 import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar";
 

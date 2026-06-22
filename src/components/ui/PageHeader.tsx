@@ -1,3 +1,4 @@
+/** A page header component with optional eyebrow, title, description, meta, and action buttons. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

@@ -1,3 +1,4 @@
+/** A card container with header, content, and footer sections. */
 import * as React from "react";
 
 import { cn } from "@/lib/utils";

@@ -1,3 +1,8 @@
+/**
+ * i18next initialisation and configuration.
+ * Supports English (en), Luganda (lg), and Swahili (sw).
+ * Language is detected from localStorage first, then the browser navigator.
+ */
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";

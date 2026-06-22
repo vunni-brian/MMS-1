@@ -1,3 +1,9 @@
+/**
+ * @file Payment notification messages.
+ * Builds user-facing SMS / system messages for successful or failed payments,
+ * including formatted amounts, charge-type labels, and reference numbers.
+ */
+
 import type { ChargeTypeName, NotificationChannel, PaymentStatus } from "../types.ts";
 
 const paymentConfirmationChannels: NotificationChannel[] = ["system", "sms"];
@@ -9,6 +15,7 @@ const fallbackChargeTypeLabel = (chargeType: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
+/** Map a charge-type name to a human-readable item label, preferring an explicit `itemLabel`. */
 export const getPaymentItemLabel = ({
   chargeType,
   itemLabel,
@@ -37,6 +44,7 @@ export const getPaymentItemLabel = ({
   }
 };
 
+/** Format a date string for SMS display (locale `en-UG`, Africa/Kampala time zone). */
 export const formatPaymentNotificationDate = (completedAt: string) =>
   new Intl.DateTimeFormat("en-UG", {
     dateStyle: "medium",
@@ -44,6 +52,7 @@ export const formatPaymentNotificationDate = (completedAt: string) =>
     timeZone: "Africa/Kampala",
   }).format(new Date(completedAt));
 
+/** Return the best-available payment reference (provider reference > transaction ID > external ref). */
 export const getPaymentReference = ({
   providerReference,
   transactionId,
@@ -54,6 +63,7 @@ export const getPaymentReference = ({
   externalReference: string;
 }) => providerReference || transactionId || externalReference;
 
+/** Build the multi-line success message sent after a completed payment. */
 export const getPaymentSuccessMessage = ({
   amount,
   chargeType,
@@ -79,6 +89,7 @@ export const getPaymentSuccessMessage = ({
     "Thank you.",
   ].join("\n");
 
+/** Build the notification payload for a payment status change. Returns `null` if status hasn't changed or isn't `completed`. */
 export const getVendorPaymentNotification = ({
   previousStatus,
   nextStatus,

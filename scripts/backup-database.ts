@@ -1,16 +1,27 @@
+/**
+ * Database backup and restore CLI utility.
+ * Supports creating, restoring, listing, verifying, and cleaning up
+ * PostgreSQL dumps with optional gzip compression and retention policies.
+ */
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createId } from "../server/lib/db.ts";
 import { nowIso } from "../server/lib/security.ts";
 
+/** Configuration for a backup operation — database URL, storage location, and retention. */
 interface BackupConfig {
+  /** PostgreSQL connection string. */
   databaseUrl: string;
+  /** Directory where backup files are stored. */
   backupDir: string;
+  /** Number of days to keep backups before automatic cleanup. */
   retentionDays: number;
+  /** Whether to compress the dump with gzip. */
   compress: boolean;
 }
 
+/** Default configuration derived from environment variables. */
 const DEFAULT_BACKUP_CONFIG: BackupConfig = {
   databaseUrl: process.env.DATABASE_URL || "",
   backupDir: process.env.BACKUP_DIR || "./backups",
@@ -18,6 +29,10 @@ const DEFAULT_BACKUP_CONFIG: BackupConfig = {
   compress: process.env.BACKUP_COMPRESS !== "false",
 };
 
+/**
+ * Manages PostgreSQL database backups with create, restore, list,
+ * cleanup, and verification operations.
+ */
 class DatabaseBackup {
   private config: BackupConfig;
 
@@ -26,12 +41,14 @@ class DatabaseBackup {
     this.ensureBackupDir();
   }
 
+  /** Creates the backup directory if it does not already exist. */
   private ensureBackupDir() {
     if (!existsSync(this.config.backupDir)) {
       mkdirSync(this.config.backupDir, { recursive: true });
     }
   }
 
+  /** Generates a unique backup filename with timestamp, ID, and optional .gz extension. */
   private getBackupFilename(): string {
     const timestamp = nowIso().replace(/[:.]/g, "-");
     const backupId = createId("backup");
@@ -39,6 +56,7 @@ class DatabaseBackup {
     return `mms-backup-${timestamp}-${backupId}${extension}`;
   }
 
+  /** Parses the DATABASE_URL into host, port, database name, and username. */
   private parseDatabaseUrl(): { host: string; port: string; database: string; username: string } {
     try {
       const url = new URL(this.config.databaseUrl);
@@ -53,6 +71,7 @@ class DatabaseBackup {
     }
   }
 
+  /** Creates a new pg_dump backup, optionally compressed, and writes a metadata JSON sidecar. */
   async createBackup(): Promise<string> {
     const { host, port, database, username } = this.parseDatabaseUrl();
     const filename = this.getBackupFilename();
@@ -92,11 +111,13 @@ class DatabaseBackup {
     }
   }
 
+  /** Returns the file size in bytes. */
   private getFileSize(filepath: string): number {
     const stats = statSync(filepath);
     return stats.size;
   }
 
+  /** Restores the database from a given backup file, decompressing on the fly if gzipped. */
   async restoreBackup(backupFile: string): Promise<void> {
     const { host, port, database, username } = this.parseDatabaseUrl();
     const filepath = join(this.config.backupDir, backupFile);
@@ -124,6 +145,7 @@ class DatabaseBackup {
     }
   }
 
+  /** Lists all backup files in the backup directory, sorted newest-first, with metadata. */
   async listBackups(): Promise<Array<{ filename: string; createdAt: string; size: number }>> {
     const files = readdirSync(this.config.backupDir);
     const backups: Array<{ filename: string; createdAt: string; size: number }> = [];
@@ -153,6 +175,7 @@ class DatabaseBackup {
     return backups.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  /** Deletes backups older than the configured retention period. Returns the count removed. */
   async cleanupOldBackups(): Promise<number> {
     const backups = await this.listBackups();
     const cutoffDate = new Date();
@@ -183,6 +206,7 @@ class DatabaseBackup {
     return deleted;
   }
 
+  /** Verifies the integrity of a backup file (gunzip -t for gz, header check for plain SQL). */
   async verifyBackup(backupFile: string): Promise<boolean> {
     const filepath = join(this.config.backupDir, backupFile);
 
@@ -208,7 +232,10 @@ class DatabaseBackup {
   }
 }
 
-// CLI interface
+/**
+ * CLI entry point. Dispatches to the appropriate DatabaseBackup method
+ * based on the first CLI argument (create | restore | list | cleanup | verify).
+ */
 const command = process.argv[2];
 const backup = new DatabaseBackup();
 

@@ -1,6 +1,11 @@
+/**
+ * SettingInput - Reusable labelled text input used inside settings panels.
+ * Renders a label, optional detail text, and a controlled Input component.
+ */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/** Props for the SettingInput component. */
 interface SettingInputProps {
   id: string;
   label: string;

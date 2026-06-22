@@ -1,6 +1,13 @@
+/**
+ * @file Rate-limiting middleware.
+ * Implements sliding-window in-memory rate limiters (global, auth, API) with
+ * configurable windows and max-request counts.
+ */
+
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpError } from "./http.ts";
 
+/** Rate-limiter configuration. */
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Max requests per window
@@ -8,6 +15,7 @@ interface RateLimitConfig {
   skipFailedRequests?: boolean;
 }
 
+/** Internal store mapping client identifiers to arrays of request timestamps. */
 interface RateLimitStore {
   requests: Map<string, number[]>;
   cleanupInterval: NodeJS.Timeout;
@@ -140,6 +148,7 @@ const apiRateLimiter = new RateLimiter({
   maxRequests: envMax("RATE_LIMIT_API_MAX", 30),
 });
 
+/** Return a rate-limit middleware function for the given strategy (`global`, `auth`, or `api`). */
 export const rateLimitMiddleware = (strategy: "global" | "auth" | "api" = "global") => {
   const limiter = strategy === "auth" ? authRateLimiter : strategy === "api" ? apiRateLimiter : globalRateLimiter;
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
@@ -147,6 +156,7 @@ export const rateLimitMiddleware = (strategy: "global" | "auth" | "api" = "globa
   };
 };
 
+/** Destroy all rate-limiter singletons and clear their cleanup intervals. */
 export const destroyRateLimiters = () => {
   globalRateLimiter.destroy();
   authRateLimiter.destroy();

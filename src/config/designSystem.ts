@@ -1,3 +1,7 @@
+/**
+ * Design system tokens for the application.
+ * Centralises colours, spacing, border radii, font sizes, font weights, and layout values.
+ */
 export const designSystem = {
   colors: {
     primary: "#0F5E3F",
@@ -59,4 +63,5 @@ export const designSystem = {
   },
 } as const;
 
+/** Inferred type of the design system token object. */
 export type DesignSystem = typeof designSystem;

@@ -1,6 +1,11 @@
+/**
+ * WorkspaceLayout - Two-column grid layout for workspace pages. Shows a single
+ * column (full-width) by default, or a left/right split when a right panel is provided.
+ */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Props for the WorkspaceLayout component. */
 interface WorkspaceLayoutProps {
   left: ReactNode;
   right?: ReactNode;

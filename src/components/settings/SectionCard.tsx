@@ -1,12 +1,21 @@
+/**
+ * SectionCard - Clickable card representing a settings section, used in the
+ * settings navigation sidebar. Highlights when active.
+ */
 import { cn } from "@/lib/utils";
 import type { SettingsSection } from "./types";
 
+/** Props for the SectionCard component. */
 interface SectionCardProps {
   section: SettingsSection;
   active: boolean;
   onSelect: () => void;
 }
 
+/**
+ * SectionCard - Clickable settings-section card with icon, label, and summary.
+ * Highlights when it matches the currently active section.
+ */
 const SectionCard = ({ section, active, onSelect }: SectionCardProps) => {
   const Icon = section.icon;
 

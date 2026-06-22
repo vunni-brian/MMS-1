@@ -1,3 +1,7 @@
+/**
+ * Shared resource coordination page for creating and managing resource requests
+ * between market roles. Accessible to manager, official, and admin roles.
+ */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +39,7 @@ const resourceCategoryLabels: Record<ResourceRequestCategory, string> = {
   structural: "Structural work",
 };
 
+/** CoordinationPage - renders the resource request dashboard with create, manage, and filter capabilities. */
 const CoordinationPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();

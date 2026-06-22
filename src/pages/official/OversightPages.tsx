@@ -1,3 +1,7 @@
+/**
+ * Official oversight pages for market health monitoring, vendor directory,
+ * compliance management, and analytics. Official role only.
+ */
 import { useMemo, useState } from "react";
 import type { ElementType, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -50,8 +54,10 @@ import type {
 
 const chartColors = ["#0f766e", "#2563eb", "#f59e0b", "#7c3aed", "#dc2626", "#0891b2"];
 
+/** Risk assessment level for market health. */
 type RiskLevel = "Low" | "Medium" | "High";
 
+/** Market health data row used across oversight views. */
 interface MarketHealthRow {
   id: string;
   name: string;
@@ -73,6 +79,7 @@ interface MarketHealthRow {
   alerts: string[];
 }
 
+/** Page-level introduction header with title and description. */
 const PageIntro = ({
   eyebrow,
   title,
@@ -94,6 +101,7 @@ const PageIntro = ({
   </div>
 );
 
+/** KPI metric card displaying a label, value, and optional trend indicator. */
 const MetricCard = ({
   title,
   value,
@@ -132,6 +140,7 @@ const MetricCard = ({
   );
 };
 
+/** Loading grid skeleton for oversight pages. */
 const LoadingGrid = () => (
   <div className="space-y-6">
     <Skeleton className="h-24 w-full rounded-lg" />
@@ -144,6 +153,7 @@ const LoadingGrid = () => (
   </div>
 );
 
+/** Error state card for oversight page data loading failures. */
 const ErrorState = ({ title }: { title: string }) => {
   const { t } = useTranslation();
   return (
@@ -159,17 +169,21 @@ const ErrorState = ({ title }: { title: string }) => {
   );
 };
 
+/** Maps a risk level to a badge variant for UI display. */
 const riskBadgeVariant = (risk: RiskLevel) =>
   risk === "High" ? "destructive" : risk === "Medium" ? "secondary" : "default";
 
+/** Clamps a numeric value to the range [0, 100]. */
 const clampScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
+/** Formats a date string into a short month+year label for chart axes. */
 const getMonthKey = (value: string, t: (key: string) => string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return t("common:notAvailable");
   return new Intl.DateTimeFormat(undefined, { month: "short", year: "2-digit" }).format(date);
 };
 
+/** Custom hook that fetches all oversight data and computes market health rows. */
 const useOfficialOversightData = () => {
   const { t } = useTranslation();
   const marketsQuery = useQuery({ queryKey: ["markets", "official-oversight"], queryFn: () => api.getMarkets() });
@@ -226,6 +240,7 @@ const useOfficialOversightData = () => {
   };
 };
 
+/** Computes market health rows from raw data, including compliance scores, risk levels, and alerts. */
 const buildMarketHealth = (
   markets: Market[],
   vendors: VendorProfile[],
@@ -305,6 +320,7 @@ const buildMarketHealth = (
   }).sort((a, b) => a.complianceScore - b.complianceScore || b.openComplaints - a.openComplaints);
 };
 
+/** OfficialMarketsPage - renders the market health overview with risk filtering, search, and compliance score indicators. */
 export const OfficialMarketsPage = () => {
   const { t, isLoading, isError, marketHealth, vendors, stalls, tickets, payments } = useOfficialOversightData();
   const [search, setSearch] = useState("");
@@ -405,6 +421,7 @@ export const OfficialMarketsPage = () => {
   );
 };
 
+/** OfficialVendorDirectoryPage - renders a searchable vendor directory with status badges and CSV export. */
 export const OfficialVendorDirectoryPage = () => {
   const { t, isLoading, isError, markets, vendors } = useOfficialOversightData();
   const [search, setSearch] = useState("");
@@ -536,6 +553,7 @@ export const OfficialVendorDirectoryPage = () => {
   );
 };
 
+/** OfficialCompliancePage - renders the compliance oversight view with violations tracking and resolution actions. */
 export const OfficialCompliancePage = () => {
   const { t, isLoading, isError, marketHealth, tickets, stalls, utilityCharges, penalties, resourceRequests } = useOfficialOversightData();
 
@@ -653,6 +671,7 @@ export const OfficialCompliancePage = () => {
   );
 };
 
+/** OfficialAnalyticsPage - renders the analytics dashboard with revenue trends, vendor categories, and payment distribution. */
 export const OfficialAnalyticsPage = () => {
   const { t, isLoading, isError, marketHealth, vendors, payments } = useOfficialOversightData();
 

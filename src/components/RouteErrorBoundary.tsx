@@ -1,23 +1,33 @@
+/**
+ * RouteErrorBoundary - Error boundary for route-level failures. Catches rendering
+ * errors and handles chunk-load failures by auto-reloading the page once.
+ */
 import { Component, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+/** Props for the RouteErrorBoundary component. */
 interface RouteErrorBoundaryProps {
   children: ReactNode;
 }
 
+/** State for the RouteErrorBoundary component. */
 interface RouteErrorBoundaryState {
   hasError: boolean;
   error?: Error;
 }
 
+/** Checks whether an error is a dynamic-import / chunk-load failure. */
 const isChunkLoadError = (error: Error) =>
   /loading chunk|failed to fetch dynamically imported module|importing a module script failed/i.test(
     error.message,
   );
 
+/**
+ * Inner class component that implements the error boundary lifecycle for routes.
+ */
 class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & { t: (key: string) => string }, RouteErrorBoundaryState> {
   constructor(props: RouteErrorBoundaryProps & { t: (key: string) => string }) {
     super(props);
@@ -30,6 +40,8 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & { t: (
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Route Error Boundary caught an error:", error, errorInfo);
+    // Auto-reload once on chunk-load failures (e.g. after a deploy),
+    // using sessionStorage to prevent infinite reload loops.
     if (isChunkLoadError(error)) {
       const reloadKey = "chunk_reload_attempted";
       if (!sessionStorage.getItem(reloadKey)) {
@@ -71,6 +83,10 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps & { t: (
   }
 }
 
+/**
+ * RouteErrorBoundary - Wraps children in an error boundary that catches route-level
+ * crashes and shows a reload prompt. Automatically reloads once on chunk-load errors.
+ */
 export const RouteErrorBoundary = ({ children }: RouteErrorBoundaryProps) => {
   const { t } = useTranslation();
   return <RouteErrorBoundaryInner t={t}>{children}</RouteErrorBoundaryInner>;

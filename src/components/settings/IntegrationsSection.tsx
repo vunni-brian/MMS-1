@@ -1,3 +1,8 @@
+/**
+ * IntegrationsSection - Overview of connected third-party services (payment
+ * gateway, SMS, email, government registry) with navigation to the full
+ * integrations page.
+ */
 import { useTranslation } from "react-i18next";
 import { Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,11 +10,16 @@ import { Panel } from "@/components/ui/Panel";
 import { EvidenceField } from "@/components/ui/EvidenceField";
 import type { ChargeType } from "@/types";
 
+/** Props for the IntegrationsSection component. */
 interface IntegrationsSectionProps {
   paymentGateway: ChargeType | undefined;
   navigate: (path: string) => void;
 }
 
+/**
+ * IntegrationsSection - Overview card showing connected services status and a
+ * link to the full integrations management page.
+ */
 const IntegrationsSection = ({ paymentGateway, navigate }: IntegrationsSectionProps) => {
   const { t } = useTranslation();
   return (

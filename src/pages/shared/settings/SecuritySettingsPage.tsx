@@ -1,3 +1,7 @@
+/**
+ * Security settings page for changing user password with form validation.
+ * Accessible to all roles.
+ */
 import { useContext, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
 import { SecuritySection } from "@/components/settings";
 
+/** SecuritySettingsPage - renders the password change form with validation. */
 const SecuritySettingsPage = () => {
   const { user, logout } = useAuth();
   const hook = useContext(SettingsDataContext);

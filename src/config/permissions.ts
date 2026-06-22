@@ -1,5 +1,10 @@
+/**
+ * Permission definitions and role-permission matrix.
+ * Maps every permission to a human-readable label and assigns permissions per role.
+ */
 import type { Permission, Role } from "@/types";
 
+/** Human-readable labels for every permission in the system. */
 export const permissionLabels: Record<Permission, string> = {
  "auth:manage": "Manage users and roles",
  "billing:read": "View billing",
@@ -34,6 +39,7 @@ export const permissionLabels: Record<Permission, string> = {
  "fallback:query": "Use fallback assistant",
 };
 
+/** Maps each role to the list of permissions it grants. */
 export const rolePermissionMatrix: Record<Role, Permission[]> = {
  vendor: [
  "stall:read",
@@ -117,6 +123,7 @@ export const rolePermissionMatrix: Record<Role, Permission[]> = {
  ],
 };
 
+/** Groups permissions under category titles for UI display. */
 export const permissionGroups: Array<{ title: string; permissions: Permission[] }> = [
  {
  title: "Access",

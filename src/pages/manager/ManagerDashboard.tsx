@@ -1,3 +1,7 @@
+/**
+ * Manager dashboard with approval queue, action center, KPI cards, and activity timeline.
+ * Manager role only.
+ */
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -44,6 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Booking } from "@/types";
 
+/** A pending approval item displayed in the manager's approval queue. */
 interface ApprovalRow {
   id: string;
   name: string;
@@ -51,6 +56,7 @@ interface ApprovalRow {
   booking?: Booking;
 }
 
+/** Loading skeleton placeholder for the manager dashboard. */
 const DashboardSkeleton = () => (
   <div className="space-y-6">
     <Skeleton className="h-8 w-[250px]" />
@@ -65,6 +71,7 @@ const DashboardSkeleton = () => (
   </div>
 );
 
+/** ManagerDashboard - renders the manager overview with approval queue, KPI cards, action center, and timeline. */
 const ManagerDashboard = () => {
   const { user } = useAuth();
   const { t } = useTranslation();

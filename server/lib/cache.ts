@@ -1,16 +1,25 @@
+/**
+ * @file In-memory cache layer.
+ * Provides a simple TTL-based cache singleton and a decorator (cacheResponse)
+ * for caching expensive function results.
+ */
+
 import { logger } from "./logger.ts";
 
+/** Cache initialisation options. */
 interface CacheConfig {
   enabled: boolean;
   ttl: number; // Time to live in seconds
   prefix: string;
 }
 
+/** Internal wrapper that pairs a cached value with its expiration timestamp. */
 interface CacheItem<T> {
   value: T;
   expiresAt: number;
 }
 
+/** TTL-based in-memory cache with periodic cleanup. */
 class InMemoryCache {
   private cache: Map<string, CacheItem<unknown>>;
   private config: CacheConfig;
@@ -50,6 +59,7 @@ class InMemoryCache {
     return item.expiresAt < Date.now();
   }
 
+  /** Retrieve a cached value, or `null` if missing / expired. */
   async get<T>(key: string): Promise<T | null> {
     if (!this.config.enabled) return null;
 
@@ -66,6 +76,7 @@ class InMemoryCache {
     return item.value as T;
   }
 
+  /** Store a value with optional custom TTL (seconds). */
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     if (!this.config.enabled) return;
 
@@ -76,17 +87,20 @@ class InMemoryCache {
     logger.debug("Cache set", { key, ttl: ttl || this.config.ttl });
   }
 
+  /** Remove a single key from the cache. */
   async delete(key: string): Promise<void> {
     const fullKey = this.getKey(key);
     this.cache.delete(fullKey);
     logger.debug("Cache delete", { key });
   }
 
+  /** Remove all entries. */
   async clear(): Promise<void> {
     this.cache.clear();
     logger.info("Cache cleared");
   }
 
+  /** Check whether a key exists and is not yet expired. */
   async has(key: string): Promise<boolean> {
     if (!this.config.enabled) return false;
 
@@ -102,6 +116,7 @@ class InMemoryCache {
     return true;
   }
 
+  /** Return cached value or compute (via `factory`), cache, and return. */
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
@@ -115,6 +130,7 @@ class InMemoryCache {
     return value;
   }
 
+  /** Return diagnostic stats about the cache. */
   getStats() {
     return {
       size: this.cache.size,
@@ -124,6 +140,7 @@ class InMemoryCache {
     };
   }
 
+  /** Stop cleanup timer and clear all entries. */
   destroy() {
     clearInterval(this.cleanupInterval);
     this.cache.clear();
@@ -134,6 +151,7 @@ class InMemoryCache {
 // Create singleton instance
 let cacheInstance: InMemoryCache | null = null;
 
+/** Initialise (or reinitialise) the global cache singleton. */
 export const initCache = (config?: CacheConfig) => {
   if (cacheInstance) {
     cacheInstance.destroy();
@@ -141,6 +159,7 @@ export const initCache = (config?: CacheConfig) => {
   cacheInstance = new InMemoryCache(config);
 };
 
+/** Return the global cache singleton (lazily created). */
 export const getCache = (): InMemoryCache => {
   if (!cacheInstance) {
     cacheInstance = new InMemoryCache();
@@ -148,7 +167,7 @@ export const getCache = (): InMemoryCache => {
   return cacheInstance;
 };
 
-// Cache decorators for common patterns
+/** Decorator that caches a method's return value by a key derived from its arguments. */
 export const cacheResponse = <T>(
   key: string,
   ttl?: number
@@ -173,7 +192,7 @@ export const cacheResponse = <T>(
   };
 };
 
-// Cache invalidation helpers
+/** Invalidate all cache keys matching a pattern (stub — logs only for in-memory impl). */
 export const invalidatePattern = (pattern: string) => {
   const cache = getCache();
   const stats = cache.getStats();
@@ -182,6 +201,7 @@ export const invalidatePattern = (pattern: string) => {
   logger.info("Cache pattern invalidation", { pattern });
 };
 
+/** Invalidate all cache keys sharing a prefix (stub — logs only for in-memory impl). */
 export const invalidateByPrefix = (prefix: string) => {
   const cache = getCache();
   const stats = cache.getStats();

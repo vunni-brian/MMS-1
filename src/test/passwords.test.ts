@@ -1,3 +1,7 @@
+/**
+ * Tests for password-validation and vendor-password-reset helpers.
+ * Ensures minimum-length enforcement and correct message formatting.
+ */
 import { describe, expect, it } from "vitest";
 
 import { buildVendorPasswordResetMessage, validatePasswordStrength } from "../../server/lib/passwords.ts";

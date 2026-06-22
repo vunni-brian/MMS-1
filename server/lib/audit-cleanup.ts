@@ -1,3 +1,9 @@
+/**
+ * @file Audit log cleanup routines.
+ * Periodically deletes expired audit events in batches and records a final
+ * cleanup event for traceability.
+ */
+
 import { config } from "../config.ts";
 import { all, createId, run } from "./db.ts";
 import { logger } from "./logger.ts";
@@ -7,6 +13,7 @@ const DEFAULT_RETENTION_DAYS = 365;
 const BATCH_SIZE = 500;
 const MAX_BATCHES_PER_RUN = 20;
 
+/** Read `AUDIT_RETENTION_DAYS` from env or return the default (365). */
 export const getAuditRetentionDays = (): number => {
   const envValue = process.env.AUDIT_RETENTION_DAYS?.trim();
   if (envValue) {
@@ -18,6 +25,7 @@ export const getAuditRetentionDays = (): number => {
   return DEFAULT_RETENTION_DAYS;
 };
 
+/** Read `AUDIT_CLEANUP_BATCH_SIZE` from env or return the default (500). */
 export const getAuditCleanupBatchSize = (): number => {
   const envValue = process.env.AUDIT_CLEANUP_BATCH_SIZE?.trim();
   if (envValue) {
@@ -29,6 +37,7 @@ export const getAuditCleanupBatchSize = (): number => {
   return BATCH_SIZE;
 };
 
+/** Delete expired audit events in batches (up to 20 batches per run) and record a cleanup audit event. */
 export const cleanupAuditLogs = async (): Promise<{
   deletedCount: number;
   batchesRun: number;

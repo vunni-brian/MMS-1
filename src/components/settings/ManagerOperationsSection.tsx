@@ -1,9 +1,14 @@
+/**
+ * ManagerOperationsSection - Manager-level operational settings: default rent
+ * cycle, complaint routing, escalation timing, report automation, delegation.
+ */
 import { useTranslation } from "react-i18next";
 import { Building2 } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Manager operations configuration panel. */
 const ManagerOperationsSection = ({ getString, updateSetting, getBoolean }: SettingsContext) => {
   const { t } = useTranslation();
   return (

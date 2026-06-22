@@ -1,3 +1,8 @@
+/**
+ * Tailwind CSS configuration for MMS.
+ * Defines the design system including custom colors, fonts, animations,
+ * and safelisted classes used by the admin console and navigation.
+ */
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 

@@ -1,3 +1,4 @@
+/** A labeled field for displaying evidence values with optional monospace formatting. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

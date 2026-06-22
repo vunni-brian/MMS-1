@@ -3,6 +3,7 @@
  * Centralized magic numbers and limits for consistency across dashboards
  */
 
+/** Dashboard configuration constants for data fetching, caching, risk thresholds, and refresh intervals. */
 export const DASHBOARD_CONFIG = {
  // Data fetching limits
  DEFAULT_PAGE_SIZE: 10,
@@ -47,4 +48,5 @@ export const DASHBOARD_CONFIG = {
  MULTI_STALL_LIMIT: 1,
 } as const;
 
+/** Inferred type of the dashboard configuration object. */
 export type DashboardConfig = typeof DASHBOARD_CONFIG;

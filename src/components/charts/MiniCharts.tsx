@@ -1,7 +1,12 @@
+/**
+ * MiniCharts - Small inline area/bar chart components used in dashboard widgets
+ * and summary cards. Renders sample data via Recharts.
+ */
 import { Area, Bar, AreaChart, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { cn } from "@/lib/utils";
 
+/** Sample time-series data points for the area chart. */
 const areaData = [
   { label: "1 May", value: 28 },
   { label: "8 May", value: 45 },
@@ -10,6 +15,7 @@ const areaData = [
   { label: "31 May", value: 62 },
 ];
 
+/** Sample time-series data points for the bar chart. */
 const barData = [
   { label: "1 May", value: 48 },
   { label: "8 May", value: 35 },
@@ -18,6 +24,9 @@ const barData = [
   { label: "31 May", value: 52 },
 ];
 
+/**
+ * MiniAreaChart - Compact area chart with gradient fill, suitable for card headers.
+ */
 export const MiniAreaChart = ({ className }: { className?: string }) => (
   <div className={cn("h-full min-h-[180px] w-full", className)}>
     <ResponsiveContainer width="100%" height="100%">
@@ -38,6 +47,9 @@ export const MiniAreaChart = ({ className }: { className?: string }) => (
   </div>
 );
 
+/**
+ * MiniBarChart - Compact bar chart with rounded top corners, suitable for card headers.
+ */
 export const MiniBarChart = ({ className }: { className?: string }) => (
   <div className={cn("h-full min-h-[180px] w-full", className)}>
     <ResponsiveContainer width="100%" height="100%">

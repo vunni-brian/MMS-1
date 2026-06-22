@@ -1,3 +1,7 @@
+/**
+ * AdminGeneralSection - Admin dashboard overview showing market counts, billing
+ * switches, payment records, runtime mode, and API base URL.
+ */
 import { useTranslation } from "react-i18next";
 import { Settings } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
@@ -5,12 +9,17 @@ import { EvidenceField } from "@/components/ui/EvidenceField";
 import { ReadOnlyRows } from "@/components/settings";
 import type { ChargeType } from "@/types";
 
+/** Props for the AdminGeneralSection component. */
 interface AdminGeneralSectionProps {
   markets: { length: number }[];
   chargeTypes: ChargeType[];
   payments: { length: number }[];
 }
 
+/**
+ * AdminGeneralSection - High-level admin summary with market/billing/payment
+ * counts and runtime environment info.
+ */
 const AdminGeneralSection = ({ markets, chargeTypes, payments }: AdminGeneralSectionProps) => {
   const { t } = useTranslation();
   return (

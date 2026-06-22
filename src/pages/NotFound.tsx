@@ -1,3 +1,8 @@
+/**
+ * 404 Not Found error page.
+ * Displays an error message with the current path and navigation options
+ * to return to the dashboard or previous page. Public access.
+ */
 import { useEffect } from "react";
 import { ArrowLeft, Home, Landmark, MapPinned, ShieldCheck } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -6,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
+/** NotFound - renders a 404 error page with current path display and navigation back to dashboard or previous page. */
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();

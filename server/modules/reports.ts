@@ -1,3 +1,10 @@
+/**
+ * @file Reports module.
+ * Aggregation / analytics routes: revenue, payments, vendor activity, market
+ * occupancy, and utility-charge summaries. All results are scoped to the
+ * caller's accessible market(s).
+ */
+
 import { all } from "../lib/db.ts";
 import { sendJson, type RouteDefinition } from "../lib/http.ts";
 import { resolveScopedMarket } from "../lib/session.ts";
@@ -22,6 +29,7 @@ const hoursBetween = (from: string | null, to: string | null) => {
   return Number.isFinite(diff) && diff >= 0 ? diff / (1000 * 60 * 60) : null;
 };
 
+/** Reporting / analytics routes (revenue, payments, vendor activity, occupancy, utilities). */
 export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",

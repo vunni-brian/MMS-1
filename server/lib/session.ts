@@ -1,3 +1,10 @@
+/**
+ * @file Session management.
+ * Token generation, hashing, persistence, validation, and permission checks.
+ * Sessions are identified by a bearer token and linked to a user with an
+ * associated role and expiry.
+ */
+
 import { get, run, createId, getAuthUserById } from "./db.ts";
 import { HttpError } from "./http.ts";
 import { addHours, hashToken, isExpired, nowIso } from "./security.ts";
@@ -5,6 +12,7 @@ import { hasPermission } from "./permissions.ts";
 import { config } from "../config.ts";
 import type { Permission, SessionAuth } from "../types.ts";
 
+/** Validate a bearer token against the sessions table and return the associated `SessionAuth`, or `null`. */
 export const authenticateToken = async (token: string | null) => {
   if (!token) {
     return null;
@@ -32,6 +40,7 @@ export const authenticateToken = async (token: string | null) => {
   return { token, user } satisfies SessionAuth;
 };
 
+/** Assert that the request has a valid authenticated session; throw 401 otherwise. */
 export const requireAuth = (auth: SessionAuth | null) => {
   if (!auth) {
     throw new HttpError(401, "Authentication required.");
@@ -39,6 +48,7 @@ export const requireAuth = (auth: SessionAuth | null) => {
   return auth;
 };
 
+/** Assert that the request has a valid session **and** the required permission; throw 401/403 otherwise. */
 export const requirePermission = (auth: SessionAuth | null, permission: Permission) => {
   const session = requireAuth(auth);
   if (!hasPermission(session.user.role, permission)) {
@@ -47,6 +57,7 @@ export const requirePermission = (auth: SessionAuth | null, permission: Permissi
   return session;
 };
 
+/** Resolve the effective `marketId` for the request — for admins/officials it may be caller-supplied; for managers it is their own market. */
 export const resolveScopedMarket = (
   auth: SessionAuth | null,
   permission: Permission,
@@ -73,6 +84,7 @@ export const resolveScopedMarket = (
   };
 };
 
+/** Assert that the session user can access a resource belonging to `resourceMarketId`. */
 export const assertMarketAccess = (session: SessionAuth, resourceMarketId: string | null | undefined) => {
   if (session.user.role === "official" || session.user.role === "admin") {
     return;
@@ -82,6 +94,7 @@ export const assertMarketAccess = (session: SessionAuth, resourceMarketId: strin
   }
 };
 
+/** Create a new session row and return the raw bearer token. */
 export const createSessionForUser = async (userId: string) => {
   const token = createId("session_token");
   const timestamp = nowIso();
@@ -93,6 +106,7 @@ export const createSessionForUser = async (userId: string) => {
   return token;
 };
 
+/** Delete a session row by its raw token (logout). */
 export const destroySession = async (token: string) => {
   await run(`DELETE FROM sessions WHERE token_hash = ?`, [hashToken(token)]);
 };

@@ -1,3 +1,4 @@
+/** An empty state placeholder with icon, title, description, and optional action button. */
 import type { ElementType, ReactNode } from "react";
 import { Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";

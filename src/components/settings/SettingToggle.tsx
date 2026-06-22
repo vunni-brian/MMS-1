@@ -1,5 +1,10 @@
+/**
+ * SettingToggle - Reusable labelled toggle switch used inside settings panels.
+ * Shows a label, description, and a controlled Switch component.
+ */
 import { Switch } from "@/components/ui/switch";
 
+/** Props for the SettingToggle component. */
 interface SettingToggleProps {
   label: string;
   detail: string;

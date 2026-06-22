@@ -1,6 +1,11 @@
+/**
+ * SettingSelect - Reusable labelled dropdown select used inside settings panels.
+ * Renders a label, optional detail text, and a controlled Select component.
+ */
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+/** Props for the SettingSelect component. */
 interface SettingSelectProps {
   id: string;
   label: string;

@@ -1,3 +1,4 @@
+/** A slide-out side panel (sheet) built on Radix UI Dialog with configurable side (top/bottom/left/right). */
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";

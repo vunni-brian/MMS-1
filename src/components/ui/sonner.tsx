@@ -1,3 +1,4 @@
+/** A themed Sonner toast provider that adapts to the current theme. */
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
 

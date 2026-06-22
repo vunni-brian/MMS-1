@@ -1,3 +1,9 @@
+/**
+ * useSettings - Custom hook that manages the settings state persisted in
+ * localStorage, fetches auxiliary data (notifications, payments, audit logs,
+ * charge types, markets), and exposes derived values and helper functions
+ * for reading/updating individual settings.
+ */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -10,6 +16,7 @@ import type { ActivityRow } from "./ActivitySection";
 type SettingValue = string | boolean;
 type SettingsState = Record<string, SettingValue>;
 
+/** Default values for every known setting key. */
 const defaultSettings: SettingsState = {
   language: "English",
   timeZone: "Africa/Kampala",
@@ -83,7 +90,9 @@ const defaultSettings: SettingsState = {
   auditRetention: "365",
 };
 
+/** Reads settings from localStorage, falling back to defaults on parse failure. */
 const loadStoredSettings = (): SettingsState => {
+  // Guard against SSR / non-browser environments where localStorage does not exist.
   if (typeof window === "undefined") {
     return defaultSettings;
   }
@@ -97,6 +106,11 @@ const loadStoredSettings = (): SettingsState => {
   }
 };
 
+/**
+ * useSettings - Main settings hook. Manages local state, fetches remote data
+ * based on user permissions, and returns helpers for reading/writing settings
+ * plus all derived query results.
+ */
 export function useSettings(user: AuthUser | null) {
   const { t } = useTranslation();
   const [settings, setSettings] = useState<SettingsState>(loadStoredSettings);
@@ -165,6 +179,7 @@ export function useSettings(user: AuthUser | null) {
         time: formatHumanDateTime(notification.createdAt),
       }));
 
+  /** Persists a single setting to both in-memory state and localStorage. */
   const updateSetting = (key: string, value: SettingValue) => {
     setSettings((current) => {
       const next = { ...current, [key]: value };
@@ -178,7 +193,9 @@ export function useSettings(user: AuthUser | null) {
     setSavedAt(new Date());
   };
 
+  /** Safely reads a boolean setting, defaulting to false. */
   const getBoolean = (key: string) => Boolean(settings[key]);
+  /** Safely reads a string setting, falling back to the default value. */
   const getString = (key: string) => String(settings[key] ?? defaultSettings[key] ?? "");
 
   return {

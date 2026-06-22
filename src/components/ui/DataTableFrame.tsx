@@ -1,3 +1,4 @@
+/** A wrapper frame for data tables with optional title, description, and action bar. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

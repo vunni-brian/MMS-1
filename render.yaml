@@ -1,4 +1,8 @@
+# Render platform configuration for the MMS backend API service.
+# Deploys the Node.js Express server with automatic deployments on push.
+
 services:
+  # Web service definition
   - type: web
     name: mms-api
     env: node
@@ -6,15 +10,19 @@ services:
     healthCheckPath: /health
     buildCommand: npm ci
     startCommand: npm run start:api
+    # Environment variables for the API service
     envVars:
+      # --- Runtime & environment ---
       - key: NODE_VERSION
         value: 22.21.1
       - key: APP_ENV
         value: production
+      # --- URLs ---
       - key: APP_URL
         value: https://mms-1.vercel.app
       - key: API_URL
         value: https://mms-api.onrender.com
+      # --- Database (values set via Render dashboard — sync: false) ---
       - key: DATABASE_URL
         sync: false
       - key: MIGRATION_DATABASE_URL
@@ -25,6 +33,7 @@ services:
         value: "false"
       - key: MMS_SEED_ON_BOOT
         value: "false"
+      # --- Supabase (values set via Render dashboard) ---
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
@@ -33,6 +42,7 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: mms-uploads
+      # --- Africa's Talking SMS (values set via Render dashboard) ---
       - key: AFRICAS_TALKING_USERNAME
         sync: false
       - key: AFRICAS_TALKING_API_KEY
@@ -41,6 +51,7 @@ services:
         sync: false
       - key: AFRICAS_TALKING_USE_SANDBOX
         value: "false"
+      # --- PesaPal payments (values set via Render dashboard) ---
       - key: PESAPAL_CONSUMER_KEY
         sync: false
       - key: PESAPAL_CONSUMER_SECRET
@@ -55,5 +66,6 @@ services:
         sync: false
       - key: PESAPAL_USE_IFRAME
         value: "true"
+      # --- Feature flags ---
       - key: PAYMENTS_ENABLED
         value: "true"

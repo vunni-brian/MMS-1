@@ -1,3 +1,7 @@
+/**
+ * CommandMenu - A command palette (Cmd+K / Ctrl+K) that lets the user navigate
+ * quickly to common pages. Renders a CommandDialog with role-aware suggestions.
+ */
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -22,9 +26,14 @@ import {
 } from "@/components/ui/command";
 import { useAuth } from "@/contexts/AuthContext";
 
+/**
+ * Props for the CommandMenu component.
+ */
 interface CommandMenuProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+ /** Whether the command dialog is open. */
+ open: boolean;
+ /** Callback to toggle the dialog open state. */
+ onOpenChange: (open: boolean) => void;
 }
 
 export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {

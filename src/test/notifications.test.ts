@@ -1,3 +1,9 @@
+/**
+ * Tests for the SMS delivery function (Africa's Talking API).
+ * Covers sandbox-mode posting, provider error propagation,
+ * recipient failure handling, and fallback-to-logging when
+ * SMS is not configured.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { sendSmsDelivery } from "../../server/lib/sms.ts";
@@ -94,21 +100,22 @@ describe("sendSmsDelivery", () => {
  ).rejects.toThrow("Africa's Talking SMS delivery failed: Failed for +256700100200");
  });
 
- it("falls back to logging when SMS delivery is not configured", async () => {
- const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
- const fetchMock = vi.fn();
- vi.stubGlobal("fetch", fetchMock);
+  it("falls back to logging when SMS delivery is not configured", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
 
- await sendSmsDelivery("+256700100200", "Test message", {
- africasTalkingUsername: null,
- africasTalkingApiKey: null,
- africasTalkingFrom: null,
- africasTalkingUseSandbox: false,
- africasTalkingSmsEnabled: false,
- devMode: true,
- });
+    // All config fields null/disabled → no API call, just console fallback
+    await sendSmsDelivery("+256700100200", "Test message", {
+      africasTalkingUsername: null,
+      africasTalkingApiKey: null,
+      africasTalkingFrom: null,
+      africasTalkingUseSandbox: false,
+      africasTalkingSmsEnabled: false,
+      devMode: true,
+    });
 
- expect(fetchMock).not.toHaveBeenCalled();
- expect(logSpy).toHaveBeenCalledWith("[delivery:sms:fallback]", "+256700100200", "Test message");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith("[delivery:sms:fallback]", "+256700100200", "Test message");
  });
 });

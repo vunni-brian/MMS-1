@@ -1,3 +1,4 @@
+/** A horizontal or vertical separator/divider line. */
 import * as React from "react";
 import * as SeparatorPrimitive from "@radix-ui/react-separator";
 

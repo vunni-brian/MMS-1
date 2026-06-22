@@ -1,3 +1,7 @@
+/**
+ * Tests for file-upload payload validation on the server.
+ * Ensures malformed base64 and size-mismatched payloads are rejected.
+ */
 import { describe, expect, it } from "vitest";
 
 import { persistFilePayload } from "../../server/lib/storage.ts";

@@ -1,9 +1,14 @@
+/**
+ * OfficialOversightSection - Official-level oversight settings: complaint SLA
+ * threshold, occupancy/revenue alerts, and approval threshold.
+ */
 import { useTranslation } from "react-i18next";
 import { ShieldCheck } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Official oversight configuration panel. */
 const OfficialOversightSection = ({ getString, updateSetting, getBoolean }: SettingsContext) => {
   const { t } = useTranslation();
   return (

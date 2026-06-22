@@ -1,3 +1,9 @@
+/**
+ * @file Stalls module.
+ * Full CRUD routes for market stalls — assignment, vacating, zone management,
+ * and waiting list — with audit logging and notification dispatch.
+ */
+
 import { all, createId, get, getManagerForMarket, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, requirePermission, resolveScopedMarket } from "../lib/session.ts";
@@ -346,6 +352,7 @@ const rejectBookingApplication = async ({
   return await getBookingById(bookingId);
 };
 
+/** Stall management routes (assign, vacate, list, zones, waiting list). */
 export const stallRoutes: RouteDefinition[] = [
   {
     method: "GET",

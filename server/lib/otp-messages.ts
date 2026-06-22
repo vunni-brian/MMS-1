@@ -1,5 +1,12 @@
+/**
+ * @file OTP message templates.
+ * Renders registration and login OTP messages using configurable templates
+ * with `{{code}}`, `{{ttlMinutes}}`, etc. placeholders.
+ */
+
 import type { AppConfig } from "../types.ts";
 
+/** Discriminates between a registration OTP and a login OTP. */
 type OtpMessagePurpose = "registration" | "login";
 
 const defaultTemplates: Record<OtpMessagePurpose, string> = {
@@ -22,6 +29,7 @@ const renderOtpTemplate = (
     .replaceAll("{{ttlMinutes}}", String(values.ttlMinutes))
     .replaceAll("{{purpose}}", values.purpose);
 
+/** Build the OTP SMS / notification message using the configured (or default) template. */
 export const getOtpNotificationMessage = ({
   config,
   code,

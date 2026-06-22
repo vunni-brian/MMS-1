@@ -1,3 +1,4 @@
+/** A form section container with title, description, children, and optional action bar. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

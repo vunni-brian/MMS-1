@@ -1,3 +1,7 @@
+/**
+ * Shared audit log page displaying role-scoped system events with detail sheet.
+ * Accessible to manager, official, and admin roles.
+ */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +19,7 @@ import { DataTableFrame } from "@/components/ui/DataTableFrame";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+/** AuditPage - renders the audit event log with search, detail sheet, and CSV export. */
 const AuditPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();

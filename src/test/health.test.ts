@@ -1,5 +1,14 @@
+/**
+ * Tests for health-check endpoint logic: status aggregation,
+ * degraded/unhealthy detection, liveness/readiness probes,
+ * metrics shape, migration status, and HTTP status mapping.
+ */
 import { describe, expect, it } from "vitest";
 
+/**
+ * Aggregates individual check statuses into an overall status.
+ * "unhealthy" if any check is unhealthy, otherwise "degraded" if any is degraded, else "healthy".
+ */
 describe("health check endpoints", () => {
   it("public health returns ok status", () => {
     const result = { status: "healthy", timestamp: new Date().toISOString() };
@@ -12,6 +21,7 @@ describe("health check endpoints", () => {
       { status: "healthy" },
       { status: "healthy" },
     ];
+    // Priority: unhealthy > degraded > healthy
     const hasUnhealthy = checks.some((c) => c.status === "unhealthy");
     const hasDegraded = checks.some((c) => c.status === "degraded");
     const overall = hasUnhealthy ? "unhealthy" : hasDegraded ? "degraded" : "healthy";

@@ -1,3 +1,4 @@
+/** A styled text input field with focus ring, disabled state, and file input support. */
 import * as React from "react";
 
 import { cn } from "@/lib/utils";

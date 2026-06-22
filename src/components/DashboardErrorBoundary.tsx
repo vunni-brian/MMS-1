@@ -1,11 +1,20 @@
+/**
+ * DashboardErrorBoundary - React error boundary for dashboard widgets. Catches
+ * rendering errors inside its children and shows a dismissable alert with a retry
+ * button. Accepts an optional custom fallback.
+ */
 import { Component, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+/**
+ * Props for the DashboardErrorBoundary component.
+ */
 interface DashboardErrorBoundaryProps {
  children: ReactNode;
+ /** Optional custom fallback element shown instead of the default alert. */
  fallback?: ReactNode;
 }
 
@@ -14,6 +23,9 @@ interface DashboardErrorBoundaryState {
  error?: Error;
 }
 
+/**
+ * Inner class component that implements the error boundary lifecycle.
+ */
 class DashboardErrorBoundaryInner extends Component<
  DashboardErrorBoundaryProps & { t: (key: string) => string },
  DashboardErrorBoundaryState
@@ -70,6 +82,10 @@ class DashboardErrorBoundaryInner extends Component<
  }
 }
 
+/**
+ * DashboardErrorBoundary - Wraps children in an error boundary that catches
+ * dashboard widget crashes and shows a user-friendly retry prompt.
+ */
 export const DashboardErrorBoundary = ({ children, fallback }: DashboardErrorBoundaryProps) => {
  const { t } = useTranslation();
  return <DashboardErrorBoundaryInner t={t} fallback={fallback}>{children}</DashboardErrorBoundaryInner>;

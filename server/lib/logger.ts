@@ -1,5 +1,12 @@
+/**
+ * @file Logging utility.
+ * Implements a Pino-like logger that writes structured / JSON-formatted log
+ * lines to stdout/stderr, with support for child loggers and log-level filtering.
+ */
+
 import type { IncomingMessage } from "node:http";
 
+/** Structured metadata attached to each log line. */
 interface LogContext {
   userId?: string;
   requestId?: string;
@@ -10,6 +17,7 @@ interface LogContext {
   [key: string]: unknown;
 }
 
+/** Logger interface providing standard log methods and a `child` method for scoped loggers. */
 interface Logger {
   info: (message: string, context?: LogContext) => void;
   error: (message: string, error?: Error, context?: LogContext) => void;
@@ -75,7 +83,7 @@ class PinoLikeLogger implements Logger {
 // Create a default logger instance
 const defaultLogger = new PinoLikeLogger({}, process.env.LOG_LEVEL || "info");
 
-// Helper to extract request context
+/** Extract IP, user-agent, method, and path from an incoming request for logging. */
 export const extractRequestContext = (req: IncomingMessage): LogContext => {
   const forwarded = req.headers["x-forwarded-for"];
   const realIp = req.headers["x-real-ip"];
@@ -89,13 +97,15 @@ export const extractRequestContext = (req: IncomingMessage): LogContext => {
   };
 };
 
-// Export the logger and helper functions
+/** Default application logger instance. */
 export const logger = defaultLogger;
 
+/** Create a child logger with additional context. */
 export const createLogger = (context: LogContext = {}): Logger => {
   return defaultLogger.child(context);
 };
 
+/** Dynamically change the global log level at runtime. */
 export const setLogLevel = (level: string) => {
   const newLogger = new PinoLikeLogger({}, level);
   Object.assign(defaultLogger, newLogger);

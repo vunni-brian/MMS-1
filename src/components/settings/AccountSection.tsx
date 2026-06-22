@@ -1,3 +1,7 @@
+/**
+ * AccountSection - Settings panel showing account details (name, email, phone,
+ * role, market scope) and vendor-specific actions like deactivation request.
+ */
 import { useTranslation } from "react-i18next";
 import { Activity, Building2, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +11,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { formatHumanDate } from "@/lib/utils";
 import type { AuthUser, Role } from "@/types";
 
+/** Props for the AccountSection component. */
 interface AccountSectionProps {
   user: AuthUser;
   navigate: (path: string) => void;
@@ -17,6 +22,10 @@ interface AccountSectionProps {
   onRequestDeactivation: () => void;
 }
 
+/**
+ * AccountSection - Renders account info read-only fields and, for vendors,
+ * a deactivation workflow with confirmation states.
+ */
 const AccountSection = ({
   user,
   navigate,

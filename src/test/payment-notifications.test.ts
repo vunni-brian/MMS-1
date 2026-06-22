@@ -1,3 +1,9 @@
+/**
+ * Tests for vendor payment notification generation.
+ * Verifies that confirmed payments produce a formatted SMS/system message,
+ * while failed or duplicate-completion transitions return null,
+ * and charge-type labels render correctly.
+ */
 import { describe, expect, it } from "vitest";
 
 import { formatPaymentNotificationDate, getPaymentItemLabel, getVendorPaymentNotification } from "../../server/lib/payment-notifications.ts";

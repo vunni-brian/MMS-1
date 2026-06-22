@@ -1,3 +1,4 @@
+/** A breadcrumb navigation component with auto-separator and ellipsis support. */
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";

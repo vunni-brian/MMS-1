@@ -1,3 +1,10 @@
+/**
+ * Integration tests for API authorization across all user roles
+ * (vendor, manager, official, admin). Runs as a standalone script
+ * (not vitest) — authenticates each role via real login flows
+ * (including MFA for privileged roles) and asserts HTTP status codes
+ * for guarded endpoints.
+ */
 import pg from "pg";
 const { Pool } = pg;
 
@@ -37,6 +44,7 @@ const loginAsManager = async (): Promise<Session> => {
   const { data: loginData } = await api("POST", "/auth/login", { phone: "+256700500600", password: "Manager123!" });
   const { challengeId } = loginData as { mfaRequired: boolean; challengeId: string };
   if (!challengeId) throw new Error(`MFA challenge not issued: ${JSON.stringify(loginData)}`);
+  // Read the OTP from the database notification that was sent to the manager
   const result = await pool.query<{ message: string }>(
     `SELECT message FROM notifications WHERE user_id = 'user_manager_sarah' ORDER BY created_at DESC LIMIT 1`,
   );
@@ -52,6 +60,7 @@ const loginAsOfficial = async (): Promise<Session> => {
   const { data: loginData } = await api("POST", "/auth/login", { phone: "+256700600700", password: "Official123!" });
   const { challengeId } = loginData as { mfaRequired: boolean; challengeId: string };
   if (!challengeId) throw new Error(`MFA challenge not issued: ${JSON.stringify(loginData)}`);
+  // Extract OTP from the persisted notification for this official user
   const result = await pool.query<{ message: string }>(
     `SELECT message FROM notifications WHERE user_id = 'user_official_david' ORDER BY created_at DESC LIMIT 1`,
   );
@@ -67,6 +76,7 @@ const loginAsAdmin = async (): Promise<Session> => {
   const { data: loginData } = await api("POST", "/auth/login", { phone: "+256701111222", password: "Admin123!" });
   const { challengeId } = loginData as { mfaRequired: boolean; challengeId: string };
   if (!challengeId) throw new Error(`MFA challenge not issued: ${JSON.stringify(loginData)}`);
+  // Extract OTP from the persisted notification for this admin user
   const result = await pool.query<{ message: string }>(
     `SELECT message FROM notifications WHERE user_id = 'user_admin_ruth' ORDER BY created_at DESC LIMIT 1`,
   );
@@ -144,6 +154,7 @@ const runTests = async () => {
     admin = null!;
   }
 
+  // Each `if (1)` is an always-true guard so tests can be toggled independently
   console.log("\n--- 1. Unauthenticated Access (expect 401) ---");
   if (1) {
     const r = await api("GET", "/audit");
@@ -179,6 +190,7 @@ const runTests = async () => {
   }
 
   if (vendor) {
+    // --- 2. Vendor Authorization (expect 403 for admin/staff endpoints) ---
     console.log("\n--- 2. Vendor Authorization (expect 403 for admin/staff endpoints) ---");
     if (1) {
       const r = await api("POST", "/vendors/user_vendor_amina/approve", {}, vendor.token);
@@ -217,6 +229,7 @@ const runTests = async () => {
       assertStatus(403, r.status, "VENDOR GET /coordination/messages → 403");
     }
 
+    // Vendors should only see their own profile, not other users'
     console.log("\n--- 3. Vendor Ownership (vendor can only see own data) ---");
     if (1) {
       const r = await api("GET", "/vendors/user_admin_ruth", undefined, vendor.token);
@@ -227,6 +240,7 @@ const runTests = async () => {
       assertStatus(200, r.status, "VENDOR GET /vendors/:id (self) → 200");
     }
 
+    // Read-only endpoints that vendors are allowed to access
     console.log("\n--- 4. Vendor Allowed Actions (expect 200) ---");
     if (1) {
       const r = await api("GET", "/tickets", undefined, vendor.token);
@@ -269,6 +283,7 @@ const runTests = async () => {
       assertStatus(403, r.status, "MANAGER PATCH /billing/charge-types/:id → 403");
     }
 
+    // Managers can manage vendors and view data within their assigned market
     console.log("\n--- 6. Manager Scoped Access (can see own market) ---");
     if (1) {
       const r = await api("GET", "/vendors", undefined, manager.token);

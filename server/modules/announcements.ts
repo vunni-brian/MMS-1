@@ -1,3 +1,9 @@
+/**
+ * @file Announcements module.
+ * CRUD routes for market-level announcements sent by admins and market
+ * managers. Supports publish, archive, and notification dispatch.
+ */
+
 import { all, createId, get, logAuditEvent, queueNotification, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { requirePermission } from "../lib/session.ts";
@@ -150,6 +156,7 @@ const notifyAnnouncementRecipients = async ({
   };
 };
 
+/** Announcement CRUD routes (create, list, publish, archive). */
 export const announcementRoutes: RouteDefinition[] = [
   {
     method: "GET",

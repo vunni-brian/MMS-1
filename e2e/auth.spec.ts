@@ -1,3 +1,8 @@
+/**
+ * Role-based authentication and navigation E2E tests.
+ * Covers login, MFA, dashboard rendering, page navigation, route protection, and logout
+ * for admin, manager, official, and vendor roles.
+ */
 import { test, expect } from "../playwright-fixture";
 import {
   USERS,
@@ -16,8 +21,14 @@ const API_BASE_URL = process.env.E2E_API_URL || "http://localhost:3001";
 const SCREENSHOTS_DIR = path.resolve("playwright-results", "screenshots");
 const IS_DEPLOYED = !BASE_URL.includes("localhost") && !BASE_URL.includes("127.0.0.1");
 
+/** Tracks URLs that triggered redirect loops to detect infinite-redirect patterns. */
 const redirectLoopCache = new Set<string>();
 
+/**
+ * Monitors navigation requests and redirect responses to detect redirect loops.
+ * Attaches event listeners to the page and returns true if more than maxRedirects
+ * redirects are observed during a single navigation.
+ */
 async function detectRedirectLoop(page: Page, label: string, maxRedirects = 5): Promise<boolean> {
   let redirectCount = 0;
   let loopDetected = false;
@@ -45,6 +56,7 @@ test.beforeAll(() => {
   fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 });
 
+/** Per-role list of pages to navigate and verify during navigation tests. */
 const ALL_PAGE_CHECKS: Record<string, { path: string; heading: string | RegExp; extra?: (page: import("@playwright/test").Page) => Promise<void> }[]> = {
   admin: [
     { path: "/admin/billing", heading: "Billing Controls" },
@@ -79,6 +91,7 @@ const ALL_PAGE_CHECKS: Record<string, { path: string; heading: string | RegExp; 
   ],
 };
 
+/** Per-role list of blocked routes and their expected redirect targets. */
 const ROUTE_PROTECTION_CHECKS: Record<string, { blocked: string; redirect: string | RegExp }[]> = {
   vendor: [
     { blocked: "/admin", redirect: "/vendor" },

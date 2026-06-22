@@ -1,6 +1,15 @@
+/**
+ * Tests for abuse detection and input sanitization utilities.
+ * Verifies max-length validation (assertMaxLength) and XSS prevention (sanitizeText)
+ * with boundary, edge-case, and malicious-payload scenarios.
+ */
 import { describe, expect, it } from "vitest";
 import { assertMaxLength, sanitizeText, MAX_NAME_LENGTH, MAX_MESSAGE_LENGTH, MAX_REASON_LENGTH, MAX_STALL_NAME_LENGTH, MAX_PHONE_LENGTH, MAX_INPUT_LENGTH } from "../../server/lib/text-utils.ts";
 
+/**
+ * Validation function that throws if a value exceeds the given character limit.
+ * Accepts null/undefined gracefully — only strings are checked.
+ */
 describe("assertMaxLength", () => {
   it("passes when value is within limit", () => {
     expect(() => assertMaxLength("hello", 10, "test")).not.toThrow();

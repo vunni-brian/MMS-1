@@ -1,3 +1,8 @@
+/**
+ * Tests for the sendError HTTP helper that formats error responses.
+ * Verifies that database connection failures produce a 503 with an
+ * appropriate user-facing message.
+ */
 import type { ServerResponse } from "node:http";
 
 import { describe, expect, it } from "vitest";

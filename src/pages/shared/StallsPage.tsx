@@ -1,3 +1,7 @@
+/**
+ * Shared stalls management page with allocation tracking, status filtering,
+ * and stall assignment. Accessible to vendor, manager, and admin roles.
+ */
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,9 +28,12 @@ import { toast } from "@/components/ui/sonner";
 import type { Stall, StallStatus } from "@/types";
 
 // ─── Types ───────────────────────────────────────────────
+/** Stall allocation status for display purposes. */
 type AllocationStatus = "available" | "reserved" | "allocated";
+/** Stall status filter option. */
 type StatusFilter = "all" | AllocationStatus;
 
+/** Stall data enriched with allocation status for the UI grid. */
 interface DisplayStall {
   id: string;
   name: string;
@@ -50,18 +57,21 @@ const statusClasses: Record<AllocationStatus, string> = {
   allocated: "border-red-200 bg-red-50 text-red-700 hover:border-red-300",
 };
 
+/** Maps a StallStatus to an AllocationStatus for display. */
 const toAllocationStatus = (status: StallStatus): AllocationStatus => {
   if (status === "active") return "allocated";
   if (status === "maintenance") return "reserved";
   return "available";
 };
 
+/** Extracts a row letter from a stall name, falling back to A/B/C based on index. */
 const rowFromName = (name: string, index: number) => {
   const match = name.match(/^([A-Za-z])/);
   return match ? match[1].toUpperCase() : ["A", "B", "C"][index % 3];
 };
 
 // ─── Page ─────────────────────────────────────────────────
+/** StallsPage - renders the stall allocation dashboard with search, filter, and allocation management. */
 const StallsPage = () => {
   const { t } = useTranslation();
   const { role, user } = useAuth();

@@ -1,3 +1,7 @@
+/**
+ * NotificationsSection - Notification channel toggles (in-app, SMS, email,
+ * quiet hours), topic subscriptions, and a preview of recent notifications.
+ */
 import { useTranslation } from "react-i18next";
 import { Bell, Clock, MessageSquare } from "lucide-react";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -9,12 +13,17 @@ import type { SettingsContext } from "@/components/settings/settingsProps";
 import type { AppNotification } from "@/types";
 import type { UseQueryResult } from "@tanstack/react-query";
 
+/** Props for the NotificationsSection component. */
 interface NotificationsSectionProps extends SettingsContext {
   notificationsQuery: Pick<UseQueryResult, "isPending">;
   notifications: AppNotification[];
   canReadNotifications: boolean;
 }
 
+/**
+ * NotificationsSection - Notification preferences and recent notification preview.
+ * Lets users toggle channels, subscribe to topics, and see the latest alerts.
+ */
 const NotificationsSection = ({
   getBoolean,
   updateSetting,

@@ -1,3 +1,7 @@
+/**
+ * PageLayout - Simple animated wrapper for page content. Fades in and slides
+ * up slightly on mount using framer-motion.
+ */
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 

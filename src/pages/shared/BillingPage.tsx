@@ -1,3 +1,7 @@
+/**
+ * Shared utility billing page with charge creation, balance tracking, and payment status.
+ * Accessible to manager and admin roles.
+ */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +45,7 @@ const formatDateTime = (value: string | null, fallback = "Not available") =>
   formatHumanDateTime(value, fallback);
 
 // ─── Field row helper ─────────────────────────────────────
+/** Label-value display row for billing detail sections. */
 const FieldRow = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
   <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
     <p className="text-xs text-slate-400">{label}</p>
@@ -49,6 +54,7 @@ const FieldRow = ({ label, value, mono = false }: { label: string; value: React.
 );
 
 // ─── Page ─────────────────────────────────────────────────
+/** BillingPage - renders the utility billing dashboard with charge management and balance tracking. */
 const BillingPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();

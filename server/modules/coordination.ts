@@ -1,3 +1,9 @@
+/**
+ * @file Market coordination module.
+ * Routes for administrative coordination entries (directives, guidelines)
+ * published by market managers to vendors within a market.
+ */
+
 import { all, createId, get, logAuditEvent, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { resolveScopedMarket } from "../lib/session.ts";
@@ -26,6 +32,7 @@ const mapMessage = (row: {
   createdAt: row.created_at,
 });
 
+/** Market coordination entries (create, list, update, delete directives / guidelines). */
 export const coordinationRoutes: RouteDefinition[] = [
   {
     method: "GET",

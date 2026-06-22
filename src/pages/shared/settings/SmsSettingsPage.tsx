@@ -1,8 +1,13 @@
+/**
+ * SMS settings page for configuring SMS service provider integration.
+ * Admin role only.
+ */
 import { useContext } from "react";
 import { SettingsDataContext } from "@/pages/shared/SettingsLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { SmsSection } from "@/components/settings";
 
+/** SmsSettingsPage - renders the SMS configuration section. */
 const SmsSettingsPage = () => {
   const { user } = useAuth();
   const hook = useContext(SettingsDataContext);

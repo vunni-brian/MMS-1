@@ -1,3 +1,4 @@
+/** A statistics card with label, value, optional trend, sublabel, and tone-based coloring. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

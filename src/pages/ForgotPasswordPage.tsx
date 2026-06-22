@@ -1,3 +1,8 @@
+/**
+ * Forgot password page with phone-based password reset flow.
+ * Supports phone entry, OTP verification, and new password creation steps.
+ * Public access (no authentication required).
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2 } from "lucide-react";
@@ -11,6 +16,7 @@ import { ApiError } from "@/lib/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
+/** ForgotPasswordPage - renders the phone-based password reset flow with steps for phone entry, OTP verification, and new password creation. */
 const ForgotPasswordPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -26,6 +32,7 @@ const ForgotPasswordPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
+  /** Sends password reset OTP code to the provided phone number. */
   const handleSendResetCode = async () => {
     setPageError(null);
     setIsLoading(true);
@@ -48,6 +55,7 @@ const ForgotPasswordPage = () => {
     }
   };
 
+  /** Validates and submits the new password along with the OTP to complete the password reset. */
   const handleResetPassword = async () => {
     setPageError(null);
     if (newPassword !== confirmNewPassword) {

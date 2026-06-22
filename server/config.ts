@@ -1,3 +1,9 @@
+/**
+ * @file Application configuration module.
+ * Loads environment variables from `.env`, builds the canonical `AppConfig` object,
+ * and ensures runtime directories exist on startup.
+ */
+
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -107,6 +113,7 @@ const paymentsEnabled = process.env.PAYMENTS_ENABLED !== "false";
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
 
+/** Canonical application configuration assembled from environment variables and `.env`. */
 export const config: AppConfig = {
   apiPort: Number(process.env.PORT || process.env.API_PORT || 3001),
   appEnv,

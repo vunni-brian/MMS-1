@@ -1,3 +1,7 @@
+/**
+ * Data settings page for data management, including test data wipe capability.
+ * Accessible to all roles.
+ */
 import { useContext, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { DataSection } from "@/components/settings";
 
+/** DataSettingsPage - renders the data management section with wipe controls. */
 const DataSettingsPage = () => {
   const { user } = useAuth();
   const hook = useContext(SettingsDataContext);

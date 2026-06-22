@@ -1,3 +1,9 @@
+/**
+ * @file Billing / charge-type helpers.
+ * Provides functions to list, resolve (global vs market-scoped), and update
+ * charge types used by the billing system.
+ */
+
 import { all, get, run } from "./db.ts";
 import { HttpError } from "./http.ts";
 import { nowIso } from "./security.ts";
@@ -39,6 +45,7 @@ const mapChargeType = (row: {
   updatedAt: row.updated_at,
 });
 
+/** List all charge types — returns global types merged with any market-level overrides. */
 export const listChargeTypes = async (marketId?: string | null) => {
   const globalRows = await all<{
     id: string;
@@ -72,6 +79,7 @@ export const listChargeTypes = async (marketId?: string | null) => {
   return globalRows.map((row) => overrides.get(row.name) || mapChargeType(row));
 };
 
+/** Fetch a single charge type by its primary key. */
 export const getChargeTypeById = async (chargeTypeId: string) => {
   const row = await get<{
     id: string;
@@ -88,6 +96,7 @@ export const getChargeTypeById = async (chargeTypeId: string) => {
   return row ? mapChargeType(row) : null;
 };
 
+/** Resolve a charge type by name — prefers a market-level override, falls back to the global definition. */
 export const getResolvedChargeType = async ({
   name,
   marketId,
@@ -138,6 +147,7 @@ export const getResolvedChargeType = async ({
   return globalRow ? mapChargeType(globalRow) : null;
 };
 
+/** Assert that a charge type is configured and enabled; throws `HttpError` otherwise. */
 export const assertChargeEnabled = async (name: ChargeTypeName, marketId?: string | null) => {
   const chargeType = await getResolvedChargeType({ name, marketId });
   if (!chargeType) {
@@ -149,6 +159,7 @@ export const assertChargeEnabled = async (name: ChargeTypeName, marketId?: strin
   return chargeType;
 };
 
+/** Enable or disable a charge type and record the actor who made the change. */
 export const updateChargeType = async ({
   chargeTypeId,
   isEnabled,

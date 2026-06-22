@@ -1,3 +1,7 @@
+# CI/CD Pipeline for MMS
+# Triggers on pushes and PRs to main/develop branches.
+# Runs linting, unit tests, E2E tests, security scans, Docker build, and deploy.
+
 name: CI/CD Pipeline
 
 on:
@@ -7,38 +11,49 @@ on:
     branches: [main, develop]
 
 env:
+  # Node version used across all jobs
   NODE_VERSION: '22.x'
 
 jobs:
-  # Lint and type check
+  # ----------------------------------------------------------------
+  # Job: lint — static analysis and type checking
+  # ----------------------------------------------------------------
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
+      # Step: pull the latest code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step: install the correct Node version with npm caching
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      # Step: install project dependencies
       - name: Install dependencies
         run: npm ci
 
+      # Step: run ESLint rules
       - name: Run ESLint
         run: npm run lint
 
+      # Step: verify TypeScript compiles without errors
       - name: Type check
         run: npx tsc --noEmit
 
-  # Unit tests
+  # ----------------------------------------------------------------
+  # Job: test — run Vitest unit tests against a real PostgreSQL service
+  # ----------------------------------------------------------------
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: lint
     services:
+      # Spin up a temporary PostgreSQL container for the test suite
       postgres:
         image: postgres:16-alpine
         env:
@@ -65,6 +80,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Step: apply migrations and seed data for tests
       - name: Setup test database
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mms_test
@@ -72,17 +88,21 @@ jobs:
           npm run db:migrate
           npm run db:seed
 
+      # Step: execute the Vitest test suite
       - name: Run unit tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mms_test
         run: npm run test
 
-  # E2E tests
+  # ----------------------------------------------------------------
+  # Job: e2e — Playwright end-to-end tests with a real PostgreSQL service
+  # ----------------------------------------------------------------
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: lint
     services:
+      # Spin up a temporary PostgreSQL container for E2E test data
       postgres:
         image: postgres:16-alpine
         env:
@@ -109,9 +129,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Step: download Playwright browser binaries (Chromium) and system deps
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
+      # Step: apply migrations and seed data for E2E tests
       - name: Setup test database
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mms_test
@@ -119,9 +141,11 @@ jobs:
           npm run db:migrate
           npm run db:seed
 
+      # Step: build the production frontend bundle
       - name: Build application
         run: npm run build
 
+      # Step: start the API server in the background before running tests
       - name: Start API server
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mms_test
@@ -130,11 +154,13 @@ jobs:
           npm run start:api &
           sleep 10
 
+      # Step: run the Playwright test suite against the live API
       - name: Run E2E tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mms_test
         run: npx playwright test
 
+      # Step: upload test reports (screenshots, traces, JSON results)
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -142,7 +168,9 @@ jobs:
           name: playwright-report
           path: playwright-report/
 
-  # Security scanning
+  # ----------------------------------------------------------------
+  # Job: security — dependency vulnerability scanning
+  # ----------------------------------------------------------------
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -160,6 +188,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Step: Snyk vulnerability scan (high severity and above)
       - name: Run Snyk security scan
         uses: snyk/actions/node@master
         env:
@@ -167,30 +196,38 @@ jobs:
         with:
           args: --severity-threshold=high
 
+      # Step: native npm audit as a secondary check
       - name: Run npm audit
         run: npm audit --audit-level=high
 
-  # Build Docker image
+  # ----------------------------------------------------------------
+  # Job: build — build and push Docker image to Docker Hub
+  # Only runs on push to main after tests, E2E, and security pass.
+  # ----------------------------------------------------------------
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [test, e2e, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
+      # Expose the generated image tag so the deploy job can reference it
       image-tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step: enable BuildKit features for faster layered builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Step: authenticate with Docker Hub to push the image
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Step: generate Docker tags (branch, SHA, semver) from Git metadata
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -201,6 +238,7 @@ jobs:
             type=sha,prefix=
             type=semver,pattern={{version}}
 
+      # Step: build and push the image, caching layers via GitHub Actions cache
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -211,7 +249,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Deploy to production
+  # ----------------------------------------------------------------
+  # Job: deploy — deploy to Render and run post-deploy migrations
+  # Only runs on push to main after the Docker build succeeds.
+  # ----------------------------------------------------------------
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -224,6 +265,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step: trigger a Render deploy using the Render API
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
@@ -231,11 +273,13 @@ jobs:
           render-api-key: ${{ secrets.RENDER_API_KEY }}
           wait-for-success: true
 
+      # Step: run any pending database migrations on the live API
       - name: Run database migrations
         run: |
           curl -X POST https://mms-api.onrender.com/admin/db/migrate \
             -H "Authorization: Bearer ${{ secrets.ADMIN_API_KEY }}"
 
+      # Step: send a Slack notification with the deployment status
       - name: Notify deployment success
         uses: 8398a7/action-slack@v3
         with:

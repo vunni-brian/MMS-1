@@ -1,9 +1,14 @@
+/**
+ * ActivitySection - Displays recent user activity / audit events in a timeline
+ * list with loading and empty states.
+ */
 import { useTranslation } from "react-i18next";
 import { Activity } from "lucide-react";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Panel } from "@/components/ui/Panel";
 
+/** A single activity event row. */
 interface ActivityRow {
   id: string;
   title: string;
@@ -11,12 +16,17 @@ interface ActivityRow {
   time: string;
 }
 
+/** Props for the ActivitySection component. */
 interface ActivitySectionProps {
   auditPending: boolean;
   canReadAudit: boolean;
   activityRows: ActivityRow[];
 }
 
+/**
+ * ActivitySection - Renders a list of recent audit events or, as a fallback,
+ * recent notifications. Shows loading skeleton while audit is pending.
+ */
 const ActivitySection = ({ auditPending, canReadAudit, activityRows }: ActivitySectionProps) => {
   const { t } = useTranslation();
   return (

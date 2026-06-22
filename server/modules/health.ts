@@ -1,3 +1,9 @@
+/**
+ * @file Health-check and system-information module.
+ * Provides `/health` endpoints that report DB / cache / external-service
+ * status, server uptime, and version info.
+ */
+
 import fs from "node:fs";
 import { get as httpGet } from "node:http";
 import { get as httpsGet } from "node:https";
@@ -32,6 +38,7 @@ interface HealthCheckResult {
 
 const backgroundTaskStateRef: { current: Map<string, { running: boolean; failures: number; nextRunAt: number }> } = { current: new Map() };
 
+/** Provide the health endpoint with a reference to the background-task state map so it can report per-task status. */
 export const setBackgroundTaskStateRef = (state: Map<string, { running: boolean; failures: number; nextRunAt: number }>) => {
   backgroundTaskStateRef.current = state;
 };
@@ -57,6 +64,7 @@ const metrics: MetricsStore = {
   lastReset: new Date().toISOString(),
 };
 
+/** Record an HTTP request metric (duration and status code). */
 export const recordRequest = (durationMs: number, statusCode: number) => {
   metrics.httpRequestsTotal++;
   metrics.httpRequestDurationMs.push(durationMs);
@@ -68,7 +76,9 @@ export const recordRequest = (durationMs: number, statusCode: number) => {
   }
 };
 
+/** Increment the DB query counter metric. */
 export const recordDbQuery = () => { metrics.dbQueryCount++; };
+/** Increment the DB error counter metric. */
 export const recordDbError = () => { metrics.dbErrorCount++; };
 
 const formatPrometheusMetrics = (): string => {
@@ -232,6 +242,7 @@ const checkBackgroundJobs = (): Record<string, { status: string; failures: numbe
   return jobs;
 };
 
+/** Health-check and metrics routes. */
 export const healthRoutes: RouteDefinition[] = [
   {
     method: "GET",

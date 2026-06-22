@@ -1,3 +1,7 @@
+/**
+ * Manager vendor management page with vendor list, document preview, suspension,
+ * and penalty tracking. Manager role only.
+ */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,13 +41,16 @@ import {
 } from "@/components/ui/sheet";
 import type { VendorActivityEvent, VendorProfile } from "@/types";
 
+/** Returns a Date set to the end of the given date string. */
 const endOfDay = (dateValue: string) => new Date(`${dateValue}T23:59:59`);
 
+/** Operational status for a vendor account from the manager's perspective. */
 type OperationalVendorStatus = "active" | "late_payment" | "suspended";
 
 // ─────────────────────────────────────────────────────────
 // Document Preview
 // ─────────────────────────────────────────────────────────
+/** Renders a modal preview of a vendor's uploaded document with image or file placeholder. */
 const DocumentPreview = ({
   title,
   vendorId,
@@ -128,9 +135,11 @@ const DocumentPreview = ({
 // ─────────────────────────────────────────────────────────
 // Vendor card
 // ─────────────────────────────────────────────────────────
+/** Extracts initials from a full name (up to 2 characters). */
 const getInitials = (name: string) =>
   (name || "").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "V";
 
+/** Card component displaying vendor profile details with document preview and action controls. */
 const VendorProfileCard = ({
   row,
   onOpen,
@@ -234,6 +243,7 @@ const VendorProfileCard = ({
 // ─────────────────────────────────────────────────────────
 // Activity timeline
 // ─────────────────────────────────────────────────────────
+/** Timeline component showing vendor-related activity events. */
 const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityEvent[]; isLoading: boolean }) => {
   const { t } = useTranslation();
   const activityTypeLabels: Record<VendorActivityEvent["type"], string> = {
@@ -287,6 +297,7 @@ const VendorActivityTimeline = ({ events, isLoading }: { events: VendorActivityE
 // ─────────────────────────────────────────────────────────
 // Evidence field (matching mockup style)
 // ─────────────────────────────────────────────────────────
+/** Label-value row for display in vendor detail sections. */
 const FieldRow = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
   <div className="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
     <p className="text-xs text-slate-500">{label}</p>
@@ -297,6 +308,7 @@ const FieldRow = ({ label, value, mono = false }: { label: string; value: React.
 // ─────────────────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────────────────
+/** VendorsPage - renders the vendor management dashboard with searchable vendor list, detail sheet, and penalty controls. */
 const VendorsPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();

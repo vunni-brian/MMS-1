@@ -1,3 +1,4 @@
+/** Resizable panel layouts built on react-resizable-panels with drag handle support. */
 import { GripVertical } from "lucide-react";
 import * as ResizablePrimitive from "react-resizable-panels";
 

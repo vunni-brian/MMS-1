@@ -1,3 +1,9 @@
+/**
+ * @file Resources module.
+ * CRUD routes for market-shared resources (equipment, furniture, etc.) that
+ * can be checked out or allocated to vendors.
+ */
+
 import { all, createId, get, logAuditEvent, queueNotification, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
@@ -61,6 +67,7 @@ const selectSql = `
   LEFT JOIN markets ON markets.id = resource_requests.market_id
 `;
 
+/** Resource request routes (request, approve/reject, return, list). */
 export const resourceRequestRoutes: RouteDefinition[] = [
   {
     method: "GET",

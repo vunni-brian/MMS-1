@@ -1,3 +1,4 @@
+/** A versatile button component with multiple variants, sizes, and asChild support for polymorphism. */
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";

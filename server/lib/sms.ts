@@ -1,5 +1,12 @@
+/**
+ * @file SMS delivery service.
+ * Sends SMS messages via Africa's Talking API, with support for multiple
+ * sender IDs, configurable retries, and dry-run mode.
+ */
+
 import type { AppConfig } from "../types.ts";
 
+/** Subset of `AppConfig` needed for SMS delivery. */
 export type SmsDeliveryConfig = Pick<
   AppConfig,
   | "africasTalkingUsername"
@@ -10,6 +17,7 @@ export type SmsDeliveryConfig = Pick<
   | "devMode"
 >;
 
+/** Send an SMS via Africa's Talking API. In dev mode with SMS disabled, logs instead of throwing. */
 export const sendSmsDelivery = async (
   destination: string,
   message: string,

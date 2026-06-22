@@ -1,3 +1,9 @@
+/**
+ * Root application component and route definitions for MMS.
+ *
+ * Sets up React Query, React Router, auth context, and lazy-loaded
+ * role-based route trees for admin, manager, official, and vendor users.
+ */
 import { lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -65,6 +71,7 @@ const ComplianceOversightSettingsPage = lazy(() => import("./pages/shared/settin
 const VendorsPage = lazy(() => import("./pages/manager/VendorsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+/** React Query client with default stale time and retry settings. */
 const queryClient = new QueryClient({
  defaultOptions: {
  queries: {
@@ -75,6 +82,10 @@ const queryClient = new QueryClient({
  },
 });
 
+/**
+ * Skeleton loading placeholder shown while lazy-loaded route chunks resolve.
+ * Mirrors the dashboard layout structure to reduce layout shift on navigation.
+ */
 const RouteFallback = () => (
  <div className="min-h-screen bg-[#F8FAFC] p-6 text-sm text-muted-foreground">
  <div className="mx-auto flex w-full max-w-[1360px] gap-6">
@@ -92,11 +103,19 @@ const RouteFallback = () => (
  </div>
 );
 
+/**
+ * Conditionally renders Vercel Speed Insights only in production
+ * and when not on localhost or 127.0.0.1 to avoid polluting dev metrics.
+ */
 const shouldRenderSpeedInsights = () => {
  if (!import.meta.env.PROD || typeof window === "undefined") return false;
  return !["localhost", "127.0.0.1"].includes(window.location.hostname);
 };
 
+/**
+ * Shared settings route tree used across all role layouts.
+ * Includes account, security, notifications, and role-gated admin pages.
+ */
 const sharedSettingsRoutes = (basePath: string) => (
   <>
     <Route path="notifications" element={<Navigate to={`${basePath}/settings/notifications`} replace />} />
@@ -122,6 +141,10 @@ const sharedSettingsRoutes = (basePath: string) => (
   </>
 );
 
+/**
+ * Shared child route tree (billing, reports, audit, etc.) appended
+ * to manager, official, and admin layouts.
+ */
 const sharedChildRoutes = (basePath: string) => (
   <>
     <Route path="billing" element={<BillingPage />} />
@@ -133,6 +156,10 @@ const sharedChildRoutes = (basePath: string) => (
   </>
 );
 
+/**
+ * Vendor-specific child route tree with VendorApprovalGuard wrapping
+ * sensitive pages for accounts whose approval is still pending.
+ */
 const vendorChildRoutes = (basePath: string) => (
   <>
     <Route path="billing" element={<VendorApprovalGuard><BillingPage /></VendorApprovalGuard>} />
@@ -144,6 +171,11 @@ const vendorChildRoutes = (basePath: string) => (
   </>
 );
 
+/**
+ * Root application component.
+ * Wraps the app in QueryClientProvider, TooltipProvider, AuthProvider,
+ * and BrowserRouter with Suspense-based lazy loading for all routes.
+ */
 const App = () => (
  <QueryClientProvider client={queryClient}>
  <TooltipProvider>

@@ -1,3 +1,11 @@
+/**
+ * ConsolePage - Page wrapper that resolves page identity/accent from the current
+ * route and applies matching CSS classes. Used by admin-level layouts.
+ *
+ * SegmentedControl - Accessible tab-like toggle for switching between filter views.
+ *
+ * DetailSheet - Slide-over panel for showing detail views.
+ */
 import type { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -16,7 +24,7 @@ import {
   type PageKind,
 } from "@/config/pageIdentity";
 
-// --- ConsolePage wrapper (used by AdminLayout) ---
+/** Props for the ConsolePage wrapper component. */
 interface ConsolePageProps {
   children: ReactNode;
   className?: string;
@@ -24,6 +32,10 @@ interface ConsolePageProps {
   accent?: PageAccent;
 }
 
+/**
+ * ConsolePage - Renders a themed page container that derives its accent and kind
+ * from the current route, falling back to explicit props when provided.
+ */
 export const ConsolePage = ({ children, className, kind, accent }: ConsolePageProps) => {
   const location = useLocation();
   const identity = getPageIdentity(location.pathname);
@@ -49,12 +61,14 @@ export const ConsolePage = ({ children, className, kind, accent }: ConsolePagePr
   );
 };
 
+/** A single option in a SegmentedControl. */
 interface SegmentedControlOption<TValue extends string> {
   value: TValue;
   label: ReactNode;
   count?: number;
 }
 
+/** Props for the SegmentedControl component. */
 interface SegmentedControlProps<TValue extends string> {
   value: TValue;
   onChange: (value: TValue) => void;
@@ -62,6 +76,10 @@ interface SegmentedControlProps<TValue extends string> {
   className?: string;
 }
 
+/**
+ * SegmentedControl - Accessible tab-bar that renders a horizontal set of filter
+ * buttons with an optional count badge on each option.
+ */
 export const SegmentedControl = <TValue extends string>({
   value,
   onChange,
@@ -76,7 +94,7 @@ export const SegmentedControl = <TValue extends string>({
     role="tablist"
   >
     {options.map((option) => {
-      const active = option.value === value;
+      const active = option.value === value; // highlight the currently selected tab
 
       return (
         <button
@@ -107,6 +125,7 @@ export const SegmentedControl = <TValue extends string>({
   </div>
 );
 
+/** Props for the DetailSheet slide-over panel. */
 interface DetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -116,6 +135,9 @@ interface DetailSheetProps {
   className?: string;
 }
 
+/**
+ * DetailSheet - Slide-over sheet (drawer) for viewing details of a selected item.
+ */
 export const DetailSheet = ({
   open,
   onOpenChange,

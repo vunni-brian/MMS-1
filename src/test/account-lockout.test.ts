@@ -1,3 +1,8 @@
+/**
+ * Tests for account lockout logic after repeated failed login attempts.
+ * Covers threshold-based locking, lockout duration, expiry checks,
+ * counter reset on success, generic error messages, and audit logging.
+ */
 import { describe, expect, it, vi } from "vitest";
 
 describe("account lockout logic", () => {
@@ -59,6 +64,7 @@ describe("account lockout logic", () => {
 
   it("logLoginFailure logs to audit", async () => {
     const logSpy = vi.fn();
+    // Simulate a user record returned from DB with 4 failed attempts
     const fakeUser = {
       id: "user_test",
       name: "Test User",
@@ -68,6 +74,7 @@ describe("account lockout logic", () => {
       failed_login_attempts: 4,
     };
 
+    // Verify the audit-log entry matches expected shape
     await logSpy({
       actorUserId: fakeUser.id,
       actorName: fakeUser.name,

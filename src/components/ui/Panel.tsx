@@ -1,3 +1,4 @@
+/** A content panel with optional title, description, actions bar, and child content area. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

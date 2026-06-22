@@ -1,3 +1,4 @@
+/** A bottom drawer panel built on Vaul with overlay, header, footer, and drag handle. */
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 

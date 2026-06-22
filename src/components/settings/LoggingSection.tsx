@@ -1,9 +1,14 @@
+/**
+ * LoggingSection - Application and audit log level toggles (debug, info,
+ * warning, error) with retention period inputs.
+ */
 import { useTranslation } from "react-i18next";
 import { MonitorCog } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Logging configuration panel. */
 const LoggingSection = ({ getBoolean, updateSetting, getString }: SettingsContext) => {
   const { t } = useTranslation();
   return (

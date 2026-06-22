@@ -1,3 +1,8 @@
+/**
+ * Custom Playwright fixture that automatically captures console errors,
+ * failed network requests, and page crashes during each test.
+ * Artifacts are saved to disk for debugging failed E2E tests.
+ */
 import { test as base, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
@@ -5,6 +10,11 @@ import path from "node:path";
 const ARTIFACTS_DIR = path.resolve("playwright-results");
 const SCREENSHOTS_DIR = path.join(ARTIFACTS_DIR, "screenshots");
 
+/**
+ * Extended Playwright test object with automatic artifact capture.
+ * During each test, console errors, failed requests, and page crashes
+ * are collected, then written to disk after the test completes.
+ */
 export const test = base.extend<{
   captureArtifacts: void;
 }>({
@@ -78,4 +88,5 @@ export const test = base.extend<{
   ],
 });
 
+/** Re-exported Playwright expect for use with the extended test fixture */
 export { expect };

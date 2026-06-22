@@ -1,6 +1,8 @@
+/** A generic data table component with column definition, loading, and empty state support. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Defines a single column in the data table. */
 export interface Column<T> {
   key: string;
   header: string;

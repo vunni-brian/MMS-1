@@ -1,3 +1,14 @@
+/**
+ * ProtectedRoute - Guards child routes behind authentication and role checks.
+ * Redirects unauthenticated users to /login and unauthorized users to their
+ * role home.
+ *
+ * VendorApprovalGuard - Ensures approved vendors only; redirects unapproved
+ * vendors to the vendor landing page.
+ *
+ * RoleRoute - Redirects users to their settings if they lack one of the
+ * allowed roles, without showing a loading state.
+ */
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
@@ -18,9 +29,9 @@ export const ProtectedRoute = ({
  const { user, isLoading } = useAuth();
  const location = useLocation();
 
- // Only block on the very first session restore (no user yet and still loading).
- // Once a user is known, navigate immediately without a loading flash.
- if (isLoading && !user) {
+  // Only show the full-screen loader during initial session restore (no user
+  // available yet). Once a user object exists, redirect instantly without flash.
+  if (isLoading && !user) {
  return <LoadingAnimation label={t("layout:loadingSession")} />;
  }
 

@@ -1,68 +1,84 @@
+/**
+ * Page identity and navigation configuration.
+ * Defines page kinds, types, accents, and the mapping from routes to page metadata.
+ */
 import type { ElementType } from "react";
 import {
- AlertTriangle,
- BarChart3,
- ClipboardList,
- CreditCard,
- Gauge,
- Landmark,
- LayoutDashboard,
- Megaphone,
- MessageSquare,
- Plug,
- ScrollText,
- Settings,
- ShieldCheck,
- Store,
- TrendingUp,
- UserCircle,
- Users,
+  AlertTriangle,
+  BarChart3,
+  ClipboardList,
+  CreditCard,
+  Gauge,
+  Landmark,
+  LayoutDashboard,
+  Megaphone,
+  MessageSquare,
+  Plug,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  Store,
+  TrendingUp,
+  UserCircle,
+  Users,
 } from "lucide-react";
 
 import { roleExperience } from "@/config/roleExperience";
 
+/** Categories that group pages by functional domain. */
 export type PageKind =
- | "dashboard"
- | "operations"
- | "data"
- | "finance"
- | "reports"
- | "governance"
- | "settings"
- | "communications"
- | "profile";
+  | "dashboard"
+  | "operations"
+  | "data"
+  | "finance"
+  | "reports"
+  | "governance"
+  | "settings"
+  | "communications"
+  | "profile";
 
+/** Layout type used to render the page. */
 export type PageType =
- | "dashboard"
- | "workspace"
- | "detail"
- | "settings";
+  | "dashboard"
+  | "workspace"
+  | "detail"
+  | "settings";
 
+/** Accent colour variant for a page's visual identity. */
 export type PageAccent =
- | "blue"
- | "teal"
- | "green"
- | "amber"
- | "rose"
- | "slate"
- | "cyan";
+  | "blue"
+  | "teal"
+  | "green"
+  | "amber"
+  | "rose"
+  | "slate"
+  | "cyan";
 
+/** Metadata that describes a page's identity for navigation headers, breadcrumbs, and titles. */
 export interface PageIdentity {
- label: string;
- shortLabel: string;
- description: string;
- kind: PageKind;
- accent: PageAccent;
- icon: ElementType;
+  /** Full page title. */
+  label: string;
+  /** Abbreviated label for breadcrumbs and compact layouts. */
+  shortLabel: string;
+  /** Short description of the page's purpose. */
+  description: string;
+  /** Functional category the page belongs to. */
+  kind: PageKind;
+  /** Accent colour for the page. */
+  accent: PageAccent;
+  /** Icon component associated with the page. */
+  icon: ElementType;
 }
 
+/** Maps role slugs to their workspace titles for navigation. */
 const roleLabels: Record<string, string> = {
- admin: roleExperience.admin.workspaceTitle,
- official: roleExperience.official.workspaceTitle,
- manager: roleExperience.manager.workspaceTitle,
- vendor: roleExperience.vendor.workspaceTitle,
+  admin: roleExperience.admin.workspaceTitle,
+  official: roleExperience.official.workspaceTitle,
+  manager: roleExperience.manager.workspaceTitle,
+  vendor: roleExperience.vendor.workspaceTitle,
 };
 
+/** Maps route paths to their corresponding page layout type. */
 export const pageLayoutMap: Record<string, PageType> = {
  "/vendor": "dashboard",
  "/manager": "dashboard",
@@ -114,6 +130,7 @@ export const pageLayoutMap: Record<string, PageType> = {
  "/admin/profile": "settings",
 };
 
+/** Maps URL path segments to their page identity metadata. */
 const routeIdentities: Record<string, PageIdentity> = {
  "": {
  label: "Dashboard",
@@ -261,6 +278,7 @@ const routeIdentities: Record<string, PageIdentity> = {
  },
 };
 
+/** Fallback identity used when no route segment matches. */
 const fallbackIdentity: PageIdentity = {
  label: "Workspace",
  shortLabel: "Workspace",
@@ -270,12 +288,23 @@ const fallbackIdentity: PageIdentity = {
  icon: ShieldCheck,
 };
 
+/**
+ * Splits a pathname into its non-empty segments.
+ * @param pathname - The URL pathname to split.
+ * @returns Array of trimmed path segments.
+ */
 export const getPathSegments = (pathname: string) =>
- pathname
- .split("/")
- .map((segment) => segment.trim())
- .filter(Boolean);
+  pathname
+  .split("/")
+  .map((segment) => segment.trim())
+  .filter(Boolean);
 
+/**
+ * Resolves the page identity for a given pathname.
+ * Applies path-specific overrides where defined (e.g., role-specific labels).
+ * @param pathname - The URL pathname to resolve.
+ * @returns The resolved PageIdentity.
+ */
 export const getPageIdentity = (pathname: string): PageIdentity => {
  const normalizedPath = `/${getPathSegments(pathname).join("/")}`;
  const pathOverrides: Record<string, Partial<PageIdentity>> = {
@@ -301,30 +330,53 @@ export const getPageIdentity = (pathname: string): PageIdentity => {
  return { ...identity, ...(pathOverrides[normalizedPath] || {}) };
 };
 
+/**
+ * Determines the page layout type for a given pathname.
+ * Falls back to "settings" for settings/profile kinds, otherwise "workspace".
+ * @param pathname - The URL pathname.
+ * @returns The page layout type.
+ */
 export const getPageType = (pathname: string): PageType => {
- const normalizedPath = `/${getPathSegments(pathname).join("/")}`;
- const mapped = pageLayoutMap[normalizedPath];
- if (mapped) return mapped;
- const kind = getPageIdentity(pathname).kind;
- return kind === "settings" || kind === "profile" ? "settings" : "workspace";
+  const normalizedPath = `/${getPathSegments(pathname).join("/")}`;
+  const mapped = pageLayoutMap[normalizedPath];
+  if (mapped) return mapped;
+  const kind = getPageIdentity(pathname).kind;
+  return kind === "settings" || kind === "profile" ? "settings" : "workspace";
 };
 
+/**
+ * Returns the workspace label for the role segment of a pathname.
+ * @param pathname - The URL pathname.
+ * @returns Workspace title (e.g., "Control Center").
+ */
 export const getWorkspaceLabel = (pathname: string) => {
- const [roleSegment] = getPathSegments(pathname);
- return roleLabels[roleSegment] || "Workspace";
+  const [roleSegment] = getPathSegments(pathname);
+  return roleLabels[roleSegment] || "Workspace";
 };
 
+/**
+ * Builds a breadcrumb trail for the given pathname.
+ * First item is the workspace, second is the current page label.
+ * @param pathname - The URL pathname.
+ * @returns Array of breadcrumb items with label and optional path.
+ */
 export const getPageBreadcrumbs = (pathname: string) => {
- const identity = getPageIdentity(pathname);
- const workspaceLabel = getWorkspaceLabel(pathname);
+  const identity = getPageIdentity(pathname);
+  const workspaceLabel = getWorkspaceLabel(pathname);
 
- return [
- { label: workspaceLabel, path: `/${getPathSegments(pathname)[0] || ""}` },
- { label: identity.shortLabel || identity.label },
- ].filter((item) => item.label);
+  return [
+  { label: workspaceLabel, path: `/${getPathSegments(pathname)[0] || ""}` },
+  { label: identity.shortLabel || identity.label },
+  ].filter((item) => item.label);
 };
 
+/**
+ * Resolves page identity for a navigation entry within a role scope.
+ * @param role - The role slug (e.g., "admin", "vendor").
+ * @param path - The sub-path within the role scope.
+ * @returns The resolved PageIdentity.
+ */
 export const getNavigationIdentity = (role: string, path: string) => {
- const pathname = path ? `/${role}/${path}` : `/${role}`;
- return getPageIdentity(pathname);
+  const pathname = path ? `/${role}/${path}` : `/${role}`;
+  return getPageIdentity(pathname);
 };

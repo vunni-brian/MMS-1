@@ -1,3 +1,7 @@
+/**
+ * Vitest configuration for unit and component tests.
+ * Uses jsdom environment, React SWC plugin, and path alias matching Vite.
+ */
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";

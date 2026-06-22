@@ -1,3 +1,4 @@
+/** A composable sidebar navigation system with collapsible modes, mobile support, and sub-menu items. */
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";

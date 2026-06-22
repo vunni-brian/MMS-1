@@ -1,3 +1,7 @@
+/**
+ * Shared profile settings page for editing user profile, uploading avatar,
+ * and viewing market assignment information. Accessible to all roles.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -31,8 +35,10 @@ const productSections = [
   "Other",
 ];
 
+/** Capitalizes the first letter of a role name for display. */
 const roleLabel = (role: string) => role.charAt(0).toUpperCase() + role.slice(1);
 
+/** ProfileSettingsPage - renders the user profile editing form with avatar upload and market info. */
 const ProfileSettingsPage = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();

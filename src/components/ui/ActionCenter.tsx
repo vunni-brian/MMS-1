@@ -1,6 +1,8 @@
+/** A dashboard panel that displays action items grouped by tone (urgent, warning, info, success). */
 import type { ElementType, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** A single action item with icon, title, detail, tone, and optional action. */
 export interface ActionItem {
   id: string;
   icon: ElementType;

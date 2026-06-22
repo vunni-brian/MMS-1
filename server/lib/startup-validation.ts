@@ -1,3 +1,9 @@
+/**
+ * @file Startup configuration validation.
+ * Checks environment variables, DB connectivity, and essential service config
+ * when the server boots, collecting warnings rather than failing fast.
+ */
+
 import type { AppConfig } from "../types.ts";
 import { canConnectToDatabase } from "./db.ts";
 import { logger } from "./logger.ts";
@@ -8,6 +14,7 @@ interface ValidationWarning {
   severity: "warn" | "error";
 }
 
+/** Check production config values and DB connectivity, logging warnings and errors. In production, errors are counted but do not block startup. */
 export const validateProductionConfig = async (config: AppConfig): Promise<void> => {
   const warnings: ValidationWarning[] = [];
 
@@ -115,6 +122,7 @@ const envSchema: EnvSchema[] = [
   { key: "SENTRY_DSN", required: false, type: "url", description: "Sentry DSN for error tracking" },
 ];
 
+/** Validate environment variables against the schema — required vars, URL format, and number format. */
 export const validateEnvVars = (): void => {
   const isProduction = process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
   let hasIssues = false;

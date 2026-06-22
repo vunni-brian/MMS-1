@@ -1,6 +1,13 @@
+/**
+ * @file HTTP security headers middleware.
+ * Sets security-related response headers (CSP, HSTS, X-Frame-Options, etc.)
+ * based on the current app configuration.
+ */
+
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AppConfig } from "../types.ts";
 
+/** Flags and values controlling which security headers are set on each response. */
 export interface SecurityHeadersConfig {
   enableCSP: boolean;
   enableHSTS: boolean;
@@ -23,6 +30,7 @@ const DEFAULT_SECURITY_HEADERS: SecurityHeadersConfig = {
   frameAncestors: "'none'",
 };
 
+/** Apply security-related HTTP response headers based on config flags. */
 export const setSecurityHeaders = (
   req: IncomingMessage,
   res: ServerResponse,
@@ -77,6 +85,7 @@ export const setSecurityHeaders = (
   res.removeHeader("Server");
 };
 
+/** Build a `SecurityHeadersConfig` from the canonical `AppConfig`, overriding defaults with any CSP directives. */
 export const getSecurityConfigFromAppConfig = (appConfig: AppConfig): SecurityHeadersConfig => {
   return {
     ...DEFAULT_SECURITY_HEADERS,

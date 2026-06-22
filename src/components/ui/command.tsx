@@ -1,3 +1,4 @@
+/** A command palette / search menu component built on cmdk with dialog support. */
 import * as React from "react";
 import { type DialogProps } from "@radix-ui/react-dialog";
 import { Command as CommandPrimitive } from "cmdk";

@@ -1,3 +1,7 @@
+/**
+ * Admin user (staff) management page with CRUD operations, role editing,
+ * permission matrix management, and activity log for staff accounts. Admin role only.
+ */
 import { FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,9 +51,12 @@ import { DataTableFrame } from "@/components/ui/DataTableFrame";
 import { DetailSheet, SegmentedControl } from "@/components/console/ConsolePage";
 import type { Permission, Role, StaffAccount, StaffStatus } from "@/types";
 
+/** Staff roles that can be managed (manager or official). */
 type StaffRole = Extract<Role, "manager" | "official">;
+/** Tab options for the user management page. */
 type UserTab = "all" | "manager" | "official" | "vendor" | "permissions" | "activity";
 
+/** Form state for inviting a new staff member. */
 interface InviteFormState {
   firstName: string;
   lastName: string;
@@ -66,6 +73,7 @@ interface InviteFormState {
   permissions: Permission[];
 }
 
+/** Returns default responsibilities for a given staff role. */
 const getDefaultResponsibilities = (t: (key: string) => string, role: StaffRole): string[] => {
   const map: Record<StaffRole, string[]> = {
     manager: [t("admin:users.responsibility.marketWorkflows"), t("admin:users.responsibility.vendorApprovals"), t("admin:users.responsibility.paymentFollowUp")],
@@ -74,6 +82,7 @@ const getDefaultResponsibilities = (t: (key: string) => string, role: StaffRole)
   return map[role];
 };
 
+/** Creates an empty invite form pre-populated with default values for the given role. */
 const createInviteForm = (t: (key: string) => string, role: StaffRole = "manager"): InviteFormState => ({
   firstName: "",
   lastName: "",
@@ -90,6 +99,7 @@ const createInviteForm = (t: (key: string) => string, role: StaffRole = "manager
   permissions: rolePermissionMatrix[role],
 });
 
+/** Returns the tab configuration for the user management segmented control. */
 const getTabOptions = (t: (key: string) => string) => [
   { value: "all" as const, label: t("admin:users.tab.all") },
   { value: "manager" as const, label: t("admin:users.tab.manager") },
@@ -99,12 +109,14 @@ const getTabOptions = (t: (key: string) => string) => [
   { value: "activity" as const, label: t("admin:users.tab.activity") },
 ];
 
+/** Returns the CSS class name for a staff status badge. */
 const statusClassName = (status: StaffStatus) => {
   if (status === "active") return "status-badge border-success/20 bg-success/15 text-success";
   if (status === "pending") return "status-badge border-warning/25 bg-warning/15 text-warning";
   return "status-badge border-destructive/20 bg-destructive/15 text-destructive";
 };
 
+/** Returns the CSS class name for a user role badge. */
 const roleClassName = (role: Role) => {
   if (role === "admin") return "status-badge border-primary/20 bg-primary/10 text-primary";
   if (role === "official") return "status-badge border-info/20 bg-info/15 text-info";
@@ -112,12 +124,14 @@ const roleClassName = (role: Role) => {
   return "status-badge border-border bg-muted text-muted-foreground";
 };
 
+/** Parses a newline-or-comma-separated responsibilities string into a trimmed array. */
 const parseResponsibilities = (value: string) =>
   value
     .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
 
+/** UserManagementPage - renders the staff management dashboard with invite, permissions, and activity tabs. */
 const UserManagementPage = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -534,6 +548,7 @@ const UserManagementPage = () => {
   </>);
 };
 
+/** Detail sheet showing a selected user's scope, permissions, and responsibilities. */
 const UserScopeSheet = ({
   user,
   onClose,
@@ -626,10 +641,12 @@ const UserScopeSheet = ({
   );
 };
 
+/** Table listing staff accounts with status badges, role indicators, and scope view action. */
 const UsersTable = ({ rows }: { rows: StaffAccount[] }) => {
   const { t } = useTranslation();
   const [selectedUser, setSelectedUser] = useState<StaffAccount | null>(null);
 
+  /** Maps a staff status to its localized label. */
   const getStatusLabel = (status: StaffStatus) => {
     const labels: Record<StaffStatus, string> = {
       active: t("common:active"),
@@ -707,6 +724,7 @@ const UsersTable = ({ rows }: { rows: StaffAccount[] }) => {
   );
 };
 
+/** Panel displaying the role-permission matrix for all roles. */
 const RolesPermissionsPanel = () => {
   const { t } = useTranslation();
 
@@ -775,6 +793,7 @@ const RolesPermissionsPanel = () => {
   );
 };
 
+/** Panel showing recent activity logs for staff accounts. */
 const ActivityPanel = ({ rows }: { rows: StaffAccount[] }) => {
   const { t } = useTranslation();
 

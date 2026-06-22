@@ -1,3 +1,10 @@
+/**
+ * @file Supabase client integration.
+ * Initialises authenticated Supabase clients for admin operations (user
+ * creation, password updates) and anonymous public access (bucket uploads
+ * with size / type validation).
+ */
+
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 
 import { config } from "../config.ts";
@@ -22,6 +29,7 @@ const adminClient: SupabaseClient | null =
     ? createClient(config.supabaseUrl, config.supabaseServiceRoleKey, clientOptions)
     : null;
 
+/** Search Supabase Auth users by phone or email (paginated). */
 export const findSupabaseAuthUser = async ({
   phone,
   email,
@@ -64,6 +72,7 @@ export const findSupabaseAuthUser = async ({
   }
 };
 
+/** Create a user in Supabase Auth with confirmed email/phone and metadata. */
 export const createSupabaseAuthUser = async ({
   email,
   phone,
@@ -111,6 +120,7 @@ export const createSupabaseAuthUser = async ({
   return data.user;
 };
 
+/** Update an existing Supabase Auth user's email, phone, password, and metadata. */
 export const updateSupabaseAuthUser = async (
   authUserId: string,
   {
@@ -161,6 +171,7 @@ export const updateSupabaseAuthUser = async (
   return data.user;
 };
 
+/** Delete a user from Supabase Auth by their auth user ID. */
 export const deleteSupabaseAuthUser = async (authUserId: string) => {
   if (!adminClient) {
     return;
@@ -172,6 +183,7 @@ export const deleteSupabaseAuthUser = async (authUserId: string) => {
   }
 };
 
+/** Verify credentials against Supabase Auth. Signs out immediately after successful verification. */
 export const verifySupabaseCredentials = async ({
   phone,
   password,
@@ -225,6 +237,7 @@ const ensureStorageBucket = async () => {
   return true;
 };
 
+/** Upload a file to Supabase Storage, ensuring the bucket exists. Returns a `supabase://` URI. */
 export const uploadSupabaseStorageObject = async ({
   objectPath,
   body,
@@ -268,6 +281,7 @@ const parseSupabaseStoragePath = (storagePath: string) => {
   return bucket && objectPath ? { bucket, objectPath } : null;
 };
 
+/** Delete a file from Supabase Storage by its `supabase://` URI. */
 export const deleteSupabaseStorageObject = async (storagePath: string) => {
   if (!adminClient) {
     return;
@@ -284,6 +298,7 @@ export const deleteSupabaseStorageObject = async (storagePath: string) => {
   }
 };
 
+/** Download a file from Supabase Storage by its `supabase://` URI, returning a `Buffer`. */
 export const downloadSupabaseStorageObject = async (storagePath: string) => {
   if (!adminClient) {
     return null;
@@ -302,6 +317,7 @@ export const downloadSupabaseStorageObject = async (storagePath: string) => {
   return Buffer.from(await data.arrayBuffer());
 };
 
+/** Find or create (upsert) a Supabase Auth user during seeding. */
 export const syncSeedUserToSupabase = async ({
   email,
   phone,

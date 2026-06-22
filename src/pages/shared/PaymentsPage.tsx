@@ -1,3 +1,7 @@
+/**
+ * Shared payments page with payment history, manual payment recording, receipt review,
+ * and status badge indicators. Accessible to vendor, manager, and admin roles.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,8 +25,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentStatus } from "@/types";
 
+/** Payment method options for manual payment recording. */
 type PaymentMethod = "mobile" | "card" | "bank";
 
+/** An item that can be paid, with stall, type, period, and amount details. */
 interface PayableItem {
  stall: string;
  paymentType: string;
@@ -43,6 +49,7 @@ const currentPeriod = () => {
 const formatDate = (value: string | null, fallback = "Not recorded") =>
  value ? new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : fallback;
 
+/** Table row for reviewing a submitted payment receipt with approve/reject actions. */
 const ReceiptReviewRow = ({
  payment,
  onViewReceipt,
@@ -109,6 +116,7 @@ const ReceiptReviewRow = ({
  );
 };
 
+/** PaymentsPage - renders the payments dashboard with history, manual entries, and receipt review. */
 const PaymentsPage = () => {
  const { t } = useTranslation();
  const { role } = useAuth();

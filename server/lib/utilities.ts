@@ -1,3 +1,10 @@
+/**
+ * @file Utility-charge helpers.
+ * Determines notification channels for utility creation, updates, and
+ * invoice generation based on the utility type (water, electricity, etc.)
+ * and current charge status.
+ */
+
 import type {
   NotificationChannel,
   UtilityCalculationMethod,
@@ -15,10 +22,12 @@ const utilityTypeLabels: Record<UtilityType, string> = {
   other: "Utility Service",
 };
 
+/** Return a human-readable label for a utility type (Electricity, Water, etc.). */
 export const getUtilityTypeLabel = (utilityType: UtilityType | string) => {
   return utilityTypeLabels[utilityType as UtilityType] || utilityType;
 };
 
+/** Build a display name for a utility charge, preferring a custom description. */
 export const getUtilityChargeDisplayName = ({
   utilityType,
   description,
@@ -37,6 +46,7 @@ export const getUtilityChargeDisplayName = ({
   return billingPeriod ? `${baseLabel} - ${billingPeriod}` : baseLabel;
 };
 
+/** Compute the amount for a utility charge — fixed or usage × rate — rounded to the nearest integer. */
 export const calculateUtilityChargeAmount = ({
   calculationMethod,
   usageQuantity,
@@ -67,11 +77,13 @@ export const calculateUtilityChargeAmount = ({
   return Math.round(usageQuantity * ratePerUnit);
 };
 
+/** Determine whether a charge is `overdue` or still `unpaid` by comparing the due date with today. */
 export const getUtilityChargeResetStatus = (
   dueDate: string,
   currentDate = new Date().toISOString().slice(0, 10),
 ): Extract<UtilityChargeStatus, "unpaid" | "overdue"> => (dueDate < currentDate ? "overdue" : "unpaid");
 
+/** Format the notification message for a newly created utility charge. */
 export const getUtilityChargeCreatedMessage = ({
   utilityType,
   description,
@@ -95,6 +107,7 @@ export const getUtilityChargeCreatedMessage = ({
     "Status: Unpaid",
   ].join("\n");
 
+/** Format the notification message for an overdue utility charge. */
 export const getUtilityChargeOverdueMessage = ({
   utilityType,
   description,
@@ -118,6 +131,7 @@ export const getUtilityChargeOverdueMessage = ({
     "Status: Overdue",
   ].join("\n");
 
+/** Format the notification message for a cancelled utility charge. */
 export const getUtilityChargeCancelledMessage = ({
   utilityType,
   description,
@@ -138,4 +152,5 @@ export const getUtilityChargeCancelledMessage = ({
     "Status: Cancelled",
   ].join("\n");
 
+/** Return the channels used for utility charge notifications (`system` + `sms`). */
 export const getUtilityNotificationChannels = () => utilityNotificationChannels;

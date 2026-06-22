@@ -1,3 +1,8 @@
+/**
+ * Application entry point.
+ * Mounts the React <App /> component to the #root DOM element.
+ * Throws explicitly if the root element is missing from index.html.
+ */
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";

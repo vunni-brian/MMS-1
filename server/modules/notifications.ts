@@ -1,3 +1,9 @@
+/**
+ * @file Notification management module.
+ * Routes for listing, reading, and marking notifications as read. Supports
+ * role-based filtering (admin sees all, others see their own).
+ */
+
 import { all, get, run } from "../lib/db.ts";
 import { HttpError, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { getNotificationPriority } from "../lib/notification-priority.ts";
@@ -24,6 +30,7 @@ const mapNotification = (row: {
   createdAt: row.created_at,
 });
 
+/** Background task: iterate pending notifications and attempt delivery via their configured channels. */
 export const processNotificationDeliveries = async () => {
   const deliveries = await all<{
     id: string;
@@ -91,6 +98,7 @@ export const processNotificationDeliveries = async () => {
   }
 };
 
+/** Notification listing / read-status toggle routes. */
 export const notificationRoutes: RouteDefinition[] = [
   {
     method: "GET",

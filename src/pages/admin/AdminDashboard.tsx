@@ -1,3 +1,7 @@
+/**
+ * Admin dashboard with system overview KPI cards, action center, audit timeline,
+ * and system health monitoring. Admin role only.
+ */
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,9 +29,11 @@ import { InsightCard } from "@/components/ui/InsightCard";
 import { ActionCenter } from "@/components/ui/ActionCenter";
 import { ActivityTimeline } from "@/components/ui/ActivityTimeline";
 
+/** Determines audit timeline entry severity based on action keywords. */
 const getAuditSeverity = (action: string) =>
   /FAIL|DENIED|REJECT|ERROR|SUSPEND|DELETE/i.test(action) ? "failure" : "success";
 
+/** Loading skeleton placeholder for the admin dashboard. */
 const DashboardSkeleton = () => (
   <div className="space-y-6">
     <Skeleton className="h-8 w-[250px]" />
@@ -42,6 +48,7 @@ const DashboardSkeleton = () => (
   </div>
 );
 
+/** AdminDashboard - renders the system overview with stats, action center, and audit timeline. */
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const usersQuery = useQuery({ queryKey: ["users", "admin"], queryFn: () => api.getUsers(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });

@@ -1,3 +1,8 @@
+/**
+ * Vendor registration page with multi-step form (details, documents, OTP).
+ * Handles market selection, document upload, and phone verification.
+ * Public access for new vendor account creation.
+ */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -16,13 +21,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+/** Registration flow steps: account details, document upload, and phone/OTP verification. */
 type RegistrationStep = "details" | "documents" | "otp";
+/** Form fields used in the registration details step. */
 type DetailField = "name" | "nationalIdNumber" | "phone" | "email" | "password" | "marketId" | "productSection" | "district";
 
+/** Ordered list of form fields rendered in the details step. */
 const detailFields: DetailField[] = ["name", "nationalIdNumber", "phone", "email", "password", "marketId", "productSection", "district"];
 
+/** Available market product category options for vendor registration. */
 const productSections = ["Fresh Produce", "Textiles", "Cooked Food", "Electronics", "Household Goods", "Crafts", "Services", "Other"];
 
+/** Formats the file label for the upload card, showing the file name and size in KB. */
 const formatFileLabel = (t: (key: string) => string, file: File | null) => {
  if (!file) {
  return t("register:noFileSelected") || "No file selected";
@@ -30,12 +40,14 @@ const formatFileLabel = (t: (key: string) => string, file: File | null) => {
  return `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
 };
 
+/** Returns the registration step definitions (details, documents, verify) with translation-based labels. */
 const registrationSteps = (t: (key: string) => string): Array<{ id: RegistrationStep; label: string; description: string }> => [
  { id: "details", label: t("register:stepAccount"), description: t("register:stepAccountDesc") },
  { id: "documents", label: t("register:stepDocuments"), description: t("register:stepDocumentsDesc") },
  { id: "otp", label: t("register:stepVerify"), description: t("register:stepVerifyDesc") },
 ];
 
+/** Validates phone number format (9-15 digits, optional leading +). Returns error message or null. */
 const validatePhone = (t: (key: string) => string, phone: string) => {
  const cleaned = phone.replace(/\s/g, "");
  if (!cleaned) return t("register:phoneRequired");
@@ -43,12 +55,14 @@ const validatePhone = (t: (key: string) => string, phone: string) => {
  return null;
 };
 
+/** Validates email format using a basic regex pattern. Returns error message or null. */
 const validateEmail = (t: (key: string) => string, email: string) => {
  if (!email.trim()) return t("register:emailRequired");
  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t("register:emailInvalid");
  return null;
 };
 
+/** Evaluates password strength (0-5) and returns a score, label, and color for the strength indicator. */
 const getPasswordStrength = (t: (key: string) => string, password: string): { score: number; label: string; color: string } => {
  if (!password) return { score: 0, label: "", color: "" };
  let score = 0;
@@ -62,6 +76,7 @@ const getPasswordStrength = (t: (key: string) => string, password: string): { sc
  return { score, label: t("register:passwordStrong"), color: "bg-emerald-500" };
 };
 
+/** RegisterPage - renders the multi-step vendor registration form (details, document upload, OTP verification). */
 const RegisterPage = () => {
  const { t } = useTranslation();
  const navigate = useNavigate();

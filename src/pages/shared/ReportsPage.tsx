@@ -1,3 +1,7 @@
+/**
+ * Shared reports page with revenue market breakdown, date range filtering,
+ * and CSV export. Accessible to manager and admin roles.
+ */
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +21,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+/** Revenue breakdown row for a single market in the reports page. */
 interface RevenueMarketRow {
   market: string;
   totalRevenue: number;
@@ -31,6 +36,7 @@ const defaultFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
 const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 const defaultTo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
+/** ReportsPage - renders the revenue reports dashboard with market breakdown, date filtering, and export. */
 const ReportsPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();

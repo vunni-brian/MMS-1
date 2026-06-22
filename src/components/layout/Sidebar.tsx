@@ -1,3 +1,7 @@
+/**
+ * Sidebar - Collapsible sidebar navigation panel. Displays role-filtered nav
+ * groups, an unread-notification badge, and a system-health indicator footer.
+ */
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +12,7 @@ import { api } from "@/lib/api";
 import { getNavTarget } from "./navigation";
 import type { NavItem, NavGroup } from "./navigation";
 
+/** Props for the Sidebar component. */
 interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -16,6 +21,11 @@ interface SidebarProps {
   hasUnread: boolean;
 }
 
+/**
+ * NavLinkItem - Renders a single sidebar link with active-state detection,
+ * route matching (including query-string awareness), and an unread badge
+ * for the notifications item.
+ */
 const NavLinkItem = ({
   item,
   basePath,
@@ -31,6 +41,8 @@ const NavLinkItem = ({
 }) => {
   const { t } = useTranslation();
   const Icon = item.icon;
+  // Normalise both the target and current path for active-state comparison.
+  // If the item has a query string, both path and query must match exactly.
   const target = getNavTarget(basePath, item);
   const targetPath = target.split("?")[0];
   const itemQuery = item.query ? new URLSearchParams(item.query).toString() : "";
@@ -65,6 +77,10 @@ const NavLinkItem = ({
   );
 };
 
+/**
+ * Sidebar - Main sidebar layout component with role-based nav groups, mobile
+ * overlay, and a system-health footer.
+ */
 export const Sidebar = ({
   sidebarOpen,
   setSidebarOpen,

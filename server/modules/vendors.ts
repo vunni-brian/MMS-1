@@ -1,3 +1,9 @@
+/**
+ * @file Vendors module.
+ * Routes for vendor onboarding, profile updates, approval/rejection,
+ * document uploads, and account-status management.
+ */
+
 import fs from "node:fs";
 
 import { all, get, getManagerForMarket, getUserRecordById, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
@@ -467,6 +473,7 @@ const loadVendorActivity = async (vendorId: string): Promise<VendorActivityEvent
     .slice(0, 120);
 };
 
+/** Vendor management routes (onboarding, profile, approval, documents, status). */
 export const vendorRoutes: RouteDefinition[] = [
   {
     method: "GET",

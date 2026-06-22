@@ -1,3 +1,10 @@
+/**
+ * @file Database access layer.
+ * Manages the `pg` connection pool, SQL query helpers (`run`, `get`, `all`),
+ * transaction support via `AsyncLocalStorage`, migration & seed logic, and
+ * various data-access functions (users, markets, bookings, audit, etc.).
+ */
+
 import { AsyncLocalStorage } from "node:async_hooks";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -39,6 +46,7 @@ const resolveSslConfig = (connectionString: string) =>
     ? { rejectUnauthorized: false }
     : undefined;
 
+/** PostgreSQL connection pool instance. */
 export const db = new Pool({
   connectionString: config.databaseUrl,
   ssl: resolveSslConfig(config.databaseUrl),
@@ -113,21 +121,25 @@ const readMigrationFiles = () => {
     .sort();
 };
 
+/** Execute a SQL statement (INSERT, UPDATE, DELETE) and return the row count. */
 export const run = async (sql: string, params: unknown[] = []): Promise<RunResult> => {
   const result = await query(sql, params);
   return { rowCount: result.rowCount ?? 0 };
 };
 
+/** Fetch a single row, or `undefined` if no match. */
 export const get = async <T>(sql: string, params: unknown[] = []) => {
   const result = await query<T>(sql, params);
   return result.rows[0] as T | undefined;
 };
 
+/** Fetch all matching rows as an array. */
 export const all = async <T>(sql: string, params: unknown[] = []) => {
   const result = await query<T>(sql, params);
   return result.rows as T[];
 };
 
+/** Execute `fn` inside a database transaction using `AsyncLocalStorage` for context propagation. */
 export const transaction = async <T>(fn: () => Promise<T> | T) => {
   const activeContext = transactionStorage.getStore();
   if (activeContext) {
@@ -153,6 +165,7 @@ export const transaction = async <T>(fn: () => Promise<T> | T) => {
   }
 };
 
+/** Apply all pending SQL migration files, then optionally seed the database. */
 export const initDatabase = async () => {
   const client = await migrationDb.connect();
 
@@ -196,6 +209,7 @@ export const initDatabase = async () => {
   }
 };
 
+/** Gracefully close the main and migration pool connections. */
 export const closeDatabase = async () => {
   await migrationDb.end();
   if (migrationDb !== db) {
@@ -203,6 +217,7 @@ export const closeDatabase = async () => {
   }
 };
 
+/** Test connectivity by running `SELECT 1` against the configured pool. */
 export const canConnectToDatabase = async (connectionString = config.databaseUrl) => {
   const probePool = new Pool({
     connectionString,
@@ -222,6 +237,7 @@ export const canConnectToDatabase = async (connectionString = config.databaseUrl
   }
 };
 
+/** Generate a UUID-based primary key with a human-readable prefix (e.g. `user_…`). */
 export const createId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
 const isoFromDayOffset = (days: number, hour = 9) => {
@@ -264,6 +280,7 @@ const parsePermissionScope = (role: Role, value?: string | null) => {
   }
 };
 
+/** Map a raw DB row to a `Market` interface. */
 export const mapMarket = (row: {
   id: string;
   name: string;
@@ -308,6 +325,7 @@ export const mapMarket = (row: {
   maintenanceStallCount: row.maintenance_stall_count,
 });
 
+/** List all markets with vendor/stall counts and hierarchy. */
 export const listMarkets = async () =>
   (
     await all<{
@@ -385,6 +403,7 @@ export const listMarkets = async () =>
     )
   ).map(mapMarket);
 
+/** Return the first manager assigned to a market. */
 export const getManagerForMarket = async (marketId: string) =>
   await get<{ id: string; name: string; phone: string }>(
     `SELECT id, name, phone
@@ -395,6 +414,7 @@ export const getManagerForMarket = async (marketId: string) =>
     [marketId],
   );
 
+/** List all manager-role users assigned to a given market. */
 export const listMarketManagers = async (marketId: string): Promise<MarketManagerSummary[]> =>
   (
     await all<{
@@ -426,6 +446,7 @@ export const listMarketManagers = async (marketId: string): Promise<MarketManage
     marketName: manager.market_name,
   }));
 
+/** Record an audit event in the `audit_events` table. */
 export const logAuditEvent = async ({
   actorUserId,
   actorName,
@@ -463,6 +484,7 @@ export const logAuditEvent = async ({
   );
 };
 
+/** Map a raw user DB row (with vendor & staff profile joins) to an `AuthUser` object. */
 export const serializeAuthUser = (row: {
   id: string;
   name: string;
@@ -507,6 +529,7 @@ export const serializeAuthUser = (row: {
   };
 };
 
+/** Fetch the full user record (with joined vendor, staff, and market data) by primary key. */
 export const getUserRecordById = async (userId: string) => {
   return await get<{
     id: string;
@@ -541,6 +564,7 @@ export const getUserRecordById = async (userId: string) => {
   );
 };
 
+/** Fetch the full user record by phone number. */
 export const getUserRecordByPhone = async (phone: string) => {
   return await get<{
     id: string;
@@ -575,11 +599,13 @@ export const getUserRecordByPhone = async (phone: string) => {
   );
 };
 
+/** Fetch and serialize an `AuthUser` object by user ID (or `null`). */
 export const getAuthUserById = async (userId: string) => {
   const user = await getUserRecordById(userId);
   return user ? serializeAuthUser(user) : null;
 };
 
+/** Insert a notification row (and optional SMS/email delivery rows) for a user. */
 export const queueNotification = async ({
   userId,
   type,
@@ -624,6 +650,7 @@ export const queueNotification = async ({
 
 const executeSeedStatement = run;
 
+/** Populate the database with demo / seed data (users, markets, stalls, etc.) for development. */
 export const seedDatabase = async () => {
   let seedQueue: Promise<void> = Promise.resolve();
   const run = (sql: string, params: unknown[] = []) => {

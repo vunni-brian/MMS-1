@@ -1,3 +1,7 @@
+/**
+ * Admin alerts monitoring page displaying system alerts with severity/status/category filtering,
+ * real-time auto-refresh, and per-alert acknowledgment. Admin role only.
+ */
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -41,8 +45,11 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 
+/** Alert severity level: critical, warning, or info. */
 type AlertSeverity = "critical" | "warning" | "info";
+/** Alert resolution status: open, under watch, or resolved. */
 type AlertStatus = "open" | "watching" | "resolved";
+/** Alert category filter option. */
 type AlertType = "all" | "payments" | "complaints" | "billing" | "system";
 
 interface AdminAlert {
@@ -69,6 +76,7 @@ const statusConfig = {
   resolved: { label: "admin:alerts.status.resolved", className: "bg-emerald-100 text-emerald-700" },
 };
 
+/** AdminAlertsPage - renders the alert monitoring dashboard with filterable alert table and summary stat cards. */
 const AdminAlertsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();

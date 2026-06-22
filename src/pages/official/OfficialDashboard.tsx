@@ -1,3 +1,7 @@
+/**
+ * Official oversight dashboard with market health KPIs, revenue chart, complaints summary,
+ * and compliance insights. Official role only.
+ */
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
@@ -26,6 +30,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { InsightCard } from "@/components/ui/InsightCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+/** Loading skeleton placeholder for the official dashboard. */
 const DashboardSkeleton = () => (
   <div className="space-y-6">
     <Skeleton className="h-8 w-[250px]" />
@@ -40,6 +45,7 @@ const DashboardSkeleton = () => (
   </div>
 );
 
+/** OfficialDashboard - renders the oversight overview with KPI cards, market health, revenue chart, and compliance insights. */
 const OfficialDashboard = () => {
   const { t } = useTranslation();
   const marketsQuery = useQuery({ queryKey: ["markets", "official-dashboard"], queryFn: () => api.getMarkets(), gcTime: DASHBOARD_CONFIG.STATIC_DATA_CACHE_TIME });

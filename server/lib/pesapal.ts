@@ -1,3 +1,9 @@
+/**
+ * @file Pesapal payment gateway integration.
+ * Handles OAuth token acquisition, IPN registration, order submission, and
+ * transaction-status queries against the Pesapal v3 API.
+ */
+
 import { config } from "../config.ts";
 
 type PesapalError = {
@@ -96,8 +102,10 @@ const pesapalFetch = async <T>(path: string, init: RequestInit = {}, token?: str
   return (await parsePesapalResponse(response)) as T;
 };
 
+/** Return the Pesapal redirect-mode string based on whether iframe mode is enabled. */
 export const getPesapalRedirectMode = (useIframe: boolean) => (useIframe ? "PARENT_WINDOW" : "TOP_WINDOW");
 
+/** Map a Pesapal payment-status-description string to our internal `completed` / `failed` / `pending`. */
 export const getPesapalPaymentOutcome = (
   paymentStatusDescription?: string | null,
 ): "completed" | "failed" | "pending" => {
@@ -114,6 +122,7 @@ export const getPesapalPaymentOutcome = (
   return "pending";
 };
 
+/** Obtain (or return cached) OAuth token from the Pesapal API. */
 export const getPesapalToken = async () => {
   if (cachedToken && cachedToken.expiresAt > Date.now()) {
     return cachedToken.token;
@@ -144,6 +153,7 @@ export const getPesapalToken = async () => {
   return data.token;
 };
 
+/** Register the IPN (Instant Payment Notification) URL with Pesapal. */
 export const registerPesapalIpn = async () => {
   if (!config.pesapalIpnUrl) {
     throw new Error("Pesapal IPN URL is not configured. Set PESAPAL_IPN_URL.");
@@ -163,6 +173,7 @@ export const registerPesapalIpn = async () => {
   );
 };
 
+/** Submit a payment order to Pesapal and return the redirect URL + tracking ID. */
 export const submitPesapalOrder = async (input: {
   id: string;
   amount: number;
@@ -216,6 +227,7 @@ export const submitPesapalOrder = async (input: {
   );
 };
 
+/** Query Pesapal for the current status of a transaction by its tracking ID. */
 export const getPesapalTransactionStatus = async (orderTrackingId: string) => {
   if (!orderTrackingId) {
     throw new Error("Pesapal order tracking id is required.");

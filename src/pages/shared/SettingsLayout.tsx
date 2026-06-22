@@ -1,3 +1,7 @@
+/**
+ * Shared settings layout providing a sidebar navigation and context provider
+ * for all settings sub-pages. Accessible to all roles with role-filtered navigation.
+ */
 import { createContext, useMemo, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -29,6 +33,7 @@ import { cn, formatHumanDate, formatHumanDateTime } from "@/lib/utils";
 import { SectionCard, useSettings, type SettingsSection } from "@/components/settings";
 import type { Role } from "@/types";
 
+/** Trims and lowercases a string for search/filter normalization. */
 const normalize = (value: string) => value.trim().toLowerCase();
 
 type SettingsData = ReturnType<typeof useSettings>;
@@ -36,6 +41,7 @@ type SettingsData = ReturnType<typeof useSettings>;
 const SettingsDataContext = createContext<SettingsData | null>(null);
 export { SettingsDataContext };
 
+/** SettingsLayout - renders the settings shell with search, sidebar navigation, and content outlet. */
 const SettingsLayout = () => {
   const { user } = useAuth();
   const { t } = useTranslation();

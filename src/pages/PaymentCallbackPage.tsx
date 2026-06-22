@@ -1,3 +1,9 @@
+/**
+ * Payment gateway callback handler for PesaPal payments.
+ * Polls payment status and displays success/failure/pending states.
+ * Auto-redirects to the relevant payment page after completion.
+ * Public access with role-based redirect.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, Landmark, ReceiptText, XCircle } from "lucide-react";
@@ -11,6 +17,7 @@ import { api } from "@/lib/api";
 import { getPaymentPurpose } from "@/lib/payment-history";
 import { formatCurrency } from "@/lib/utils";
 
+/** PaymentCallbackPage - handles PesaPal payment callback, polls payment status, and displays success/failure/pending states. */
 const PaymentCallbackPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();

@@ -1,3 +1,7 @@
+/**
+ * Admin integrations management page for monitoring and toggling external service connections
+ * (payments, messaging, data, security). Admin role only.
+ */
 import { useTranslation } from "react-i18next";
 import { useMemo, useState, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -39,7 +43,9 @@ import {
 } from "@/components/ui/card";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout";
 
+/** Integration category filter option. */
 type IntegrationCategory = "all" | "payments" | "messaging" | "data" | "security";
+/** Integration connection status. */
 type IntegrationStatus = "connected" | "attention" | "configured" | "inactive";
 
 interface IntegrationCard {
@@ -65,6 +71,7 @@ const categoryLabels: Record<Exclude<IntegrationCategory, "all">, string> = {
   security: "admin:integrations.category.security",
 };
 
+/** AdminIntegrationsPage - renders the integration management dashboard with status cards and category filtering. */
 const AdminIntegrationsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();

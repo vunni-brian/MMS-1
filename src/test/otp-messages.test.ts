@@ -1,3 +1,8 @@
+/**
+ * Tests for OTP notification message template rendering.
+ * Verifies default registration templates and custom login
+ * templates with placeholder substitution (appName, code, ttl).
+ */
 import { describe, expect, it } from "vitest";
 
 import { getOtpNotificationMessage } from "../../server/lib/otp-messages.ts";

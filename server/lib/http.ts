@@ -1,9 +1,17 @@
+/**
+ * @file HTTP utilities.
+ * Defines the `HttpError` class, route types (`RouteContext`, `RouteDefinition`),
+ * and helper functions for CORS, JSON responses, body parsing, URL matching,
+ * and bearer-token extraction.
+ */
+
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import type { AppConfig, SessionAuth } from "../types.ts";
 import { logger } from "./logger.ts";
 import { nowIso } from "./security.ts";
 
+/** Error subclass that carries an HTTP status code and optional details payload. */
 export class HttpError extends Error {
   statusCode: number;
   details?: unknown;
@@ -15,6 +23,7 @@ export class HttpError extends Error {
   }
 }
 
+/** Context object passed to every route handler. */
 export interface RouteContext {
   req: IncomingMessage;
   res: ServerResponse;
@@ -24,6 +33,7 @@ export interface RouteContext {
   auth: SessionAuth | null;
 }
 
+/** A route registered by a module: method + path pattern + handler. */
 export interface RouteDefinition {
   method: string;
   path: string;
@@ -45,6 +55,7 @@ const isLocalhostOrigin = (origin: string) => {
   }
 };
 
+/** Set CORS headers on the response based on the request origin and app config. */
 export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config: AppConfig) => {
   const requestOrigin = req.headers.origin;
   const fallbackOrigin = config.appUrl || "http://localhost:3001";
@@ -61,11 +72,13 @@ export const setCorsHeaders = (req: IncomingMessage, res: ServerResponse, config
   res.setHeader("Access-Control-Max-Age", "86400");
 };
 
+/** Write a JSON response with the given status code. */
 export const sendJson = (res: ServerResponse, statusCode: number, payload: unknown) => {
   res.writeHead(statusCode, jsonHeaders);
   res.end(JSON.stringify(payload));
 };
 
+/** Send an empty response (default 204 No Content). */
 export const sendEmpty = (res: ServerResponse, statusCode = 204) => {
   res.writeHead(statusCode);
   res.end();
@@ -86,6 +99,7 @@ const isDatabaseConnectionError = (error: unknown) => {
   });
 };
 
+/** Send a structured error response — `HttpError`, DB-connection errors, or generic 500. */
 export const sendError = (res: ServerResponse, error: unknown) => {
   if (error instanceof HttpError) {
     return sendJson(res, error.statusCode, {
@@ -109,6 +123,7 @@ export const sendError = (res: ServerResponse, error: unknown) => {
   });
 };
 
+/** Read the request body and parse it as JSON. Throws `HttpError(400)` on invalid JSON. */
 export const readJsonBody = async <T>(req: IncomingMessage): Promise<T> => {
   const rawBody = await readRawBody(req);
   if (!rawBody) {
@@ -122,6 +137,7 @@ export const readJsonBody = async <T>(req: IncomingMessage): Promise<T> => {
   }
 };
 
+/** Read the full request body as a UTF-8 string (max 25 MB). */
 export const readRawBody = async (req: IncomingMessage) => {
   const chunks: Buffer[] = [];
   let totalBytes = 0;
@@ -142,6 +158,7 @@ export const readRawBody = async (req: IncomingMessage) => {
   return Buffer.concat(chunks).toString("utf8");
 };
 
+/** Match a URL pathname against a route pattern (`:param` segments) and return extracted params or `null`. */
 export const matchRoute = (routePath: string, pathname: string) => {
   const routeParts = routePath.split("/").filter(Boolean);
   const pathParts = pathname.split("/").filter(Boolean);
@@ -166,6 +183,7 @@ export const matchRoute = (routePath: string, pathname: string) => {
   return params;
 };
 
+/** Extract a Bearer token from the `Authorization` header, or return `null`. */
 export const getBearerToken = (req: IncomingMessage) => {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {

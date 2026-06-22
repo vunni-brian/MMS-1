@@ -1,3 +1,4 @@
+/** A styled table component with header, body, footer, row, cell, and caption subcomponents. */
 import * as React from "react";
 
 import { cn } from "@/lib/utils";

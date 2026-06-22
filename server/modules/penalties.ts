@@ -1,3 +1,10 @@
+/**
+ * @file Penalties module.
+ * Routes for issuing, listing, and cancelling stall penalties (fines). Tied
+ * to charge types for financial tracking and sends notifications on creation
+ * / cancellation.
+ */
+
 import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
@@ -135,6 +142,7 @@ const getPenaltyById = async (penaltyId: string) => {
   return penalty ? mapPenalty(penalty) : null;
 };
 
+/** Penalty routes (issue, list, cancel). */
 export const penaltyRoutes: RouteDefinition[] = [
   {
     method: "GET",

@@ -1,7 +1,14 @@
+/**
+ * @file Graceful shutdown handler.
+ * Listens for OS signals (SIGTERM, SIGINT) and uncaught errors, cleanly closes
+ * the HTTP server, destroys rate-limiters, and exits.
+ */
+
 import type { Server } from "node:http";
 import { logger } from "./logger.ts";
 import { destroyRateLimiters } from "./rate-limit.ts";
 
+/** Options for customising the graceful-shutdown behaviour. */
 interface ShutdownOptions {
   timeout: number;
   onShutdownStart?: () => void;
@@ -118,6 +125,7 @@ class GracefulShutdown {
 // Create singleton instance
 const gracefulShutdown = new GracefulShutdown();
 
+/** Create a new `GracefulShutdown` instance, register it with the HTTP server, and wire up signal handlers. */
 export const registerGracefulShutdown = (server: Server, options?: ShutdownOptions) => {
   const instance = new GracefulShutdown(options);
   instance.register(server);

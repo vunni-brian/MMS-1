@@ -1,3 +1,8 @@
+/**
+ * DataSection - Settings panel for data management including backup
+ * configuration (admin), data volume evidence fields, and a danger-zone
+ * for wiping test data.
+ */
 import { useTranslation } from "react-i18next";
 import { Activity, AlertTriangle, Database, FileDown } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -7,6 +12,7 @@ import { Panel } from "@/components/ui/Panel";
 import { SettingInput, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Props for the DataSection component. */
 interface DataSectionProps extends SettingsContext {
   payments: { length: number }[];
   auditEvents: { length: number }[];
@@ -19,6 +25,10 @@ interface DataSectionProps extends SettingsContext {
   wipeTestData: UseMutationResult<void, Error, void, unknown>;
 }
 
+/**
+ * DataSection - Data management panel. Admins can configure backups and wipe
+ * test data; all users see data volume evidence fields and navigation to exports.
+ */
 const DataSection = ({
   user,
   getString,

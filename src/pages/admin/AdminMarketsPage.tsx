@@ -1,3 +1,7 @@
+/**
+ * Admin markets directory page with health status indicators, sorting,
+ * and detailed market information. Admin role only.
+ */
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -38,7 +42,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+/** Market health indicator status. */
 type MarketHealth = "healthy" | "watch" | "attention";
+/** Market list sort field options. */
 type MarketSort = "name" | "vendors" | "stalls" | "status";
 
 const healthConfig = {
@@ -47,6 +53,7 @@ const healthConfig = {
   attention: { label: "admin:markets.health.attention", className: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle },
 };
 
+/** AdminMarketsPage - renders the market directory with health badges, search, and sort controls. */
 const AdminMarketsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();

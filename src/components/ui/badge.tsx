@@ -1,3 +1,4 @@
+/** A small badge/tag with multiple color variants (default, success, warning, info, error, outline). */
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 

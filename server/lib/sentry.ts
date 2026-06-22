@@ -1,3 +1,9 @@
+/**
+ * @file Sentry alternative implementation.
+ * Falls back to a custom error-reporting transport when the official Sentry SDK
+ * is unavailable. Sends events to the configured Sentry DSN over HTTPS or HTTP.
+ */
+
 import crypto from "node:crypto";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";

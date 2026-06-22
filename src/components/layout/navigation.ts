@@ -1,9 +1,14 @@
+/**
+ * navigation - Role-based navigation structure and helpers. Defines sidebar nav
+ * groups per role, utility functions for building nav targets, and user initials.
+ */
 import type { ElementType } from "react";
 
 import { AlertTriangle, BarChart3, Bell, Building2, CircleDollarSign, CreditCard, Gauge, HelpCircle, KeyRound, Landmark, LayoutDashboard, Megaphone, MessageSquare, MessagesSquare, Plug, ScrollText, Settings, ShieldCheck, Store, UserCircle, Users } from "lucide-react";
 
 import type { Role } from "@/types";
 
+/** A single navigation item with label, route path, icon, and optional query string. */
 export interface NavItem {
   label: string;
   path: string;
@@ -11,6 +16,7 @@ export interface NavItem {
   query?: string;
 }
 
+/** A group of navigation items with a shared heading title. */
 export interface NavGroup {
   title: string;
   items: NavItem[];
@@ -121,11 +127,13 @@ export const roleDescriptions: Record<Role, string> = {
   admin: "Platform control",
 };
 
+/** Builds the full route path for a NavItem, appending its query string if present. */
 export const getNavTarget = (basePath: string, item: NavItem) => {
   const path = item.path ? `${basePath}/${item.path}` : basePath;
   return item.query ? `${path}?${item.query}` : path;
 };
 
+/** Extracts up to two uppercase initials from a full name, falling back to "U". */
 export const getInitials = (name: string) =>
   name
     .split(" ")

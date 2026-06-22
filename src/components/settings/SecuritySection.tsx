@@ -1,3 +1,7 @@
+/**
+ * SecuritySection - Password change form, two-factor authentication settings,
+ * MFA method selector, and session management controls.
+ */
 import { useTranslation } from "react-i18next";
 import { type Dispatch, type SetStateAction } from "react";
 import { Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
@@ -8,18 +12,21 @@ import { Panel } from "@/components/ui/Panel";
 import { SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Password change form state. */
 interface PasswordForm {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
 }
 
+/** Tracks visibility toggles for each password field. */
 interface ShowPasswords {
   current: boolean;
   next: boolean;
   confirm: boolean;
 }
 
+/** Props for the SecuritySection component. */
 interface SecuritySectionProps extends SettingsContext {
   passwordForm: PasswordForm;
   setPasswordForm: Dispatch<SetStateAction<PasswordForm>>;
@@ -33,6 +40,10 @@ interface SecuritySectionProps extends SettingsContext {
   navigate: (path: string) => void;
 }
 
+/**
+ * SecuritySection - Password change, two-factor auth, MFA method, session
+ * alerts, and active session management.
+ */
 const SecuritySection = ({
   user,
   getBoolean,

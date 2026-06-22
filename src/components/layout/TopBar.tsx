@@ -1,3 +1,7 @@
+/**
+ * TopBar - Fixed top navigation bar displaying the workspace title, scope,
+ * language switcher, settings shortcut, and user profile dropdown menu.
+ */
 import { ChevronDown, LogOut, Menu, Settings, UserCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { getInitials, roleLabels } from "./navigation";
 import type { User } from "@/types";
 
+/** Props for the TopBar component. */
 interface TopBarProps {
   workspaceTitle: string;
   scope: string;

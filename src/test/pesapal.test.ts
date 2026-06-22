@@ -1,3 +1,8 @@
+/**
+ * Tests for Pesapal payment-gateway helper functions.
+ * Covers redirect-mode selection (iframe vs top-window) and
+ * mapping Pesapal status descriptions to local outcomes.
+ */
 import { describe, expect, it } from "vitest";
 
 import { getPesapalPaymentOutcome, getPesapalRedirectMode } from "../../server/lib/pesapal.ts";

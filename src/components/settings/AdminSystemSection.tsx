@@ -1,9 +1,14 @@
+/**
+ * AdminSystemSection - Admin-only system configuration panel for toggling
+ * system mode (production / staging / maintenance) and the maintenance banner.
+ */
 import { useTranslation } from "react-i18next";
 import { Server } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 import { SettingSelect, SettingToggle } from "@/components/settings";
 import type { SettingsContext } from "@/components/settings/settingsProps";
 
+/** Admin system settings panel with mode selector and maintenance toggle. */
 const AdminSystemSection = ({ getString, updateSetting, getBoolean }: SettingsContext) => {
   const { t } = useTranslation();
   return (

@@ -1,3 +1,7 @@
+/**
+ * Shared complaints/ticket management page with status workflow, category/priority filtering,
+ * SLA tracking, and escalation actions. Accessible to vendor and manager roles.
+ */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,8 +39,11 @@ import { StatCard } from "@/components/ui/StatCard";
 import type { Ticket, TicketCategory, TicketPriority, TicketStatus } from "@/types";
 
 // ─── Types ───────────────────────────────────────────────
+/** Ticket status filter option. */
 type StatusFilter = "all" | TicketStatus;
+/** Ticket category filter option. */
 type CategoryFilter = "all" | TicketCategory;
+/** Ticket priority filter option. */
 type PriorityFilter = "all" | TicketPriority;
 
 // ─── Constants ───────────────────────────────────────────
@@ -99,6 +106,7 @@ const nextStatusOptions = (status: TicketStatus): Array<{ value: TicketStatus; l
 };
 
 // ─── Sub-components ───────────────────────────────────────
+/** Visual progress indicator showing the current ticket status in a multi-step workflow. */
 const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
   const { t } = useTranslation();
   const active = getStepIndex(status);
@@ -120,6 +128,7 @@ const ComplaintProgress = ({ status }: { status: TicketStatus }) => {
 };
 
 // ─── Main component ───────────────────────────────────────
+/** ComplaintsPage - renders the ticket management dashboard with create, filter, and workflow progression. */
 const ComplaintsPage = () => {
   const { t } = useTranslation();
   const { role } = useAuth();

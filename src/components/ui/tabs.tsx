@@ -1,3 +1,4 @@
+/** A tabbed interface built on Radix UI Tabs primitives. */
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 

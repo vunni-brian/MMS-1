@@ -1,8 +1,15 @@
+/**
+ * @file Billing / charge-type routes.
+ * CRUD endpoints for charge types — global and per-market overrides. Only
+ * admins and market managers can mutate charge types.
+ */
+
 import { getChargeTypeById, listChargeTypes, updateChargeType } from "../lib/billing.ts";
 import { logAuditEvent } from "../lib/db.ts";
 import { HttpError, readJsonBody, sendJson, type RouteDefinition } from "../lib/http.ts";
 import { requirePermission, resolveScopedMarket } from "../lib/session.ts";
 
+/** Billing / charge-type routes (list, get by ID, update enabled/disabled). */
 export const billingRoutes: RouteDefinition[] = [
   {
     method: "GET",

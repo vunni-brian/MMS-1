@@ -1,3 +1,9 @@
+/**
+ * @file Role-based permission definitions.
+ * Maps every `Role` to its set of `Permission` strings and exposes a simple
+ * `hasPermission` check.
+ */
+
 import type { Permission, Role } from "../types.ts";
 
 export const rolePermissions: Record<Role, Permission[]> = {
@@ -83,6 +89,7 @@ export const rolePermissions: Record<Role, Permission[]> = {
   ],
 };
 
+/** Check whether a role possesses a given permission string. */
 export const hasPermission = (role: Role, permission: Permission) => {
   return rolePermissions[role].includes(permission);
 };
