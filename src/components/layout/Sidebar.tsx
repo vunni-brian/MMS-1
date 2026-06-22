@@ -60,6 +60,7 @@ const NavLinkItem = ({
       to={target}
       end={item.path === ""}
       onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "workspace-nav-link relative flex h-9 items-center gap-3 rounded-md px-2.5 text-sm transition-colors",
         active && "is-active",
@@ -105,14 +106,14 @@ export const Sidebar = ({
         <button
           type="button"
           aria-label={t("layout:closeNavigation")}
-          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-overlay bg-black/20 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
         className={cn(
-          "mms-sidebar fixed inset-y-0 left-0 top-[72px] z-[60] flex w-[264px] flex-col border-r shadow-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:shadow-none",
+          "mms-sidebar fixed inset-y-0 left-0 top-[72px] z-sidebar flex w-[264px] flex-col border-r shadow-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:shadow-none",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

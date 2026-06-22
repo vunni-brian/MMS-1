@@ -29,6 +29,8 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [pageError, setPageError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [pendingVendorVerification, setPendingVendorVerification] = useState<{
     challengeId: string;
     expiresAt: string;
@@ -46,6 +48,19 @@ const LoginPage = () => {
   }, [navigate, user, from]);
 
   /** Handles the primary form submission (login, MFA verification, or vendor OTP verification). */
+  const validateField = (field: string, value: string) => {
+    if (field === "phone" && !value.trim()) return t("auth:phoneRequired");
+    if (field === "password" && !value.trim()) return t("auth:passwordRequired");
+    return null;
+  };
+
+  const touchField = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const value = field === "phone" ? phone : password;
+    const err = validateField(field, value);
+    setFieldErrors((prev) => ({ ...prev, [field]: err ?? "" }));
+  };
+
   const handlePrimaryAction = async () => {
     setPageError(null);
     try {
@@ -102,11 +117,11 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
       {/* Simple Header - matches landing page style */}
-      <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-header border-b border-emerald-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            className="flex items-center gap-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded"
           >
             <BrandLogo variant="light" size="md" />
           </button>
@@ -155,7 +170,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   className={cn(
-                    "pb-3 text-sm font-semibold transition-all relative",
+                    "pb-3 text-sm font-semibold transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-sm",
                     !requiresOtp 
                       ? "text-emerald-600 border-b-2 border-emerald-600" 
                       : "text-slate-400 hover:text-slate-600"
@@ -168,7 +183,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   className={cn(
-                    "pb-3 text-sm font-semibold transition-all relative",
+                    "pb-3 text-sm font-semibold transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-sm",
                     requiresOtp 
                       ? "text-emerald-600 border-b-2 border-emerald-600" 
                       : "text-slate-300 cursor-not-allowed"
@@ -193,11 +208,19 @@ const LoginPage = () => {
                         onChange={(event) => {
                           setPhone(event.target.value);
                           setPageError(null);
+                          if (touched.phone) {
+                            const err = validateField("phone", event.target.value);
+                            setFieldErrors((prev) => ({ ...prev, phone: err ?? "" }));
+                          }
                         }}
+                        onBlur={() => touchField("phone")}
                         autoComplete="tel"
                         className="h-12 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
                         required
                       />
+                      {touched.phone && fieldErrors.phone && (
+                        <p className="text-xs text-red-600">{fieldErrors.phone}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -221,16 +244,24 @@ const LoginPage = () => {
                           onChange={(event) => {
                             setPassword(event.target.value);
                             setPageError(null);
+                            if (touched.password) {
+                              const err = validateField("password", event.target.value);
+                              setFieldErrors((prev) => ({ ...prev, password: err ?? "" }));
+                            }
                           }}
+                          onBlur={() => touchField("password")}
                           autoComplete="current-password"
                           className="h-12 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500 pr-10"
                           required
                         />
+                        {touched.password && fieldErrors.password && (
+                          <p className="text-xs text-red-600">{fieldErrors.password}</p>
+                        )}
                         <button
                           type="button"
                           aria-label={showPassword ? t("auth:hidePassword") : t("auth:showPassword")}
                           onClick={() => setShowPassword((value) => !value)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus-visible:outline-none"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>

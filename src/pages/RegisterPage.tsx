@@ -218,7 +218,7 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
       {/* Header - Matching landing page */}
-      <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-header border-b border-emerald-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <button
             onClick={() => navigate("/")}
@@ -413,7 +413,7 @@ const RegisterPage = () => {
                           type="button"
                           aria-label={showPassword ? t("register:hidePassword") : t("register:showPassword")}
                           onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>

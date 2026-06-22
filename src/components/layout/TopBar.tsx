@@ -47,7 +47,7 @@ export const TopBar = ({
   const initials = getInitials(user.name);
 
   return (
-    <header className="mms-topbar fixed left-0 right-0 top-0 z-40 flex h-[72px] items-center border-b border-[#E2E8F0] bg-white/95 px-4 backdrop-blur lg:px-6">
+    <header className="mms-topbar fixed left-0 right-0 top-0 z-header flex h-[72px] items-center border-b border-[#E2E8F0] bg-white/95 px-4 backdrop-blur lg:px-6">
       <button
         type="button"
         aria-label={t("layout:openNavigation")}

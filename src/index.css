@@ -13,6 +13,7 @@
 @layer base {
  html {
  text-rendering: optimizeLegibility;
+ scroll-behavior: smooth;
  }
 
  * {
@@ -44,6 +45,14 @@
    Layer: Utilities
    ========================== */
 @layer utilities {
+ /* --- Z-Index Scale --- */
+ .z-header { z-index: var(--z-header); }
+ .z-sidebar { z-index: var(--z-sidebar); }
+ .z-overlay { z-index: var(--z-overlay); }
+ .z-sticky { z-index: var(--z-sticky); }
+ .z-table-header { z-index: var(--z-table-header); }
+ .z-skip-link { z-index: var(--z-skip-link); }
+
  /* --- Card & Panel Styles --- */
  .card-warm {
   @apply rounded-xl border border-border/60 bg-card shadow-lg transition-all duration-300;
@@ -387,7 +396,8 @@
  }
 
  .page-toolbar {
- @apply sticky top-0 z-10;
+  @apply sticky top-0;
+  z-index: var(--z-sticky);
  border-color: var(--page-accent-border);
  background: hsl(var(--card) / 0.94);
  backdrop-filter: blur(10px);
@@ -637,14 +647,20 @@
  transform 160ms ease;
  }
 
+ @media (prefers-reduced-motion: reduce) {
+  html {
+  scroll-behavior: auto;
+  }
+  }
+
  @media (prefers-reduced-motion: no-preference) {
- .console-page-dashboard .dashboard-panel:hover,
- .record-card:hover,
- .metric-tile:hover,
- .stat-card:hover {
- transform: translateY(-1px);
- }
- }
+  .console-page-dashboard .dashboard-panel:hover,
+  .record-card:hover,
+  .metric-tile:hover,
+  .stat-card:hover {
+  transform: translateY(-1px);
+  }
+  }
 
  .console-page-settings .dashboard-panel:hover,
  .console-page-profile .form-section:hover {
@@ -735,11 +751,11 @@
  font-variant-numeric: tabular-nums;
  }
 
- .data-table-frame table thead {
- position: sticky;
- top: 0;
- z-index: 2;
- }
+  .data-table-frame table thead {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-table-header);
+  }
 
  .data-table-frame table th {
  @apply whitespace-nowrap text-[11px] font-semibold text-muted-foreground;
@@ -1317,8 +1333,6 @@
 }
 
 
-
-
 .app-role-admin .admin-collapse-control {
  display: flex;
  width: 100%;
@@ -1442,8 +1456,6 @@
 }
 
 /* Role workspace chrome inspired by the selected mockup direction. */
-
-
 
 
 .app-role-vendor main,
@@ -1616,7 +1628,6 @@ body {
 }
 
 
-
 .console-accent-blue,
 .nav-accent-blue {
   --page-accent: hsl(161 73% 34%);
@@ -1626,7 +1637,6 @@ body {
   --nav-accent: hsl(161 73% 34%);
   --nav-accent-soft: hsl(161 73% 34% / 0.14);
 }
-
 
 
 .app-role-vendor main,
@@ -2160,7 +2170,6 @@ body {
 }
 
 
-
 @media (max-width: 1180px) {
  .billing-workspace-grid {
  grid-template-columns: 1fr;
@@ -2213,7 +2222,6 @@ body {
 }
 
 
-
 /* ==========================
    Role-Specific Accent Colors
    ========================== */
@@ -2236,7 +2244,6 @@ body {
  --primary: 262 83% 58%;
  --role-accent: #6d28d9;
 }
-
 
 
 .app-role-vendor main,
@@ -2373,43 +2380,49 @@ body {
 /* Master workspace architecture layer. Keep this last so every route resolves
  to the same compact Notion-inspired operating system. */
 :root {
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 20%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 30% 12%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 43%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 161 73% 34%;
-  --primary: 161 73% 34%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 20% 95%;
-  --secondary-foreground: 220 30% 12%;
-  --accent: 152 81% 96%;
-  --accent-foreground: 163 94% 24%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --success: 142 76% 36%;
-  --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 0 0% 100%;
-  --info: 199 89% 48%;
-  --info-foreground: 0 0% 100%;
-  --sidebar-background: 220 30% 12%;
-  --sidebar-foreground: 220 40% 98%;
-  --sidebar-primary: 221 83% 53%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 221 83% 53%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 220 20% 20%;
-  --sidebar-ring: 221 83% 53%;
-  --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --radius: 0.5rem;
-}
+   --background: 210 40% 98%;
+   --foreground: 222 47% 11%;
+   --card: 0 0% 100%;
+   --card-foreground: 0 0% 20%;
+   --popover: 0 0% 100%;
+   --popover-foreground: 220 30% 12%;
+   --muted: 210 40% 96%;
+   --muted-foreground: 215 16% 43%;
+   --border: 214 32% 91%;
+   --input: 214 32% 91%;
+   --ring: 161 73% 34%;
+   --primary: 161 73% 34%;
+   --primary-foreground: 0 0% 100%;
+   --secondary: 220 20% 95%;
+   --secondary-foreground: 220 30% 12%;
+   --accent: 152 81% 96%;
+   --accent-foreground: 163 94% 24%;
+   --destructive: 0 84% 60%;
+   --destructive-foreground: 0 0% 100%;
+   --success: 142 76% 36%;
+   --success-foreground: 0 0% 100%;
+   --warning: 38 92% 50%;
+   --warning-foreground: 0 0% 100%;
+   --info: 199 89% 48%;
+   --info-foreground: 0 0% 100%;
+   --sidebar-background: 220 30% 12%;
+   --sidebar-foreground: 220 40% 98%;
+   --sidebar-primary: 221 83% 53%;
+   --sidebar-primary-foreground: 0 0% 100%;
+   --sidebar-accent: 221 83% 53%;
+   --sidebar-accent-foreground: 0 0% 100%;
+   --sidebar-border: 220 20% 20%;
+   --sidebar-ring: 221 83% 53%;
+   --font-heading: 'Plus Jakarta Sans', 'Inter', sans-serif;
+   --font-body: 'Inter', sans-serif;
+   --radius: 0.5rem;
+   --z-header: 40;
+   --z-sidebar: 60;
+   --z-overlay: 50;
+   --z-sticky: 10;
+   --z-table-header: 2;
+   --z-skip-link: 70;
+ }
 
 .app-role-vendor,
 .app-role-manager,
@@ -2645,6 +2658,12 @@ body,
  stroke-width: 1.85;
 }
 
+.mms-sidebar .workspace-nav-link:focus-visible {
+ outline: 2px solid hsl(var(--sidebar-ring));
+ outline-offset: -2px;
+ border-radius: 6px;
+}
+
 .mms-sidebar .workspace-nav-link:hover {
  background: #F8FAFC !important;
  color: #111827 !important;
@@ -2672,6 +2691,11 @@ body,
 
 .mms-sidebar-footer button {
  border-radius: 6px !important;
+}
+
+.mms-sidebar-footer button:focus-visible {
+ outline: 2px solid hsl(var(--sidebar-ring));
+ outline-offset: 2px;
 }
 
 .mms-sidebar-footer button:hover {

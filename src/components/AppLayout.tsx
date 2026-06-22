@@ -95,6 +95,14 @@ const AppLayout = () => {
 
   return (
     <div className={cn("h-dvh overflow-hidden bg-[#F8F9FA]", `app-role-${user.role}`)}>
+      {/* Skip-to-content link for keyboard/assistive-tech users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-skip-link focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-emerald-700 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+      >
+        {t("layout:skipToContent")}
+      </a>
+
       <TopBar
         workspaceTitle={workspaceTitle}
         scope={user?.marketName || experience?.scopeFallback || ""}
@@ -114,7 +122,7 @@ const AppLayout = () => {
         hasUnread={hasUnread}
       />
 
-      <main className="fixed bottom-0 left-0 right-0 top-[72px] overflow-hidden lg:left-[264px]">
+      <main id="main-content" className="fixed bottom-0 left-0 right-0 top-[72px] overflow-hidden lg:left-[264px]">
         <div className="mms-main-scroll h-full overflow-y-auto">
           <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
             <Outlet />
