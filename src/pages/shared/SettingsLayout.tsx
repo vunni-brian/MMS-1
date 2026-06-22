@@ -366,9 +366,9 @@ const SettingsLayout = () => {
               );
             })}
 
-            <div className="mt-3 rounded-lg bg-muted/20 p-3">
+            <div className="mt-4 rounded-lg border border-border/60 bg-muted/10 p-3" style={{ borderLeft: "3px solid hsl(var(--primary) / 0.4)" }}>
               <p className="text-xs font-semibold text-muted-foreground">{t("settings:layout.currentContext")}</p>
-              <p className="mt-2 truncate text-sm font-semibold">{user.marketName || (user.role === "admin" ? t("common:allMarkets") : t("common:noMarketAssigned"))}</p>
+              <p className="mt-2 truncate text-sm font-semibold text-foreground">{user.marketName || (user.role === "admin" ? t("common:allMarkets") : t("common:noMarketAssigned"))}</p>
               <p className="mt-1 text-xs text-muted-foreground">{t("settings:layout.roleAccess", { role: roleLabel(user.role) })}</p>
             </div>
           </aside>
@@ -377,6 +377,20 @@ const SettingsLayout = () => {
             <div className={cn("settings-detail-grid", showContextPanel && "has-context")}>
               <DashboardErrorBoundary>
                 <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  {active && (() => {
+                    const ActiveIcon = active.icon;
+                    return (
+                      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/50 px-5 py-3">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700">
+                          <ActiveIcon className="h-3.5 w-3.5" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{active.label}</p>
+                          <p className="text-xs text-slate-500">{active.summary}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <main className="min-w-0 space-y-4 p-5" aria-label={active?.label}>
                     <Outlet />
                   </main>

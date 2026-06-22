@@ -852,12 +852,18 @@
  }
 
  .settings-nav-button {
- @apply flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground;
+ @apply flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-muted-foreground transition-all duration-150 hover:bg-muted/50 hover:text-foreground;
+ }
+
+ .settings-nav-button:focus-visible {
+ @apply outline-none;
+ box-shadow: inset 0 0 0 2px hsl(var(--ring));
  }
 
  .settings-nav-button.is-active {
  background: var(--page-accent-soft);
  color: var(--page-accent);
+ box-shadow: inset 3px 0 0 var(--page-accent);
  }
 
  .settings-nav-button span:last-child {
@@ -878,13 +884,14 @@
  }
 
  .settings-section-card {
- @apply flex min-h-[108px] w-full items-start gap-3 rounded-lg border bg-card p-3 text-left shadow-none transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+ @apply flex min-h-[108px] w-full items-start gap-3 rounded-lg border bg-card p-3 text-left shadow-none transition-all duration-150 hover:-translate-y-0.5 hover:bg-muted/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
  border-color: hsl(var(--border) / 0.82);
  }
 
  .settings-section-card.is-active {
  border-color: var(--page-accent-border);
  background: var(--page-accent-soft);
+ box-shadow: 0 1px 3px hsl(var(--primary) / 0.12);
  }
 
  .settings-section-icon {
@@ -908,11 +915,11 @@
  }
 
  .settings-control-row {
- @apply flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-background px-3 py-2.5;
+ @apply flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-background px-4 py-3 transition-colors hover:bg-muted/10;
  }
 
  .settings-field-row {
- @apply grid gap-2 rounded-lg border border-border/70 bg-background px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_240px] md:items-center;
+ @apply grid gap-2 rounded-lg border border-border/70 bg-background px-4 py-3 transition-colors hover:bg-muted/10 md:grid-cols-[minmax(0,1fr)_240px] md:items-center;
  }
 
  .settings-control-label {
@@ -940,7 +947,8 @@
  }
 
  .settings-status-note {
- @apply flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 px-3 py-2 text-xs leading-5 text-success;
+ @apply flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 px-4 py-2.5 text-xs leading-5 text-success;
+ border-left: 3px solid hsl(var(--success));
  }
 
  .empty-state {
