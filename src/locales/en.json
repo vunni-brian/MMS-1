@@ -1805,6 +1805,7 @@
                                     "noResults":  "No results found",
                                     "platformSettings":  "Platform Settings",
                                     "ready":  "Ready",
+                                    "roleAccess":  "{role} Access",
                                     "searchHint":  "Try adjusting your search terms.",
                                     "searchLabel":  "Search settings",
                                     "searchResultsLabel":  "Search results",

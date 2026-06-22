@@ -155,7 +155,7 @@ const CoordinationPage = () => {
             <Card>
               <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
                 <CardTitle className="text-base font-medium">{t("coordination:resourceRequests")}</CardTitle>
-                <Badge variant={pendingRequests.length ? "warning" : "success"}>{t("coordination:pendingBadge", { count: pendingRequests.length })}</Badge>
+                <Badge variant={pendingRequests.length ? "warning" : "success"}>{t("coordination:pendingBadge", { n: pendingRequests.length })}</Badge>
               </CardHeader>
               <CardContent className="p-4">
               <div className={canCreateResourceRequest ? "grid gap-4 lg:grid-cols-[1fr_1.2fr]" : ""}>
@@ -242,7 +242,7 @@ const CoordinationPage = () => {
           <Card>
             <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
               <CardTitle className="text-base font-medium">{t("coordination:updates")}</CardTitle>
-              <span className="text-xs text-slate-400">{t("coordination:notesCount", { count: messages.length })}</span>
+              <span className="text-xs text-slate-400">{t("coordination:notesCount", { n: messages.length })}</span>
             </CardHeader>
             <CardContent className="p-4">
             {messages.length === 0 ? (
@@ -321,8 +321,8 @@ const CoordinationPage = () => {
             </DialogTitle>
             <DialogDescription>
               {confirmReview?.action === "approved"
-                ? t("coordination:approveConfirm", { title: confirmReview.request.title, name: confirmReview.request.managerName, amount: formatCurrency(confirmReview.request.amountRequested) })
-                : t("coordination:rejectConfirm", { title: confirmReview.request.title, name: confirmReview.request.managerName })}
+                ? t("coordination:approveDialogDesc", { title: confirmReview.request.title, name: confirmReview.request.managerName, amount: formatCurrency(confirmReview.request.amountRequested) })
+                : t("coordination:rejectDialogDesc", { title: confirmReview.request.title, name: confirmReview.request.managerName })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">

@@ -192,9 +192,9 @@ const BillingPage = () => {
         <>
           {/* Summary strip */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label={t("billing:outstandingUtilities")} value={formatCurrency(outstandingTotal)} sublabel={t("billing:openCharges", { count: unpaidCharges.length })} icon={<AlertTriangle className="h-4 w-4" />} tone="amber" />
+            <StatCard label={t("billing:outstandingUtilities")} value={formatCurrency(outstandingTotal)} sublabel={t("billing:openCharges", { n: unpaidCharges.length })} icon={<AlertTriangle className="h-4 w-4" />} tone="amber" />
             <StatCard label={t("billing:overdue")} value={overdueCharges.length} sublabel={overdueCharges.length ? t("billing:requiresFollowUp") : t("billing:noneOverdue")} icon={<Clock className="h-4 w-4" />} tone="red" />
-            <StatCard label={t("billing:paidCharges")} value={formatCurrency(paidTotal)} sublabel={t("billing:paidInRegister", { count: paidCharges.length })} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
+            <StatCard label={t("billing:paidCharges")} value={formatCurrency(paidTotal)} sublabel={t("billing:paidInRegister", { n: paidCharges.length })} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
             <StatCard label={t("billing:latestActivity")} value={latestCharge ? formatHumanDate(latestCharge.createdAt) : t("billing:none")} sublabel={latestCharge?.description || t("billing:noActivity")} icon={<ShieldCheck className="h-4 w-4" />} />
           </div>
 
@@ -379,7 +379,7 @@ const BillingPage = () => {
                           <span className="text-slate-500">{!isNaN(manual) && manual > 0 ? t("billing:manualAmount") : t("billing:calculated")}</span>
                           <span className="font-bold text-emerald-800">{formatCurrency(preview)}</span>
                           {calculated && !isNaN(manual) && manual > 0 && Math.abs(manual - calculated) > 0.01 && (
-                            <span className="ml-auto text-xs text-amber-600">{t("billing:autoCalc")} {formatCurrency(calculated)}</span>
+                            <span className="ml-auto text-xs text-amber-600">{t("billing:autoCalc", { amount: formatCurrency(calculated) })}</span>
                           )}
                         </div>
                       );

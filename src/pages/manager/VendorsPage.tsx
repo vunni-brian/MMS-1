@@ -492,7 +492,7 @@ const VendorsPage = () => {
       {/* Vendor grid */}
       <Card>
         <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
-          <CardTitle className="text-base font-medium">{t("vendor:directoryWithRecords", { count: vendorRows.length })}</CardTitle>
+          <CardTitle className="text-base font-medium">{t("vendor:directoryWithRecords", { n: vendorRows.length })}</CardTitle>
         </CardHeader>
         <CardContent className="p-4">
         {isLoading ? (

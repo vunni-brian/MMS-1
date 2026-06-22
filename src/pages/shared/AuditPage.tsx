@@ -143,7 +143,7 @@ const AuditPage = () => {
       </div>
 
       {/* Table */}
-      <DataTableFrame title={t("audit:activityRecords", { filtered: filteredEvents.length, total: events.length })}>
+      <DataTableFrame title={t("audit:records", { n: filteredEvents.length, total: events.length })}>
         {filteredEvents.length === 0 ? (
           <EmptyState title={t("audit:noRecords")} />
         ) : (
