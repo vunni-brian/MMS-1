@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
+  Download,
   Filter,
   Lock,
   MessageSquare,
@@ -416,7 +417,26 @@ const ComplaintsPage = () => {
               {selected.attachments.length > 0 && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <p className="mb-2 font-bold text-slate-900">{t("complaints:attachments")}</p>
-                  {selected.attachments.map((a) => <p key={a.id} className="text-sm text-slate-500">{a.name}</p>)}
+                  <div className="space-y-1">
+                    {selected.attachments.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                        onClick={async () => {
+                          try {
+                            const url = await api.getTicketAttachmentUrl(selected.ticketNumber, a.id);
+                            window.open(url, "_blank", "noopener,noreferrer");
+                          } catch {
+                            toast.error(t("common:error"), { description: "Unable to open attachment." });
+                          }
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{a.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

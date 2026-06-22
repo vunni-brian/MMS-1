@@ -31,7 +31,7 @@ export const brand: BrandConfig = {
   tagline: "Market Management",
   logoPath: "/favicon.png",
   faviconPath: "/favicon.png",
-  copyright: "Kampala Capital City Authority",
+  copyright: "Wandegeya Market Authority",
   copyrightYear: "2026",
   ogTitle: "MMS — Market Management System",
   ogDescription: "Premium market operations console for vendors, managers, officials, and administrators.",

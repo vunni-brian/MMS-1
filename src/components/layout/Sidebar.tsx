@@ -162,7 +162,7 @@ export const Sidebar = ({
               {systemOk ? t("layout:allSystemsOperational") : t("layout:degradedPerformance")}
             </span>
           </div>
-          <p className="mt-2 truncate text-[11px] text-[#71717A]">{t("layout:copyright", { year: 2026, name: "Kampala Capital City Authority" })}</p>
+          <p className="mt-2 truncate text-[11px] text-[#71717A]">{t("layout:copyright", { year: 2026, name: "Wandegeya Market Authority" })}</p>
         </div>
       </aside>
     </>

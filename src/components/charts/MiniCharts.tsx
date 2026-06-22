@@ -27,10 +27,10 @@ const barData = [
 /**
  * MiniAreaChart - Compact area chart with gradient fill, suitable for card headers.
  */
-export const MiniAreaChart = ({ className }: { className?: string }) => (
+export const MiniAreaChart = ({ className, data }: { className?: string; data?: Array<{ label: string; value: number }> }) => (
   <div className={cn("h-full min-h-[180px] w-full", className)}>
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={areaData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+      <AreaChart data={data ?? areaData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <defs>
           <linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
@@ -50,10 +50,10 @@ export const MiniAreaChart = ({ className }: { className?: string }) => (
 /**
  * MiniBarChart - Compact bar chart with rounded top corners, suitable for card headers.
  */
-export const MiniBarChart = ({ className }: { className?: string }) => (
+export const MiniBarChart = ({ className, data }: { className?: string; data?: Array<{ label: string; value: number }> }) => (
   <div className={cn("h-full min-h-[180px] w-full", className)}>
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={barData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+      <BarChart data={data ?? barData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
         <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />

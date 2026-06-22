@@ -13,6 +13,6 @@ WHERE id = 'loc_market_demo_test'
 UPDATE markets
 SET name = 'Kisenyi Central Market',
     code = 'KIS-CENTRAL',
-    location = 'Kampala'
+    location = 'Wandegeya'
 WHERE id = 'market_demo_test'
   AND (name = 'MMS Demo Test Market' OR code = 'MMS-DEMO' OR location = 'Local Testbed');

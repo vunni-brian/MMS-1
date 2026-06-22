@@ -679,7 +679,7 @@ export const seedDatabase = async () => {
     { id: "loc_subarea_kampala_makindye", name: "Makindye Division", type: "division", parentId: "loc_area_kampala" },
     { id: "loc_subarea_jinja_municipality", name: "Jinja Municipality", type: "municipality", parentId: "loc_area_jinja" },
     { id: "loc_subarea_testbed", name: "Kisenyi Trade Area", type: "subcounty", parentId: "loc_area_kampala" },
-    { id: "loc_market_kampala_central", name: "Kampala Central Market", type: "market", parentId: "loc_subarea_kampala_central" },
+    { id: "loc_market_kampala_central", name: "Wandegeya Market", type: "market", parentId: "loc_subarea_kampala_central" },
     { id: "loc_market_jinja_main", name: "Jinja Main Market", type: "market", parentId: "loc_subarea_jinja_municipality" },
     { id: "loc_market_demo_test", name: "Kisenyi Central Market", type: "market", parentId: "loc_subarea_testbed" },
   ] as const;
@@ -687,9 +687,9 @@ export const seedDatabase = async () => {
   const markets = [
     {
       id: "market_kampala",
-      name: "Kampala Central Market",
+      name: "Wandegeya Market",
       code: "KLA-CENTRAL",
-      location: "Kampala",
+      location: "Wandegeya",
       locationId: "loc_market_kampala_central",
     },
     {
@@ -703,7 +703,7 @@ export const seedDatabase = async () => {
       id: "market_demo_test",
       name: "Kisenyi Central Market",
       code: "KIS-CENTRAL",
-      location: "Kampala",
+      location: "Wandegeya",
       locationId: "loc_market_demo_test",
     },
   ] as const;
@@ -953,7 +953,7 @@ export const seedDatabase = async () => {
     const managerUserId = user.marketId ? managerByMarket[user.marketId] : null;
     const seedNationalIdNumber = `CM${String(index + 1).padStart(8, "0")}`;
     const seedDistrict =
-      user.marketId === "market_jinja" ? "Jinja" : user.marketId === "market_demo_test" ? "Kampala" : "Kampala";
+      user.marketId === "market_jinja" ? "Jinja" : user.marketId === "market_demo_test" ? "Kampala" : "Wandegeya";
     const productSection = seedProductSections[index % seedProductSections.length];
     const documentBaseName = user.name.replace(/\s+/g, "_").toLowerCase();
     run(
@@ -1043,10 +1043,24 @@ export const seedDatabase = async () => {
     ["stall_b02", "market_kampala", "B-02", "Zone B - Dry Goods", "3x3m", 120000, "inactive", 1, null],
     ["stall_c01", "market_kampala", "C-01", "Zone C - Clothing", "4x3m", 180000, "maintenance", 1, null],
     ["stall_d01", "market_kampala", "D-01", "Zone D - Electronics", "3x3m", 200000, "inactive", 1, null],
-    ["stall_e02", "market_kampala", "E-02", "Zone E - Mixed Goods", "3x3m", 160000, "active", 1, "user_vendor_amina"],
+    ["stall_e02", "market_kampala", "E-02", "Zone E - Mixed Goods", "3x3m", 160000, "inactive", 1, null],
     ["stall_j01", "market_jinja", "J-01", "Zone J - Textiles", "3x3m", 140000, "active", 1, "user_vendor_mary"],
     ["stall_j02", "market_jinja", "J-02", "Zone J - Dry Goods", "3x3m", 125000, "inactive", 1, null],
     ["stall_j03", "market_jinja", "J-03", "Zone J - Crafts", "4x3m", 155000, "maintenance", 1, null],
+    ["stall_f01", "market_kampala", "F-01", "Zone F - Fish/Meat", "3x3m", 140000, "inactive", 1, null],
+    ["stall_g01", "market_kampala", "G-01", "Zone G - Grains", "3x3m", 110000, "inactive", 1, null],
+    ["stall_h01", "market_kampala", "H-01", "Zone H - Household", "3x3m", 130000, "active", 1, null],
+    ["stall_i01", "market_kampala", "I-01", "Zone I - Second-hand", "4x3m", 170000, "inactive", 1, null],
+    ["stall_k01", "market_kampala", "K-01", "Zone K - Hardware", "3x3m", 160000, "inactive", 1, null],
+    ["stall_l01", "market_kampala", "L-01", "Zone L - Flowers", "3x3m", 120000, "inactive", 1, null],
+    ["stall_m01", "market_kampala", "M-01", "Zone M - Books/Stationery", "3x3m", 100000, "maintenance", 1, null],
+    ["stall_f02", "market_jinja", "F-02", "Zone F - Fish/Meat", "3x3m", 130000, "active", 1, null],
+    ["stall_g02", "market_jinja", "G-02", "Zone G - Grains", "3x3m", 100000, "inactive", 1, null],
+    ["stall_h02", "market_jinja", "H-02", "Zone H - Household", "3x3m", 120000, "inactive", 1, null],
+    ["stall_i02", "market_jinja", "I-02", "Zone I - Second-hand", "4x3m", 150000, "inactive", 1, null],
+    ["stall_k02", "market_jinja", "K-02", "Zone K - Hardware", "3x3m", 145000, "inactive", 1, null],
+    ["stall_l02", "market_jinja", "L-02", "Zone L - Flowers", "3x3m", 110000, "active", 1, null],
+    ["stall_m02", "market_jinja", "M-02", "Zone M - Books/Stationery", "3x3m", 95000, "inactive", 1, null],
   ] as const;
 
   stalls.forEach((stall) => {
@@ -1475,7 +1489,7 @@ export const seedDatabase = async () => {
        'announcement_seed_1',
        'market_kampala',
        'Sanitation inspection this Friday',
-       'All vendors in Kampala Central Market should keep stall frontages clear for the scheduled sanitation inspection.',
+        'All vendors in Wandegeya Market should keep stall frontages clear for the scheduled sanitation inspection.',
        'high',
        'vendors',
        'user_manager_sarah',

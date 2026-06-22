@@ -2,6 +2,7 @@
  * Official oversight dashboard with market health KPIs, revenue chart, complaints summary,
  * and compliance insights. Official role only.
  */
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
@@ -56,10 +57,33 @@ const OfficialDashboard = () => {
   const auditQuery = useQuery({ queryKey: ["audit", "official-dashboard"], queryFn: () => api.getAudit(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
   const resourcesQuery = useQuery({ queryKey: ["resource-requests", "official-dashboard"], queryFn: () => api.getResourceRequests(), gcTime: DASHBOARD_CONFIG.DEFAULT_CACHE_TIME });
 
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const dateFrom = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, "0")}-${String(thirtyDaysAgo.getDate()).padStart(2, "0")}`;
+  const dateTo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const revenueQuery = useQuery({
+    queryKey: ["reports", "revenue", "official-dashboard", dateFrom, dateTo],
+    queryFn: () => api.getRevenueReport(dateFrom, dateTo),
+    refetchInterval: 30_000,
+  });
+
+  const revenueChartData = useMemo(() => {
+    const rows = revenueQuery.data?.rows || [];
+    const grouped: Record<string, number> = {};
+    rows.forEach((row) => {
+      const date = row.createdAt?.slice(0, 10);
+      if (date) grouped[date] = (grouped[date] || 0) + row.amount;
+    });
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([label, value]) => ({ label, value }));
+  }, [revenueQuery.data?.rows]);
+
   const isLoading = marketsQuery.isPending || vendorsQuery.isPending || stallsQuery.isPending ||
-    paymentsQuery.isPending || ticketsQuery.isPending || auditQuery.isPending || resourcesQuery.isPending;
+    paymentsQuery.isPending || ticketsQuery.isPending || auditQuery.isPending || resourcesQuery.isPending || revenueQuery.isPending;
   const isError = marketsQuery.isError || vendorsQuery.isError || stallsQuery.isError ||
-    paymentsQuery.isError || ticketsQuery.isError || auditQuery.isError || resourcesQuery.isError;
+    paymentsQuery.isError || ticketsQuery.isError || auditQuery.isError || resourcesQuery.isError || revenueQuery.isError;
 
   if (isError) {
     return (
@@ -79,7 +103,7 @@ const OfficialDashboard = () => {
   const auditEvents = auditQuery.data?.events || [];
   const resourceRequests = resourcesQuery.data?.requests || [];
   const completedPayments = payments.filter((p) => p.status === "completed");
-  const totalRevenue = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalRevenue = revenueQuery.data?.summary.totalRevenue ?? 0;
   const activeStalls = stalls.filter((s) => s.status === "active");
   const occupancyRate = stalls.length > 0 ? Math.round((activeStalls.length / stalls.length) * 100) : 0;
   const openComplaints = tickets.filter((t) => !["resolved", "closed"].includes(t.status));
@@ -171,7 +195,7 @@ const OfficialDashboard = () => {
                   </div>
                 </div>
               </div>
-              <MiniAreaChart className="text-[#0F5E3F]" />
+              <MiniAreaChart className="text-[#0F5E3F]" data={revenueChartData} />
             </div>
           </section>
 
@@ -238,7 +262,7 @@ const OfficialDashboard = () => {
                 <CardTitle className="text-sm font-bold">{t("official:dashboard.revenueTrends")}</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <MiniBarChart className="text-[#0F5E3F]" />
+                <MiniBarChart className="text-[#0F5E3F]" data={revenueChartData} />
               </CardContent>
             </Card>
 

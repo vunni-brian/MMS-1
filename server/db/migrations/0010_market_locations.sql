@@ -20,7 +20,7 @@ VALUES
   ('loc_region_eastern', 'Eastern', 'region', NULL),
   ('loc_region_western', 'Western', 'region', NULL),
   ('loc_region_northern', 'Northern', 'region', NULL),
-  ('loc_area_kampala', 'Kampala', 'city', 'loc_region_central'),
+  ('loc_area_kampala', 'Wandegeya', 'city', 'loc_region_central'),
   ('loc_area_wakiso', 'Wakiso', 'district', 'loc_region_central'),
   ('loc_area_mukono', 'Mukono', 'district', 'loc_region_central'),
   ('loc_area_jinja', 'Jinja', 'city', 'loc_region_eastern'),
@@ -34,7 +34,7 @@ VALUES
   ('loc_subarea_kampala_makindye', 'Makindye Division', 'division', 'loc_area_kampala'),
   ('loc_subarea_jinja_municipality', 'Jinja Municipality', 'municipality', 'loc_area_jinja'),
   ('loc_subarea_testbed', 'MMS Testbed', 'subcounty', 'loc_area_kampala'),
-  ('loc_market_kampala_central', 'Kampala Central Market', 'market', 'loc_subarea_kampala_central'),
+  ('loc_market_kampala_central', 'Wandegeya Market', 'market', 'loc_subarea_kampala_central'),
   ('loc_market_jinja_main', 'Jinja Main Market', 'market', 'loc_subarea_jinja_municipality'),
   ('loc_market_demo_test', 'MMS Demo Test Market', 'market', 'loc_subarea_testbed')
 ON CONFLICT (id) DO UPDATE

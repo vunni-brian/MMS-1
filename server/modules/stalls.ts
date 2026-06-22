@@ -220,6 +220,24 @@ const approveBookingApplication = async ({
     [booking.stallId, bookingId],
   );
 
+  // One vendor, one stall: vendor must not already have another active stall
+  const vendorExistingStall = await get<{ id: string }>(
+    `SELECT id FROM stalls WHERE assigned_vendor_id = ? AND status = 'active' AND id != ?`,
+    [booking.vendorId, booking.stallId],
+  );
+  if (vendorExistingStall) {
+    throw new HttpError(409, "This vendor already has an active stall. One vendor, one stall policy applies.");
+  }
+
+  // One vendor, one stall: vendor must not have an approved/paid booking for a different stall
+  const vendorExistingBooking = await get<{ id: string }>(
+    `SELECT id FROM bookings WHERE vendor_id = ? AND status IN ('approved', 'paid') AND stall_id != ?`,
+    [booking.vendorId, booking.stallId],
+  );
+  if (vendorExistingBooking) {
+    throw new HttpError(409, "This vendor already has an approved booking elsewhere. One vendor, one stall policy applies.");
+  }
+
   await transaction(async () => {
     const stall = await get<{ status: string }>(`SELECT status FROM stalls WHERE id = ?`, [booking.stallId]);
     if (!stall || stall.status !== "inactive") {
@@ -659,6 +677,24 @@ export const stallRoutes: RouteDefinition[] = [
       );
       if (duplicateApplication) {
         throw new HttpError(409, "You already have an active application for this stall.");
+      }
+
+      // One vendor, one stall: vendor must not already have an active stall
+      const existingStall = await get<{ id: string }>(
+        `SELECT id FROM stalls WHERE assigned_vendor_id = ? AND status = 'active'`,
+        [session.user.id],
+      );
+      if (existingStall) {
+        throw new HttpError(409, "You already have an active stall. One vendor, one stall policy applies.");
+      }
+
+      // One vendor, one stall: vendor must not have an approved/paid booking elsewhere
+      const existingApprovedBooking = await get<{ id: string }>(
+        `SELECT id FROM bookings WHERE vendor_id = ? AND status IN ('approved', 'paid')`,
+        [session.user.id],
+      );
+      if (existingApprovedBooking) {
+        throw new HttpError(409, "You already have an approved booking. One vendor, one stall policy applies.");
       }
 
       const bookingId = createId("booking");

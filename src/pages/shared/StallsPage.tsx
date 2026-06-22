@@ -240,8 +240,13 @@ const StallsPage = () => {
                     <span className="font-bold text-slate-900">{row.value}</span>
                   </div>
                 ))}
-                <div className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
-                  {t("stalls:activeNote")}
+                <div className="space-y-2">
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
+                    {t("stalls:activeNote")}
+                  </div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
+                    {t("stalls:oneStallPolicy")}
+                  </div>
                 </div>
               </div>
             ) : (

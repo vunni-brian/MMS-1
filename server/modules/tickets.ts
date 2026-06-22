@@ -5,6 +5,8 @@
  * dispatch.
  */
 
+import fs from "node:fs";
+
 import {
   all,
   createId,
@@ -20,6 +22,7 @@ import { assertMarketAccess, resolveScopedMarket } from "../lib/session.ts";
 import { assertMaxLength, MAX_DESCRIPTION_LENGTH, MAX_MESSAGE_LENGTH, MAX_NOTE_LENGTH, MAX_REASON_LENGTH, MAX_SUBJECT_LENGTH, sanitizeText } from "../lib/text-utils.ts";
 import { nowIso } from "../lib/security.ts";
 import { persistFilePayload, validateFilePayload } from "../lib/storage.ts";
+import { downloadSupabaseStorageObject } from "../lib/supabase.ts";
 import {
   generateTicketChildReference,
   generateTicketNumber,
@@ -1133,6 +1136,51 @@ export const ticketRoutes: RouteDefinition[] = [
       });
 
       sendJson(res, 200, { ticket: updatedTicket });
+    },
+  },
+  {
+    method: "GET",
+    path: "/tickets/:ticketNumber/attachments/:attachmentId",
+    handler: async ({ res, auth, params }) => {
+      const { session } = resolveScopedMarket(auth, "ticket:read");
+      const ticket = await getTicketByIdentifier(params.ticketNumber, session.user.role !== "vendor");
+      if (!ticket) {
+        throw new HttpError(404, "Ticket not found.");
+      }
+      assertTicketAccess(session, ticket);
+
+      const attachment = await get<{
+        id: string; ticket_id: string; file_name: string; mime_type: string; file_size: number; storage_path: string; created_at: string;
+      }>(
+        `SELECT id, ticket_id, file_name, mime_type, file_size, storage_path, created_at
+         FROM ticket_attachments
+         WHERE id = ? AND ticket_id = ?`,
+        [params.attachmentId, ticket.id],
+      );
+      if (!attachment) {
+        throw new HttpError(404, "Attachment not found.");
+      }
+
+      res.setHeader("Content-Type", attachment.mime_type || "application/octet-stream");
+      res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(attachment.file_name)}"`);
+      res.setHeader("Cache-Control", "private, max-age=60");
+
+      if (attachment.storage_path.startsWith("supabase://")) {
+        const buffer = await downloadSupabaseStorageObject(attachment.storage_path);
+        if (!buffer) {
+          throw new HttpError(404, "Attachment file not found.");
+        }
+        res.writeHead(200);
+        res.end(buffer);
+        return;
+      }
+
+      if (!fs.existsSync(attachment.storage_path)) {
+        throw new HttpError(404, "Attachment file is missing from storage.");
+      }
+
+      res.writeHead(200);
+      fs.createReadStream(attachment.storage_path).pipe(res);
     },
   },
 ];

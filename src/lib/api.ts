@@ -472,7 +472,16 @@ export const api = {
  apiRequest<{ ok: true }>(`/notifications/${notificationId}/read`, { method: "PATCH" }),
  markAllNotificationsRead: () => apiRequest<{ ok: true; updated: number }>("/notifications/read-all", { method: "PATCH" }),
 
- getTickets: (marketId?: string) => apiRequest<{ tickets: Ticket[] }>(`/tickets${buildQuery({ marketId })}`),
+  getTickets: (marketId?: string) => apiRequest<{ tickets: Ticket[] }>(`/tickets${buildQuery({ marketId })}`),
+  async getTicketAttachmentUrl(ticketNumber: string, attachmentId: string) {
+    const response = await fetch(`${API_BASE_URL}/tickets/${ticketNumber}/attachments/${attachmentId}`, {
+      headers: createHeaders(undefined, false),
+    });
+    if (!response.ok) {
+      await parseResponse(response);
+    }
+    return URL.createObjectURL(await response.blob());
+  },
  searchTickets: (input?: {
  q?: string;
  marketId?: string;

@@ -615,7 +615,7 @@
                    "support":  "Support",
                    "version":  "MMS v1.0.0",
                    "appTitle":  "MMS â€” Market Management System",
-                   "copyright":  "Â© 2026 Kampala Capital City Authority",
+                   "copyright":  "Â© 2026 Wandegeya Market Authority",
                    "workspaceSuffix":  "workspace"
                },
     "vendor":  {
@@ -1044,8 +1044,9 @@
                    "stall":  "Stall",
                    "zone":  "Zone",
                    "size":  "Size",
-                   "activeNote":  "Assignment is active and eligible for monthly dues payment.",
-                   "noAssignmentText":  "Stall details will appear here once you have an active assignment.",
+                    "activeNote":  "Assignment is active and eligible for monthly dues payment.",
+                    "oneStallPolicy":  "One vendor, one stall policy applies. You cannot apply for another stall while this assignment is active.",
+                    "noAssignmentText":  "Stall details will appear here once you have an active assignment.",
                    "stallHistory":  "Stall History",
                    "noHistory":  "No stall assignment history yet. Past and current allocations will appear here.",
                    "stallName":  "Stall {name}",

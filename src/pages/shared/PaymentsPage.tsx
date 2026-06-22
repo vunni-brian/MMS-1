@@ -505,8 +505,8 @@ const PaymentsPage = () => {
   <Input
   id="receipt-file"
   type="file"
-  accept="image/*,.pdf"
-  onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
+   accept=".jpg,.jpeg,.png,.webp,.pdf"
+   onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
   />
   </div>
   <div className="space-y-1.5 md:col-span-2">

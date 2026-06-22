@@ -762,7 +762,7 @@ export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/payments",
-    handler: async ({ res, auth, url }) => {
+    handler: async ({ res, auth, url, config }) => {
       const { session, marketId } = resolveScopedMarket(auth, "payment:read", url.searchParams.get("marketId"));
       const clauses: string[] = [];
       const params: string[] = [];
@@ -813,6 +813,11 @@ export const paymentRoutes: RouteDefinition[] = [
         utility_charge_billing_period: string | null;
         penalty_reason: string | null;
       }>(`${paymentSelect} ${whereClause} ORDER BY payments.created_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+
+      if (!config.paymentsEnabled) {
+        payments.forEach((p) => { p.amount = 0; });
+      }
+
       sendJson(res, 200, { payments: payments.map(mapPayment) });
     },
   },
@@ -826,9 +831,6 @@ export const paymentRoutes: RouteDefinition[] = [
       }
       if (!marketId) {
         throw new HttpError(403, "Your account is not assigned to a market.");
-      }
-      if (!config.paymentsEnabled) {
-        throw new HttpError(503, "Payments are currently disabled.");
       }
 
       const body = await readJsonBody<{
@@ -963,6 +965,10 @@ export const paymentRoutes: RouteDefinition[] = [
           message: "Receipt uploaded for verification.",
         });
         return;
+      }
+
+      if (!config.paymentsEnabled) {
+        throw new HttpError(503, "Payments are currently disabled.");
       }
 
       const paymentId = createId("payment");

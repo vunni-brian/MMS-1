@@ -426,7 +426,7 @@ After seeding, the following accounts are available.
 | --- | --- | --- | --- |
 | Admin | `+256701111222` | `Admin123!` | System administrator. |
 | Official | `+256700600700` | `Official123!` | Authority-level official. |
-| Manager | `+256700500600` | `Manager123!` | Kampala Central Market manager. |
+| Manager | `+256700500600` | `Manager123!` | Wandegeya Market manager. |
 | Vendor | `+256700100200` | `Vendor123!` | Approved vendor. |
 
 Seed data also includes extra managers, officials, vendors, markets, stalls, bookings, utility charges, penalties, payments, and tickets for richer dashboards.

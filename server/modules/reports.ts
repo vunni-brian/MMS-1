@@ -34,7 +34,7 @@ export const reportRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/reports/revenue",
-    handler: async ({ res, auth, url }) => {
+    handler: async ({ res, auth, url, config }) => {
       const range = normalizeDateRange(url.searchParams.get("from"), url.searchParams.get("to"));
       const { marketId } = resolveScopedMarket(auth, "report:read", url.searchParams.get("marketId"));
       const clauses = ["payments.created_at::date BETWEEN ?::date AND ?::date"];
@@ -80,7 +80,9 @@ export const reportRoutes: RouteDefinition[] = [
       );
 
       const completed = rows.filter((row) => row.status === "completed");
-      const totalRevenue = completed.reduce((total, row) => total + row.amount, 0);
+      const totalRevenue = config.paymentsEnabled
+        ? completed.reduce((total, row) => total + row.amount, 0)
+        : 0;
       sendJson(res, 200, {
         summary: {
           from: range.from,
@@ -94,7 +96,7 @@ export const reportRoutes: RouteDefinition[] = [
           marketName: row.market_name,
           createdAt: row.created_at,
           vendorName: row.vendor_name,
-          amount: row.amount,
+          amount: config.paymentsEnabled ? row.amount : 0,
           method: row.provider,
           transactionId: row.transaction_id,
           status: row.status,
