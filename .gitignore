@@ -42,3 +42,10 @@ runtime/console-dev/
 # Playwright output
 playwright-results/
 playwright-report/
+
+# Runtime test artifacts
+runtime/ui-runthrough/
+runtime/mms.sqlite
+runtime/read-latest-otp.mjs
+runtime/ui-walkthrough.mjs
+runtime/uploads/*.sqlite

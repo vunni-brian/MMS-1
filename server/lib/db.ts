@@ -953,7 +953,7 @@ export const seedDatabase = async () => {
     const managerUserId = user.marketId ? managerByMarket[user.marketId] : null;
     const seedNationalIdNumber = `CM${String(index + 1).padStart(8, "0")}`;
     const seedDistrict =
-      user.marketId === "market_jinja" ? "Jinja" : user.marketId === "market_demo_test" ? "Kampala" : "Wandegeya";
+      user.marketId === "market_jinja" ? "Jinja" : user.marketId === "market_demo_test" ? "Wandegeya" : "Wandegeya";
     const productSection = seedProductSections[index % seedProductSections.length];
     const documentBaseName = user.name.replace(/\s+/g, "_").toLowerCase();
     run(
