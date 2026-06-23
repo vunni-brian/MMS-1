@@ -275,7 +275,7 @@ const RegisterPage = () => {
             <CardDescription>{t("register:stepCounter", { current: step === "details" ? "1" : step === "documents" ? "2" : "3" })}</CardDescription>
             <div className="mt-4 grid gap-2 grid-cols-3">
               {registrationSteps(t).map((item, index) => {
-                const activeIndex = registrationSteps.findIndex((candidate) => candidate.id === step);
+                const activeIndex = registrationSteps(t).findIndex((candidate) => candidate.id === step);
                 const isComplete = index < activeIndex;
                 const isActive = item.id === step;
 
