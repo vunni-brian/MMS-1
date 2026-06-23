@@ -5,6 +5,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import Seo from "@/components/seo/Seo";
 import {
   ArrowRight,
   BarChart3,
@@ -62,8 +63,37 @@ const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Wandegeya Market Authority",
+    url: "https://mms-1.vercel.app",
+    logo: "https://mms-1.vercel.app/images/mms-logo.svg",
+    description: "Premium market operations console for vendors, managers, officials, and administrators.",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Kampala",
+      addressCountry: "UG",
+    },
+  };
+
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "MMS — Market Management System",
+    url: "https://mms-1.vercel.app",
+    description: "Premium market operations console for vendors, managers, officials, and administrators.",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "All",
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
+      <Seo
+        title="Market Management System"
+        description="Premium market operations console for vendors, managers, officials, and administrators. Streamline stall allocation, billing, complaints, and revenue analytics."
+        jsonLd={[organizationSchema, websiteSchema]}
+      />
       {/* Header - Clean like TabFlow */}
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">

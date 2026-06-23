@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import Seo from "@/components/seo/Seo";
 
 /** NotFound - renders a 404 error page with current path display and navigation back to dashboard or previous page. */
 const NotFound = () => {
@@ -27,6 +28,7 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F3F4F6] text-slate-900 font-sans">
+      <Seo title="Page Not Found" description="The page you requested could not be found. It may have been moved, deleted, or the URL may be incorrect." noindex />
       {/* Official Top Bar */}
       <div className="bg-primary px-4 py-2 text-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between text-xs font-medium">

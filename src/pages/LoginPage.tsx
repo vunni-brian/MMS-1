@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
+import Seo from "@/components/seo/Seo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,6 +117,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
+      <Seo title="Sign In" description="Sign in to your MMS account to manage stalls, payments, complaints, and market operations." noindex />
       {/* Simple Header - matches landing page style */}
       <header className="sticky top-0 z-header border-b border-emerald-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">

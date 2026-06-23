@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError, setSessionToken } from "@/lib/api";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { Button } from "@/components/ui/button";
+import Seo from "@/components/seo/Seo";
 import { FileUploadCard } from "@/components/ui/FileUploadCard";
 import { FormSection } from "@/components/ui/FormSection";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -217,6 +218,7 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
+      <Seo title="Register as a Vendor" description="Register your vendor account for market stall allocation, billing, and operations management." noindex />
       {/* Header - Matching landing page */}
       <header className="sticky top-0 z-header border-b border-emerald-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">

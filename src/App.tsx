@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import "@/lib/i18n";
 import { ProtectedRoute, VendorApprovalGuard, RoleRoute } from "@/components/ProtectedRoute";
@@ -181,8 +182,9 @@ const App = () => (
  <TooltipProvider>
   <Sonner />
  {shouldRenderSpeedInsights() ? <SpeedInsights /> : null}
- <AuthProvider>
-  <BrowserRouter>
+  <AuthProvider>
+   <HelmetProvider>
+   <BrowserRouter>
     <RouteErrorBoundary>
   <Suspense fallback={<RouteFallback />}>
    <Routes>
@@ -264,7 +266,8 @@ const App = () => (
   </Routes>
   </Suspense>
     </RouteErrorBoundary>
-  </BrowserRouter>
+   </BrowserRouter>
+   </HelmetProvider>
  </AuthProvider>
  </TooltipProvider>
  </QueryClientProvider>

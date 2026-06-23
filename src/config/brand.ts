@@ -20,6 +20,16 @@ export interface BrandConfig {
   ogImage: string;
   /** Twitter handle for the organisation. */
   twitterSite: string;
+  /** Base URL of the website. */
+  siteUrl: string;
+  /** Keywords for SEO. */
+  keywords: string;
+  /** Business address. */
+  address: string;
+  /** Contact email. */
+  contactEmail: string;
+  /** Contact phone. */
+  contactPhone: string;
 }
 
 /**
@@ -35,6 +45,11 @@ export const brand: BrandConfig = {
   copyrightYear: "2026",
   ogTitle: "MMS — Market Management System",
   ogDescription: "Premium market operations console for vendors, managers, officials, and administrators.",
-  ogImage: "/favicon.png",
+  ogImage: "/images/mms-logo.svg",
   twitterSite: "@KCCA",
+  siteUrl: "https://mms-1.vercel.app",
+  keywords: "market management system, vendor management, stall allocation, market billing, Wandegeya Market, KCCA, Uganda market software",
+  address: "Wandegeya Market, Kampala, Uganda",
+  contactEmail: "support@mms.ug",
+  contactPhone: "+256-xxx-xxxxxx",
 };
