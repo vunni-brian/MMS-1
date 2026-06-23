@@ -1,0 +1,61 @@
+# MMS — Market Management System
+
+> A premium market operations console for vendors, managers, officials, and administrators. Streamlines stall allocation, billing, complaints, revenue analytics, announcements, and coordination across market stakeholders.
+
+The application is built with React 18, TypeScript, Vite 7, Tailwind CSS 3, shadcn/ui (Radix primitives), TanStack React Query, react-router-dom v6, framer-motion, recharts, i18next, and Supabase. The frontend is deployed on Vercel; the API server runs on Render with PostgreSQL.
+
+## Public pages
+
+- [Landing page (index)](https://mms-1.vercel.app/): Marketing page with hero, features, process, testimonials, pricing, FAQs, and CTA
+- [Login](https://mms-1.vercel.app/login): Phone/password authentication with optional MFA flow
+- [Register](https://mms-1.vercel.app/register): Multi-step vendor registration with document upload and OTP verification
+
+## Architecture
+
+- [Source code](https://github.com/vunni-brian/MMS-1): Full monorepo with `src/` (React frontend) and `server/` (Node.js API)
+- [API documentation](https://github.com/vunni-brian/MMS-1/blob/master/openapi.yaml): OpenAPI 3.0 specification for all server endpoints
+- [Architecture diagram](https://github.com/vunni-brian/MMS-1/blob/master/ARCHITECTURE_DIAGRAM.md): System architecture overview
+
+## Frontend routes
+
+- `/` — Landing / marketing page
+- `/login` — Sign in
+- `/register` — Vendor registration
+- `/forgot-password` — Password reset
+- `/payments/callback` — Payment gateway callback
+- `/vendor/*` — Vendor dashboard, stalls, payments, complaints, billing, reports, audit, coordination, announcements, settings
+- `/manager/*` — Manager dashboard, vendors, stalls, payments, complaints, billing, reports, audit, coordination, announcements, settings
+- `/official/*` — Official dashboard, markets, vendors, compliance, analytics, billing, reports, audit, coordination, announcements, settings
+- `/admin/*` — Admin dashboard, users, markets, alerts, integrations, billing, reports, audit, coordination, announcements, settings
+
+## Key dependencies
+
+- **react 18**, react-dom, react-router-dom 6
+- **@tanstack/react-query** — server state management
+- **tailwindcss 3**, tailwindcss-animate, @tailwindcss/typography
+- **@radix-ui/*** — accessible UI primitives (dialog, dropdown, select, tabs, tooltip, etc.)
+- **framer-motion** — animations
+- **recharts** — charts and analytics
+- **i18next**, react-i18next — internationalization (en, lg, sw)
+- **lucide-react** — icons
+- **zod** — validation
+- **react-hook-form** — form management
+- **sonner** — toast notifications
+- **date-fns** — date utilities
+- **@supabase/supabase-js** — Supabase client
+- **react-helmet-async** — per-page head/meta management
+- **lottie-react** — animation player
+
+## Backend (server/)
+
+- Node.js with TypeScript (strip types)
+- PostgreSQL via Supabase
+- Session-based auth with OTP
+- PesaPal payment integration
+- SMS notifications
+- Rate limiting, audit logging, penalty management
+
+## Optional
+
+- [FastHTML llms.txt example](https://www.fastht.ml/docs/llms.txt): Reference for the llms.txt format used here
+- [llmstxt.org](https://llmstxt.org/): The llms.txt specification
