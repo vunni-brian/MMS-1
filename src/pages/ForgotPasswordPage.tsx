@@ -273,11 +273,11 @@ const ForgotPasswordPage = () => {
 
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-              <a href="#" className="transition-colors hover:text-emerald-600">{t("auth:termsOfService")}</a>
+              <a href="/terms" className="transition-colors hover:text-emerald-600">{t("auth:termsOfService")}</a>
               <span>&bull;</span>
-              <a href="#" className="transition-colors hover:text-emerald-600">{t("auth:privacyPolicy")}</a>
+              <a href="/privacy" className="transition-colors hover:text-emerald-600">{t("auth:privacyPolicy")}</a>
               <span>&bull;</span>
-              <a href="#" className="transition-colors hover:text-emerald-600">{t("auth:security")}</a>
+              <a href="/security" className="transition-colors hover:text-emerald-600">{t("auth:security")}</a>
             </div>
             <p className="mt-4 text-xs text-slate-400">{t("auth:copyright")}</p>
           </div>

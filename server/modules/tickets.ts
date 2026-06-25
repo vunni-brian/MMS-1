@@ -805,7 +805,7 @@ export const ticketRoutes: RouteDefinition[] = [
         });
 
         if (body.attachment) {
-          const file = await persistFilePayload("ticket-attachments", ticketId, body.attachment);
+          const file = await persistFilePayload("ticket-attachments", ticketId, body.attachment, ["application/pdf", "image/jpeg", "image/png"]);
           await run(
             `INSERT INTO ticket_attachments (id, ticket_id, file_name, mime_type, file_size, storage_path, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,

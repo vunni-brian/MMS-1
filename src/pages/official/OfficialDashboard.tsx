@@ -103,7 +103,7 @@ const OfficialDashboard = () => {
   const auditEvents = auditQuery.data?.events || [];
   const resourceRequests = resourcesQuery.data?.requests || [];
   const completedPayments = payments.filter((p) => p.status === "completed");
-  const totalRevenue = revenueQuery.data?.summary.totalRevenue ?? 0;
+  const totalRevenue = revenueQuery.data?.summary?.totalRevenue ?? 0;
   const activeStalls = stalls.filter((s) => s.status === "active");
   const occupancyRate = stalls.length > 0 ? Math.round((activeStalls.length / stalls.length) * 100) : 0;
   const openComplaints = tickets.filter((t) => !["resolved", "closed"].includes(t.status));

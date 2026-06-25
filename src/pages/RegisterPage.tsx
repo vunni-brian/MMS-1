@@ -345,13 +345,13 @@ const RegisterPage = () => {
                         onChange={(event) => {
                           updateField("phone", event.target.value);
                           if (touched.phone) {
-                            const err = validatePhone(event.target.value);
+                            const err = validatePhone(t, event.target.value);
                             setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
                           }
                         }}
                         onBlur={() => {
                           touch("phone");
-                          const err = validatePhone(form.phone);
+                          const err = validatePhone(t, form.phone);
                           setFieldErrors((prev) => ({ ...prev, phone: err ?? undefined }));
                         }}
                         className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"
@@ -371,13 +371,13 @@ const RegisterPage = () => {
                         onChange={(event) => {
                           updateField("email", event.target.value);
                           if (touched.email) {
-                            const err = validateEmail(event.target.value);
+                            const err = validateEmail(t, event.target.value);
                             setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
                           }
                         }}
                         onBlur={() => {
                           touch("email");
-                          const err = validateEmail(form.email);
+                          const err = validateEmail(t, form.email);
                           setFieldErrors((prev) => ({ ...prev, email: err ?? undefined }));
                         }}
                         className="h-11 border-slate-200 rounded-lg focus-visible:border-emerald-500 focus-visible:ring-emerald-500"

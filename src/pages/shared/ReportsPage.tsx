@@ -153,9 +153,8 @@ const ReportsPage = () => {
       </div>
 
       {/* KPI cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t("reports:totalRevenue")} value={formatCurrency(totals.totalRevenue)} sublabel="" icon={<Activity className="h-4 w-4" />} />
-        <StatCard label={t("reports:totalCollections")} value={formatCurrency(totals.collections)} sublabel="" icon={<Activity className="h-4 w-4" />} />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <StatCard label={t("reports:totalRevenue")} value={formatCurrency(totals.collections)} sublabel="" icon={<Activity className="h-4 w-4" />} />
         <StatCard label={t("reports:outstanding")} value={formatCurrency(totals.outstanding)} sublabel="" icon={<Activity className="h-4 w-4" />} />
         <StatCard label={t("reports:collectionRate")} value={`${collectionRate.toFixed(2)}%`} sublabel="" icon={<Activity className="h-4 w-4" />} />
       </div>

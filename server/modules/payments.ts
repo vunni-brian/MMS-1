@@ -589,7 +589,11 @@ const applyPesapalStatus = async ({
     throw new HttpError(409, "Pesapal merchant reference did not match the expected payment.");
   }
 
-  if (String(statusResponse.currency || "").toUpperCase() && String(statusResponse.currency || "").toUpperCase() !== "UGX") {
+  const paymentCurrency = String(statusResponse.currency || "").toUpperCase();
+  if (!paymentCurrency) {
+    throw new HttpError(409, "Pesapal transaction currency is missing.");
+  }
+  if (paymentCurrency !== "UGX") {
     throw new HttpError(409, "Pesapal transaction currency did not match UGX.");
   }
 
@@ -879,7 +883,7 @@ export const paymentRoutes: RouteDefinition[] = [
         const receiptReference = body.receiptNumber?.trim() || generateReceiptReference();
         const receiptMessage = body.receiptNote?.trim() || "Receipt uploaded and awaiting verification.";
         const timestamp = nowIso();
-        const file = await persistFilePayload("payment-receipts", paymentId, body.receiptFile);
+        const file = await persistFilePayload("payment-receipts", paymentId, body.receiptFile, allowedReceiptTypes);
 
         await transaction(async () => {
           await run(
@@ -1437,6 +1441,21 @@ export const paymentRoutes: RouteDefinition[] = [
 
       if (!payload.orderTrackingId || !payload.orderMerchantReference) {
         throw new HttpError(400, "Missing Pesapal IPN fields.");
+      }
+
+      // Security: the IPN payload is NOT blindly trusted — applyPesapalStatus
+      // always queries Pesapal's authenticated OAuth API for the real transaction
+      // status before updating any payment. This prevents fraudulent status changes
+      // from spoofed IPN calls.
+      const paymentExists = await get<{ id: string; status: string }>(
+        `SELECT id, status FROM payments WHERE external_reference = ?`,
+        [payload.orderMerchantReference],
+      );
+      if (!paymentExists) {
+        // Unknown merchant reference — log and respond 200 to prevent
+        // Pesapal from retrying, but don't process further.
+        sendJson(res, 200, { status: 200, message: "IPN received (unknown reference)" });
+        return;
       }
 
       await recordPaymentWebhookEvent({

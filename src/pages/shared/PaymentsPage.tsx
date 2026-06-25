@@ -118,10 +118,10 @@ const ReceiptReviewRow = ({
 
 /** PaymentsPage - renders the payments dashboard with history, manual entries, and receipt review. */
 const PaymentsPage = () => {
- const { t } = useTranslation();
- const { role } = useAuth();
- const queryClient = useQueryClient();
- const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("mobile");
+  const { t } = useTranslation();
+  const { role, user } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("mobile");
  const [receiptNumber, setReceiptNumber] = useState("");
  const [receiptNote, setReceiptNote] = useState("");
  const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -134,7 +134,10 @@ const PaymentsPage = () => {
 
  const bookingsQuery = useQuery({ queryKey: ["bookings"], queryFn: () => api.getBookings() });
  const paymentsQuery = useQuery({ queryKey: ["payments"], queryFn: () => api.getPayments() });
- const chargeTypesQuery = useQuery({ queryKey: ["charge-types", "payments-page"], queryFn: () => api.getChargeTypes() });
+  const chargeTypesQuery = useQuery({
+   queryKey: ["charge-types", "payments-page", user?.marketId || "all"],
+   queryFn: () => api.getChargeTypes(user?.marketId || undefined),
+  });
  const utilityChargesQuery = useQuery({
   queryKey: ["utility-charges", "payment-page"],
   queryFn: () => api.getUtilityCharges(),

@@ -88,7 +88,7 @@ export const reportRoutes: RouteDefinition[] = [
           from: range.from,
           to: range.to,
           totalRevenue,
-          transactionCount: rows.length,
+          transactionCount: completed.length,
         },
         rows: rows.map((row) => ({
           id: row.id,

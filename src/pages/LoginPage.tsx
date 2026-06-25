@@ -29,6 +29,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -71,11 +72,16 @@ const LoginPage = () => {
       }
 
       if (pendingVendorVerification) {
-        const response = await api.verifyRegistrationOtp(pendingVendorVerification.challengeId, otp);
-        setSessionToken(response.token);
-        await refreshUser();
-        setPendingVendorVerification(null);
-        setOtp("");
+        setIsVerifyingOtp(true);
+        try {
+          const response = await api.verifyRegistrationOtp(pendingVendorVerification.challengeId, otp);
+          setSessionToken(response.token);
+          await refreshUser();
+          setPendingVendorVerification(null);
+          setOtp("");
+        } finally {
+          setIsVerifyingOtp(false);
+        }
         return;
       }
 
@@ -287,7 +293,7 @@ const LoginPage = () => {
                         id="otp" 
                         value={otp} 
                         onChange={setOtp} 
-                        disabled={isLoading}
+                        disabled={isLoading || isVerifyingOtp}
                         className="gap-3"
                       />
                     </div>
@@ -303,9 +309,9 @@ const LoginPage = () => {
                 <Button 
                   className="h-12 w-full text-base font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-all hover:shadow-md" 
                   type="submit" 
-                  disabled={isLoading || !canSubmit}
+                  disabled={isLoading || isVerifyingOtp || !canSubmit}
                 >
-                  {isLoading ? (
+                  {isLoading || isVerifyingOtp ? (
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       {t("auth:processing")}
@@ -335,11 +341,11 @@ const LoginPage = () => {
           {/* Footer Links - Matches landing page */}
           <div className="mt-8 text-center">
             <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-              <a href="#" className="hover:text-emerald-600 transition-colors">{t("auth:termsOfService")}</a>
+              <a href="/terms" className="hover:text-emerald-600 transition-colors">{t("auth:termsOfService")}</a>
               <span>•</span>
-              <a href="#" className="hover:text-emerald-600 transition-colors">{t("auth:privacyPolicy")}</a>
+              <a href="/privacy" className="hover:text-emerald-600 transition-colors">{t("auth:privacyPolicy")}</a>
               <span>•</span>
-              <a href="#" className="hover:text-emerald-600 transition-colors">{t("auth:security")}</a>
+              <a href="/security" className="hover:text-emerald-600 transition-colors">{t("auth:security")}</a>
             </div>
             <p className="mt-4 text-xs text-slate-400">
               {t("auth:copyright")}

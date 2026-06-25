@@ -1,4 +1,11 @@
 -- One vendor, one stall: enforce that a vendor can have at most one active stall.
+-- Wrapped in a transaction to prevent concurrent-insert races.
+
+BEGIN;
+
+-- Acquire a table-level lock to prevent concurrent inserts during migration.
+LOCK TABLE stalls IN SHARE ROW EXCLUSIVE MODE;
+
 -- First, clean up any existing duplicates by deactivating extra active stalls.
 UPDATE stalls
 SET status = 'inactive',
@@ -14,6 +21,9 @@ WHERE id IN (
 );
 
 -- Partial unique index: only active stalls with an assigned vendor count toward the limit.
+-- Using IF NOT EXISTS to make the migration idempotent.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_vendor_one_stall
   ON stalls(assigned_vendor_id)
   WHERE status = 'active' AND assigned_vendor_id IS NOT NULL;
+
+COMMIT;

@@ -38,9 +38,9 @@ export const validateFilePayload = (
   }
 };
 
-/** Persist a file upload — validates, then stores to Supabase Storage or local disk. */
-export const persistFilePayload = async (subdirectory: string, prefix: string, file: FilePayload) => {
-  validateFilePayload(file, [file.mimeType], true);
+/** Persist a file upload — validates against allowed MIME types, then stores to Supabase Storage or local disk. */
+export const persistFilePayload = async (subdirectory: string, prefix: string, file: FilePayload, allowedMimeTypes: string[]) => {
+  validateFilePayload(file, allowedMimeTypes, true);
   if (!/^[a-zA-Z0-9+/]+={0,2}$/.test(file.base64)) {
     throw new HttpError(400, "Uploaded file payload is invalid.");
   }
@@ -50,12 +50,13 @@ export const persistFilePayload = async (subdirectory: string, prefix: string, f
   }
 
   const safePrefix = sanitizeName(prefix);
-  const directory = path.join(config.uploadsDir, subdirectory);
+  const safeSubdirectory = sanitizeName(subdirectory);
+  const directory = path.join(config.uploadsDir, safeSubdirectory);
   const safeName = sanitizeName(file.name);
   const fileName = `${safePrefix}-${Date.now()}-${safeName}`;
 
   if (config.supabaseStorageEnabled) {
-    const objectPath = `${subdirectory}/${safePrefix}/${fileName}`;
+    const objectPath = `${safeSubdirectory}/${safePrefix}/${fileName}`;
     const storagePath = await uploadSupabaseStorageObject({
       objectPath,
       body: buffer,

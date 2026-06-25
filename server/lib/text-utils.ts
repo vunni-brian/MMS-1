@@ -33,10 +33,11 @@ export const assertMaxLength = (value: string | undefined | null, maxLength: num
   }
 };
 
-/** Escape HTML special characters (`<`, `>`, `"`, `'`, `/`) for safe output. */
+/** Escape HTML special characters (`&`, `<`, `>`, `"`, `'`, `/`) for safe output. Escapes `&` first to avoid double-escaping. */
 export const sanitizeText = (value: string | undefined | null): string => {
   if (!value) return "";
   return value
+    .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")

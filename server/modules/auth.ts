@@ -683,11 +683,13 @@ export const authRoutes: RouteDefinition[] = [
           authUserId = authUser?.id || null;
         }
 
-        const file = await persistFilePayload("vendor-documents", userId, body.idDocument!);
+        const vendorDocTypes = ["application/pdf", "image/jpeg", "image/png"];
+        const file = await persistFilePayload("vendor-documents", userId, body.idDocument!, vendorDocTypes);
         storedDocumentPath = file.storagePath;
-        const lcLetter = await persistFilePayload("vendor-documents", userId, body.lcLetter!);
+        const lcLetter = await persistFilePayload("vendor-documents", userId, body.lcLetter!, vendorDocTypes);
         storedLcLetterPath = lcLetter.storagePath;
-        const profileImage = body.profileImage ? await persistFilePayload("profile-images", userId, body.profileImage) : null;
+        const profileImageTypes = ["image/jpeg", "image/png", "image/webp"];
+        const profileImage = body.profileImage ? await persistFilePayload("profile-images", userId, body.profileImage, profileImageTypes) : null;
         storedProfileImagePath = profileImage?.storagePath || null;
 
         await transaction(async () => {
@@ -1353,7 +1355,7 @@ export const authRoutes: RouteDefinition[] = [
       let newProfileImagePath: string | null = null;
 
       if (body.profileImage) {
-        nextProfileImage = await persistFilePayload("profile-images", user.id, body.profileImage);
+        nextProfileImage = await persistFilePayload("profile-images", user.id, body.profileImage, ["image/jpeg", "image/png", "image/webp"]);
         newProfileImagePath = nextProfileImage.storagePath;
       } else if (body.removeProfileImage) {
         nextProfileImage = null;
@@ -1470,9 +1472,14 @@ export const authRoutes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/auth/debug/otp",
-    handler: async ({ req, res, config }) => {
+    handler: async ({ req, res, auth }) => {
       if (process.env.MMS_ENABLE_FALLBACK_SIMULATION !== "true") {
         throw new HttpError(404, "Debug endpoint not available.");
+      }
+      // Require admin role even when feature flag is enabled.
+      const session = requireAuth(auth);
+      if (session.user.role !== "admin") {
+        throw new HttpError(403, "Only admins can use the debug OTP endpoint.");
       }
 
       const body = await readJsonBody<{ challengeId: string }>(req);
