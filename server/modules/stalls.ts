@@ -383,6 +383,9 @@ export const stallRoutes: RouteDefinition[] = [
       const params: string[] = [];
 
       if (session.user.role === "vendor") {
+        if (session.user.vendorStatus !== "approved") {
+          throw new HttpError(403, "Your vendor profile must be approved before viewing stalls.");
+        }
         if (scope === "mine") {
           clauses.push("stalls.assigned_vendor_id = ?");
           params.push(session.user.id);

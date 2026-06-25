@@ -253,8 +253,8 @@
                  "termsOfService":  "Terms of Service",
                  "privacyPolicy":  "Privacy Policy",
                  "security":  "Security",
-                 "copyright":  "ï¿½ 2024 MMS - Market Management System. All rights reserved."
-             },
+                 "copyright": "© 2026 MMS"
+},
     "landing":  {
                     "heroBadge":  "MARKET MANAGEMENT SYSTEM",
                     "heroTitle":  "Manage your market operations",
@@ -370,8 +370,8 @@
                     "ctaSub":  "Join 10,000+ users already managing their markets with MMS",
                     "ctaGetStarted":  "Get started for free",
                     "ctaContactSales":  "Contact sales",
-                    "copyright":  "Â© 2024 MMS. All rights reserved."
-                },
+                    "copyright": "© 2026 MMS"
+},
     "register":  {
                      "title":  "Vendor Registration",
                      "description":  "Create the vendor profile, submit verification documents, and confirm phone ownership in one flow.",
@@ -619,8 +619,8 @@
                    "support":  "Support",
                    "version":  "MMS v1.0.0",
                    "appTitle":  "MMS â€” Market Management System",
-                   "copyright":  "Â© 2026 Wandegeya Market Authority",
-                   "workspaceSuffix":  "workspace"
+                   "copyright": "© {year} MMS",
+"workspaceSuffix":  "workspace"
                },
     "vendor":  {
                    "approved":  "Vendor approved",
@@ -1110,8 +1110,11 @@
                    "applicationError":  "Unable to submit stall application.",
                    "errorLoading":  "Error loading stalls",
                    "errorLoadingDesc":  "There was a problem reaching the server.",
-                   "period":  "Period"
-               },
+                    "period": "Period",
+                    "availableStalls": "Available Stalls",
+                    "applyForStall": "Apply for Stall",
+                    "applyForStallDesc": "Select your preferred start and end dates to apply for this stall."
+                },
     "payments":  {
                      "mobileMoney":  "Mobile Money",
                      "mobileMoneyDesc":  "MTN and Airtel",

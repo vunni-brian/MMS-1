@@ -188,8 +188,8 @@
                  "termsOfService":  "Amateeka g\u0027Okukozesa",
                  "privacyPolicy":  "Enkola y\u0027Ekyaama",
                  "security":  "Obukuumi",
-                 "copyright":  "© 2024 MMS - Market Management System. Eddembe lyonna lirikwate."
-             },
+                 "copyright": "� 2026 MMS"
+},
     "landing":  {
                     "heroBadge":  "SISITEMU Y\u0027OKUDUKANYA AMATALE",
                     "heroTitle":  "Dukanya emirimo gyo egya katale",
@@ -539,7 +539,7 @@
                    "support":  "Obuyambi",
                    "version":  "MMS v1.0.0",
                    "appTitle":  "MMS — Market Management System",
-                   "copyright":  "© {year} {name}. Eddembe lyonna lirikwate.",
+                   "copyright":  "© {year} MMS",
                    "workspaceSuffix":  "— MMS"
                },
     "vendor":  {
@@ -994,8 +994,11 @@
                    "applicationError":  "Tekisobola okutuma okusaba kw\u0027ekifo.",
                    "errorLoading":  "Ensobi mu okutikka ebifo",
                    "errorLoadingDesc":  "Waliwo obuzibu mu okutuuka ku sava.",
-                   "period":  "Ekiseera"
-               },
+                    "period": "Ekiseera",
+                    "availableStalls": "Ebifo Ebisoboka",
+                    "applyForStall": "Saba Ekifo",
+                    "applyForStallDesc": "Londa ennaku ez'okutandika n'ez'okuwolera okusaba ekifo kino."
+                },
     "payments":  {
                      "mobileMoney":  "Ssente za Simu",
                      "mobileMoneyDesc":  "MTN ne Airtel",

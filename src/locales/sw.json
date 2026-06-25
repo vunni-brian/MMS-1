@@ -180,8 +180,8 @@
                  "termsOfService":  "Sheria za Matumizi",
                  "privacyPolicy":  "Sera ya Faragha",
                  "security":  "Usalama",
-                 "copyright":  "© 2024 MMS - Market Management System. Haki zote zimehifadhiwa."
-             },
+                 "copyright": "� 2026 MMS"
+},
     "landing":  {
                     "heroBadge":  "MFUMO WA USIMAMIZI WA SOKO",
                     "heroTitle":  "Dhibiti shughuli zako za soko",
@@ -579,7 +579,7 @@
                    "support":  "Msaada",
                    "version":  "MMS v1.0.0",
                    "appTitle":  "MMS — Market Management System",
-                   "copyright":  "© {year} {name}. Haki zote zimehifadhiwa.",
+                   "copyright":  "© {year} MMS",
                    "workspaceSuffix":  "eneo la kazi"
                },
     "vendor":  {
@@ -1033,8 +1033,11 @@
                    "applicationError":  "Haikuweza kuwasilisha ombi la kibanda.",
                    "errorLoading":  "Hitilafu katika kupakia maduka",
                    "errorLoadingDesc":  "Kulikuwa na tatizo katika kufikia seva.",
-                   "period":  "Kipindi"
-               },
+                    "period": "Kipindi",
+                    "availableStalls": "Vibanda Vinavyopatikana",
+                    "applyForStall": "Omba Kibanda",
+                    "applyForStallDesc": "Chagua tarehe za kuanza na mwisho kuomba kibanda hiki."
+                },
     "payments":  {
                      "mobileMoney":  "Pesa kwa Simu",
                      "mobileMoneyDesc":  "MTN na Airtel",
