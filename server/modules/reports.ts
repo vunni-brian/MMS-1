@@ -9,21 +9,21 @@ import { all } from "../lib/db.ts";
 import { sendJson, type RouteDefinition } from "../lib/http.ts";
 import { resolveScopedMarket } from "../lib/session.ts";
 
-const normalizeDateRange = (from: string | null, to: string | null) => {
+export const normalizeDateRange = (from: string | null, to: string | null) => {
   return {
     from: from || "2000-01-01",
     to: to || "2999-12-31",
   };
 };
 
-const appendMarketScope = (clauses: string[], params: Array<string | null>, column: string, marketId: string | null) => {
+export const appendMarketScope = (clauses: string[], params: Array<string | null>, column: string, marketId: string | null) => {
   if (marketId) {
     clauses.push(`${column} = ?`);
     params.push(marketId);
   }
 };
 
-const hoursBetween = (from: string | null, to: string | null) => {
+export const hoursBetween = (from: string | null, to: string | null) => {
   if (!from || !to) return null;
   const diff = new Date(to).getTime() - new Date(from).getTime();
   return Number.isFinite(diff) && diff >= 0 ? diff / (1000 * 60 * 60) : null;
