@@ -205,7 +205,7 @@ const VendorProfileCard = ({
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-          <p className="text-slate-500">{t("common:outstanding")}</p>
+          <p className="text-slate-500">{t("common:stallOutstanding")}</p>
           <p className="mt-1 truncate font-bold text-slate-900">{formatCurrency(row.totalOutstanding)}</p>
         </div>
         <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
@@ -549,7 +549,7 @@ const VendorsPage = () => {
               <div className="grid gap-3 md:grid-cols-3">
                 <FieldRow label={t("common:approval")} value={<StatusBadge status={selectedRow.vendor.status} />} />
                 <FieldRow label={t("common:followUpStatus")} value={<StatusBadge status={selectedRow.operationalStatus} />} />
-                <FieldRow label={t("common:outstanding")} value={formatCurrency(selectedRow.totalOutstanding)} />
+                <FieldRow label={t("common:stallOutstanding")} value={formatCurrency(selectedRow.totalOutstanding)} />
                 <div className="md:col-span-3">
                   <FieldRow
                     label={t("common:nextPermitExpiry")}

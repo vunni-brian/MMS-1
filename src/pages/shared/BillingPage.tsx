@@ -27,21 +27,10 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { UtilityCalculationMethod, UtilityType } from "@/types";
 
-// ─── Constants ───────────────────────────────────────────
-const utilityTypeOptions: { value: UtilityType; label: string }[] = [
-  { value: "electricity", label: "Electricity" }, { value: "water", label: "Water" },
-  { value: "sanitation", label: "Sanitation" }, { value: "garbage", label: "Garbage" },
-  { value: "other", label: "Other" },
-];
-
-const calculationOptions: { value: UtilityCalculationMethod; label: string }[] = [
-  { value: "metered", label: "Metered" }, { value: "estimated", label: "Estimated" }, { value: "fixed", label: "Fixed" },
-];
-
-const formatDate = (value: string | null, fallback = "Not available") =>
+const formatDate = (value: string | null, fallback: string) =>
   formatHumanDate(value ? `${value}T00:00:00` : null, fallback);
 
-const formatDateTime = (value: string | null, fallback = "Not available") =>
+const formatDateTime = (value: string | null, fallback: string) =>
   formatHumanDateTime(value, fallback);
 
 // ─── Field row helper ─────────────────────────────────────
@@ -59,6 +48,20 @@ const BillingPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const utilityTypeOptions: { value: UtilityType; label: string }[] = [
+    { value: "electricity", label: t("billing:utilityTypes.electricity") },
+    { value: "water", label: t("billing:utilityTypes.water") },
+    { value: "sanitation", label: t("billing:utilityTypes.sanitation") },
+    { value: "garbage", label: t("billing:utilityTypes.garbage") },
+    { value: "other", label: t("billing:utilityTypes.other") },
+  ];
+
+  const calculationOptions: { value: UtilityCalculationMethod; label: string }[] = [
+    { value: "metered", label: t("billing:calculationMethods.metered") },
+    { value: "estimated", label: t("billing:calculationMethods.estimated") },
+    { value: "fixed", label: t("billing:calculationMethods.fixed") },
+  ];
 
   const isManager = user?.role === "manager";
   const canManageChargeTypes = user?.role === "admin";
@@ -226,7 +229,7 @@ const BillingPage = () => {
                       </div>
 
                       <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                        <FieldRow label={t("billing:dueDateField")} value={formatDate(charge.dueDate)} />
+                        <FieldRow label={t("billing:dueDateField")} value={formatDate(charge.dueDate, t("common:notAvailable"))} />
                         <FieldRow label={t("billing:calculation")} value={`${charge.calculationMethod}${charge.unit ? ` (${charge.unit})` : ""}`} />
                         <FieldRow label={t("billing:paymentAttempts")} value={charge.paymentCount} />
                         <FieldRow label={t("billing:latestReference")} value={charge.latestPaymentReference || t("billing:awaitingPayment")} mono={Boolean(charge.latestPaymentReference)} />
@@ -234,8 +237,8 @@ const BillingPage = () => {
 
                       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs text-slate-400">
-                          {t("billing:createdBy", { name: charge.createdByName || t("billing:system"), date: formatDateTime(charge.createdAt) })}
-                          {charge.paidAt ? t("billing:paidOn", { date: formatDateTime(charge.paidAt) }) : ""}
+                          {t("billing:createdBy", { name: charge.createdByName || t("billing:system"), date: formatDateTime(charge.createdAt, t("common:notAvailable")) })}
+                          {charge.paidAt ? t("billing:paidOn", { date: formatDateTime(charge.paidAt, t("common:notAvailable")) }) : ""}
                         </p>
                         {canManageUtilities && (charge.status === "unpaid" || charge.status === "overdue") && (
                           <Button variant="outline" size="sm" className="rounded-lg border-slate-300 font-bold" onClick={() => cancelUtilityCharge.mutate(charge.id)} disabled={cancelUtilityCharge.isPending}>

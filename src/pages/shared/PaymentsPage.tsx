@@ -46,7 +46,7 @@ const currentPeriod = () => {
   return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(now);
 };
 
-const formatDate = (value: string | null, fallback = "Not recorded") =>
+const formatDate = (value: string | null, fallback: string) =>
  value ? new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : fallback;
 
 /** Table row for reviewing a submitted payment receipt with approve/reject actions. */
@@ -83,7 +83,7 @@ const ReceiptReviewRow = ({
  </span>
  <span>
  <strong className="block text-slate-700">{t("payments:submitted")}</strong>
- {formatDate(payment.createdAt, t("common:notRecorded"))}
+  {formatDate(payment.createdAt, t("payments:notRecorded"))}
  </span>
  <span>
  <strong className="block text-slate-700">{t("payments:file")}</strong>
@@ -159,45 +159,45 @@ const PaymentsPage = () => {
   paymentsQuery.isError ||
   (role === "vendor" && (utilityChargesQuery.isError || penaltiesQuery.isError));
 
- const payable = useMemo<PayableItem | null>(() => {
-  const bookings = bookingsQuery.data?.bookings || [];
-  const approvedBooking = bookings.find((booking) => booking.status === "approved" && booking.amount > 0);
-  if (approvedBooking) {
-  return {
-  stall: approvedBooking.stallName,
-  paymentType: "Stall Rent",
-  period: currentPeriod(),
-  amount: approvedBooking.amount,
-  payload: { bookingId: approvedBooking.id },
-  };
-  }
+  const payable = useMemo<PayableItem | null>(() => {
+   const bookings = bookingsQuery.data?.bookings || [];
+   const approvedBooking = bookings.find((booking) => booking.status === "approved" && booking.amount > 0);
+   if (approvedBooking) {
+   return {
+   stall: approvedBooking.stallName,
+   paymentType: t("payments:stallRent"),
+   period: currentPeriod(),
+   amount: approvedBooking.amount,
+   payload: { bookingId: approvedBooking.id },
+   };
+   }
 
-  const utility = (utilityChargesQuery.data?.utilityCharges || []).find((charge) =>
-  ["unpaid", "overdue"].includes(charge.status) && charge.amount > 0,
-  );
-  if (utility) {
-  return {
-  stall: utility.stallName || "Assigned Stall",
-  paymentType: utility.description || "Utility Fee",
-  period: utility.billingPeriod,
-  amount: utility.amount,
-  payload: { utilityChargeId: utility.id },
-  };
-  }
+   const utility = (utilityChargesQuery.data?.utilityCharges || []).find((charge) =>
+   ["unpaid", "overdue"].includes(charge.status) && charge.amount > 0,
+   );
+   if (utility) {
+   return {
+   stall: utility.stallName || t("payments:assignedStall"),
+   paymentType: utility.description || t("payments:utilityFee"),
+   period: utility.billingPeriod,
+   amount: utility.amount,
+   payload: { utilityChargeId: utility.id },
+   };
+   }
 
-  const penalty = (penaltiesQuery.data?.penalties || []).find((item) => item.status === "unpaid" && item.amount > 0);
-  if (penalty) {
-  return {
-  stall: "Assigned Stall",
-  paymentType: "Penalty",
-  period: currentPeriod(),
-  amount: penalty.amount,
-  payload: { penaltyId: penalty.id },
-  };
-  }
+   const penalty = (penaltiesQuery.data?.penalties || []).find((item) => item.status === "unpaid" && item.amount > 0);
+   if (penalty) {
+   return {
+   stall: t("payments:assignedStall"),
+   paymentType: t("payments:penalty"),
+   period: currentPeriod(),
+   amount: penalty.amount,
+   payload: { penaltyId: penalty.id },
+   };
+   }
 
   return null;
- }, [bookingsQuery.data?.bookings, penaltiesQuery.data?.penalties, utilityChargesQuery.data?.utilityCharges]);
+  }, [bookingsQuery.data?.bookings, penaltiesQuery.data?.penalties, utilityChargesQuery.data?.utilityCharges, t]);
 
  const hasRealPayable = payable !== null;
  const payments = (paymentsQuery.data?.payments || []).filter((payment) => payment.amount > 0);

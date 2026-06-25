@@ -84,12 +84,18 @@ const utilityChargeSelect = `
            ORDER BY payments.created_at DESC
            LIMIT 1
          ) AS latest_payment_completed_at,
-         (
-           SELECT COUNT(*)::INT
-           FROM payments
-           WHERE payments.utility_charge_id = utility_charges.id
-         ) AS payment_count
-  FROM utility_charges
+          (
+            SELECT COUNT(*)::INT
+            FROM payments
+            WHERE payments.utility_charge_id = utility_charges.id
+          ) AS payment_count,
+          (
+            SELECT COALESCE(SUM(payments.amount), 0)::INT
+            FROM payments
+            WHERE payments.utility_charge_id = utility_charges.id
+              AND payments.status = 'completed'
+          ) AS total_paid
+   FROM utility_charges
   INNER JOIN users AS vendors ON vendors.id = utility_charges.vendor_id
   LEFT JOIN bookings ON bookings.id = utility_charges.booking_id
   LEFT JOIN stalls ON stalls.id = bookings.stall_id
@@ -134,6 +140,7 @@ const mapUtilityCharge = (row: {
   latest_payment_reference: string | null;
   latest_payment_completed_at: string | null;
   payment_count: number;
+  total_paid: number;
 }) => ({
   id: row.id,
   marketId: row.market_id,
@@ -164,6 +171,7 @@ const mapUtilityCharge = (row: {
   latestPaymentReference: row.latest_payment_reference,
   latestPaymentCompletedAt: row.latest_payment_completed_at,
   paymentCount: row.payment_count,
+  totalPaid: row.total_paid,
 });
 
 const getUtilityChargeById = async (utilityChargeId: string) => {
