@@ -758,6 +758,7 @@ Additional scripts:
 - `scripts/step6-role-smoke.ts`: role-based smoke workflow.
 - `scripts/capture-dashboard-pngs.mjs`: dashboard screenshot capture.
 - `scripts/generate_architecture_doc.ps1`: architecture document generation.
+- `scripts/generate-mms-tech-qa-docx.ts`: generate Panel Q&A .docx document.
 
 ## Troubleshooting
 
@@ -836,5 +837,6 @@ Check:
 - `openapi.yaml`: API contract reference.
 - `RELEASE.md`: release notes.
 - `docs/`: design notes and screenshots.
+- `docs/MMS-Technical-Stack-APIs-Panel-QA.docx`: technical stack, APIs, and panel Q&A document.
 - `wmms/`: additional system screenshots and documentation.
 - `Market_Stall_Manager_Architecture_and_Design_Documentation.docx`: architecture/design document.
