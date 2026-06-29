@@ -140,7 +140,7 @@ const toFilePayload = async (file: File): Promise<{
  * All requests include the session token via Authorization header automatically.
  */
 export const api = {
- health: () => apiRequest<{ ok: boolean }>("/health"),
+ health: () => apiRequest<{ status: string; timestamp: string; uptime: number; checks: Record<string, unknown>; version: string; environment: string }>("/health"),
 
  async registerVendor(input: {
  name: string;

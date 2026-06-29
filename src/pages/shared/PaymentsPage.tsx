@@ -260,7 +260,7 @@ const PaymentsPage = () => {
  const pendingReceiptPayments = payments.filter((payment) => payment.method === "receipt" && payment.status === "pending");
  const recentPayments = payments.slice(0, 5);
  const paymentGateway = (chargeTypesQuery.data?.chargeTypes || []).find((chargeType) => chargeType.name === "payment_gateway");
- const onlinePaymentsPaused = chargeTypesQuery.isError || paymentGateway?.isEnabled === false;
+  const onlinePaymentsPaused = chargeTypesQuery.isFetched && paymentGateway?.isEnabled === false;
 
  useEffect(() => {
   if (onlinePaymentsPaused) {

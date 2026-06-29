@@ -81,7 +81,7 @@ const AdminDashboard = () => {
   const users = usersQuery.data?.users || [];
   const markets = marketsQuery.data?.markets || [];
   const auditEvents = auditQuery.data?.events || [];
-  const systemOk = systemHealthQuery.data?.ok ?? false;
+  const systemOk = systemHealthQuery.data?.status === "healthy";
 
   const internalUsers = users.filter((u) => ["admin", "manager", "official"].includes(u.role));
   const activeMarkets = markets.filter((m) => m.stallCount > 0 || m.activeStallCount > 0);

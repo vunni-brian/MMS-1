@@ -289,8 +289,7 @@ export const healthRoutes: RouteDefinition[] = [
         environment: config.appEnv || "unknown",
       };
 
-      const statusCode = overallStatus === "unhealthy" ? 503 : 200;
-      sendJson(res, statusCode, result);
+      sendJson(res, 200, result);
 
       if (overallStatus !== "healthy") {
         logger.warn("Health check reported non-healthy status", {
@@ -358,8 +357,7 @@ export const healthRoutes: RouteDefinition[] = [
         responseTimeMs: Date.now() - startTime,
       };
 
-      const statusCode = overallStatus === "unhealthy" ? 503 : 200;
-      sendJson(res, statusCode, result);
+      sendJson(res, 200, result);
     },
   },
   {
