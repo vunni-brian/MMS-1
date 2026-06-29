@@ -22,7 +22,6 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentStatus } from "@/types";
 
@@ -50,74 +49,7 @@ const currentPeriod = () => {
 const formatDate = (value: string | null, fallback: string) =>
  value ? new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : fallback;
 
-/** Table row for reviewing a submitted payment receipt with approve/reject actions. */
-const ReceiptReviewRow = ({
- payment,
- onViewReceipt,
- onVerify,
- isBusy,
-}: {
- payment: Payment;
- onViewReceipt: (payment: Payment) => void;
- onVerify: (payment: Payment, status: "verified" | "rejected") => void;
- isBusy: boolean;
-}) => {
- const { t } = useTranslation();
- return (
- <div className="rounded-lg border border-slate-200 bg-white p-4">
- <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
- <div className="min-w-0 space-y-2">
- <div className="flex flex-wrap items-center gap-2">
- <p className="font-semibold text-slate-950">{payment.vendorName}</p>
- <StatusBadge status={payment.status} context="payment" />
- <Badge variant="secondary">{payment.method === "receipt" ? t("payments:bankReceipt") : payment.method}</Badge>
- </div>
- <p className="text-sm text-slate-600">{getPaymentPurpose(payment)}</p>
- <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-2 xl:grid-cols-4">
- <span>
- <strong className="block text-slate-700">{t("common:amount")}</strong>
- {formatCurrency(payment.amount)}
- </span>
- <span>
- <strong className="block text-slate-700">{t("payments:reference")}</strong>
- {getPaymentReference(payment)}
- </span>
- <span>
- <strong className="block text-slate-700">{t("payments:submitted")}</strong>
-  {formatDate(payment.createdAt, t("payments:notRecorded"))}
- </span>
- <span>
- <strong className="block text-slate-700">{t("payments:file")}</strong>
- {payment.receiptFileName || t("common:noFile")}
- </span>
- </div>
- </div>
- <div className="flex shrink-0 flex-wrap gap-2">
- {payment.receiptFilePath ? (
- <Button variant="outline" size="sm" onClick={() => onViewReceipt(payment)}>
- <Eye className="mr-2 h-4 w-4" />
- {t("common:view")}
- </Button>
- ) : null}
- {payment.status === "pending" && payment.method === "receipt" ? (
- <>
- <Button size="sm" disabled={isBusy} onClick={() => onVerify(payment, "verified")}>
- <CheckCircle2 className="mr-2 h-4 w-4" />
- {t("common:approve")}
- </Button>
- <Button variant="outline" size="sm" disabled={isBusy} onClick={() => onVerify(payment, "rejected")}>
- <XCircle className="mr-2 h-4 w-4" />
- {t("common:reject")}
- </Button>
- </>
- ) : null}
- </div>
- </div>
- </div>
- );
-};
-
-const ReceiptPreview = ({ payment }: { payment: Payment }) => {
+const ReceiptInlinePreview = ({ payment }: { payment: Payment }) => {
   const { t } = useTranslation();
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -149,42 +81,96 @@ const ReceiptPreview = ({ payment }: { payment: Payment }) => {
   const isImage = payment.receiptFileMimeType?.startsWith("image/");
   const isPdf = payment.receiptFileMimeType === "application/pdf";
 
+  if (!payment.receiptFilePath) return null;
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold text-slate-900">{payment.receiptFileName || t("payments:bankReceipt")}</p>
-          {payment.receiptFileSize && (
-            <p className="mt-1 text-xs text-slate-500">{(payment.receiptFileSize / 1024).toFixed(1)} KB</p>
-          )}
-        </div>
-        <FileText className="h-5 w-5 shrink-0 text-slate-400" />
-      </div>
-      <div className="min-h-[280px] overflow-hidden rounded-lg border border-slate-200 bg-white">
-        {!payment.receiptFilePath ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("common:noFile")}</div>
-        ) : isLoading ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:loadingDocument")}</div>
-        ) : loadError ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-center text-sm text-red-600">{loadError}</div>
-        ) : documentUrl && isImage ? (
-          <img src={documentUrl} alt="receipt" className="h-[280px] w-full object-contain" />
-        ) : documentUrl && isPdf ? (
-          <iframe title="receipt" src={documentUrl} className="h-[440px] w-full border-0 bg-white" />
-        ) : documentUrl ? (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:previewUnavailable")}</div>
-        ) : (
-          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:documentNotLoaded")}</div>
-        )}
-      </div>
-      {documentUrl && (
-        <a href={documentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline">
-          {t("common:openInNewTab") || "Open full document"}
+    <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+      {isLoading ? (
+        <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">{t("vendor:loadingDocument")}</div>
+      ) : loadError ? (
+        <div className="flex h-[200px] items-center justify-center text-center text-sm text-red-600">{loadError}</div>
+      ) : documentUrl && isImage ? (
+        <img src={documentUrl} alt="receipt" className="max-h-[300px] w-full object-contain" />
+      ) : documentUrl && isPdf ? (
+        <iframe title="receipt" src={documentUrl} className="h-[400px] w-full border-0" />
+      ) : documentUrl ? (
+        <a href={documentUrl} target="_blank" rel="noreferrer" className="flex h-[200px] items-center justify-center text-sm font-semibold text-emerald-700 underline-offset-4 hover:underline">
+          {t("common:openInNewTab") || "Open receipt"}
         </a>
-      )}
+      ) : null}
     </div>
   );
 };
+
+/** Table row for reviewing a submitted payment receipt with approve/reject actions. */
+const ReceiptReviewRow = ({
+  payment,
+  onViewReceipt,
+  onVerify,
+  isBusy,
+}: {
+  payment: Payment;
+  onViewReceipt: (payment: Payment) => void;
+  onVerify: (payment: Payment, status: "verified" | "rejected") => void;
+  isBusy: boolean;
+}) => {
+  const { t } = useTranslation();
+  return (
+  <div className="rounded-lg border border-slate-200 bg-white p-4">
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+  <div className="min-w-0 space-y-2">
+  <div className="flex flex-wrap items-center gap-2">
+  <p className="font-semibold text-slate-950">{payment.vendorName}</p>
+  <StatusBadge status={payment.status} context="payment" />
+  <Badge variant="secondary">{payment.method === "receipt" ? t("payments:bankReceipt") : payment.method}</Badge>
+  </div>
+  <p className="text-sm text-slate-600">{getPaymentPurpose(payment)}</p>
+  <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-2 xl:grid-cols-4">
+  <span>
+  <strong className="block text-slate-700">{t("common:amount")}</strong>
+  {formatCurrency(payment.amount)}
+  </span>
+  <span>
+  <strong className="block text-slate-700">{t("payments:reference")}</strong>
+  {getPaymentReference(payment)}
+  </span>
+  <span>
+  <strong className="block text-slate-700">{t("payments:submitted")}</strong>
+   {formatDate(payment.createdAt, t("payments:notRecorded"))}
+  </span>
+  <span>
+  <strong className="block text-slate-700">{t("payments:file")}</strong>
+  {payment.receiptFileName || t("common:noFile")}
+  </span>
+  </div>
+  <ReceiptInlinePreview payment={payment} />
+  </div>
+  <div className="flex shrink-0 flex-wrap gap-2">
+  {payment.receiptFilePath ? (
+  <Button variant="outline" size="sm" onClick={() => onViewReceipt(payment)}>
+  <Eye className="mr-2 h-4 w-4" />
+  {t("common:view")}
+  </Button>
+  ) : null}
+  {payment.status === "pending" && payment.method === "receipt" ? (
+  <>
+  <Button size="sm" disabled={isBusy} onClick={() => onVerify(payment, "verified")}>
+  <CheckCircle2 className="mr-2 h-4 w-4" />
+  {t("common:approve")}
+  </Button>
+  <Button variant="outline" size="sm" disabled={isBusy} onClick={() => onVerify(payment, "rejected")}>
+  <XCircle className="mr-2 h-4 w-4" />
+  {t("common:reject")}
+  </Button>
+  </>
+  ) : null}
+  </div>
+  </div>
+  </div>
+  );
+};
+
+
 
 /** PaymentsPage - renders the payments dashboard with history, manual entries, and receipt review. */
 const PaymentsPage = () => {
@@ -195,7 +181,6 @@ const PaymentsPage = () => {
   const [receiptNumber, setReceiptNumber] = useState("");
   const [receiptNote, setReceiptNote] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [selectedReceiptPayment, setSelectedReceiptPayment] = useState<Payment | null>(null);
 
  const methodOptions: Array<{ id: PaymentMethod; labelKey: string; detailKey: string; icon: typeof Smartphone }> = [
   { id: "mobile", labelKey: "payments:mobileMoney", detailKey: "payments:mobileMoneyDesc", icon: Smartphone },
@@ -343,8 +328,23 @@ const PaymentsPage = () => {
   },
  });
 
-  const viewReceipt = (payment: Payment) => {
-    setSelectedReceiptPayment(payment);
+  const viewReceipt = async (payment: Payment) => {
+    const receiptWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!receiptWindow) {
+      toast.error(t("payments:receiptOpenError"), {
+        description: t("payments:receiptLoadError"),
+      });
+      return;
+    }
+    try {
+      const url = await api.getReceiptFileUrl(payment.id);
+      receiptWindow.location.href = url;
+    } catch (error) {
+      receiptWindow.close();
+      toast.error(t("payments:receiptOpenError"), {
+        description: error instanceof ApiError ? error.message : t("payments:receiptLoadError"),
+      });
+    }
   };
 
  if (isError) {
@@ -433,18 +433,6 @@ const PaymentsPage = () => {
   </Card>
   </div>
   </PageLayout>
-
-  <Sheet open={Boolean(selectedReceiptPayment)} onOpenChange={(open) => !open && setSelectedReceiptPayment(null)}>
-  <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-  <SheetHeader>
-  <SheetTitle>{t("payments:bankReceipt")}</SheetTitle>
-  {selectedReceiptPayment && <SheetDescription>{selectedReceiptPayment.vendorName} &mdash; {formatCurrency(selectedReceiptPayment.amount)}</SheetDescription>}
-  </SheetHeader>
-  <div className="mt-6">
-  {selectedReceiptPayment && <ReceiptPreview payment={selectedReceiptPayment} />}
-  </div>
-  </SheetContent>
-  </Sheet>
   );
  }
 
