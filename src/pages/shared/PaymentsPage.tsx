@@ -2,7 +2,7 @@
  * Shared payments page with payment history, manual payment recording, receipt review,
  * and status badge indicators. Accessible to vendor, manager, and admin roles.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, CreditCard, Eye, FileText, Landmark, Smartphone, Upload, XCircle } from "lucide-react";
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentStatus } from "@/types";
 
@@ -116,15 +117,85 @@ const ReceiptReviewRow = ({
  );
 };
 
+const ReceiptPreview = ({ payment }: { payment: Payment }) => {
+  const { t } = useTranslation();
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    setDocumentUrl(null);
+    setLoadError(null);
+    setIsLoading(false);
+    if (!payment.receiptFilePath) return;
+    setIsLoading(true);
+    api.getReceiptFileUrl(payment.id).then((url) => {
+      objectUrlRef.current = url;
+      if (isActive) setDocumentUrl(url);
+      else URL.revokeObjectURL(url);
+    }).catch((error) => {
+      if (isActive) setLoadError(error instanceof Error ? error.message : t("payments:receiptLoadError"));
+    }).finally(() => {
+      if (isActive) setIsLoading(false);
+    });
+    return () => {
+      isActive = false;
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, [payment.id, payment.receiptFilePath, t]);
+
+  const isImage = payment.receiptFileMimeType?.startsWith("image/");
+  const isPdf = payment.receiptFileMimeType === "application/pdf";
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-900">{payment.receiptFileName || t("payments:bankReceipt")}</p>
+          {payment.receiptFileSize && (
+            <p className="mt-1 text-xs text-slate-500">{(payment.receiptFileSize / 1024).toFixed(1)} KB</p>
+          )}
+        </div>
+        <FileText className="h-5 w-5 shrink-0 text-slate-400" />
+      </div>
+      <div className="min-h-[280px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+        {!payment.receiptFilePath ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("common:noFile")}</div>
+        ) : isLoading ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:loadingDocument")}</div>
+        ) : loadError ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-center text-sm text-red-600">{loadError}</div>
+        ) : documentUrl && isImage ? (
+          <img src={documentUrl} alt="receipt" className="h-[280px] w-full object-contain" />
+        ) : documentUrl && isPdf ? (
+          <iframe title="receipt" src={documentUrl} className="h-[440px] w-full border-0 bg-white" />
+        ) : documentUrl ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:previewUnavailable")}</div>
+        ) : (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:documentNotLoaded")}</div>
+        )}
+      </div>
+      {documentUrl && (
+        <a href={documentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline">
+          {t("common:openInNewTab") || "Open full document"}
+        </a>
+      )}
+    </div>
+  );
+};
+
 /** PaymentsPage - renders the payments dashboard with history, manual entries, and receipt review. */
 const PaymentsPage = () => {
   const { t } = useTranslation();
   const { role, user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("mobile");
- const [receiptNumber, setReceiptNumber] = useState("");
- const [receiptNote, setReceiptNote] = useState("");
- const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptNumber, setReceiptNumber] = useState("");
+  const [receiptNote, setReceiptNote] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [selectedReceiptPayment, setSelectedReceiptPayment] = useState<Payment | null>(null);
 
  const methodOptions: Array<{ id: PaymentMethod; labelKey: string; detailKey: string; icon: typeof Smartphone }> = [
   { id: "mobile", labelKey: "payments:mobileMoney", detailKey: "payments:mobileMoneyDesc", icon: Smartphone },
@@ -272,24 +343,9 @@ const PaymentsPage = () => {
   },
  });
 
-  const viewReceipt = async (payment: Payment) => {
-  const receiptWindow = window.open("", "_blank", "noopener,noreferrer");
-  if (!receiptWindow) {
-  toast.error(t("payments:receiptOpenError"), {
-  description: t("payments:receiptLoadError"),
-  });
-  return;
-  }
-  try {
-  const url = await api.getReceiptFileUrl(payment.id);
-  receiptWindow.location.href = url;
-  } catch (error) {
-  receiptWindow.close();
-  toast.error(t("payments:receiptOpenError"), {
-  description: error instanceof ApiError ? error.message : t("payments:receiptLoadError"),
-  });
-  }
- };
+  const viewReceipt = (payment: Payment) => {
+    setSelectedReceiptPayment(payment);
+  };
 
  if (isError) {
   return (
@@ -377,13 +433,25 @@ const PaymentsPage = () => {
   </Card>
   </div>
   </PageLayout>
+
+  <Sheet open={Boolean(selectedReceiptPayment)} onOpenChange={(open) => !open && setSelectedReceiptPayment(null)}>
+  <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+  <SheetHeader>
+  <SheetTitle>{t("payments:bankReceipt")}</SheetTitle>
+  {selectedReceiptPayment && <SheetDescription>{selectedReceiptPayment.vendorName} &mdash; {formatCurrency(selectedReceiptPayment.amount)}</SheetDescription>}
+  </SheetHeader>
+  <div className="mt-6">
+  {selectedReceiptPayment && <ReceiptPreview payment={selectedReceiptPayment} />}
+  </div>
+  </SheetContent>
+  </Sheet>
   );
  }
 
- return (
- <PageLayout>
- <PageHeader
- eyebrow={t("payments:vendorEyebrow")}
+  return (
+  <PageLayout>
+  <PageHeader
+  eyebrow={t("payments:vendorEyebrow")}
  title={t("payments:vendorTitle")}
   description={t("payments:vendorSubtitle")}
  />
