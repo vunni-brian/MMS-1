@@ -57,7 +57,6 @@ const AdminDashboard = () => {
   const systemHealthQuery = useQuery({ queryKey: ["system-health"], queryFn: () => api.health(), refetchInterval: 60000, gcTime: DASHBOARD_CONFIG.REALTIME_DATA_CACHE_TIME });
 
   const isLoading = usersQuery.isPending || marketsQuery.isPending || auditQuery.isPending || systemHealthQuery.isPending;
-  const isError = usersQuery.isError || marketsQuery.isError || auditQuery.isError || systemHealthQuery.isError;
 
   const getAuditDetailLabel = (details: Record<string, unknown> | null) => {
     if (!details) return t("admin:dashboard.auditDetailNone");
@@ -67,14 +66,6 @@ const AdminDashboard = () => {
     if (typeof status === "string" && status.trim()) return status;
     return t("admin:dashboard.auditDetailAttached");
   };
-
-  if (isError) {
-    return (
-      <div className="rounded-xl border border-[#FCA5A5] bg-[#FEE2E2] p-5 text-sm text-[#991B1B]">
-        {t("admin:dashboard.errorTitle")}: {t("admin:dashboard.errorDescription")}
-      </div>
-    );
-  }
 
   if (isLoading) return <DashboardSkeleton />;
 
