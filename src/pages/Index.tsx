@@ -97,22 +97,9 @@ const Index = () => {
                 onClick={() => navigate("/register")}
                 className="bg-slate-900 text-white hover:bg-slate-800"
               >
-                {t("landing:addToWorkspace")}
+                {t("landing:getStarted")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Button size="lg" variant="outline" className="border-slate-300">
-                {t("landing:watchDemo")}
-              </Button>
-            </div>
-
-            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-slate-600">
-              <div className="flex text-emerald-500">
-                {"★".repeat(5)}
-              </div>
-              <span className="font-medium">4.9</span>
-              <span>| {t("landing:reviewsStat")}</span>
-              <span>| {t("landing:usersStat")}</span>
-              <span>| {t("landing:freeForever")}</span>
             </div>
           </div>
         </section>
