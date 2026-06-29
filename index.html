@@ -59,18 +59,13 @@
     }
     </script>
 
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RF4TE9E825"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      const gaId = "%VITE_GA_ID%";
-      if (gaId && gaId !== "%VITE" + "_GA_ID%") {
-        var s = document.createElement('script');
-        s.async = true;
-        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
-        document.head.appendChild(s);
-        gtag('config', gaId);
-      }
+      gtag('config', 'G-RF4TE9E825');
     </script>
   </head>
 
