@@ -49,3 +49,10 @@ runtime/mms.sqlite
 runtime/read-latest-otp.mjs
 runtime/ui-walkthrough.mjs
 runtime/uploads/*.sqlite
+
+# Python tools
+ReconForge/
+medusa-output/
+medusa-scan.log
+medusa-quick.log
+medusa-report.json

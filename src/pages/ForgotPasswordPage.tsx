@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api";
+import Seo from "@/components/seo/Seo";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
 
@@ -92,7 +93,9 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
+    <>
+      <Seo title="Forgot Password" description="Reset your MMS account password securely via phone OTP verification." noindex />
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30">
       <header className="sticky top-0 z-50 border-b border-emerald-100 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -284,6 +287,7 @@ const ForgotPasswordPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

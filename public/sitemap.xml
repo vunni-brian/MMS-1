@@ -3,21 +3,42 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://mms-1.vercel.app/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mms-1.vercel.app/" />
+    <xhtml:link rel="alternate" hreflang="lg" href="https://mms-1.vercel.app/lg" />
+    <xhtml:link rel="alternate" hreflang="sw" href="https://mms-1.vercel.app/sw" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mms-1.vercel.app/" />
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://mms-1.vercel.app/login</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mms-1.vercel.app/login" />
+    <xhtml:link rel="alternate" hreflang="lg" href="https://mms-1.vercel.app/lg/login" />
+    <xhtml:link rel="alternate" hreflang="sw" href="https://mms-1.vercel.app/sw/login" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mms-1.vercel.app/login" />
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mms-1.vercel.app/register</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mms-1.vercel.app/register" />
+    <xhtml:link rel="alternate" hreflang="lg" href="https://mms-1.vercel.app/lg/register" />
+    <xhtml:link rel="alternate" hreflang="sw" href="https://mms-1.vercel.app/sw/register" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mms-1.vercel.app/register" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mms-1.vercel.app/forgot-password</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mms-1.vercel.app/forgot-password" />
+    <xhtml:link rel="alternate" hreflang="lg" href="https://mms-1.vercel.app/lg/forgot-password" />
+    <xhtml:link rel="alternate" hreflang="sw" href="https://mms-1.vercel.app/sw/forgot-password" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mms-1.vercel.app/forgot-password" />
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://mms-1.vercel.app/payments/callback</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

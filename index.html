@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Premium market operations console for vendors, managers, officials, and administrators. Streamline stall allocation, billing, complaints, and revenue analytics." />
-    <meta name="keywords" content="market management system, vendor management, stall allocation, market billing, Wandegeya Market, KCCA, Uganda market software" />
-    <meta name="author" content="Wandegeya Market Authority" />
+    <meta name="keywords" content="market management system, vendor management, stall allocation, market billing, municipal market software, market administration, revenue collection, KCCA, Uganda" />
+    <meta name="author" content="Market Management System" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="revisit-after" content="7 days" />
     <meta name="language" content="English" />
@@ -28,7 +28,7 @@
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@KCCA" />
+    <meta name="twitter:site" content="@MMSPlatform" />
     <meta name="twitter:title" content="MMS — Market Management System" />
     <meta name="twitter:description" content="Premium market operations console for vendors, managers, officials, and administrators." />
     <meta name="twitter:image" content="https://mms-1.vercel.app/images/mms-logo.svg" />
@@ -48,15 +48,29 @@
       "@type": "WebApplication",
       "name": "MMS — Market Management System",
       "url": "https://mms-1.vercel.app",
-      "description": "Premium market operations console for vendors, managers, officials, and administrators.",
+      "description": "Premium market operations console for vendors, managers, officials, and administrators. Streamline stall allocation, billing, complaints, and revenue analytics.",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "All",
-      "author": {
-        "@type": "Organization",
-        "name": "Wandegeya Market Authority",
-        "url": "https://mms-1.vercel.app"
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "UGX"
       }
     }
+    </script>
+
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      const gaId = "%VITE_GA_ID%";
+      if (gaId && gaId !== "%VITE" + "_GA_ID%") {
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
+        document.head.appendChild(s);
+        gtag('config', gaId);
+      }
     </script>
   </head>
 

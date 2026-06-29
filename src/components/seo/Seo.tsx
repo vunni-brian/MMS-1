@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { brand } from "@/config/brand";
 
 export interface SeoProps {
   title?: string;
@@ -11,14 +12,21 @@ export interface SeoProps {
   ogType?: string;
   twitterCard?: "summary" | "summary_large_image";
   twitterSite?: string;
-  jsonLd?: Record<string, unknown>;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  locale?: string;
 }
 
-const BASE_URL = "https://mms-1.vercel.app";
-const SITE_NAME = "MMS — Market Management System";
-const DEFAULT_DESC = "Premium market operations console for vendors, managers, officials, and administrators.";
-const DEFAULT_IMAGE = `${BASE_URL}/images/mms-logo.svg`;
-const DEFAULT_TWITTER = "@KCCA";
+const BASE_URL = brand.siteUrl;
+const SITE_NAME = brand.ogTitle;
+const DEFAULT_DESC = brand.ogDescription;
+const DEFAULT_IMAGE = `${BASE_URL}${brand.ogImage}`;
+const DEFAULT_TWITTER = brand.twitterSite;
+
+const LOCALE_MAP: Record<string, string> = {
+  en: "en_US",
+  lg: "lg_UG",
+  sw: "sw_KE",
+};
 
 const Seo = ({
   title,
@@ -32,15 +40,24 @@ const Seo = ({
   twitterCard = "summary_large_image",
   twitterSite = DEFAULT_TWITTER,
   jsonLd,
+  locale = "en",
 }: SeoProps) => {
   const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
   const ogTitleFinal = ogTitle ?? fullTitle;
   const ogDescFinal = ogDescription ?? description;
   const ogImageFull = ogImage.startsWith("http") ? ogImage : `${BASE_URL}${ogImage}`;
   const canonicalUrl = canonical ?? (typeof window !== "undefined" ? `${BASE_URL}${window.location.pathname}` : BASE_URL);
+  const htmlLocale = LOCALE_MAP[locale] || "en_US";
+
+  const hreflangEntries = [
+    { lang: "en", path: "" },
+    { lang: "lg", path: "/lg" },
+    { lang: "sw", path: "/sw" },
+  ];
 
   return (
     <Helmet>
+      <html lang={locale} />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={canonicalUrl} />
@@ -56,7 +73,7 @@ const Seo = ({
       <meta property="og:image:height" content="630" />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content={ogType} />
-      <meta property="og:locale" content="en_US" />
+      <meta property="og:locale" content={htmlLocale} />
 
       <meta name="twitter:card" content={twitterCard} />
       <meta name="twitter:site" content={twitterSite} />
@@ -69,6 +86,11 @@ const Seo = ({
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="mobile-web-app-capable" content="yes" />
       <meta name="format-detection" content="telephone=no" />
+
+      {hreflangEntries.map(({ lang, path }) => (
+        <link key={lang} rel="alternate" hrefLang={lang} href={`${BASE_URL}${path}${canonicalUrl.replace(BASE_URL, "")}`} />
+      ))}
+      <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
 
       {jsonLd && (
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>

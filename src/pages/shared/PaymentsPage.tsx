@@ -272,11 +272,19 @@ const PaymentsPage = () => {
   },
  });
 
- const viewReceipt = async (payment: Payment) => {
+  const viewReceipt = async (payment: Payment) => {
+  const receiptWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!receiptWindow) {
+  toast.error(t("payments:receiptOpenError"), {
+  description: t("payments:receiptLoadError"),
+  });
+  return;
+  }
   try {
   const url = await api.getReceiptFileUrl(payment.id);
-  window.open(url, "_blank", "noopener,noreferrer");
+  receiptWindow.location.href = url;
   } catch (error) {
+  receiptWindow.close();
   toast.error(t("payments:receiptOpenError"), {
   description: error instanceof ApiError ? error.message : t("payments:receiptLoadError"),
   });

@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import Seo from "@/components/seo/Seo";
 import { api } from "@/lib/api";
 import { getPaymentPurpose } from "@/lib/payment-history";
 import { formatCurrency } from "@/lib/utils";
@@ -80,7 +81,9 @@ const PaymentCallbackPage = () => {
             : t("payments:callback.stillPending");
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F3F4F6] text-slate-900 font-sans">
+    <>
+      <Seo title="Payment Status" description="View the status of your recent payment transaction." noindex />
+      <div className="min-h-screen flex flex-col bg-[#F3F4F6] text-slate-900 font-sans">
       {/* Official Top Bar */}
       <div className="bg-primary px-4 py-2 text-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between text-xs font-medium">
@@ -197,6 +200,7 @@ const PaymentCallbackPage = () => {
         </section>
       </main>
     </div>
+    </>
   );
 };
 

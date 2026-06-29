@@ -740,7 +740,8 @@ const servePaymentReceiptFile = async ({
   }
 
   res.setHeader("Content-Type", payment.receiptFileMimeType || "application/octet-stream");
-  res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(payment.receiptFileName || "receipt")}"`);
+  const fileName = payment.receiptFileName || "receipt";
+  res.setHeader("Content-Disposition", `inline; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`);
   res.setHeader("Cache-Control", "private, max-age=60");
 
   if (payment.receiptFilePath.startsWith("supabase://")) {
