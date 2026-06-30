@@ -32,6 +32,7 @@ export type Permission =
   | "booking:update"
   | "payment:read"
   | "payment:create"
+  | "payment:verify"
   | "notification:read"
   | "notification:update"
   | "announcement:read"

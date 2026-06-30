@@ -25,7 +25,7 @@ import { billingRoutes } from "./modules/billing.ts";
 import { marketRoutes } from "./modules/markets.ts";
 import { vendorRoutes } from "./modules/vendors.ts";
 import { stallRoutes } from "./modules/stalls.ts";
-import { paymentRoutes } from "./modules/payments.ts";
+import { paymentRoutes, sweepStaleInitiatingPayments } from "./modules/payments.ts";
 import { notificationRoutes, processNotificationDeliveries } from "./modules/notifications.ts";
 import { ticketRoutes } from "./modules/tickets.ts";
 import { reportRoutes } from "./modules/reports.ts";
@@ -128,6 +128,11 @@ setInterval(() => {
 setInterval(() => {
   runBackgroundTask("audit-cleanup", cleanupAuditLogs);
 }, 3_600_000);
+
+// Stale-initiating payment sweep every 15 seconds
+setInterval(() => {
+  runBackgroundTask("sweep-initiating", sweepStaleInitiatingPayments);
+}, 15_000);
 
 const server = createServer(async (req, res) => {
   const startTime = Date.now();

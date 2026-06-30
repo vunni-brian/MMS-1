@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import type { ServerResponse } from "node:http";
 
+import { logger } from "../lib/logger.ts";
 import { assertChargeEnabled } from "../lib/billing.ts";
 import { all, createId, get, logAuditEvent, queueNotification, run, transaction } from "../lib/db.ts";
 import { HttpError, readJsonBody, readRawBody, sendJson, type RouteDefinition } from "../lib/http.ts";
@@ -816,6 +817,44 @@ const servePaymentReceiptFile = async ({
 };
 
 /** Payment routes (initiate, IPN callback, status check, receipt, payment history). */
+/**
+ * Background sweep that recovers payments stuck in `initiating` status.
+ *
+ * Only targets rows where `transaction_id IS NULL` — meaning the Pesapal
+ * order was never created (crash between INSERT and submitPesapalOrder, or
+ * request hung before getting a tracking ID). If transaction_id is set,
+ * Pesapal already knows about the order and the IPN/callback will resolve it;
+ * sweeping it would risk double-charge (original request succeeds after sweep
+ * marks it failed and lets the vendor retry).
+ */
+export const sweepStaleInitiatingPayments = async () => {
+  const deadline = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const stuck = await all<{ id: string }>(
+    `SELECT id FROM payments WHERE status = 'initiating' AND transaction_id IS NULL AND created_at < ?`,
+    [deadline],
+  );
+  if (stuck.length === 0) return;
+
+  const timestamp = nowIso();
+  for (const payment of stuck) {
+    try {
+      await transaction(async () => {
+        await run(
+          `UPDATE payments SET status = 'failed', updated_at = ? WHERE id = ? AND status = 'initiating'`,
+          [timestamp, payment.id],
+        );
+        await run(
+          `UPDATE payment_attempts SET status = 'failed', updated_at = ? WHERE payment_id = ? AND status = 'initiating'`,
+          [timestamp, payment.id],
+        );
+      });
+      logger.warn(`[sweep] Released stale initiating payment ${payment.id}`);
+    } catch (error) {
+      logger.error(`[sweep] Failed to recover payment ${payment.id}`, error);
+    }
+  }
+};
+
 export const paymentRoutes: RouteDefinition[] = [
   {
     method: "GET",
@@ -1546,10 +1585,7 @@ export const paymentRoutes: RouteDefinition[] = [
     method: "POST",
     path: "/payments/:id/verify",
     handler: async ({ req, res, auth, params }) => {
-      const { session } = resolveScopedMarket(auth, "payment:create");
-      if (!["manager", "official", "admin"].includes(session.user.role)) {
-        throw new HttpError(403, "Only staff can verify payment receipts.");
-      }
+      const { session } = resolveScopedMarket(auth, "payment:verify");
 
       const payment = await getPaymentById(params.id);
       if (!payment) {

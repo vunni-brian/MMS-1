@@ -1225,6 +1225,41 @@ export const authRoutes: RouteDefinition[] = [
   },
   {
     method: "POST",
+    path: "/auth/resend-mfa-otp",
+    handler: async ({ req, res }) => {
+      const { challengeId } = await readJsonBody<{ challengeId: string }>(req);
+      if (!challengeId) throw new HttpError(400, "challengeId is required.");
+
+      const old = await get<{ id: string; user_id: string; phone: string }>(
+        `SELECT otp_challenges.id, otp_challenges.user_id, users.phone
+         FROM otp_challenges INNER JOIN users ON users.id = otp_challenges.user_id
+         WHERE otp_challenges.id = ? AND otp_challenges.purpose = 'manager_mfa' AND otp_challenges.verified_at IS NULL`,
+        [challengeId],
+      );
+      if (!old) throw new HttpError(404, "MFA challenge not found or already verified.");
+
+      const otpCode = createOtpCode();
+      const newChallengeId = createId("otp");
+      const timestamp = nowIso();
+      const expiresAt = addMinutes(config.otpTtlMinutes);
+      await run(
+        `INSERT INTO otp_challenges (id, user_id, purpose, phone, code_hash, expires_at, verified_at, metadata_json, created_at)
+         VALUES (?, ?, 'manager_mfa', ?, ?, ?, NULL, NULL, ?)`,
+        [newChallengeId, old.user_id, old.phone, hashOtpCode(otpCode), expiresAt, timestamp],
+      );
+      await queueNotification({
+        userId: old.user_id,
+        type: "otp",
+        message: getOtpNotificationMessage({ config, code: otpCode, purpose: "login" }),
+        channels: ["system", "sms"],
+        destinationPhone: old.phone,
+      });
+
+      sendJson(res, 200, { challengeId: newChallengeId, expiresAt });
+    },
+  },
+  {
+    method: "POST",
     path: "/auth/change-password",
     handler: async ({ req, res, auth }) => {
       const session = requireAuth(auth);

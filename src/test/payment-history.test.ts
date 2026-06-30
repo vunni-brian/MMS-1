@@ -15,7 +15,7 @@ import type { Payment } from "@/types";
 const makePayment = (overrides: Partial<Payment>): Payment => ({
  id: "payment_1",
  marketId: "market_kampala",
- marketName: "Kampala Central Market",
+  marketName: "Busega Market",
  bookingId: "booking_1",
  utilityChargeId: null,
  penaltyId: null,

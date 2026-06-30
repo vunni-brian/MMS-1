@@ -31,6 +31,10 @@ i18n
       lookupLocalStorage: "i18nextLng",
     },
     interpolation: {
+      // Intentional: React JSX auto-escapes all text content by default.
+      // Setting escapeValue=true would double-escape (e.g. apostrophes in
+      // translation values would render as &#39;). If you ever add
+      // dangerouslySetInnerHTML near a t() call, you MUST re-enable this.
       escapeValue: false,
       prefix: "{",
       suffix: "}",
