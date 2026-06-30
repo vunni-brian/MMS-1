@@ -65,19 +65,6 @@ initSentry({
   tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0.01),
 });
 
-process.on("uncaughtException", (error) => {
-  logger.error("Uncaught exception — shutting down", error);
-  captureException(error, { tags: { source: "uncaughtException" }, level: "fatal" });
-  server.close(() => process.exit(1));
-  setTimeout(() => process.exit(1), 5_000).unref();
-});
-
-process.on("unhandledRejection", (reason: unknown) => {
-  const error = reason instanceof Error ? reason : new Error(String(reason));
-  logger.error("Unhandled rejection", error);
-  captureException(error, { tags: { source: "unhandledRejection" } });
-});
-
 if (config.autoMigrate) {
   try {
     await initDatabase();

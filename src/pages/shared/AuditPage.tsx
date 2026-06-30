@@ -18,6 +18,7 @@ import { PageLayout } from "@/components/PageLayout";
 import { DataTableFrame } from "@/components/ui/DataTableFrame";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 /** AuditPage - renders the audit event log with search, detail sheet, and CSV export. */
 const AuditPage = () => {
@@ -39,7 +40,7 @@ const AuditPage = () => {
     enabled: canScopeMarkets,
   });
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["audit", marketId || "all"],
     queryFn: () => api.getAudit(marketId),
   });
@@ -143,6 +144,9 @@ const AuditPage = () => {
       </div>
 
       {/* Table */}
+      {isLoading ? (
+        <LoadingState rows={6} itemClassName="h-12 rounded-lg" />
+      ) : (
       <DataTableFrame title={t("audit:records", { n: filteredEvents.length, total: events.length })}>
         {filteredEvents.length === 0 ? (
           <EmptyState title={t("audit:noRecords")} />
@@ -201,6 +205,7 @@ const AuditPage = () => {
           </div>
         )}
       </DataTableFrame>
+      )}
 
       {/* Detail sheet */}
       <Sheet open={Boolean(selectedEventId)} onOpenChange={(open) => !open && setSelectedEventId(null)}>

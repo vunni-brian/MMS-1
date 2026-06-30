@@ -7,6 +7,7 @@
 import type { Server } from "node:http";
 import { logger } from "./logger.ts";
 import { destroyRateLimiters } from "./rate-limit.ts";
+import { closeDatabase } from "./db.ts";
 
 /** Options for customising the graceful-shutdown behaviour. */
 interface ShutdownOptions {
@@ -94,8 +95,14 @@ class GracefulShutdown {
       logger.error("Error destroying rate limiters", error);
     }
 
-    // Close database connections (if you have a pool)
-    // This would be implemented based on your database library
+    // Close database connections
+    try {
+      await closeDatabase();
+      logger.info("Database connections closed");
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      logger.error("Error closing database connections", error);
+    }
 
     // Wait for in-flight requests to complete
     const shutdownTimeout = setTimeout(() => {

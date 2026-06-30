@@ -196,7 +196,7 @@ export const initDatabase = async () => {
       await client.query("BEGIN");
       try {
         await client.query(migrationSql);
-        await client.query(`INSERT INTO schema_migrations (name) VALUES ($1)`, [fileName]);
+        await client.query(`INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT DO NOTHING`, [fileName]);
         await client.query("COMMIT");
         console.log(`Applied migration ${fileName}`);
       } catch (error) {

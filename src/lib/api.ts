@@ -107,11 +107,16 @@ const buildQuery = (params: Record<string, string | null | undefined>) => {
 
 const apiRequest = async <T>(path: string, init: RequestInit = {}) => {
  const hasJsonBody = init.body ? !(init.body instanceof FormData) : true;
- const response = await fetch(`${API_BASE_URL}${path}`, {
- ...init,
- headers: init.headers || createHeaders(undefined, hasJsonBody),
- });
- return parseResponse<T>(response);
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+  ...init,
+  headers: init.headers || createHeaders(undefined, hasJsonBody),
+  });
+  if (response.status === 401) {
+    clearSessionToken();
+    window.location.href = "/login";
+    throw new ApiError("Session expired", 401);
+  }
+  return parseResponse<T>(response);
 };
 
 const toFilePayload = async (file: File): Promise<{

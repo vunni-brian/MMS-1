@@ -2,10 +2,10 @@
  * Shared payments page with payment history, manual payment recording, receipt review,
  * and status badge indicators. Accessible to vendor, manager, and admin roles.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, CreditCard, Eye, FileText, Landmark, Smartphone, Upload, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, Eye, FileText, Landmark, Smartphone, Upload, X, XCircle } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api";
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/sonner";
 import type { Payment, PaymentStatus } from "@/types";
 
@@ -49,22 +50,23 @@ const currentPeriod = () => {
 const formatDate = (value: string | null, fallback: string) =>
  value ? new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : fallback;
 
-const ReceiptInlinePreview = ({ payment }: { payment: Payment }) => {
+/** Receipt preview shown inside the Sheet — matches the DocumentPreview pattern used in VendorsPage. */
+const ReceiptSheetPreview = ({ payment, onClose }: { payment: Payment; onClose: () => void }) => {
   const { t } = useTranslation();
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
+    let objectUrl: string | null = null;
     setDocumentUrl(null);
     setLoadError(null);
     setIsLoading(false);
     if (!payment.receiptFilePath) return;
     setIsLoading(true);
     api.getReceiptFileUrl(payment.id).then((url) => {
-      objectUrlRef.current = url;
+      objectUrl = url;
       if (isActive) setDocumentUrl(url);
       else URL.revokeObjectURL(url);
     }).catch((error) => {
@@ -74,30 +76,44 @@ const ReceiptInlinePreview = ({ payment }: { payment: Payment }) => {
     });
     return () => {
       isActive = false;
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [payment.id, payment.receiptFilePath, t]);
 
   const isImage = payment.receiptFileMimeType?.startsWith("image/");
   const isPdf = payment.receiptFileMimeType === "application/pdf";
 
-  if (!payment.receiptFilePath) return null;
-
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
-      {isLoading ? (
-        <div className="flex h-[200px] items-center justify-center text-sm text-slate-400">{t("vendor:loadingDocument")}</div>
-      ) : loadError ? (
-        <div className="flex h-[200px] items-center justify-center text-center text-sm text-red-600">{loadError}</div>
-      ) : documentUrl && isImage ? (
-        <img src={documentUrl} alt="receipt" className="max-h-[300px] w-full object-contain" />
-      ) : documentUrl && isPdf ? (
-        <iframe title="receipt" src={documentUrl} className="h-[400px] w-full border-0" />
-      ) : documentUrl ? (
-        <a href={documentUrl} target="_blank" rel="noreferrer" className="flex h-[200px] items-center justify-center text-sm font-semibold text-emerald-700 underline-offset-4 hover:underline">
-          {t("common:openInNewTab") || "Open receipt"}
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-900">{payment.vendorName}</p>
+          <p className="mt-1 break-words text-xs text-slate-500">{payment.receiptFileName || t("common:noFile")}</p>
+        </div>
+        <FileText className="h-5 w-5 shrink-0 text-slate-400" />
+      </div>
+      <div className="min-h-[280px] overflow-hidden rounded-lg border border-slate-200 bg-white">
+        {!payment.receiptFilePath ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("common:noFile")}</div>
+        ) : isLoading ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:loadingDocument")}</div>
+        ) : loadError ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-center text-sm text-red-600">{loadError}</div>
+        ) : documentUrl && isImage ? (
+          <img src={documentUrl} alt="receipt" className="h-[280px] w-full object-contain" />
+        ) : documentUrl && isPdf ? (
+          <iframe title="receipt" src={documentUrl} className="h-[440px] w-full border-0 bg-white" />
+        ) : documentUrl ? (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:previewUnavailable")}</div>
+        ) : (
+          <div className="flex h-[280px] items-center justify-center p-4 text-sm text-slate-400">{t("vendor:documentNotLoaded")}</div>
+        )}
+      </div>
+      {documentUrl && (
+        <a href={documentUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline">
+          {t("vendor:openFullDocument")}
         </a>
-      ) : null}
+      )}
     </div>
   );
 };
@@ -143,7 +159,6 @@ const ReceiptReviewRow = ({
   {payment.receiptFileName || t("common:noFile")}
   </span>
   </div>
-  <ReceiptInlinePreview payment={payment} />
   </div>
   <div className="flex shrink-0 flex-wrap gap-2">
   {payment.receiptFilePath ? (
@@ -328,24 +343,7 @@ const PaymentsPage = () => {
   },
  });
 
-  const viewReceipt = async (payment: Payment) => {
-    const receiptWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!receiptWindow) {
-      toast.error(t("payments:receiptOpenError"), {
-        description: t("payments:receiptLoadError"),
-      });
-      return;
-    }
-    try {
-      const url = await api.getReceiptFileUrl(payment.id);
-      receiptWindow.location.href = url;
-    } catch (error) {
-      receiptWindow.close();
-      toast.error(t("payments:receiptOpenError"), {
-        description: error instanceof ApiError ? error.message : t("payments:receiptLoadError"),
-      });
-    }
-  };
+  const [selectedReceiptPayment, setSelectedReceiptPayment] = useState<Payment | null>(null);
 
  if (isError) {
   return (
@@ -402,7 +400,7 @@ const PaymentsPage = () => {
   <ReceiptReviewRow
   key={payment.id}
   payment={payment}
-  onViewReceipt={viewReceipt}
+   onViewReceipt={setSelectedReceiptPayment}
   onVerify={(item, status) => verifyReceipt.mutate({ payment: item, status })}
   isBusy={verifyReceipt.isPending}
   />
@@ -432,6 +430,22 @@ const PaymentsPage = () => {
      </CardContent>
   </Card>
   </div>
+
+      <Sheet open={Boolean(selectedReceiptPayment)} onOpenChange={(open) => !open && setSelectedReceiptPayment(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl lg:max-w-5xl" aria-describedby="receipt-sheet-desc">
+          <SheetHeader className="pr-6">
+            <SheetTitle className="font-bold text-slate-900">{t("payments:bankReceipt")}</SheetTitle>
+            <SheetDescription id="receipt-sheet-desc">
+              {t("common:view")}
+            </SheetDescription>
+          </SheetHeader>
+          {selectedReceiptPayment && (
+            <div className="mt-4 space-y-4 text-sm">
+              <ReceiptSheetPreview payment={selectedReceiptPayment} onClose={() => setSelectedReceiptPayment(null)} />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
   </PageLayout>
   );
  }

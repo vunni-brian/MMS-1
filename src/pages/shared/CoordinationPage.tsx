@@ -31,6 +31,7 @@ import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { StatCard } from "@/components/ui/StatCard";
 import type { ResourceRequest, ResourceRequestCategory } from "@/types";
 
@@ -62,8 +63,8 @@ const CoordinationPage = () => {
   const marketId = canScopeMarkets && selectedMarketId !== "all" ? selectedMarketId : undefined;
 
   const { data: marketsData } = useQuery({ queryKey: ["markets", "coordination"], queryFn: () => api.getMarkets(), enabled: canScopeMarkets });
-  const { data } = useQuery({ queryKey: ["coordination-messages", marketId || "all"], queryFn: () => api.getCoordinationMessages(marketId), refetchInterval: 10_000 });
-  const { data: resourceRequestsData } = useQuery({ queryKey: ["resource-requests", marketId || "all"], queryFn: () => api.getResourceRequests(marketId), enabled: showResourceRequests });
+  const { data, isLoading } = useQuery({ queryKey: ["coordination-messages", marketId || "all"], queryFn: () => api.getCoordinationMessages(marketId), refetchInterval: 10_000 });
+  const { data: resourceRequestsData, isLoading: isLoadingRequests } = useQuery({ queryKey: ["resource-requests", marketId || "all"], queryFn: () => api.getResourceRequests(marketId), enabled: showResourceRequests });
 
   const postMessage = useMutation({
     mutationFn: () => api.postCoordinationMessage(subject, body, marketId),
@@ -104,6 +105,10 @@ const CoordinationPage = () => {
   const pendingRequests = resourceRequests.filter((r) => r.status === "pending");
   const approvedRequests = resourceRequests.filter((r) => r.status === "approved");
   const requestedTotal = pendingRequests.reduce((sum, r) => sum + r.amountRequested, 0);
+
+  if (isLoading) {
+    return <PageLayout><LoadingState rows={6} /></PageLayout>;
+  }
 
   return (
     <PageLayout>

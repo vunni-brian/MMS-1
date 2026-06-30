@@ -83,7 +83,9 @@ const databaseSsl = process.env.DATABASE_SSL ? process.env.DATABASE_SSL === "tru
 const autoMigrate = process.env.MMS_AUTO_MIGRATE === "true";
 const seedOnBoot =
   process.env.MMS_SEED_ON_BOOT === "true" ||
-  (process.env.MMS_SEED_ON_BOOT !== "false" && process.env.NODE_ENV !== "production");
+  (process.env.MMS_SEED_ON_BOOT !== "false" &&
+    process.env.NODE_ENV !== undefined &&
+    process.env.NODE_ENV !== "production");
 const fallbackRoutesEnabled =
   process.env.MMS_ENABLE_FALLBACK_SIMULATION !== undefined
     ? process.env.MMS_ENABLE_FALLBACK_SIMULATION === "true"
