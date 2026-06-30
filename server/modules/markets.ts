@@ -13,8 +13,7 @@ export const marketRoutes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/markets",
-    handler: async ({ res, auth }) => {
-      requireAuth(auth);
+    handler: async ({ res }) => {
       sendJson(res, 200, { markets: await listMarkets() });
     },
   },
