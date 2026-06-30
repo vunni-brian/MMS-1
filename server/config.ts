@@ -147,7 +147,6 @@ export const config: AppConfig = {
   otpLoginMessageTemplate: process.env.OTP_LOGIN_MESSAGE_TEMPLATE?.trim() || null,
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS || 24),
   notificationRetryCount: Number(process.env.NOTIFICATION_RETRY_COUNT || 2),
-  paymentSettlementDelayMs: Number(process.env.PAYMENT_SETTLEMENT_DELAY_MS || 5000),
   fallbackRoutesEnabled,
   pesapalConsumerKey,
   pesapalConsumerSecret,

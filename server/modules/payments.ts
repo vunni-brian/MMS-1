@@ -195,10 +195,12 @@ const recordPaymentWebhookEvent = async ({
   transactionId: string | null;
   eventType: string | null;
   payload: unknown;
-}) => {
-  await run(
+}): Promise<boolean> => {
+  const result = await run(
     `INSERT INTO payment_webhook_events (id, provider, tx_ref, transaction_id, event_type, payload_json, created_at, processed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)` ,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (provider, tx_ref, event_type) WHERE tx_ref IS NOT NULL AND event_type IS NOT NULL
+     DO NOTHING`,
     [
       createId("payment_webhook"),
       provider,
@@ -210,6 +212,7 @@ const recordPaymentWebhookEvent = async ({
       nowIso(),
     ],
   );
+  return (result.rowCount ?? 0) > 0;
 };
 
 const failPaymentInitiation = async ({
@@ -273,101 +276,128 @@ const completePayment = async ({
   receiptMessage: receiptMessageOverride,
 }: {
   paymentId: string;
-  transactionId: string;
+  transactionId: string | null;
   providerReference?: string | null;
-  status: "completed" | "failed";
+  status: "completed" | "failed" | "cancelled";
   gatewayResponse?: unknown;
   receiptMessage?: string | null;
 }) => {
-  const payment = await get<{
-    id: string;
-    status: string;
-    market_id: string | null;
-    booking_id: string | null;
-    utility_charge_id: string | null;
-    penalty_id: string | null;
-    vendor_id: string;
-    charge_type: string;
-    amount: number;
-    phone: string;
-    external_reference: string;
-    receipt_id: string | null;
-    receipt_message: string | null;
-    vendor_name: string;
-    stall_name: string | null;
-    utility_charge_description: string | null;
-    utility_charge_type: string | null;
-    utility_charge_billing_period: string | null;
-    utility_charge_due_date: string | null;
-    penalty_reason: string | null;
-  }>(
-    `SELECT payments.id,
-            payments.status,
-            payments.market_id,
-            payments.booking_id,
-            payments.utility_charge_id,
-            payments.penalty_id,
-            payments.vendor_id,
-            payments.charge_type,
-            payments.amount,
-            payments.phone,
-            payments.external_reference,
-            payments.receipt_id,
-            payments.receipt_message,
-            users.name AS vendor_name,
-            COALESCE(booking_stalls.name, utility_booking_stalls.name) AS stall_name,
-            utility_charges.description AS utility_charge_description,
-            utility_charges.utility_type AS utility_charge_type,
-            utility_charges.billing_period AS utility_charge_billing_period,
-            utility_charges.due_date::text AS utility_charge_due_date,
-            penalties.reason AS penalty_reason
-     FROM payments
-     INNER JOIN users ON users.id = payments.vendor_id
-     LEFT JOIN bookings ON bookings.id = payments.booking_id
-     LEFT JOIN stalls AS booking_stalls ON booking_stalls.id = bookings.stall_id
-     LEFT JOIN utility_charges ON utility_charges.id = payments.utility_charge_id
-     LEFT JOIN penalties ON penalties.id = payments.penalty_id
-     LEFT JOIN bookings AS utility_bookings ON utility_bookings.id = utility_charges.booking_id
-     LEFT JOIN stalls AS utility_booking_stalls ON utility_booking_stalls.id = utility_bookings.stall_id
-     WHERE payments.id = ?`,
-    [paymentId],
-  );
-
-  if (!payment || payment.status !== "pending") {
-    return;
-  }
-
   const timestamp = nowIso();
-  const reference = getPaymentReference({
-    providerReference,
-    transactionId,
-    externalReference: payment.external_reference,
-  });
-  const itemLabel = payment.utility_charge_id
-    ? getUtilityChargeDisplayName({
-        utilityType: payment.utility_charge_type || "other",
-        description: payment.utility_charge_description,
-        billingPeriod: payment.utility_charge_billing_period,
-      })
-    : payment.penalty_id
-      ? getPenaltyDisplayName(payment.penalty_reason)
-    : null;
-  const receiptId = status === "completed" ? payment.receipt_id || `RCPT-${paymentId.slice(-6).toUpperCase()}` : payment.receipt_id;
-  const receiptMessage =
-    status === "completed"
-      ? receiptMessageOverride ||
-        payment.receipt_message ||
-        getPaymentSuccessMessage({
-          amount: payment.amount,
-          chargeType: payment.charge_type,
-          itemLabel,
-          reference,
-          completedAt: timestamp,
-        })
-      : receiptMessageOverride || `Receipt for ${getPaymentItemLabel({ chargeType: payment.charge_type, itemLabel })} was rejected. Reference: ${reference}.`;
-
   let statusUpdated = false;
+  let reference = "";
+  let itemLabel: string | null = null;
+  let receiptId: string | null = null;
+  let receiptMessage = "";
+  let previousStatus = "pending";
+  let paymentAmount = 0;
+  let paymentChargeType = "";
+  let paymentExternalReference = "";
+  let paymentVendorId = "";
+  let paymentPhone = "";
+  let paymentMarketId: string | null = null;
+  let paymentBookingId: string | null = null;
+  let paymentUtilityChargeId: string | null = null;
+  let paymentPenaltyId: string | null = null;
+
   await transaction(async () => {
+    const payment = await get<{
+      id: string;
+      status: string;
+      market_id: string | null;
+      booking_id: string | null;
+      utility_charge_id: string | null;
+      penalty_id: string | null;
+      vendor_id: string;
+      charge_type: string;
+      amount: number;
+      phone: string;
+      external_reference: string;
+      receipt_id: string | null;
+      receipt_message: string | null;
+      vendor_name: string;
+      stall_name: string | null;
+      utility_charge_description: string | null;
+      utility_charge_type: string | null;
+      utility_charge_billing_period: string | null;
+      utility_charge_due_date: string | null;
+      penalty_reason: string | null;
+    }>(
+      `SELECT payments.id,
+              payments.status,
+              payments.market_id,
+              payments.booking_id,
+              payments.utility_charge_id,
+              payments.penalty_id,
+              payments.vendor_id,
+              payments.charge_type,
+              payments.amount,
+              payments.phone,
+              payments.external_reference,
+              payments.receipt_id,
+              payments.receipt_message,
+              users.name AS vendor_name,
+              COALESCE(booking_stalls.name, utility_booking_stalls.name) AS stall_name,
+              utility_charges.description AS utility_charge_description,
+              utility_charges.utility_type AS utility_charge_type,
+              utility_charges.billing_period AS utility_charge_billing_period,
+              utility_charges.due_date::text AS utility_charge_due_date,
+              penalties.reason AS penalty_reason
+       FROM payments
+       INNER JOIN users ON users.id = payments.vendor_id
+       LEFT JOIN bookings ON bookings.id = payments.booking_id
+       LEFT JOIN stalls AS booking_stalls ON booking_stalls.id = bookings.stall_id
+       LEFT JOIN utility_charges ON utility_charges.id = payments.utility_charge_id
+       LEFT JOIN penalties ON penalties.id = payments.penalty_id
+       LEFT JOIN bookings AS utility_bookings ON utility_bookings.id = utility_charges.booking_id
+       LEFT JOIN stalls AS utility_booking_stalls ON utility_booking_stalls.id = utility_bookings.stall_id
+       WHERE payments.id = ?
+       FOR UPDATE`,
+      [paymentId],
+    );
+
+    if (!payment || payment.status !== "pending") {
+      return;
+    }
+
+    previousStatus = payment.status;
+    paymentAmount = payment.amount;
+    paymentChargeType = payment.charge_type;
+    paymentExternalReference = payment.external_reference;
+    paymentVendorId = payment.vendor_id;
+    paymentPhone = payment.phone;
+    paymentMarketId = payment.market_id;
+    paymentBookingId = payment.booking_id;
+    paymentUtilityChargeId = payment.utility_charge_id;
+    paymentPenaltyId = payment.penalty_id;
+
+    reference = getPaymentReference({
+      providerReference,
+      transactionId,
+      externalReference: payment.external_reference,
+    });
+    itemLabel = payment.utility_charge_id
+      ? getUtilityChargeDisplayName({
+          utilityType: payment.utility_charge_type || "other",
+          description: payment.utility_charge_description,
+          billingPeriod: payment.utility_charge_billing_period,
+        })
+      : payment.penalty_id
+        ? getPenaltyDisplayName(payment.penalty_reason)
+      : null;
+    receiptId = status === "completed" ? payment.receipt_id || `RCPT-${paymentId.slice(-6).toUpperCase()}` : payment.receipt_id;
+    receiptMessage =
+      status === "completed"
+        ? receiptMessageOverride ||
+          payment.receipt_message ||
+          getPaymentSuccessMessage({
+            amount: payment.amount,
+            chargeType: payment.charge_type,
+            itemLabel,
+            reference,
+            completedAt: timestamp,
+          })
+        : receiptMessageOverride || `Receipt for ${getPaymentItemLabel({ chargeType: payment.charge_type, itemLabel })} was rejected. Reference: ${reference}.`;
+
     const paymentUpdate = await run(
       `UPDATE payments
        SET status = ?,
@@ -423,6 +453,30 @@ const completePayment = async ({
           [timestamp, timestamp, payment.penalty_id],
         );
       }
+    } else if (status === "cancelled") {
+      if (payment.booking_id) {
+        await run(`UPDATE bookings SET status = 'approved', updated_at = ? WHERE id = ?`, [timestamp, payment.booking_id]);
+      }
+      if (payment.utility_charge_id) {
+        await run(
+          `UPDATE utility_charges
+           SET status = ?,
+               updated_at = ?,
+               paid_at = NULL
+           WHERE id = ?`,
+          [getUtilityChargeResetStatus(payment.utility_charge_due_date || timestamp.slice(0, 10)), timestamp, payment.utility_charge_id],
+        );
+      }
+      if (payment.penalty_id) {
+        await run(
+          `UPDATE penalties
+           SET status = 'unpaid',
+               updated_at = ?,
+               paid_at = NULL
+           WHERE id = ?`,
+          [timestamp, payment.penalty_id],
+        );
+      }
     } else if (payment.utility_charge_id) {
       await run(
         `UPDATE utility_charges
@@ -449,23 +503,23 @@ const completePayment = async ({
   }
 
   const vendorNotification = getVendorPaymentNotification({
-    previousStatus: payment.status,
+    previousStatus,
     nextStatus: status,
-    amount: payment.amount,
-    chargeType: payment.charge_type,
+    amount: paymentAmount,
+    chargeType: paymentChargeType,
     itemLabel,
     providerReference,
     transactionId,
-    externalReference: payment.external_reference,
+    externalReference: paymentExternalReference,
     completedAt: timestamp,
   });
   if (vendorNotification) {
     await queueNotification({
-      userId: payment.vendor_id,
+      userId: paymentVendorId,
       type: "payment",
       message: vendorNotification.message,
       channels: vendorNotification.channels,
-      destinationPhone: payment.phone,
+      destinationPhone: paymentPhone,
     });
   }
 
@@ -473,19 +527,21 @@ const completePayment = async ({
     actorUserId: null,
     actorName: "System",
     actorRole: "admin",
-    marketId: payment.market_id,
+    marketId: paymentMarketId,
     action: status === "completed" ? "PAYMENT_COMPLETED" : "PAYMENT_FAILED",
     entityType: "payment",
     entityId: paymentId,
     details: {
-      bookingId: payment.booking_id,
-      utilityChargeId: payment.utility_charge_id,
-      penaltyId: payment.penalty_id,
+      bookingId: paymentBookingId,
+      utilityChargeId: paymentUtilityChargeId,
+      penaltyId: paymentPenaltyId,
       transactionId,
       providerReference: providerReference || null,
     },
   });
 };
+
+const IPN_MAX_BODY_BYTES = 32_768;
 
 const readPesapalNotificationPayload = async ({
   req,
@@ -495,6 +551,9 @@ const readPesapalNotificationPayload = async ({
   url: URL;
 }) => {
   const rawBody = await readRawBody(req);
+  if (rawBody && Buffer.byteLength(rawBody, "utf8") > IPN_MAX_BODY_BYTES) {
+    throw new HttpError(413, "IPN payload too large.");
+  }
   const merged = new Map<string, string>();
 
   for (const [key, value] of url.searchParams.entries()) {
@@ -592,10 +651,15 @@ const applyPesapalStatus = async ({
 
   const outcome = getPesapalPaymentOutcome(statusResponse.payment_status_description);
 
+  const confirmationCode = statusResponse.confirmation_code || null;
+  if (!confirmationCode && outcome !== "pending") {
+    console.warn(`[Pesapal] No confirmation_code for ${orderTrackingId} (outcome=${outcome}). transaction_id set to null.`);
+  }
+
   if (outcome === "completed") {
     await completePayment({
       paymentId: payment.id,
-      transactionId: statusResponse.confirmation_code || orderTrackingId,
+      transactionId: confirmationCode,
       providerReference: orderTrackingId,
       status: "completed",
       gatewayResponse: statusResponse,
@@ -603,7 +667,7 @@ const applyPesapalStatus = async ({
   } else if (outcome === "failed") {
     await completePayment({
       paymentId: payment.id,
-      transactionId: statusResponse.confirmation_code || orderTrackingId,
+      transactionId: confirmationCode,
       providerReference: orderTrackingId,
       status: "failed",
       gatewayResponse: statusResponse,
@@ -808,11 +872,7 @@ export const paymentRoutes: RouteDefinition[] = [
         penalty_reason: string | null;
       }>(`${paymentSelect} ${whereClause} ORDER BY payments.created_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
 
-      if (!config.paymentsEnabled) {
-        payments.forEach((p) => { p.amount = 0; });
-      }
-
-      sendJson(res, 200, { payments: payments.map(mapPayment) });
+      sendJson(res, 200, { payments: payments.map(mapPayment), paymentsDisabled: !config.paymentsEnabled });
     },
   },
   {
@@ -970,6 +1030,67 @@ export const paymentRoutes: RouteDefinition[] = [
       const timestamp = nowIso();
       const { firstName, lastName } = splitName(session.user.name);
 
+  const submitAndTrackPesapalOrder = async (input: {
+    paymentId: string;
+    externalReference: string;
+    amount: number;
+    description: string;
+    email: string;
+    phone: string;
+    firstName: string;
+    lastName: string;
+    accountNumber: string;
+    failExtra: { utilityChargeId?: string | null; utilityChargeDueDate?: string | null; penaltyId?: string | null };
+    logDetails: Record<string, string | null | undefined>;
+  }) => {
+    try {
+      const order = await submitPesapalOrder({
+        id: input.externalReference,
+        amount: input.amount,
+        description: input.description.slice(0, 100),
+        callbackUrl: config.pesapalCallbackUrl,
+        notificationId: config.pesapalIpnId,
+        email: input.email,
+        phone: input.phone,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        accountNumber: input.accountNumber,
+      });
+
+      if (!order.order_tracking_id || !order.redirect_url) {
+        await failPaymentInitiation({
+          paymentId: input.paymentId,
+          ...input.failExtra,
+          gatewayResponse: order,
+          message: order.message || "Pesapal order creation failed.",
+        });
+        throw new HttpError(502, order.message || "Failed to create Pesapal checkout session.");
+      }
+
+      await run(
+        `UPDATE payments
+         SET status = 'pending',
+             transaction_id = ?,
+             provider_reference = ?,
+             gateway_response_json = ?,
+             updated_at = ?
+         WHERE id = ?`,
+        [order.order_tracking_id, order.order_tracking_id, JSON.stringify(order), nowIso(), input.paymentId],
+      );
+
+      return order;
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      await failPaymentInitiation({
+        paymentId: input.paymentId,
+        ...input.failExtra,
+        gatewayResponse: { message: error instanceof Error ? error.message : "Pesapal order creation failed." },
+        message: error instanceof Error ? error.message : "Pesapal order creation failed.",
+      });
+      throw new HttpError(502, "Failed to initiate Pesapal checkout.", error);
+    }
+  };
+
       if (bookingId) {
         const booking = await get<{
           id: string;
@@ -991,18 +1112,12 @@ export const paymentRoutes: RouteDefinition[] = [
         await assertChargeEnabled("payment_gateway", booking.market_id);
         await assertChargeEnabled("booking_fee", booking.market_id);
 
-        const existingPending = await get<{ id: string }>(
-          `SELECT id FROM payments WHERE booking_id = ? AND status = 'pending'`,
-          [bookingId],
-        );
-        if (existingPending) {
-          throw new HttpError(409, "A payment is already in progress for this booking.");
-        }
-
         await transaction(async () => {
-          await run(
+          const insertResult = await run(
             `INSERT INTO payments (id, market_id, booking_id, utility_charge_id, vendor_id, provider, charge_type, amount, status, transaction_id, provider_reference, external_reference, phone, receipt_id, receipt_message, gateway_response_json, created_at, updated_at, completed_at)
-             VALUES (?, ?, ?, NULL, ?, ?, 'booking_fee', ?, 'pending', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)`,
+             VALUES (?, ?, ?, NULL, ?, ?, 'booking_fee', ?, 'initiating', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)
+             ON CONFLICT (booking_id) WHERE booking_id IS NOT NULL AND status IN ('initiating', 'pending')
+             DO NOTHING`,
             [
               paymentId,
               booking.market_id,
@@ -1018,85 +1133,55 @@ export const paymentRoutes: RouteDefinition[] = [
               timestamp,
             ],
           );
+          if (insertResult.rowCount === 0) {
+            throw new HttpError(409, "A payment is already in progress for this booking.");
+          }
           await run(
             `INSERT INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
-             VALUES (?, ?, ?, 'pending', ?, ?)`,
+             VALUES (?, ?, ?, 'initiating', ?, ?)`,
             [createId("attempt"), paymentId, "pesapal", timestamp, timestamp],
           );
         });
 
-        try {
-          const order = await submitPesapalOrder({
-            id: externalReference,
-            amount: booking.amount,
-            description: `Payment for booking ${booking.id}`,
-            callbackUrl: config.pesapalCallbackUrl,
-            notificationId: config.pesapalIpnId,
-            email: session.user.email,
-            phone: session.user.phone,
-            firstName,
-            lastName,
-            accountNumber: booking.id,
-          });
+        const order = await submitAndTrackPesapalOrder({
+          paymentId,
+          externalReference,
+          amount: booking.amount,
+          description: `Payment for booking ${booking.id}`,
+          email: session.user.email,
+          phone: session.user.phone,
+          firstName,
+          lastName,
+          accountNumber: booking.id,
+          failExtra: {},
+          logDetails: { bookingId },
+        });
 
-          if (!order.order_tracking_id || !order.redirect_url) {
-            await failPaymentInitiation({
-              paymentId,
-              gatewayResponse: order,
-              message: order.message || "Pesapal order creation failed.",
-            });
-            throw new HttpError(502, order.message || "Failed to create Pesapal checkout session.");
-          }
-
-          await run(
-            `UPDATE payments
-             SET transaction_id = ?,
-                 provider_reference = ?,
-                 gateway_response_json = ?,
-                 updated_at = ?
-             WHERE id = ?`,
-            [order.order_tracking_id, order.order_tracking_id, JSON.stringify(order), nowIso(), paymentId],
-          );
-
-          await logAuditEvent({
-            actorUserId: session.user.id,
-            actorName: session.user.name,
-            actorRole: session.user.role,
-            marketId: booking.market_id,
-            action: "INITIATE_PAYMENT",
-            entityType: "payment",
-            entityId: paymentId,
-            details: {
-              bookingId,
-              provider: "pesapal",
-              merchantReference: externalReference,
-              orderTrackingId: order.order_tracking_id,
-            },
-          });
-
-          sendJson(res, 201, {
-            payment: await getPaymentById(paymentId),
-            status: "pending",
-            redirectUrl: order.redirect_url,
+        await logAuditEvent({
+          actorUserId: session.user.id,
+          actorName: session.user.name,
+          actorRole: session.user.role,
+          marketId: booking.market_id,
+          action: "INITIATE_PAYMENT",
+          entityType: "payment",
+          entityId: paymentId,
+          details: {
+            bookingId,
+            provider: "pesapal",
+            merchantReference: externalReference,
             orderTrackingId: order.order_tracking_id,
-            iframe: config.pesapalUseIframe,
-            message: "Redirecting to Pesapal secure checkout.",
-          });
-          return;
-        } catch (error) {
-          if (error instanceof HttpError) {
-            throw error;
-          }
+          },
+        });
 
-          await failPaymentInitiation({
-            paymentId,
-            gatewayResponse: {
-              message: error instanceof Error ? error.message : "Pesapal order creation failed.",
-            },
-            message: error instanceof Error ? error.message : "Pesapal order creation failed.",
-          });
-          throw new HttpError(502, "Failed to initiate Pesapal checkout.", error);
-        }
+        sendJson(res, 201, {
+          payment: await getPaymentById(paymentId),
+          status: "pending",
+          redirectUrl: order.redirect_url,
+          orderTrackingId: order.order_tracking_id,
+          iframe: config.pesapalUseIframe,
+          message: "Redirecting to Pesapal secure checkout.",
+        });
+        return;
       }
 
       if (utilityChargeId) {
@@ -1137,14 +1222,6 @@ export const paymentRoutes: RouteDefinition[] = [
       await assertChargeEnabled("payment_gateway", utilityCharge.market_id);
       await assertChargeEnabled("utilities", utilityCharge.market_id);
 
-      const existingPending = await get<{ id: string }>(
-        `SELECT id FROM payments WHERE utility_charge_id = ? AND status = 'pending'`,
-        [utilityCharge.id],
-      );
-      if (existingPending) {
-        throw new HttpError(409, "A payment is already in progress for this utility charge.");
-      }
-
       const utilityItemLabel = getUtilityChargeDisplayName({
         utilityType: utilityCharge.utility_type,
         description: utilityCharge.description,
@@ -1152,9 +1229,11 @@ export const paymentRoutes: RouteDefinition[] = [
       });
 
       await transaction(async () => {
-        await run(
+        const insertResult = await run(
           `INSERT INTO payments (id, market_id, booking_id, utility_charge_id, vendor_id, provider, charge_type, amount, status, transaction_id, provider_reference, external_reference, phone, receipt_id, receipt_message, gateway_response_json, created_at, updated_at, completed_at)
-           VALUES (?, ?, NULL, ?, ?, ?, 'utilities', ?, 'pending', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)`,
+           VALUES (?, ?, NULL, ?, ?, ?, 'utilities', ?, 'initiating', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)
+           ON CONFLICT (utility_charge_id) WHERE utility_charge_id IS NOT NULL AND status IN ('initiating', 'pending')
+           DO NOTHING`,
           [
             paymentId,
             utilityCharge.market_id,
@@ -1170,9 +1249,12 @@ export const paymentRoutes: RouteDefinition[] = [
             timestamp,
           ],
         );
+        if (insertResult.rowCount === 0) {
+          throw new HttpError(409, "A payment is already in progress for this utility charge.");
+        }
         await run(
           `INSERT INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
-           VALUES (?, ?, ?, 'pending', ?, ?)`,
+           VALUES (?, ?, ?, 'initiating', ?, ?)`,
           [createId("attempt"), paymentId, "pesapal", timestamp, timestamp],
         );
 
@@ -1190,81 +1272,44 @@ export const paymentRoutes: RouteDefinition[] = [
         }
       });
 
-      try {
-        const order = await submitPesapalOrder({
-          id: externalReference,
-          amount: utilityCharge.amount,
-          description: utilityItemLabel,
-          callbackUrl: config.pesapalCallbackUrl,
-          notificationId: config.pesapalIpnId,
-          email: session.user.email,
-          phone: session.user.phone,
-          firstName,
-          lastName,
-          accountNumber: utilityCharge.id,
-        });
+      const order = await submitAndTrackPesapalOrder({
+        paymentId,
+        externalReference,
+        amount: utilityCharge.amount,
+        description: utilityItemLabel,
+        email: session.user.email,
+        phone: session.user.phone,
+        firstName,
+        lastName,
+        accountNumber: utilityCharge.id,
+        failExtra: { utilityChargeId: utilityCharge.id, utilityChargeDueDate: utilityCharge.due_date },
+        logDetails: { utilityChargeId: utilityCharge.id },
+      });
 
-        if (!order.order_tracking_id || !order.redirect_url) {
-          await failPaymentInitiation({
-            paymentId,
-            utilityChargeId: utilityCharge.id,
-            utilityChargeDueDate: utilityCharge.due_date,
-            gatewayResponse: order,
-            message: order.message || "Pesapal order creation failed.",
-          });
-          throw new HttpError(502, order.message || "Failed to create Pesapal checkout session.");
-        }
-
-        await run(
-          `UPDATE payments
-           SET transaction_id = ?,
-               provider_reference = ?,
-               gateway_response_json = ?,
-               updated_at = ?
-           WHERE id = ?`,
-          [order.order_tracking_id, order.order_tracking_id, JSON.stringify(order), nowIso(), paymentId],
-        );
-
-        await logAuditEvent({
-          actorUserId: session.user.id,
-          actorName: session.user.name,
-          actorRole: session.user.role,
-          marketId: utilityCharge.market_id,
-          action: "INITIATE_PAYMENT",
-          entityType: "payment",
-          entityId: paymentId,
-          details: {
-            utilityChargeId: utilityCharge.id,
-            provider: "pesapal",
-            merchantReference: externalReference,
-            orderTrackingId: order.order_tracking_id,
-          },
-        });
-
-        sendJson(res, 201, {
-          payment: await getPaymentById(paymentId),
-          status: "pending",
-          redirectUrl: order.redirect_url,
-          orderTrackingId: order.order_tracking_id,
-          iframe: config.pesapalUseIframe,
-          message: "Redirecting to Pesapal secure checkout.",
-        });
-      } catch (error) {
-        if (error instanceof HttpError) {
-          throw error;
-        }
-
-        await failPaymentInitiation({
-          paymentId,
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: utilityCharge.market_id,
+        action: "INITIATE_PAYMENT",
+        entityType: "payment",
+        entityId: paymentId,
+        details: {
           utilityChargeId: utilityCharge.id,
-          utilityChargeDueDate: utilityCharge.due_date,
-          gatewayResponse: {
-            message: error instanceof Error ? error.message : "Pesapal order creation failed.",
-          },
-          message: error instanceof Error ? error.message : "Pesapal order creation failed.",
-        });
-        throw new HttpError(502, "Failed to initiate Pesapal checkout.", error);
-      }
+          provider: "pesapal",
+          merchantReference: externalReference,
+          orderTrackingId: order.order_tracking_id,
+        },
+      });
+
+      sendJson(res, 201, {
+        payment: await getPaymentById(paymentId),
+        status: "pending",
+        redirectUrl: order.redirect_url,
+        orderTrackingId: order.order_tracking_id,
+        iframe: config.pesapalUseIframe,
+        message: "Redirecting to Pesapal secure checkout.",
+      });
       return;
       }
 
@@ -1299,20 +1344,14 @@ export const paymentRoutes: RouteDefinition[] = [
       await assertChargeEnabled("payment_gateway", penalty.market_id);
       await assertChargeEnabled("penalties", penalty.market_id);
 
-      const existingPendingPenaltyPayment = await get<{ id: string }>(
-        `SELECT id FROM payments WHERE penalty_id = ? AND status = 'pending'`,
-        [penalty.id],
-      );
-      if (existingPendingPenaltyPayment) {
-        throw new HttpError(409, "A payment is already in progress for this penalty.");
-      }
-
       const penaltyItemLabel = getPenaltyDisplayName(penalty.reason);
 
       await transaction(async () => {
-        await run(
+        const insertResult = await run(
           `INSERT INTO payments (id, market_id, booking_id, utility_charge_id, penalty_id, vendor_id, provider, charge_type, amount, status, transaction_id, provider_reference, external_reference, phone, receipt_id, receipt_message, gateway_response_json, created_at, updated_at, completed_at)
-           VALUES (?, ?, NULL, NULL, ?, ?, ?, 'penalties', ?, 'pending', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)`,
+           VALUES (?, ?, NULL, NULL, ?, ?, ?, 'penalties', ?, 'initiating', NULL, ?, ?, ?, NULL, NULL, ?, ?, ?, NULL)
+           ON CONFLICT (penalty_id) WHERE penalty_id IS NOT NULL AND status IN ('initiating', 'pending')
+           DO NOTHING`,
           [
             paymentId,
             penalty.market_id,
@@ -1328,9 +1367,12 @@ export const paymentRoutes: RouteDefinition[] = [
             timestamp,
           ],
         );
+        if (insertResult.rowCount === 0) {
+          throw new HttpError(409, "A payment is already in progress for this penalty.");
+        }
         await run(
           `INSERT INTO payment_attempts (id, payment_id, provider, status, created_at, updated_at)
-           VALUES (?, ?, ?, 'pending', ?, ?)`,
+           VALUES (?, ?, ?, 'initiating', ?, ?)`,
           [createId("attempt"), paymentId, "pesapal", timestamp, timestamp],
         );
 
@@ -1348,79 +1390,44 @@ export const paymentRoutes: RouteDefinition[] = [
         }
       });
 
-      try {
-        const order = await submitPesapalOrder({
-          id: externalReference,
-          amount: penalty.amount,
-          description: penaltyItemLabel,
-          callbackUrl: config.pesapalCallbackUrl,
-          notificationId: config.pesapalIpnId,
-          email: session.user.email,
-          phone: session.user.phone,
-          firstName,
-          lastName,
-          accountNumber: penalty.id,
-        });
+      const order = await submitAndTrackPesapalOrder({
+        paymentId,
+        externalReference,
+        amount: penalty.amount,
+        description: penaltyItemLabel,
+        email: session.user.email,
+        phone: session.user.phone,
+        firstName,
+        lastName,
+        accountNumber: penalty.id,
+        failExtra: { penaltyId: penalty.id },
+        logDetails: { penaltyId: penalty.id },
+      });
 
-        if (!order.order_tracking_id || !order.redirect_url) {
-          await failPaymentInitiation({
-            paymentId,
-            penaltyId: penalty.id,
-            gatewayResponse: order,
-            message: order.message || "Pesapal order creation failed.",
-          });
-          throw new HttpError(502, order.message || "Failed to create Pesapal checkout session.");
-        }
-
-        await run(
-          `UPDATE payments
-           SET transaction_id = ?,
-               provider_reference = ?,
-               gateway_response_json = ?,
-               updated_at = ?
-           WHERE id = ?`,
-          [order.order_tracking_id, order.order_tracking_id, JSON.stringify(order), nowIso(), paymentId],
-        );
-
-        await logAuditEvent({
-          actorUserId: session.user.id,
-          actorName: session.user.name,
-          actorRole: session.user.role,
-          marketId: penalty.market_id,
-          action: "INITIATE_PAYMENT",
-          entityType: "payment",
-          entityId: paymentId,
-          details: {
-            penaltyId: penalty.id,
-            provider: "pesapal",
-            merchantReference: externalReference,
-            orderTrackingId: order.order_tracking_id,
-          },
-        });
-
-        sendJson(res, 201, {
-          payment: await getPaymentById(paymentId),
-          status: "pending",
-          redirectUrl: order.redirect_url,
-          orderTrackingId: order.order_tracking_id,
-          iframe: config.pesapalUseIframe,
-          message: "Redirecting to Pesapal secure checkout.",
-        });
-      } catch (error) {
-        if (error instanceof HttpError) {
-          throw error;
-        }
-
-        await failPaymentInitiation({
-          paymentId,
+      await logAuditEvent({
+        actorUserId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        marketId: penalty.market_id,
+        action: "INITIATE_PAYMENT",
+        entityType: "payment",
+        entityId: paymentId,
+        details: {
           penaltyId: penalty.id,
-          gatewayResponse: {
-            message: error instanceof Error ? error.message : "Pesapal order creation failed.",
-          },
-          message: error instanceof Error ? error.message : "Pesapal order creation failed.",
-        });
-        throw new HttpError(502, "Failed to initiate Pesapal checkout.", error);
-      }
+          provider: "pesapal",
+          merchantReference: externalReference,
+          orderTrackingId: order.order_tracking_id,
+        },
+      });
+
+      sendJson(res, 201, {
+        payment: await getPaymentById(paymentId),
+        status: "pending",
+        redirectUrl: order.redirect_url,
+        orderTrackingId: order.order_tracking_id,
+        iframe: config.pesapalUseIframe,
+        message: "Redirecting to Pesapal secure checkout.",
+      });
     },
   },
   {
@@ -1448,7 +1455,7 @@ export const paymentRoutes: RouteDefinition[] = [
         return;
       }
 
-      await recordPaymentWebhookEvent({
+      const isNew = await recordPaymentWebhookEvent({
         provider: "pesapal",
         txRef: payload.orderMerchantReference,
         transactionId: payload.orderTrackingId,
@@ -1472,10 +1479,12 @@ export const paymentRoutes: RouteDefinition[] = [
             },
       });
 
-      await applyPesapalStatus({
-        orderTrackingId: payload.orderTrackingId,
-        merchantReference: payload.orderMerchantReference,
-      });
+      if (isNew) {
+        await applyPesapalStatus({
+          orderTrackingId: payload.orderTrackingId,
+          merchantReference: payload.orderMerchantReference,
+        });
+      }
 
       sendJson(res, 200, { status: 200, message: "IPN received" });
     },
@@ -1490,7 +1499,7 @@ export const paymentRoutes: RouteDefinition[] = [
         throw new HttpError(400, "Missing callback query parameters.");
       }
 
-      await recordPaymentWebhookEvent({
+      const isNew = await recordPaymentWebhookEvent({
         provider: "pesapal",
         txRef: payload.orderMerchantReference,
         transactionId: payload.orderTrackingId,
@@ -1502,10 +1511,14 @@ export const paymentRoutes: RouteDefinition[] = [
         },
       });
 
-      const payment = await applyPesapalStatus({
-        orderTrackingId: payload.orderTrackingId,
-        merchantReference: payload.orderMerchantReference,
-      });
+      const payment = isNew
+        ? await applyPesapalStatus({
+            orderTrackingId: payload.orderTrackingId,
+            merchantReference: payload.orderMerchantReference,
+          })
+        : await getPaymentById(
+            (await get<{ id: string }>(`SELECT id FROM payments WHERE external_reference = ?`, [payload.orderMerchantReference]))?.id ?? ""
+          );
 
       sendJson(res, 200, {
         ok: true,
@@ -1595,6 +1608,33 @@ export const paymentRoutes: RouteDefinition[] = [
       });
 
       sendJson(res, 200, { payment: await getPaymentById(payment.id) });
+    },
+  },
+  {
+    method: "GET",
+    path: "/payments/:id/redirect-url",
+    handler: async ({ res, auth, params }) => {
+      const { session } = resolveScopedMarket(auth, "payment:read");
+      const payment = await getPaymentById(params.id);
+      if (!payment) throw new HttpError(404, "Payment not found.");
+      if (session.user.role === "vendor" && payment.vendorId !== session.user.id) {
+        throw new HttpError(403, "Access denied.");
+      }
+      if (payment.status !== "initiating" && payment.status !== "pending") {
+        throw new HttpError(409, "Redirect URL is only available for active payments.");
+      }
+      const row = await get<{ gateway_response_json: string | null }>(
+        `SELECT gateway_response_json FROM payments WHERE id = ?`,
+        [params.id],
+      );
+      if (!row?.gateway_response_json) {
+        throw new HttpError(404, "No redirect URL available for this payment.");
+      }
+      const parsed = JSON.parse(row.gateway_response_json);
+      if (!parsed.redirect_url) {
+        throw new HttpError(404, "No redirect URL available for this payment.");
+      }
+      sendJson(res, 200, { redirectUrl: parsed.redirect_url, orderTrackingId: parsed.order_tracking_id || payment.transactionId });
     },
   },
   {

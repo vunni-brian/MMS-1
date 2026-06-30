@@ -12,6 +12,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { getPaymentPurpose, getPaymentReference } from "@/lib/payment-history";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,72 @@ interface PayableItem {
  penaltyId?: string | null;
  };
 }
+
+const REJECT_REASONS = [
+  "Duplicate receipt",
+  "Incorrect amount",
+  "Wrong account",
+  "Receipt illegible",
+  "Other",
+] as const;
+
+const RejectDialog = ({
+  open,
+  payment,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  payment: Payment | null;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+}) => {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState("");
+  const [customReason, setCustomReason] = useState("");
+
+  useEffect(() => {
+    if (open) { setSelected(""); setCustomReason(""); }
+  }, [open]);
+
+  const reason = selected === "Other" ? customReason.trim() : selected;
+
+  return (
+    <AlertDialog open={open} onOpenChange={(o) => !o && onCancel()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("payments:rejectReceipt")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {payment?.vendorName} — {formatCurrency(payment?.amount ?? 0)}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="space-y-3 py-2">
+          {REJECT_REASONS.map((r) => (
+            <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name="reject-reason" value={r} checked={selected === r} onChange={() => setSelected(r)} className="accent-emerald-700" />
+              {r}
+            </label>
+          ))}
+          {selected === "Other" && (
+            <Textarea
+              placeholder="Explain why you're rejecting this receipt..."
+              value={customReason}
+              onChange={(e) => setCustomReason(e.target.value)}
+              className="mt-2"
+              rows={3}
+            />
+          )}
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t("common:cancel")}</AlertDialogCancel>
+          <AlertDialogAction disabled={!reason || reason.length < 10} onClick={() => onConfirm(reason)}>
+            {t("common:reject")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
 
 const currentPeriod = () => {
  const now = new Date();
@@ -123,11 +190,13 @@ const ReceiptReviewRow = ({
   payment,
   onViewReceipt,
   onVerify,
+  onReject,
   isBusy,
 }: {
   payment: Payment;
   onViewReceipt: (payment: Payment) => void;
   onVerify: (payment: Payment, status: "verified" | "rejected") => void;
+  onReject: (payment: Payment) => void;
   isBusy: boolean;
 }) => {
   const { t } = useTranslation();
@@ -173,7 +242,7 @@ const ReceiptReviewRow = ({
   <CheckCircle2 className="mr-2 h-4 w-4" />
   {t("common:approve")}
   </Button>
-  <Button variant="outline" size="sm" disabled={isBusy} onClick={() => onVerify(payment, "rejected")}>
+  <Button variant="outline" size="sm" disabled={isBusy} onClick={() => onReject(payment)}>
   <XCircle className="mr-2 h-4 w-4" />
   {t("common:reject")}
   </Button>
@@ -326,24 +395,25 @@ const PaymentsPage = () => {
   },
  });
 
- const verifyReceipt = useMutation({
-  mutationFn: ({ payment, status }: { payment: Payment; status: "verified" | "rejected" }) =>
-  api.verifyPaymentReceipt(payment.id, {
-  status,
-  reason: status === "rejected" ? "Receipt rejected by manager review." : null,
-  }),
-  onSuccess: async (_, variables) => {
-  await queryClient.invalidateQueries({ queryKey: ["payments"] });
-  toast.success(variables.status === "verified" ? t("payments:receiptApproved") : t("payments:receiptRejected"));
-  },
-  onError: (error) => {
-  toast.error(t("payments:receiptReviewFailed"), {
-  description: error instanceof ApiError ? error.message : t("payments:receiptUpdateError"),
+  const verifyReceipt = useMutation({
+   mutationFn: ({ payment, status, reason }: { payment: Payment; status: "verified" | "rejected"; reason?: string | null }) =>
+   api.verifyPaymentReceipt(payment.id, {
+   status,
+   reason: status === "rejected" ? reason || "Receipt rejected." : null,
+   }),
+   onSuccess: async (_, variables) => {
+   await queryClient.invalidateQueries({ queryKey: ["payments"] });
+   toast.success(variables.status === "verified" ? t("payments:receiptApproved") : t("payments:receiptRejected"));
+   },
+   onError: (error) => {
+   toast.error(t("payments:receiptReviewFailed"), {
+   description: error instanceof ApiError ? error.message : t("payments:receiptUpdateError"),
+   });
+   },
   });
-  },
- });
 
   const [selectedReceiptPayment, setSelectedReceiptPayment] = useState<Payment | null>(null);
+  const [rejectDialogPayment, setRejectDialogPayment] = useState<Payment | null>(null);
 
  if (isError) {
   return (
@@ -396,15 +466,16 @@ const PaymentsPage = () => {
   </div>
   ) : (
   <div className="space-y-3">
-  {pendingReceiptPayments.map((payment) => (
-  <ReceiptReviewRow
-  key={payment.id}
-  payment={payment}
-   onViewReceipt={setSelectedReceiptPayment}
-  onVerify={(item, status) => verifyReceipt.mutate({ payment: item, status })}
-  isBusy={verifyReceipt.isPending}
-  />
-  ))}
+   {pendingReceiptPayments.map((payment) => (
+   <ReceiptReviewRow
+   key={payment.id}
+   payment={payment}
+    onViewReceipt={setSelectedReceiptPayment}
+   onVerify={(item, status) => verifyReceipt.mutate({ payment: item, status })}
+   onReject={(item) => setRejectDialogPayment(item)}
+   isBusy={verifyReceipt.isPending}
+   />
+   ))}
   </div>
   )}
      </CardContent>
@@ -446,6 +517,18 @@ const PaymentsPage = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      <RejectDialog
+        open={Boolean(rejectDialogPayment)}
+        payment={rejectDialogPayment}
+        onConfirm={(reason) => {
+          if (rejectDialogPayment) {
+            verifyReceipt.mutate({ payment: rejectDialogPayment, status: "rejected", reason });
+          }
+          setRejectDialogPayment(null);
+        }}
+        onCancel={() => setRejectDialogPayment(null)}
+      />
   </PageLayout>
   );
  }
@@ -582,14 +665,23 @@ const PaymentsPage = () => {
   />
   </div>
   <div className="space-y-1.5">
-  <Label htmlFor="receipt-file">{t("payments:receiptFile")}</Label>
-  <Input
-  id="receipt-file"
-  type="file"
-   accept=".jpg,.jpeg,.png,.webp,.pdf"
-   onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
-  />
-  </div>
+   <Label htmlFor="receipt-file">{t("payments:receiptFile")} <span className="text-xs text-slate-400">(max 5 MB)</span></Label>
+   <Input
+   id="receipt-file"
+   type="file"
+    accept=".jpg,.jpeg,.png,.webp,.pdf"
+    onChange={(event) => {
+      const file = event.target.files?.[0] || null;
+      if (file && file.size > 5 * 1024 * 1024) {
+        toast.error(t("payments:fileTooLarge"), { description: t("payments:fileTooLargeDesc") });
+        event.target.value = "";
+        setReceiptFile(null);
+        return;
+      }
+      setReceiptFile(file);
+    }}
+   />
+   </div>
   <div className="space-y-1.5 md:col-span-2">
   <Label htmlFor="receipt-note">{t("payments:noteToManager")}</Label>
   <Textarea

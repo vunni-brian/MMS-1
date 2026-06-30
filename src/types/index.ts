@@ -56,10 +56,11 @@ export type StallStatus = "active" | "inactive" | "maintenance";
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 
 /** Status of a payment transaction. */
-export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled";
+export type PaymentStatus = "initiating" | "pending" | "completed" | "failed" | "cancelled";
 
 /** Named charge types used to categorise billing items. */
-export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
+export const CHARGE_TYPE_NAMES = ["market_dues", "utilities", "penalties", "booking_fee", "payment_gateway"] as const;
+export type ChargeTypeName = typeof CHARGE_TYPE_NAMES[number];
 
 /** Scope determining whether a charge type applies globally or per-market. */
 export type ChargeTypeScope = "global" | "market";

@@ -60,6 +60,8 @@ let cachedToken: {
   expiresAt: number;
 } | null = null;
 
+let refreshPromise: Promise<string> | null = null;
+
 const parsePesapalResponse = async (response: Response) => {
   const text = await response.text();
   const payload = text
@@ -97,6 +99,7 @@ const pesapalFetch = async <T>(path: string, init: RequestInit = {}, token?: str
   const response = await fetch(`${config.pesapalBaseUrl}${path}`, {
     ...init,
     headers,
+    signal: init.signal ?? AbortSignal.timeout(30_000),
   });
 
   return (await parsePesapalResponse(response)) as T;
@@ -128,29 +131,33 @@ export const getPesapalToken = async () => {
     return cachedToken.token;
   }
 
+  if (refreshPromise) {
+    return await refreshPromise;
+  }
+
   if (!config.pesapalConsumerKey || !config.pesapalConsumerSecret) {
     throw new Error("Pesapal is not configured. Set PESAPAL_CONSUMER_KEY and PESAPAL_CONSUMER_SECRET.");
   }
 
-  const data = await pesapalFetch<PesapalTokenResponse>("/api/Auth/RequestToken", {
+  refreshPromise = pesapalFetch<PesapalTokenResponse>("/api/Auth/RequestToken", {
     method: "POST",
     body: JSON.stringify({
       consumer_key: config.pesapalConsumerKey,
       consumer_secret: config.pesapalConsumerSecret,
     }),
+  }).then((data) => {
+    if (!data.token) {
+      throw new Error(data.message || data.error?.message || "Pesapal token was not returned.");
+    }
+
+    const expiresAt = data.expiryDate ? new Date(data.expiryDate).getTime() - 30_000 : Date.now() + 4 * 60_000;
+    cachedToken = { token: data.token, expiresAt };
+    return data.token;
+  }).finally(() => {
+    refreshPromise = null;
   });
 
-  if (!data.token) {
-    throw new Error(data.message || data.error?.message || "Pesapal token was not returned.");
-  }
-
-  const expiresAt = data.expiryDate ? new Date(data.expiryDate).getTime() - 30_000 : Date.now() + 4 * 60_000;
-  cachedToken = {
-    token: data.token,
-    expiresAt,
-  };
-
-  return data.token;
+  return await refreshPromise;
 };
 
 /** Register the IPN (Instant Payment Notification) URL with Pesapal. */

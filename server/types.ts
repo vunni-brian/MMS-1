@@ -52,11 +52,12 @@ export type StallStatus = "active" | "inactive" | "maintenance";
 /** Lifecycle status of a booking. */
 export type BookingStatus = "pending" | "approved" | "rejected" | "paid";
 /** Transaction status of a payment. */
-export type PaymentStatus = "pending" | "completed" | "failed" | "cancelled";
+export type PaymentStatus = "initiating" | "pending" | "completed" | "failed" | "cancelled";
 /** Supported payment providers. */
-export type PaymentProvider = "mtn" | "airtel" | "pesapal";
+export type PaymentProvider = "mtn" | "airtel" | "pesapal" | "receipt";
 /** Named charge types for billing. */
-export type ChargeTypeName = "market_dues" | "utilities" | "penalties" | "booking_fee" | "payment_gateway";
+export const CHARGE_TYPE_NAMES = ["market_dues", "utilities", "penalties", "booking_fee", "payment_gateway"] as const;
+export type ChargeTypeName = typeof CHARGE_TYPE_NAMES[number];
 /** Whether a charge type applies globally or per-market. */
 export type ChargeTypeScope = "global" | "market";
 /** Categories of utility services. */
@@ -224,7 +225,6 @@ export interface AppConfig {
   otpLoginMessageTemplate: string | null;
   sessionTtlHours: number;
   notificationRetryCount: number;
-  paymentSettlementDelayMs: number;
   fallbackRoutesEnabled: boolean;
   pesapalConsumerKey: string;
   pesapalConsumerSecret: string;
