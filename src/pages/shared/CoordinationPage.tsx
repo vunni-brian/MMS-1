@@ -327,7 +327,9 @@ const CoordinationPage = () => {
             <DialogDescription>
               {confirmReview?.action === "approved"
                 ? t("coordination:approveDialogDesc", { title: confirmReview.request.title, name: confirmReview.request.managerName, amount: formatCurrency(confirmReview.request.amountRequested) })
-                : t("coordination:rejectDialogDesc", { title: confirmReview.request.title, name: confirmReview.request.managerName })}
+                : confirmReview?.action === "rejected"
+                  ? t("coordination:rejectDialogDesc", { title: confirmReview.request.title, name: confirmReview.request.managerName })
+                  : null}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">

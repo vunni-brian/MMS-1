@@ -100,6 +100,20 @@ const AdminMarketsPage = () => {
   
   const isLoading = marketsQuery.isPending || vendorsQuery.isPending || paymentsQuery.isPending || ticketsQuery.isPending || utilitiesQuery.isPending;
 
+  const getMarketHealth = ({
+    failedPayments,
+    openComplaints,
+    unpaidUtilityAmount,
+  }: {
+    failedPayments: number;
+    openComplaints: number;
+    unpaidUtilityAmount: number;
+  }): MarketHealth => {
+    if (failedPayments > 1 || openComplaints > 4 || unpaidUtilityAmount >= 2_000_000) return "attention";
+    if (failedPayments > 0 || openComplaints > 0 || unpaidUtilityAmount > 0) return "watch";
+    return "healthy";
+  };
+
   const marketRows = useMemo(() => {
     return markets.map((market) => {
       const marketPayments = payments.filter((payment) => payment.marketId === market.id);
@@ -155,20 +169,6 @@ const AdminMarketsPage = () => {
         return left.name.localeCompare(right.name);
       });
   }, [healthFilter, marketRows, search, sortBy]);
-
-  const getMarketHealth = ({
-    failedPayments,
-    openComplaints,
-    unpaidUtilityAmount,
-  }: {
-    failedPayments: number;
-    openComplaints: number;
-    unpaidUtilityAmount: number;
-  }): MarketHealth => {
-    if (failedPayments > 1 || openComplaints > 4 || unpaidUtilityAmount >= 2_000_000) return "attention";
-    if (failedPayments > 0 || openComplaints > 0 || unpaidUtilityAmount > 0) return "watch";
-    return "healthy";
-  };
 
   const totalVendors = vendors.length;
   const totalMarkets = markets.length;
